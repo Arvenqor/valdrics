@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-	BILLING_USAGE_ORDER,
-	canSelfServeCheckout,
-	getVisibleBillingPlans
-} from './billingPage';
+import { BILLING_USAGE_ORDER, canSelfServeCheckout, getVisibleBillingPlans } from './billingPage';
 import { DEFAULT_PRICING_PLANS } from '../pricing/plans';
 
 describe('billing page plan rules', () => {

@@ -9,6 +9,15 @@ import pytest
 from app.shared.core.runtime_dependencies import validate_runtime_dependencies
 
 
+@pytest.fixture(autouse=True)
+def _supported_python_runtime() -> None:
+    with patch(
+        "app.shared.core.runtime_dependencies._is_supported_python_runtime",
+        return_value=True,
+    ):
+        yield
+
+
 def _settings(
     *,
     environment: str = "development",
@@ -187,3 +196,14 @@ def test_validate_runtime_dependencies_skips_when_testing_enabled() -> None:
         side_effect=AssertionError("should not be called in testing"),
     ):
         validate_runtime_dependencies(settings)  # type: ignore[arg-type]
+
+
+def test_validate_runtime_dependencies_rejects_unsupported_python_runtime() -> None:
+    settings = _settings(environment="production")
+
+    with patch(
+        "app.shared.core.runtime_dependencies._is_supported_python_runtime",
+        return_value=False,
+    ):
+        with pytest.raises(RuntimeError, match="Unsupported Python runtime"):
+            validate_runtime_dependencies(settings)  # type: ignore[arg-type]

@@ -402,3 +402,87 @@ async def test_comprehensive_health_check_disables_networked_checks_in_testing()
     assert result["checks"]["cache"]["status"] == "disabled"
     assert result["checks"]["external_services"]["status"] == "disabled"
     assert result["checks"]["external_services"]["services"]["aws_sts"]["status"] == "disabled"
+
+
+@pytest.mark.asyncio
+async def test_check_database_prefers_injected_session_over_global_probe():
+    db = AsyncMock()
+    db.execute = AsyncMock(return_value=MagicMock())
+    service = HealthService(db=db)
+
+    with patch("app.shared.core.health.db_health_check", new=AsyncMock()) as global_check:
+        result = await service._check_database()
+
+    assert result["status"] == "up"
+    db.execute.assert_awaited_once()
+    global_check.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_comprehensive_health_check_sequences_db_backed_checks():
+    service = HealthService(db=AsyncMock())
+    observed_order: list[str] = []
+
+    async def _record(name: str, payload: dict[str, object]) -> dict[str, object]:
+        observed_order.append(name)
+        return payload
+
+    async def _database() -> dict[str, object]:
+        return await _record("database", {"status": "up"})
+
+    async def _cache() -> dict[str, object]:
+        return await _record("cache", {"status": "healthy"})
+
+    async def _external() -> dict[str, object]:
+        return await _record(
+            "external_services",
+            {"status": "healthy", "services": {"aws_sts": {"status": "healthy"}}},
+        )
+
+    async def _circuit() -> dict[str, object]:
+        return await _record("circuit_breakers", {"status": "healthy"})
+
+    async def _system() -> dict[str, object]:
+        return await _record("system_resources", {"status": "healthy"})
+
+    async def _jobs() -> dict[str, object]:
+        return await _record("background_jobs", {"status": "healthy"})
+
+    with (
+        patch.object(
+            service,
+            "_check_database",
+            new=AsyncMock(side_effect=_database),
+        ),
+        patch.object(
+            service,
+            "_check_cache",
+            new=AsyncMock(side_effect=_cache),
+        ),
+        patch.object(
+            service,
+            "_check_external_services",
+            new=AsyncMock(side_effect=_external),
+        ),
+        patch.object(
+            service,
+            "_check_circuit_breakers",
+            new=AsyncMock(side_effect=_circuit),
+        ),
+        patch.object(
+            service,
+            "_check_system_resources",
+            new=AsyncMock(side_effect=_system),
+        ),
+        patch.object(
+            service,
+            "_check_background_jobs",
+            new=AsyncMock(side_effect=_jobs),
+        ),
+    ):
+        result = await service.comprehensive_health_check()
+
+    assert result["checks"]["database"]["status"] == "up"
+    assert result["checks"]["background_jobs"]["status"] == "healthy"
+    assert observed_order[0] == "database"
+    assert observed_order[-1] == "background_jobs"

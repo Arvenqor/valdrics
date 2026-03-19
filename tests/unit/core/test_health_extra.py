@@ -58,7 +58,8 @@ async def test_check_aws_status_codes():
         async def __aexit__(self, exc_type, exc, tb):
             return None
 
-        async def get(self, _url):
+        async def get(self, _url, *, timeout=None):
+            assert timeout is not None
             return FakeResponse(self._code)
 
     with patch(

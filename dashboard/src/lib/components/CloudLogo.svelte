@@ -7,6 +7,7 @@
 	export let emphasizeMark: boolean = false;
 
 	$: lowProvider = provider?.toLowerCase() || 'aws';
+	$: prioritizeImage = lowProvider === 'valdrics' && (emphasizeMark || size >= 80);
 
 	const logos: Record<string, string> = {
 		aws: `${base}/aws-logo.svg`,
@@ -25,6 +26,9 @@
 			class:cloud-logo-image-emphasized={emphasizeMark && lowProvider === 'valdrics'}
 			width={size}
 			height={size}
+			decoding="async"
+			loading={prioritizeImage ? 'eager' : undefined}
+			fetchpriority={prioritizeImage ? 'high' : undefined}
 		/>
 	{:else}
 		<!-- Fallback Cloud Icon -->

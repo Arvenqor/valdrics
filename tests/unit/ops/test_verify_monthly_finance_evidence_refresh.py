@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -131,3 +132,42 @@ def test_main_accepts_valid_payloads(tmp_path: Path) -> None:
         ]
     )
     assert exit_code == 0
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "expected_message"),
+    [
+        (
+            {"max_age_days": math.nan, "max_capture_spread_days": 14.0, "max_future_skew_hours": 24.0},
+            "max_age_days must be finite",
+        ),
+        (
+            {"max_age_days": 35.0, "max_capture_spread_days": math.inf, "max_future_skew_hours": 24.0},
+            "max_capture_spread_days must be finite",
+        ),
+        (
+            {"max_age_days": 35.0, "max_capture_spread_days": 14.0, "max_future_skew_hours": math.nan},
+            "max_future_skew_hours must be finite",
+        ),
+    ],
+)
+def test_verify_monthly_finance_refresh_rejects_non_finite_bounds(
+    tmp_path: Path,
+    kwargs: dict[str, float],
+    expected_message: str,
+) -> None:
+    finance_guardrails = tmp_path / "finance-guardrails.json"
+    finance_telemetry = tmp_path / "finance-telemetry.json"
+    pkg_fin = tmp_path / "pkg-fin.json"
+    _write(finance_guardrails, captured_at="2026-02-27T10:00:00Z")
+    _write(finance_telemetry, captured_at="2026-02-28T12:00:00Z")
+    _write(pkg_fin, captured_at="2026-02-28T06:30:00Z")
+
+    with pytest.raises(ValueError, match=expected_message):
+        verify_monthly_refresh(
+            finance_guardrails_path=finance_guardrails,
+            finance_telemetry_snapshot_path=finance_telemetry,
+            pkg_fin_policy_decisions_path=pkg_fin,
+            as_of=AS_OF_UTC,
+            **kwargs,
+        )

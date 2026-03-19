@@ -101,6 +101,12 @@ It connects to your cloud, uncovers waste, explains spend behavior, and gives yo
 
 ## ✨ Features
 
+## Runtime Contract
+
+- Backend runtime and CI are pinned to `Python 3.12`.
+- Local `uv` workflows should use the repository `.python-version`.
+- `Python 3.13` is not part of the supported contract yet. The async SQLite test path is not treated as production-ready on that interpreter in this repository.
+
 ### 🧟 **Deep Zombie Detection**
 
 Not just "idle EC2." We find _everything_:
@@ -190,6 +196,8 @@ We're paranoid, so you don't have to be:
 
 ### Prerequisites
 
+- Python 3.12.x
+- `uv` (recommended for local backend workflows)
 - Docker & Docker Compose
 - An AWS account with:
   - AWS CUR configured to deliver Parquet reports to S3
@@ -212,6 +220,7 @@ We're paranoid, so you don't have to be:
 ```bash
 git clone https://github.com/Valdrics/valdrics.git
 cd valdrics
+uv sync --python 3.12 --dev
 cp .env.example .env
 ```
 
@@ -269,7 +278,7 @@ The dashboard will guide you through deploying our read-only IAM role via CloudF
 | **Frontend**      | SvelteKit (Svelte 5 Runes), TailwindCSS v4, Shadcn-Svelte           |
 | **Database**      | PostgreSQL (managed or self-hosted), Supabase-compatible auth flows |
 | **LLM**           | LangChain, OpenAI, Anthropic, Google Genai, Groq                    |
-| **Infra**         | Docker, Kubernetes (Helm), GitHub Actions, Prometheus               |
+| **Infra**         | Docker, Koyeb, GitHub Actions, Helm/Terraform (future scale), Prometheus |
 | **Observability** | OpenTelemetry, Grafana Dashboards, Prometheus Metrics               |
 | **GreenOps**      | CodeCarbon integration                                              |
 
@@ -277,28 +286,37 @@ The dashboard will guide you through deploying our read-only IAM role via CloudF
 
 ## 🏗️ Production Infrastructure
 
-Valdrics includes production-ready infrastructure components:
+Valdrics currently standardizes on:
 
-### Kubernetes Deployment
+- **Koyeb** for staging and production runtime
+- **GHCR** for immutable API/dashboard images
+- **GitHub Actions** for image publish and supply-chain checks
 
-```bash
-# Deploy with Helm
-helm install valdrics helm/valdrics/ \
-  --set image.tag=latest \
-  --set existingSecrets.name=valdrics-secrets
+The current release contract is:
 
-# Or customize values
-helm install valdrics helm/valdrics/ -f my-values.yaml
-```
+`publish once to GHCR -> promote the same digest-pinned images through Koyeb`
+
+See:
+
+- `docs/DEPLOYMENT.md`
+- `docs/runbooks/production_env_checklist.md`
+- `docs/runbooks/koyeb_release_promotion.md`
+
+### Future Scale Path
+
+Helm/Terraform/EKS remains in-repo as the future scale path when the platform
+outgrows the current Koyeb operating model.
 
 ### Pre-configured Components
 
 | Component              | Location                     | Description                                 |
 | ---------------------- | ---------------------------- | ------------------------------------------- |
-| **Helm Chart**         | `helm/valdrics/`             | Full K8s deployment (HPA, Ingress, Service) |
+| **Koyeb Runbooks**     | `docs/runbooks/`             | Current staging/production release path     |
+| **Helm Chart**         | `helm/valdrics/`             | Future scale deployment path                |
 | **Grafana Dashboards** | `grafana/dashboards/`        | API Overview + FinOps metrics               |
 | **Load Tests**         | `loadtest/`                  | k6 + Locust performance tests               |
 | **SBOM Generation**    | `.github/workflows/sbom.yml` | CycloneDX + vulnerability scanning          |
+| **GHCR Publish**       | `.github/workflows/publish-release-images.yml` | Immutable API/dashboard release images |
 
 ### CI/CD Pipeline
 

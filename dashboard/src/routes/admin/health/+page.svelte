@@ -166,8 +166,8 @@
 		<div class="card border-warning-500/50 bg-warning-500/10">
 			<h2 class="text-lg font-semibold mb-2">Platform Operator Access Required</h2>
 			<p class="text-ink-300 text-sm">
-				This dashboard is restricted to platform-scoped internal operators. Workspace admins do
-				not have access to platform-global health telemetry.
+				This dashboard is restricted to platform-scoped internal operators. Workspace admins do not
+				have access to platform-global health telemetry.
 			</p>
 		</div>
 	{:else if loading}

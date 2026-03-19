@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 import os
 import subprocess  # nosec B404 - controlled local pytest invocation only
 import sys
@@ -77,7 +78,7 @@ SUPPLEMENTAL_CHECKS: tuple[DrillCheck, ...] = (
     DrillCheck(
         key="endpoint_replay_tamper_guard",
         selector=(
-            "tests/unit/enforcement/enforcement_api_cases_part03.py::"
+            "tests/unit/enforcement/test_key_rotation_drill_selectors.py::"
             "test_consume_approval_token_endpoint_rejects_replay_and_tamper"
         ),
     ),
@@ -145,6 +146,22 @@ def _validate_selector(selector: str) -> str:
     if not candidate or candidate.startswith("-") or not candidate.startswith("tests/"):
         raise ValueError(f"Invalid pytest selector: {selector!r}")
     return candidate
+
+
+def _parse_positive_float_arg(value: float, *, field: str) -> float:
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise ValueError(f"{field} must be finite")
+    if parsed <= 0.0:
+        raise ValueError(f"{field} must be > 0")
+    return parsed
+
+
+def _parse_non_negative_int_arg(value: int, *, field: str) -> int:
+    parsed = int(value)
+    if parsed < 0:
+        raise ValueError(f"{field} must be >= 0")
+    return parsed
 
 
 def _run_selector(
@@ -280,9 +297,21 @@ def _build_markdown(
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    max_drill_age_days = _parse_positive_float_arg(
+        float(args.max_drill_age_days),
+        field="max_drill_age_days",
+    )
+    pytest_timeout_seconds = _parse_positive_float_arg(
+        float(args.pytest_timeout_seconds),
+        field="pytest_timeout_seconds",
+    )
+    selector_retries = _parse_non_negative_int_arg(
+        int(args.selector_retries),
+        field="selector_retries",
+    )
     field_results, selector_results, selector_logs = _execute_checks(
-        timeout_seconds=float(args.pytest_timeout_seconds),
-        retries=int(args.selector_retries),
+        timeout_seconds=pytest_timeout_seconds,
+        retries=selector_retries,
     )
     failed = [key for key, passed in field_results.items() if not passed]
     overall_passed = not failed
@@ -319,7 +348,7 @@ def main(argv: list[str] | None = None) -> int:
 
     verify_key_rotation_drill_evidence(
         drill_path=output_path,
-        max_drill_age_days=float(args.max_drill_age_days),
+        max_drill_age_days=max_drill_age_days,
     )
     print(f"Generated key-rotation drill evidence: {output_path}")
     return 0

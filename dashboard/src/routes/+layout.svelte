@@ -11,7 +11,6 @@
 <script lang="ts">
 	/* eslint-disable svelte/no-navigation-without-resolve */
 	import '../app.css';
-	import { createSupabaseBrowserClient } from '$lib/supabase';
 	import { invalidate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { tick } from 'svelte';
@@ -19,7 +18,6 @@
 	import ToastComponent from '$lib/components/Toast.svelte';
 	import { base } from '$app/paths';
 	import { browser } from '$app/environment';
-	import { jobStore } from '$lib/stores/jobs.svelte';
 	import { allowedNavHrefs, isAdminRole, normalizePersona } from '$lib/persona';
 	import {
 		getFocusableElements,
@@ -48,7 +46,7 @@
 	type NavItem = { href: string; label: string; icon: string };
 
 	const allNavItems: NavItem[] = [
-		{ href: '/', label: 'Dashboard', icon: '📊' },
+		{ href: '/dashboard', label: 'Dashboard', icon: '📊' },
 		{ href: '/ops', label: 'Ops Center', icon: '🛠️' },
 		{ href: '/onboarding', label: 'Onboarding', icon: '🧭' },
 		{ href: '/roi-planner', label: 'ROI Planner', icon: '📈' },
@@ -74,6 +72,12 @@
 	let publicResourcesMenuOpen = $state(false);
 	let publicResourcesPanel = $state<HTMLDivElement | null>(null);
 	let publicResourcesButton = $state<HTMLButtonElement | null>(null);
+	type LiveJobStore = {
+		activeJobsCount: number;
+		init: () => Promise<void> | void;
+		disconnect: () => void;
+	};
+	let liveJobStore = $state<LiveJobStore | null>(null);
 
 	$effect(() => {
 		if (!browser) return;
@@ -149,23 +153,48 @@
 
 	$effect(() => {
 		if (!browser || !data.user) return;
-		const supabase = createSupabaseBrowserClient();
-		const {
-			data: { subscription }
-		} = supabase.auth.onAuthStateChange((event) => {
-			if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-				invalidate('supabase:auth');
-			}
+		let cancelled = false;
+		let unsubscribe: (() => void) | undefined;
+
+		void import('$lib/supabase').then(({ createSupabaseBrowserClient }) => {
+			if (cancelled) return;
+			const supabase = createSupabaseBrowserClient();
+			const {
+				data: { subscription }
+			} = supabase.auth.onAuthStateChange((event) => {
+				if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+					invalidate('supabase:auth');
+				}
+			});
+			unsubscribe = () => subscription.unsubscribe();
 		});
-		return () => subscription.unsubscribe();
+
+		return () => {
+			cancelled = true;
+			unsubscribe?.();
+		};
 	});
 
 	$effect(() => {
-		if (browser && data.user) {
-			jobStore.init();
-		} else if (browser && !data.user) {
-			jobStore.disconnect();
-		}
+		if (!browser || !data.user) return;
+		let cancelled = false;
+		let disconnect: (() => void) | undefined;
+
+		void import('$lib/stores/jobs.svelte').then(({ jobStore }) => {
+			if (cancelled) {
+				jobStore.disconnect();
+				return;
+			}
+			liveJobStore = jobStore;
+			disconnect = () => jobStore.disconnect();
+			void jobStore.init();
+		});
+
+		return () => {
+			cancelled = true;
+			liveJobStore = null;
+			disconnect?.();
+		};
 	});
 
 	$effect(() => {
@@ -300,6 +329,7 @@
 			bind:showAllNav
 			{persona}
 			{prefersReducedMotion}
+			jobStore={liveJobStore}
 			{toAppPath}
 			{isActive}
 		>

@@ -16,8 +16,8 @@
 }
 
 .step.active {
-	background: var(--primary, #6366f1);
-	color: white;
+	background: var(--color-primary-500, #4f46e5);
+	color: var(--color-ink-50, #f5f7fa);
 }
 
 .step.complete {
@@ -49,9 +49,9 @@
 }
 
 .tab.active {
-	background: var(--primary, #6366f1);
-	border-color: var(--primary, #6366f1);
-	color: white;
+	background: var(--color-primary-500, #4f46e5);
+	border-color: var(--color-primary-500, #4f46e5);
+	color: var(--color-ink-50, #f5f7fa);
 }
 
 .info-box {
@@ -93,8 +93,8 @@
 }
 
 .icon-btn:hover {
-	background: var(--primary, #6366f1);
-	color: white;
+	background: var(--color-primary-500, #4f46e5);
+	color: var(--color-ink-50, #f5f7fa);
 }
 
 .code-block {
@@ -133,8 +133,8 @@ input {
 	display: inline-block;
 	width: 100%;
 	padding: 1rem;
-	background: var(--primary, #6366f1);
-	color: white;
+	background: var(--color-primary-500, #4f46e5);
+	color: var(--color-ink-50, #f5f7fa);
 	border: none;
 	border-radius: 8px;
 	font-size: 1rem;
@@ -145,7 +145,7 @@ input {
 }
 
 .primary-btn:hover {
-	opacity: 0.9;
+	background: #4338ca;
 }
 
 .primary-btn:disabled {

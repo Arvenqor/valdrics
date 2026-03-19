@@ -106,7 +106,8 @@ def test_release_images_are_immutable_and_observability_images_are_pinned() -> N
     assert ":latest" not in prod_compose["services"]["api"]["image"]
     assert ":latest" not in prod_compose["services"]["dashboard"]["image"]
     assert 'VERSION must be set to an immutable release tag' in makefile_text
-    assert "ghcr.io/valdrics-ai/valdrics:$(VERSION)" in makefile_text
+    assert "scripts/generate_managed_deployment_artifacts.py --environment $(ENVIRONMENT)" in makefile_text
+    assert "docs/runbooks/koyeb_release_promotion.md" in makefile_text
 
 
 def test_local_compose_bootstraps_postgres_and_redis_for_offline_dev() -> None:
@@ -242,6 +243,9 @@ def test_regional_failover_workflow_uses_repo_managed_oidc_aws_auth() -> None:
 def test_deployment_docs_match_runtime_contracts() -> None:
     root_doc = (REPO_ROOT / "DEPLOYMENT.md").read_text(encoding="utf-8")
     ops_doc = (REPO_ROOT / "docs/DEPLOYMENT.md").read_text(encoding="utf-8")
+    release_runbook = (
+        REPO_ROOT / "docs/runbooks/koyeb_release_promotion.md"
+    ).read_text(encoding="utf-8")
 
     assert "/health/live" in root_doc
     assert "/_internal/metrics" in root_doc
@@ -251,9 +255,13 @@ def test_deployment_docs_match_runtime_contracts() -> None:
     assert "--from-literal=OPENAI_API_KEY=" in root_doc
     assert "/health/live" in ops_doc
     assert "configured max break-glass window" in ops_doc
-    assert "Supported production deployment profile" in ops_doc
-    assert "Reference Managed-Platform Manifests" in ops_doc
-    assert "koyeb-worker.yaml" in ops_doc
+    assert "Current supported production deployment profile" in ops_doc
+    assert "Koyeb managed services with immutable image promotion" in ops_doc
+    assert "Future Scale Profile" in ops_doc
+    assert ".github/workflows/publish-release-images.yml" in ops_doc
+    assert "koyeb-release.json" in ops_doc
+    assert "promotion_ref" in release_runbook
+    assert "ghcr-release.env" in release_runbook
 
 
 def test_frontend_ci_node_version_matches_dashboard_container() -> None:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -233,3 +234,32 @@ def test_main_accepts_valid_payload(tmp_path: Path) -> None:
         )
         == 0
     )
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "expected_message"),
+    [
+        (
+            {"max_artifact_age_days": math.nan, "max_review_window_days": 120.0},
+            "max_artifact_age_days must be finite",
+        ),
+        (
+            {"max_artifact_age_days": 45.0, "max_review_window_days": math.inf},
+            "max_review_window_days must be finite",
+        ),
+    ],
+)
+def test_verify_valdrics_disposition_freshness_rejects_non_finite_bounds(
+    tmp_path: Path,
+    kwargs: dict[str, float],
+    expected_message: str,
+) -> None:
+    path = tmp_path / "valdrics-disposition.json"
+    _write(path, _valid_payload())
+
+    with pytest.raises(ValueError, match=expected_message):
+        verify_disposition_register(
+            register_path=path,
+            as_of=AS_OF_UTC,
+            **kwargs,
+        )

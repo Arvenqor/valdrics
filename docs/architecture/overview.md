@@ -2,7 +2,8 @@
 
 Valdrics is implemented as a modular Python web platform with a SvelteKit
 dashboard, a FastAPI API, shared infrastructure services, and deployment
-profiles for both Kubernetes and PaaS environments.
+profiles for both Koyeb-managed services today and Kubernetes as a future scale
+path.
 
 ## Architectural Shape
 
@@ -35,23 +36,33 @@ not a claim that every module has perfect isolation.
 
 ## Supported Deployment Profiles
 
+### Koyeb-Managed Services
+
+The current supported deployment surface is Koyeb-managed services promoted from
+immutable container images. The managed bundle under `.runtime/deploy/` defines:
+
+- API service runtime contract
+- worker service runtime contract
+- dashboard public env contract
+- release metadata for image promotion
+
 ### Helm Chart
 
-The primary repository-managed Kubernetes deployment surface is the Helm chart
-in `helm/valdrics/`. It defines:
+The repository also retains a Helm chart in `helm/valdrics/` as a future scale
+path. It defines:
 
 - multi-replica API deployment
 - worker deployment
 - ingress and internal metrics protections
 - production defaults for security context and anti-affinity
 
-### Reference Managed-Platform Manifests
+### Legacy Single-File Koyeb Manifests
 
-The repository also includes Cloudflare Pages + Koyeb manifests as a reference
-managed-platform surface. This reference managed-platform surface is not part
-of the supported production
-contract because the checked-in manifests are Git-branch driven rather than
-immutable-release driven.
+The repository also includes `koyeb.yaml` and `koyeb-worker.yaml` as legacy
+single-file helpers. They are not the authoritative production handoff; the
+generated managed bundle under `.runtime/deploy/` is the supported Koyeb
+release surface because it captures environment-specific secrets, dashboard
+public env, and immutable release metadata together.
 
 ## Security and Tenancy
 

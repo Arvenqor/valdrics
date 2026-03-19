@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import math
 from contextlib import suppress
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -16,6 +17,7 @@ import httpx
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from scripts.in_process_runtime_env import configure_isolated_test_environment
+from scripts.verify_enforcement_stress_evidence import verify_evidence
 
 
 ENFORCEMENT_ENDPOINTS: tuple[str, ...] = (
@@ -119,6 +121,87 @@ def _extract_health_database_engine(payload: Any) -> str:
     return _normalize_database_engine_name(
         database.get("engine") or database.get("dialect")
     )
+
+
+def _parse_positive_int(value: Any, *, field: str) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field} must be integer-like") from exc
+    if parsed <= 0:
+        raise ValueError(f"{field} must be > 0")
+    return parsed
+
+
+def _parse_non_negative_int(value: Any, *, field: str) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field} must be integer-like") from exc
+    if parsed < 0:
+        raise ValueError(f"{field} must be >= 0")
+    return parsed
+
+
+def _parse_positive_float(value: Any, *, field: str) -> float:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field} must be numeric") from exc
+    if not math.isfinite(parsed):
+        raise ValueError(f"{field} must be finite")
+    if parsed <= 0:
+        raise ValueError(f"{field} must be > 0")
+    return parsed
+
+
+def _parse_non_negative_float(value: Any, *, field: str) -> float:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field} must be numeric") from exc
+    if not math.isfinite(parsed):
+        raise ValueError(f"{field} must be finite")
+    if parsed < 0:
+        raise ValueError(f"{field} must be >= 0")
+    return parsed
+
+
+def _normalize_load_profile_args(args: argparse.Namespace) -> dict[str, float | int]:
+    return {
+        "duration_seconds": _parse_positive_int(
+            getattr(args, "duration_seconds", None),
+            field="duration_seconds",
+        ),
+        "concurrent_users": _parse_positive_int(
+            getattr(args, "concurrent_users", None),
+            field="concurrent_users",
+        ),
+        "ramp_seconds": _parse_non_negative_int(
+            getattr(args, "ramp_seconds", None),
+            field="ramp_seconds",
+        ),
+        "rounds": _parse_positive_int(
+            getattr(args, "rounds", None),
+            field="rounds",
+        ),
+        "pause_seconds": _parse_non_negative_float(
+            getattr(args, "pause_seconds", None),
+            field="pause_seconds",
+        ),
+        "max_p95_seconds": _parse_positive_float(
+            getattr(args, "max_p95_seconds", None),
+            field="max_p95_seconds",
+        ),
+        "max_error_rate_percent": _parse_non_negative_float(
+            getattr(args, "max_error_rate_percent", None),
+            field="max_error_rate_percent",
+        ),
+        "min_throughput_rps": _parse_positive_float(
+            getattr(args, "min_throughput_rps", None),
+            field="min_throughput_rps",
+        ),
+    }
 
 
 def _resolve_requested_database_url(
@@ -296,24 +379,96 @@ async def _collect_runtime_snapshot(client: httpx.AsyncClient) -> dict[str, Any]
 
 
 def _result_to_payload(result: Any) -> dict[str, Any]:
+    counts = _result_counts(result)
+    metrics = _result_metrics(result)
     return {
-        "total_requests": int(getattr(result, "total_requests", 0) or 0),
-        "successful_requests": int(getattr(result, "successful_requests", 0) or 0),
-        "failed_requests": int(getattr(result, "failed_requests", 0) or 0),
-        "throughput_rps": float(getattr(result, "throughput_rps", 0.0) or 0.0),
-        "avg_response_time": float(getattr(result, "avg_response_time", 0.0) or 0.0),
-        "median_response_time": float(
-            getattr(result, "median_response_time", 0.0) or 0.0
-        ),
-        "p95_response_time": float(getattr(result, "p95_response_time", 0.0) or 0.0),
-        "p99_response_time": float(getattr(result, "p99_response_time", 0.0) or 0.0),
-        "min_response_time": float(getattr(result, "min_response_time", 0.0) or 0.0),
-        "max_response_time": float(getattr(result, "max_response_time", 0.0) or 0.0),
+        **counts,
+        **metrics,
         "errors_sample": list(getattr(result, "errors", [])[:10]),
     }
 
 
+def _normalize_result_metric(value: Any, *, field: str) -> float:
+    try:
+        parsed = float(value or 0.0)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field} must be numeric") from exc
+    if not math.isfinite(parsed):
+        raise ValueError(f"{field} must be finite")
+    if parsed < 0:
+        raise ValueError(f"{field} must be >= 0")
+    return parsed
+
+
+def _normalize_result_count(value: Any, *, field: str) -> int:
+    try:
+        parsed = int(value or 0)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field} must be integer-like") from exc
+    if parsed < 0:
+        raise ValueError(f"{field} must be >= 0")
+    return parsed
+
+
+def _result_counts(result: Any) -> dict[str, int]:
+    total_requests = _normalize_result_count(
+        getattr(result, "total_requests", 0),
+        field="result.total_requests",
+    )
+    successful_requests = _normalize_result_count(
+        getattr(result, "successful_requests", 0),
+        field="result.successful_requests",
+    )
+    failed_requests = _normalize_result_count(
+        getattr(result, "failed_requests", 0),
+        field="result.failed_requests",
+    )
+    if successful_requests + failed_requests > total_requests:
+        raise ValueError(
+            "result.successful_requests + result.failed_requests must be <= result.total_requests"
+        )
+    return {
+        "total_requests": total_requests,
+        "successful_requests": successful_requests,
+        "failed_requests": failed_requests,
+    }
+
+
+def _result_metrics(result: Any) -> dict[str, float]:
+    return {
+        "throughput_rps": _normalize_result_metric(
+            getattr(result, "throughput_rps", 0.0),
+            field="result.throughput_rps",
+        ),
+        "avg_response_time": _normalize_result_metric(
+            getattr(result, "avg_response_time", 0.0),
+            field="result.avg_response_time",
+        ),
+        "median_response_time": _normalize_result_metric(
+            getattr(result, "median_response_time", 0.0),
+            field="result.median_response_time",
+        ),
+        "p95_response_time": _normalize_result_metric(
+            getattr(result, "p95_response_time", 0.0),
+            field="result.p95_response_time",
+        ),
+        "p99_response_time": _normalize_result_metric(
+            getattr(result, "p99_response_time", 0.0),
+            field="result.p99_response_time",
+        ),
+        "min_response_time": _normalize_result_metric(
+            getattr(result, "min_response_time", 0.0),
+            field="result.min_response_time",
+        ),
+        "max_response_time": _normalize_result_metric(
+            getattr(result, "max_response_time", 0.0),
+            field="result.max_response_time",
+        ),
+    }
+
+
 async def generate_evidence(args: argparse.Namespace) -> dict[str, Any]:
+    load_profile = _normalize_load_profile_args(args)
     required_database_engine = _normalize_database_engine_name(
         getattr(args, "required_database_engine", "postgresql")
     )
@@ -354,14 +509,15 @@ async def generate_evidence(args: argparse.Namespace) -> dict[str, Any]:
         http_core._client = client
         run_payloads: list[dict[str, Any]] = []
         raw_results: list[Any] = []
+        normalized_results: list[dict[str, float]] = []
         try:
-            rounds = max(1, int(args.rounds))
+            rounds = int(load_profile["rounds"])
             for idx in range(rounds):
                 tester = LoadTester(
                     LoadTestConfig(
-                        duration_seconds=max(1, int(args.duration_seconds)),
-                        concurrent_users=max(1, int(args.concurrent_users)),
-                        ramp_up_seconds=max(0, int(args.ramp_seconds)),
+                        duration_seconds=int(load_profile["duration_seconds"]),
+                        concurrent_users=int(load_profile["concurrent_users"]),
+                        ramp_up_seconds=int(load_profile["ramp_seconds"]),
                         target_url=target_url,
                         endpoints=endpoints,
                         request_timeout=15.0,
@@ -370,46 +526,46 @@ async def generate_evidence(args: argparse.Namespace) -> dict[str, Any]:
                 )
                 raw = await tester.run_load_test()
                 raw_results.append(raw)
+                counts = _result_counts(raw)
+                normalized = _result_metrics(raw)
+                normalized_results.append(normalized)
                 run_payloads.append(
                     {
                         "run_index": idx + 1,
                         "captured_at": datetime.now(timezone.utc).isoformat(),
-                        "results": _result_to_payload(raw),
+                        "results": {
+                            **counts,
+                            **normalized,
+                            "errors_sample": list(getattr(raw, "errors", [])[:10]),
+                        },
                     }
                 )
-                if float(args.pause_seconds) > 0 and idx < rounds - 1:
-                    await asyncio.sleep(float(args.pause_seconds))
+                if float(load_profile["pause_seconds"]) > 0 and idx < rounds - 1:
+                    await asyncio.sleep(float(load_profile["pause_seconds"]))
         finally:
             http_core._client = previous_client
             if previous_client is None:
                 with suppress(Exception):
                     await http_core.close_http_client()
 
-    total_requests = sum(int(getattr(r, "total_requests", 0) or 0) for r in raw_results)
-    successful_requests = sum(
-        int(getattr(r, "successful_requests", 0) or 0) for r in raw_results
+    normalized_counts = [_result_counts(result) for result in raw_results]
+    total_requests = sum(item["total_requests"] for item in normalized_counts)
+    successful_requests = sum(item["successful_requests"] for item in normalized_counts)
+    failed_requests = sum(item["failed_requests"] for item in normalized_counts)
+    worst_p95 = max(item["p95_response_time"] for item in normalized_results)
+    worst_p99 = max(item["p99_response_time"] for item in normalized_results)
+    min_throughput = min(item["throughput_rps"] for item in normalized_results)
+    avg_throughput = sum(item["throughput_rps"] for item in normalized_results) / max(
+        1, len(normalized_results)
     )
-    failed_requests = sum(int(getattr(r, "failed_requests", 0) or 0) for r in raw_results)
-    worst_p95 = max(float(getattr(r, "p95_response_time", 0.0) or 0.0) for r in raw_results)
-    worst_p99 = max(float(getattr(r, "p99_response_time", 0.0) or 0.0) for r in raw_results)
-    min_throughput = min(
-        float(getattr(r, "throughput_rps", 0.0) or 0.0) for r in raw_results
+    min_response = min(item["min_response_time"] for item in normalized_results)
+    max_response = max(item["max_response_time"] for item in normalized_results)
+    avg_response_time = sum(item["avg_response_time"] for item in normalized_results) / max(
+        1, len(normalized_results)
     )
-    avg_throughput = sum(
-        float(getattr(r, "throughput_rps", 0.0) or 0.0) for r in raw_results
-    ) / max(1, len(raw_results))
-    min_response = min(
-        float(getattr(r, "min_response_time", 0.0) or 0.0) for r in raw_results
-    )
-    max_response = max(
-        float(getattr(r, "max_response_time", 0.0) or 0.0) for r in raw_results
-    )
-    avg_response_time = sum(
-        float(getattr(r, "avg_response_time", 0.0) or 0.0) for r in raw_results
-    ) / max(1, len(raw_results))
     median_response_time = sum(
-        float(getattr(r, "median_response_time", 0.0) or 0.0) for r in raw_results
-    ) / max(1, len(raw_results))
+        item["median_response_time"] for item in normalized_results
+    ) / max(1, len(normalized_results))
 
     errors_sample: list[str] = []
     for raw in raw_results:
@@ -420,9 +576,9 @@ async def generate_evidence(args: argparse.Namespace) -> dict[str, Any]:
             break
 
     thresholds = LoadTestThresholds(
-        max_p95_seconds=float(args.max_p95_seconds),
-        max_error_rate_percent=float(args.max_error_rate_percent),
-        min_throughput_rps=float(args.min_throughput_rps),
+        max_p95_seconds=float(load_profile["max_p95_seconds"]),
+        max_error_rate_percent=float(load_profile["max_error_rate_percent"]),
+        min_throughput_rps=float(load_profile["min_throughput_rps"]),
     )
     per_round = [evaluate_load_test_result(raw, thresholds) for raw in raw_results]
 
@@ -430,11 +586,11 @@ async def generate_evidence(args: argparse.Namespace) -> dict[str, Any]:
         "profile": "enforcement",
         "target_url": target_url,
         "endpoints": endpoints,
-        "duration_seconds": max(1, int(args.duration_seconds)),
-        "concurrent_users": max(1, int(args.concurrent_users)),
-        "ramp_up_seconds": max(0, int(args.ramp_seconds)),
+        "duration_seconds": int(load_profile["duration_seconds"]),
+        "concurrent_users": int(load_profile["concurrent_users"]),
+        "ramp_up_seconds": int(load_profile["ramp_seconds"]),
         "request_timeout": 15.0,
-        "rounds": max(1, int(args.rounds)),
+        "rounds": int(load_profile["rounds"]),
         "runs": run_payloads,
         "results": {
             "total_requests": total_requests,
@@ -473,10 +629,23 @@ async def generate_evidence(args: argparse.Namespace) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    load_profile = _normalize_load_profile_args(args)
     payload = asyncio.run(generate_evidence(args))
     output_path = Path(str(args.output))
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    verify_evidence(
+        evidence_path=output_path,
+        expected_profile="enforcement",
+        min_rounds=int(load_profile["rounds"]),
+        min_duration_seconds=int(load_profile["duration_seconds"]),
+        min_concurrent_users=int(load_profile["concurrent_users"]),
+        required_database_engine=str(getattr(args, "required_database_engine", "postgresql")),
+        max_p95_seconds=float(load_profile["max_p95_seconds"]),
+        max_error_rate_percent=float(load_profile["max_error_rate_percent"]),
+        min_throughput_rps=float(load_profile["min_throughput_rps"]),
+        max_artifact_age_hours=4.0,
+    )
     print(json.dumps(payload, indent=2, sort_keys=True))
     if not bool(payload.get("meets_targets")):
         return 1

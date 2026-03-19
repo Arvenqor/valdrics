@@ -6,7 +6,18 @@ from pathlib import Path
 import sys
 from unittest.mock import patch
 
+import pytest
+
 from scripts import validate_runtime_env
+
+
+@pytest.fixture(autouse=True)
+def _patch_supported_python_runtime() -> None:
+    with patch(
+        "app.shared.core.runtime_dependencies._is_supported_python_runtime",
+        return_value=True,
+    ):
+        yield
 
 
 def _set_strict_env() -> None:
@@ -244,3 +255,69 @@ def test_validate_runtime_env_rejects_placeholder_public_url(
 
     assert result == 1
     assert "API_URL contains unresolved placeholder values." in capsys.readouterr().err
+
+
+def test_validate_runtime_env_rejects_unsupported_python_runtime(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    env_file = tmp_path / "production.env"
+    env_file.write_text(
+        "\n".join(
+            [
+                "DATABASE_URL=postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/valdrics",
+                "CSRF_SECRET_KEY=ci-csrf-secret-key-32-chars-min-000000",
+                "ENCRYPTION_KEY=ci-encryption-key-32-chars-min-00000000",
+                "KDF_SALT=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
+                "SUPABASE_JWT_SECRET=ci-supabase-jwt-secret-32-chars-0000",
+                "ADMIN_API_KEY=ci-admin-api-key-32-chars-min-0000000",
+                "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN=arn:aws:iam::123456789012:role/ValdricsControlPlane",
+                "ENFORCEMENT_APPROVAL_TOKEN_SECRET=ci-enforcement-approval-token-secret-32-chars",
+                "ENFORCEMENT_EXPORT_SIGNING_SECRET=ci-enforcement-export-signing-secret-32-char",
+                "GROQ_API_KEY=testing",
+                "LLM_PROVIDER=groq",
+                "PAYSTACK_SECRET_KEY=example_paystack_secret_ci_validation_only",
+                "PAYSTACK_PUBLIC_KEY=example_paystack_public_ci_validation_only",
+                "ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=true",
+                "REDIS_URL=redis://localhost:6379/0",
+                "SENTRY_DSN=https://example@sentry.io/1",
+                "OTEL_EXPORTER_OTLP_ENDPOINT=https://otel-collector:4317",
+                "API_URL=https://api.runtime.example",
+                "FRONTEND_URL=https://app.runtime.example",
+                'CORS_ORIGINS=["https://app.runtime.example"]',
+                "TRUST_PROXY_HEADERS=true",
+                'TRUSTED_PROXY_CIDRS=["203.0.113.10/32"]',
+                "FORECASTER_ALLOW_HOLT_WINTERS_FALLBACK=true",
+                "FORECASTER_BREAK_GLASS_REASON='Hermetic validator test without prophet wheel.'",
+                f"FORECASTER_BREAK_GLASS_EXPIRES_AT={(datetime.now(timezone.utc) + timedelta(hours=4)).isoformat()}",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    with patch.dict(os.environ, {}, clear=True):
+        with (
+            patch(
+                "app.shared.core.runtime_dependencies._module_available",
+                return_value=True,
+            ),
+            patch(
+                "app.shared.core.runtime_dependencies._is_supported_python_runtime",
+                return_value=False,
+            ),
+        ):
+            monkeypatch.setattr(
+                sys,
+                "argv",
+                [
+                    "validate_runtime_env.py",
+                    "--environment",
+                    "production",
+                    "--env-file",
+                    str(env_file),
+                ],
+            )
+
+            result = validate_runtime_env.main()
+
+    assert result == 1
+    assert "Unsupported Python runtime" in capsys.readouterr().err

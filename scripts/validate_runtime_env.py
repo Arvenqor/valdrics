@@ -3,6 +3,7 @@
 Runtime environment preflight validator.
 
 Validates:
+- Supported Python runtime contract (Python 3.12.x)
 - Settings contract (required secrets/env, security constraints)
 - Runtime dependency contract (tiktoken, prophet fallback policy, sentry-sdk when DSN set)
 """

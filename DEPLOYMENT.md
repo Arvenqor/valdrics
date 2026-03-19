@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Python 3.12+
+- Python 3.12.x
 - Docker & Docker Compose
 - PostgreSQL (or Supabase)
 - Redis (for caching/Celery)
@@ -17,7 +17,7 @@ git clone https://github.com/Valdrics/valdrics.git
 cd valdrics
 
 # Install dependencies (using uv)
-uv sync
+uv sync --python 3.12
 
 # Fast local sqlite path
 make env-dev

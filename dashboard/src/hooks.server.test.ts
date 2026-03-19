@@ -17,7 +17,17 @@ const mocks = vi.hoisted(() => ({
 		NODE_ENV: 'production',
 		TESTING: 'false',
 		E2E_ALLOW_PROD_PREVIEW: 'false',
-		E2E_AUTH_SECRET: ''
+		E2E_AUTH_SECRET: '',
+		SUPABASE_JWT_SECRET: 'test-jwt-secret-at-least-32-bytes-long',
+		SUPABASE_JWT_ISSUER: 'supabase',
+		PLAYWRIGHT_E2E_USER_ID: '33333333-3333-4333-8333-333333333333',
+		PLAYWRIGHT_E2E_USER_EMAIL: 'fixture@valdrics.test',
+		PLAYWRIGHT_E2E_USER_NAME: 'Fixture User',
+		PLAYWRIGHT_E2E_TENANT_ID: '11111111-1111-4111-8111-111111111111',
+		PLAYWRIGHT_E2E_TENANT_NAME: 'Fixture Tenant',
+		PLAYWRIGHT_E2E_USER_ROLE: 'admin',
+		PLAYWRIGHT_E2E_USER_PERSONA: 'engineering',
+		PLAYWRIGHT_E2E_TIER: 'growth'
 	}
 }));
 
@@ -222,10 +232,9 @@ describe('hooks.server handle', () => {
 		} as Parameters<typeof handle>[0]);
 
 		const sessionResult = await event.locals.safeGetSession();
-		expect(sessionResult.user?.id).toMatch(
-			/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-		);
-		expect(sessionResult.session?.access_token).toMatch(/^[0-9a-f]{64}$/i);
+		expect(sessionResult.user?.id).toBe(mocks.privateEnv.PLAYWRIGHT_E2E_USER_ID);
+		expect(sessionResult.user?.email).toBe(mocks.privateEnv.PLAYWRIGHT_E2E_USER_EMAIL);
+		expect(sessionResult.session?.access_token.split('.')).toHaveLength(3);
 		expect(sessionResult.session?.refresh_token).toMatch(/^[0-9a-f]{64}$/i);
 	});
 });

@@ -5,17 +5,17 @@ from uuid import uuid4
 from unittest.mock import AsyncMock, patch
 from httpx import AsyncClient
 
-from app.models.tenant import Tenant
-from app.shared.core.auth import CurrentUser, UserRole
-from app.shared.core.pricing import PricingTier
+from app.shared.core.auth import CurrentUser, UserRole, requires_role
+from app.shared.core.dependencies import requires_feature
+from app.shared.core.pricing import FeatureFlag, PricingTier
 
 class TestSecurityHeadersAndErrors:
     """Tests for security headers and error handling."""
 
     @pytest.mark.asyncio
-    async def test_security_headers_present(self, ac: AsyncClient):
+    async def test_security_headers_present(self, ac_no_db: AsyncClient):
         """Test that security headers are present on all responses."""
-        response = await ac.get("/health")
+        response = await ac_no_db.get("/health/live")
 
         # Check required security headers
         headers = response.headers
@@ -32,10 +32,10 @@ class TestSecurityHeadersAndErrors:
         assert "style-src-attr 'none'" in csp
 
     @pytest.mark.asyncio
-    async def test_error_responses_sanitized(self, ac: AsyncClient):
+    async def test_error_responses_sanitized(self, ac_no_db: AsyncClient):
         """Test that error responses don't leak sensitive information."""
         # Try to access non-existent endpoint
-        response = await ac.get("/api/v1/non-existent-endpoint")
+        response = await ac_no_db.get("/api/v1/non-existent-endpoint")
 
         assert response.status_code == 404
         data = response.json()
@@ -49,12 +49,12 @@ class TestSecurityHeadersAndErrors:
         assert "key" not in response_text
 
     @pytest.mark.asyncio
-    async def test_rate_limiting_headers(self, ac: AsyncClient):
+    async def test_rate_limiting_headers(self, ac_no_db: AsyncClient):
         """Test that rate limiting includes proper headers."""
         # Make several requests to trigger rate limiting
         responses = []
         for _ in range(12):  # Exceed rate limit
-            response = await ac.get("/health")
+            response = await ac_no_db.get("/health/live")
             responses.append(response)
 
         # Check if any response has rate limiting headers
@@ -69,38 +69,33 @@ class TestAuthorizationAndAuthentication:
     """Tests for authentication and authorization."""
 
     @pytest.mark.asyncio
-    async def test_tenant_isolation_zombie_scan(self, ac: AsyncClient, db):
+    async def test_tenant_isolation_zombie_scan(self, ac_no_db: AsyncClient):
         """Test that tenant A cannot access tenant B's zombie data."""
-        # Create two tenants
-        tenant_a = Tenant(id=uuid4(), name="Tenant A", plan=PricingTier.PRO.value)
-        tenant_b = Tenant(id=uuid4(), name="Tenant B", plan=PricingTier.PRO.value)
-        db.add_all([tenant_a, tenant_b])
-        await db.commit()
-
-        # Create users for each tenant
         user_a = CurrentUser(
             id=uuid4(),
             email="user@tenantA.com",
-            tenant_id=tenant_a.id,
-            role=UserRole.MEMBER,
-            tier=PricingTier.PRO,
-        )
-        CurrentUser(
-            id=uuid4(),
-            email="user@tenantB.com",
-            tenant_id=tenant_b.id,
+            tenant_id=uuid4(),
             role=UserRole.MEMBER,
             tier=PricingTier.PRO,
         )
 
         # Mock user A
-        from app.shared.core.auth import get_current_user
+        from app.shared.core.auth import require_tenant_access
 
-        async def mock_get_current_user():
+        async def mock_require_tenant_access():
+            return user_a.tenant_id
+
+        feature_dependency = requires_feature(FeatureFlag.GITOPS_REMEDIATION)
+
+        async def mock_feature_dependency():
             return user_a
 
-        ac.app.dependency_overrides[get_current_user] = mock_get_current_user
-        # We do NOT override require_tenant_access, so it returns tenant_a.id
+        ac_no_db.app.dependency_overrides[require_tenant_access] = (
+            mock_require_tenant_access
+        )
+        ac_no_db.app.dependency_overrides[feature_dependency] = (
+            mock_feature_dependency
+        )
 
         # Mock service to simulate a ResourceNotFoundError (which should happen if id belongs to tenant B)
         with patch(
@@ -114,49 +109,62 @@ class TestAuthorizationAndAuthentication:
             # Try to get a plan for a resource that belongs to tenant B
             # (In reality, the ID would be from a tenant B record)
             fake_tenant_b_id = uuid4()
-            response = await ac.get(f"/api/v1/zombies/plan/{fake_tenant_b_id}")
+            response = await ac_no_db.get(f"/api/v1/zombies/plan/{fake_tenant_b_id}")
 
             # Should fail with 404 (Resource Not Found for THIS tenant)
             assert response.status_code == 404
 
         # Clean up overrides
-        ac.app.dependency_overrides.pop(get_current_user, None)
+        ac_no_db.app.dependency_overrides.pop(require_tenant_access, None)
+        ac_no_db.app.dependency_overrides.pop(feature_dependency, None)
 
     @pytest.mark.asyncio
     async def test_approve_remediation_requires_explicit_permission(
         self,
-        ac: AsyncClient,
-        test_tenant,
-        test_remediation_request,
+        ac_no_db: AsyncClient,
     ):
         """Test that explicit approval permission is required for approval operations."""
         # Mock regular member user with no explicit approval permission.
         member_user = CurrentUser(
             id=uuid4(),
             email="member@test.com",
-            tenant_id=test_tenant.id,
+            tenant_id=uuid4(),
             role=UserRole.MEMBER,
             tier=PricingTier.PRO,
         )
 
-        # Mock authentication by overriding the app's dependency
-        from app.shared.core.auth import get_current_user, require_tenant_access
+        from app.shared.core.auth import require_tenant_access
 
-        async def mock_get_current_user():
+        async def mock_require_member_role():
             return member_user
 
         async def mock_require_tenant_access():
             return member_user.tenant_id
 
-        ac.app.dependency_overrides[get_current_user] = mock_get_current_user
-        ac.app.dependency_overrides[require_tenant_access] = mock_require_tenant_access
+        member_role_dependency = requires_role("member")
+        ac_no_db.app.dependency_overrides[member_role_dependency] = (
+            mock_require_member_role
+        )
+        ac_no_db.app.dependency_overrides[require_tenant_access] = (
+            mock_require_tenant_access
+        )
 
-        with patch(
-            "app.modules.optimization.api.v1.zombies.user_has_approval_permission",
-            new=AsyncMock(return_value=False),
-        ) as mock_permission_check:
-            response = await ac.post(
-                f"/api/v1/zombies/approve/{test_remediation_request.id}",
+        with (
+            patch(
+                "app.modules.optimization.api.v1.zombies._load_remediation_request_for_authorization",
+                new=AsyncMock(return_value=object()),
+            ),
+            patch(
+                "app.modules.optimization.api.v1.zombies._required_approval_permission",
+                return_value="remediation.approve.nonprod",
+            ),
+            patch(
+                "app.modules.optimization.api.v1.zombies.user_has_approval_permission",
+                new=AsyncMock(return_value=False),
+            ) as mock_permission_check,
+        ):
+            response = await ac_no_db.post(
+                f"/api/v1/zombies/approve/{uuid4()}",
                 json={"notes": "test"},
             )
 
@@ -164,38 +172,41 @@ class TestAuthorizationAndAuthentication:
             mock_permission_check.assert_awaited_once()
 
         # Clean up overrides
-        ac.app.dependency_overrides.pop(get_current_user, None)
-        ac.app.dependency_overrides.pop(require_tenant_access, None)
+        ac_no_db.app.dependency_overrides.pop(member_role_dependency, None)
+        ac_no_db.app.dependency_overrides.pop(require_tenant_access, None)
 
     @pytest.mark.asyncio
-    async def test_feature_flag_gates_endpoints(self, ac: AsyncClient, mock_user):
+    async def test_feature_flag_gates_endpoints(
+        self, ac_no_db: AsyncClient, mock_user
+    ):
         """Test that feature flags properly gate endpoint access."""
-        # Mock authentication by overriding the app's dependency
-        from app.shared.core.auth import get_current_user, require_tenant_access
-        from app.shared.core.pricing import FeatureFlag
+        from app.shared.core.auth import require_tenant_access
 
-        async def mock_get_current_user():
+        member_role_dependency = requires_role("member")
+
+        async def mock_require_member_role():
             return mock_user
 
         async def mock_require_tenant_access():
             return mock_user.tenant_id
 
-        ac.app.dependency_overrides[get_current_user] = mock_get_current_user
-        ac.app.dependency_overrides[require_tenant_access] = mock_require_tenant_access
-
-        # Mock feature flag check failing
-        from app.shared.core.dependencies import requires_feature
+        ac_no_db.app.dependency_overrides[member_role_dependency] = (
+            mock_require_member_role
+        )
+        ac_no_db.app.dependency_overrides[require_tenant_access] = (
+            mock_require_tenant_access
+        )
 
         dep = requires_feature(FeatureFlag.AUTO_REMEDIATION)
 
-        async def mock_requires_feature_fail(user=None):
+        async def mock_requires_feature_fail():
             from fastapi import HTTPException
 
             raise HTTPException(status_code=403, detail="Feature not available")
 
-        ac.app.dependency_overrides[dep] = mock_requires_feature_fail
+        ac_no_db.app.dependency_overrides[dep] = mock_requires_feature_fail
 
-        response = await ac.post(
+        response = await ac_no_db.post(
             "/api/v1/zombies/request",
             json={
                 "finding_id": str(uuid4()),
@@ -207,6 +218,6 @@ class TestAuthorizationAndAuthentication:
         assert response.status_code == 403
 
         # Clean up overrides
-        ac.app.dependency_overrides.pop(get_current_user, None)
-        ac.app.dependency_overrides.pop(require_tenant_access, None)
-        ac.app.dependency_overrides.pop(dep, None)
+        ac_no_db.app.dependency_overrides.pop(member_role_dependency, None)
+        ac_no_db.app.dependency_overrides.pop(require_tenant_access, None)
+        ac_no_db.app.dependency_overrides.pop(dep, None)

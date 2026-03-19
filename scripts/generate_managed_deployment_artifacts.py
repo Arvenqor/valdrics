@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate deployment-ready Koyeb and Helm/EKS artifacts from a managed runtime env."""
+"""Generate deployment-ready Koyeb and future-scale Helm/EKS artifacts."""
 
 from __future__ import annotations
 
@@ -21,6 +21,10 @@ from scripts.env_generation_common import parse_env_file
 DEFAULT_OUTPUT_ROOT = Path(".runtime/deploy")
 PLACEHOLDER_PREFIX = "REPLACE_WITH_"
 SUPPORTED_ENVIRONMENTS = ("staging", "production")
+DEFAULT_KOYEB_IMAGE_REGISTRY = "ghcr.io/valdrics"
+DEFAULT_RELEASE_TAG = "REPLACE_WITH_RELEASE_TAG"
+DEFAULT_API_IMAGE_DIGEST = "REPLACE_WITH_API_IMAGE_DIGEST"
+DEFAULT_DASHBOARD_IMAGE_DIGEST = "REPLACE_WITH_DASHBOARD_IMAGE_DIGEST"
 LLM_PROVIDER_ENV_KEY = {
     "groq": "GROQ_API_KEY",
     "openai": "OPENAI_API_KEY",
@@ -111,6 +115,11 @@ OUTBOUND_TLS_BREAK_GLASS_KEYS = (
     "OUTBOUND_TLS_BREAK_GLASS_REASON",
     "OUTBOUND_TLS_BREAK_GLASS_EXPIRES_AT",
 )
+KOYEB_DASHBOARD_PUBLIC_ENV_KEYS = (
+    "PUBLIC_API_URL",
+    "PUBLIC_SUPABASE_URL",
+    "PUBLIC_SUPABASE_ANON_KEY",
+)
 
 
 def _string_value(values: dict[str, str], key: str, default: str = "") -> str:
@@ -166,6 +175,20 @@ def _runtime_blockers(values: dict[str, str]) -> list[str]:
         blockers.append(provider_key)
 
     return sorted(set(blockers))
+
+
+def _artifact_output_paths(output_dir: Path) -> tuple[Path, ...]:
+    return (
+        output_dir / "koyeb-api.yaml",
+        output_dir / "koyeb-worker.yaml",
+        output_dir / "koyeb-secrets.json",
+        output_dir / "koyeb-dashboard-env.json",
+        output_dir / "koyeb-release.json",
+        output_dir / "helm-values.yaml",
+        output_dir / "aws-runtime-secret.json",
+        output_dir / "terraform.runtime.auto.tfvars.json",
+        output_dir / "deployment.report.json",
+    )
 
 
 def _koyeb_name(environment: str, component: str) -> str:
@@ -255,14 +278,19 @@ def _koyeb_value_entries(values: dict[str, str], *, component: str) -> list[dict
 
     entries: list[dict[str, str]] = []
     for key in ordered_keys:
-        value = _string_value(values, key).strip()
+        if component == "worker" and key == "ENABLE_SCHEDULER":
+            value = "false"
+        else:
+            value = _string_value(values, key).strip()
         if not value:
             continue
         entries.append({"name": key, "value": value})
     return entries
 
 
-def _koyeb_manifest(values: dict[str, str], *, environment: str, component: str) -> dict[str, Any]:
+def _koyeb_manifest(
+    values: dict[str, str], *, environment: str, component: str
+) -> dict[str, Any]:
     is_api = component == "api"
     manifest: dict[str, Any] = {
         "name": _koyeb_name(environment, component),
@@ -308,6 +336,114 @@ def _koyeb_manifest(values: dict[str, str], *, environment: str, component: str)
             "info",
         ]
     return manifest
+
+
+def _koyeb_dashboard_public_env(values: dict[str, str]) -> dict[str, str]:
+    api_url = _string_value(values, "API_URL").rstrip("/")
+    return {
+        "PUBLIC_API_URL": f"{api_url}/api/v1" if api_url else "",
+        "PUBLIC_SUPABASE_URL": _string_value(values, "SUPABASE_URL").strip(),
+        "PUBLIC_SUPABASE_ANON_KEY": _string_value(values, "SUPABASE_ANON_KEY").strip(),
+    }
+
+
+def _json_placeholder_blockers(payload: Any, *, path: str = "") -> list[str]:
+    blockers: list[str] = []
+    if isinstance(payload, dict):
+        for key, value in payload.items():
+            child_path = f"{path}.{key}" if path else str(key)
+            blockers.extend(_json_placeholder_blockers(value, path=child_path))
+        return blockers
+    if isinstance(payload, list):
+        for index, value in enumerate(payload):
+            child_path = f"{path}[{index}]"
+            blockers.extend(_json_placeholder_blockers(value, path=child_path))
+        return blockers
+    if isinstance(payload, str):
+        normalized = payload.strip()
+        if not normalized or _contains_placeholder(normalized):
+            blockers.append(path or "<root>")
+    return blockers
+
+
+def _normalize_image_digest(value: str, *, field_name: str, default: str) -> str:
+    normalized = str(value or "").strip()
+    if not normalized:
+        return default
+    if _contains_placeholder(normalized):
+        return normalized
+    if not normalized.startswith("sha256:"):
+        raise ValueError(f"{field_name} must be a sha256:<64-hex> digest.")
+    digest_body = normalized.split("sha256:", 1)[1].strip()
+    if len(digest_body) != 64 or any(ch not in "0123456789abcdef" for ch in digest_body):
+        raise ValueError(f"{field_name} must be a sha256:<64-hex> digest.")
+    return f"sha256:{digest_body}"
+
+
+def _koyeb_release_metadata(
+    *,
+    environment: str,
+    registry: str,
+    release_tag: str,
+    api_image_digest: str,
+    dashboard_image_digest: str,
+) -> dict[str, Any]:
+    normalized_registry = registry.rstrip("/")
+    normalized_release_tag = str(release_tag or "").strip() or DEFAULT_RELEASE_TAG
+    normalized_api_digest = _normalize_image_digest(
+        api_image_digest,
+        field_name="api_image_digest",
+        default=DEFAULT_API_IMAGE_DIGEST,
+    )
+    normalized_dashboard_digest = _normalize_image_digest(
+        dashboard_image_digest,
+        field_name="dashboard_image_digest",
+        default=DEFAULT_DASHBOARD_IMAGE_DIGEST,
+    )
+    api_repository = f"{normalized_registry}/valdrics-api"
+    dashboard_repository = f"{normalized_registry}/valdrics-dashboard"
+    api_image = f"{api_repository}:{normalized_release_tag}"
+    dashboard_image = f"{dashboard_repository}:{normalized_release_tag}"
+    return {
+        "strategy": "immutable_image_promotion",
+        "environment": environment,
+        "registry": normalized_registry,
+        "release_tag": normalized_release_tag,
+        "services": {
+            "api": {
+                "service_name": _koyeb_name(environment, "api"),
+                "repository": api_repository,
+                "image": api_image,
+                "image_digest": normalized_api_digest,
+                "promotion_ref": f"{api_repository}@{normalized_api_digest}",
+                "port": 8000,
+                "health_path": "/health/live",
+            },
+            "worker": {
+                "service_name": _koyeb_name(environment, "worker"),
+                "image": api_image,
+                "image_digest": normalized_api_digest,
+                "promotion_ref": f"{api_repository}@{normalized_api_digest}",
+                "command": [
+                    "celery",
+                    "-A",
+                    "app.shared.core.celery_app:celery_app",
+                    "worker",
+                    "-l",
+                    "info",
+                ],
+            },
+            "dashboard": {
+                "service_name": _koyeb_name(environment, "dashboard"),
+                "repository": dashboard_repository,
+                "image": dashboard_image,
+                "image_digest": normalized_dashboard_digest,
+                "promotion_ref": f"{dashboard_repository}@{normalized_dashboard_digest}",
+                "port": 3000,
+                "health_path": "/",
+            },
+        },
+    }
 
 
 def _host_from_url(url: str, *, field_name: str) -> str:
@@ -441,6 +577,10 @@ def generate_managed_deployment_artifacts(
     environment: str,
     runtime_env_file: Path,
     output_dir: Path,
+    registry: str = DEFAULT_KOYEB_IMAGE_REGISTRY,
+    release_tag: str = DEFAULT_RELEASE_TAG,
+    api_image_digest: str = DEFAULT_API_IMAGE_DIGEST,
+    dashboard_image_digest: str = DEFAULT_DASHBOARD_IMAGE_DIGEST,
 ) -> dict[str, Any]:
     normalized_environment = str(environment or "").strip().lower()
     if normalized_environment not in SUPPORTED_ENVIRONMENTS:
@@ -451,22 +591,44 @@ def generate_managed_deployment_artifacts(
         raise FileNotFoundError(
             f"Runtime env file does not exist: {runtime_env_file.as_posix()}"
         )
+    runtime_env_resolved = runtime_env_file.resolve()
+    for artifact_path in _artifact_output_paths(output_dir):
+        if artifact_path.resolve() == runtime_env_resolved:
+            raise ValueError(
+                "runtime_env_file must not overwrite generated deployment artifacts"
+            )
 
     values = parse_env_file(runtime_env_file)
     runtime_blockers = _runtime_blockers(values)
     helm_values = _helm_values(values, environment=normalized_environment)
     helm_secret_payload = _helm_runtime_secret_payload(values)
     koyeb_secret_payload = _koyeb_secret_payload(values, environment=normalized_environment)
+    koyeb_dashboard_env = _koyeb_dashboard_public_env(values)
+    koyeb_dashboard_env_blockers = _placeholder_keys(koyeb_dashboard_env)
+    koyeb_release_metadata = _koyeb_release_metadata(
+        environment=normalized_environment,
+        registry=registry,
+        release_tag=release_tag,
+        api_image_digest=api_image_digest,
+        dashboard_image_digest=dashboard_image_digest,
+    )
+    koyeb_release_value_blockers = sorted(
+        set(_json_placeholder_blockers(koyeb_release_metadata))
+    )
     terraform_runtime_json = json.dumps(helm_secret_payload, sort_keys=True)
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    koyeb_api_path = output_dir / "koyeb-api.yaml"
-    koyeb_worker_path = output_dir / "koyeb-worker.yaml"
-    koyeb_secrets_path = output_dir / "koyeb-secrets.json"
-    helm_values_path = output_dir / "helm-values.yaml"
-    helm_secret_path = output_dir / "aws-runtime-secret.json"
-    terraform_tfvars_path = output_dir / "terraform.runtime.auto.tfvars.json"
-    report_path = output_dir / "deployment.report.json"
+    (
+        koyeb_api_path,
+        koyeb_worker_path,
+        koyeb_secrets_path,
+        koyeb_dashboard_env_path,
+        koyeb_release_path,
+        helm_values_path,
+        helm_secret_path,
+        terraform_tfvars_path,
+        report_path,
+    ) = _artifact_output_paths(output_dir)
 
     koyeb_api_path.write_text(
         yaml.safe_dump(
@@ -484,6 +646,14 @@ def generate_managed_deployment_artifacts(
     )
     koyeb_secrets_path.write_text(
         json.dumps(koyeb_secret_payload, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    koyeb_dashboard_env_path.write_text(
+        json.dumps(koyeb_dashboard_env, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    koyeb_release_path.write_text(
+        json.dumps(koyeb_release_metadata, indent=2, sort_keys=True),
         encoding="utf-8",
     )
     helm_values_path.write_text(
@@ -521,6 +691,9 @@ def generate_managed_deployment_artifacts(
         "runtime_validation_blockers": runtime_blockers,
         "koyeb_secret_names": sorted(koyeb_secret_payload),
         "koyeb_secret_value_blockers": _placeholder_keys(koyeb_secret_payload),
+        "koyeb_dashboard_public_env_keys": sorted(koyeb_dashboard_env),
+        "koyeb_dashboard_public_env_blockers": koyeb_dashboard_env_blockers,
+        "koyeb_release_value_blockers": koyeb_release_value_blockers,
         "helm_runtime_secret_keys": sorted(helm_secret_payload),
         "helm_runtime_secret_value_blockers": _placeholder_keys(helm_secret_payload),
         "helm_external_secret_remote_key": _remote_secret_key(normalized_environment),
@@ -530,10 +703,22 @@ def generate_managed_deployment_artifacts(
             "koyeb_api_manifest": koyeb_api_path.as_posix(),
             "koyeb_worker_manifest": koyeb_worker_path.as_posix(),
             "koyeb_secret_payload": koyeb_secrets_path.as_posix(),
+            "koyeb_dashboard_env_json": koyeb_dashboard_env_path.as_posix(),
+            "koyeb_release_metadata": koyeb_release_path.as_posix(),
             "helm_values": helm_values_path.as_posix(),
             "helm_runtime_secret_json": helm_secret_path.as_posix(),
         },
-        "ready_for_koyeb": not runtime_blockers and not _placeholder_keys(koyeb_secret_payload),
+        "ready_for_koyeb": (
+            not runtime_blockers
+            and not _placeholder_keys(koyeb_secret_payload)
+            and not koyeb_dashboard_env_blockers
+        ),
+        "ready_for_koyeb_release": (
+            not runtime_blockers
+            and not _placeholder_keys(koyeb_secret_payload)
+            and not koyeb_dashboard_env_blockers
+            and not koyeb_release_value_blockers
+        ),
         "ready_for_helm": not runtime_blockers and not _placeholder_keys(helm_secret_payload),
     }
     report_path.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
@@ -543,7 +728,7 @@ def generate_managed_deployment_artifacts(
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Generate deployment artifacts for Koyeb and Helm/EKS from a managed runtime env file."
+            "Generate deployment artifacts for the Koyeb release path and the future Helm/EKS scale path from a managed runtime env file."
         )
     )
     parser.add_argument(
@@ -563,6 +748,32 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Output directory (default: .runtime/deploy/<environment>).",
     )
+    parser.add_argument(
+        "--registry",
+        default=DEFAULT_KOYEB_IMAGE_REGISTRY,
+        help="Container registry prefix for Koyeb immutable image promotion metadata.",
+    )
+    parser.add_argument(
+        "--release-tag",
+        default=DEFAULT_RELEASE_TAG,
+        help="Immutable release tag recorded in the generated Koyeb release metadata.",
+    )
+    parser.add_argument(
+        "--api-image-digest",
+        default=DEFAULT_API_IMAGE_DIGEST,
+        help=(
+            "Digest-pinned GHCR reference for the shared API/worker image "
+            "(format: sha256:<64-hex>)."
+        ),
+    )
+    parser.add_argument(
+        "--dashboard-image-digest",
+        default=DEFAULT_DASHBOARD_IMAGE_DIGEST,
+        help=(
+            "Digest-pinned GHCR reference for the dashboard image "
+            "(format: sha256:<64-hex>)."
+        ),
+    )
     return parser
 
 
@@ -574,6 +785,10 @@ def main(argv: list[str] | None = None) -> int:
         environment=str(args.environment),
         runtime_env_file=runtime_env_file.resolve(),
         output_dir=output_dir.resolve(),
+        registry=str(args.registry),
+        release_tag=str(args.release_tag),
+        api_image_digest=str(args.api_image_digest),
+        dashboard_image_digest=str(args.dashboard_image_digest),
     )
     print(
         "[managed-deployment-artifacts] ok "
@@ -581,6 +796,7 @@ def main(argv: list[str] | None = None) -> int:
         f"output_dir={report['output_dir']} "
         f"runtime_blockers={len(report['runtime_validation_blockers'])} "
         f"koyeb_ready={report['ready_for_koyeb']} "
+        f"koyeb_release_ready={report['ready_for_koyeb_release']} "
         f"helm_ready={report['ready_for_helm']}"
     )
     return 0

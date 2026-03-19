@@ -8,7 +8,7 @@
   "scenarios": [
     {
       "id": "FI-001",
-      "status": "passed",
+      "status": "pass",
       "duration_seconds": 1.0,
       "checks": [
         "timeout fallback routed to configured fail-safe mode"

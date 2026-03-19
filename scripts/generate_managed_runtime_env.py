@@ -31,6 +31,7 @@ DECLARED_EXTERNAL_VALUE_KEYS = (
     "DATABASE_URL",
     "REDIS_URL",
     "SUPABASE_URL",
+    "SUPABASE_ANON_KEY",
     "SUPABASE_JWT_SECRET",
     "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN",
     "PAYSTACK_SECRET_KEY",
@@ -53,7 +54,7 @@ RUNTIME_VALIDATION_OPERATOR_INPUT_KEYS = (
     "TRUSTED_PROXY_CIDRS",
 )
 DERIVED_EXTERNAL_KEYS = ("CORS_ORIGINS",)
-DECLARED_NONBLOCKING_EXTERNAL_KEYS = ("SUPABASE_URL",)
+DECLARED_NONBLOCKING_EXTERNAL_KEYS = ("SUPABASE_URL", "SUPABASE_ANON_KEY")
 
 INTERNAL_SECRET_KEYS = (
     "CSRF_SECRET_KEY",
@@ -100,6 +101,10 @@ def _default_database_url() -> str:
 
 def _default_supabase_url() -> str:
     return "https://REPLACE_WITH_SUPABASE_PROJECT.supabase.co"
+
+
+def _default_supabase_anon_key() -> str:
+    return "REPLACE_WITH_SUPABASE_ANON_KEY"
 
 
 def _default_supabase_jwt_secret() -> str:
@@ -176,6 +181,7 @@ def _build_overrides(
     database_url: str | None,
     redis_url: str | None,
     supabase_url: str | None,
+    supabase_anon_key: str | None,
     supabase_jwt_secret: str | None,
     aws_assume_role_trust_principal_arn: str | None,
     llm_provider: str,
@@ -206,6 +212,7 @@ def _build_overrides(
         "DB_EXTERNAL_POOLER": "false",
         "REDIS_URL": redis_url or _default_redis_url(),
         "SUPABASE_URL": supabase_url or _default_supabase_url(),
+        "SUPABASE_ANON_KEY": supabase_anon_key or _default_supabase_anon_key(),
         "SUPABASE_JWT_SECRET": supabase_jwt_secret or _default_supabase_jwt_secret(),
         "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN": (
             aws_assume_role_trust_principal_arn
@@ -317,6 +324,7 @@ def generate_managed_runtime_env(
     database_url: str | None = None,
     redis_url: str | None = None,
     supabase_url: str | None = None,
+    supabase_anon_key: str | None = None,
     supabase_jwt_secret: str | None = None,
     aws_assume_role_trust_principal_arn: str | None = None,
     llm_provider: str = DEFAULT_LLM_PROVIDER,
@@ -332,6 +340,13 @@ def generate_managed_runtime_env(
         raise ValueError(
             "environment must be one of: " + ", ".join(SUPPORTED_ENVIRONMENTS)
         )
+    template_resolved = template_path.resolve()
+    output_resolved = output_path.resolve()
+    report_resolved = report_path.resolve()
+    if len({template_resolved, output_resolved, report_resolved}) != 3:
+        raise ValueError(
+            "template_path, output_path, and report_path must be different files"
+        )
     if not template_path.exists():
         raise FileNotFoundError(f"Template file does not exist: {template_path.as_posix()}")
 
@@ -342,6 +357,7 @@ def generate_managed_runtime_env(
         database_url=database_url,
         redis_url=redis_url,
         supabase_url=supabase_url,
+        supabase_anon_key=supabase_anon_key,
         supabase_jwt_secret=supabase_jwt_secret,
         aws_assume_role_trust_principal_arn=aws_assume_role_trust_principal_arn,
         llm_provider=llm_provider,
@@ -425,6 +441,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--database-url", default=None)
     parser.add_argument("--redis-url", default=None)
     parser.add_argument("--supabase-url", default=None)
+    parser.add_argument("--supabase-anon-key", default=None)
     parser.add_argument("--supabase-jwt-secret", default=None)
     parser.add_argument("--aws-assume-role-trust-principal-arn", default=None)
     parser.add_argument(
@@ -465,6 +482,7 @@ def main(argv: list[str] | None = None) -> int:
         database_url=args.database_url,
         redis_url=args.redis_url,
         supabase_url=args.supabase_url,
+        supabase_anon_key=args.supabase_anon_key,
         supabase_jwt_secret=args.supabase_jwt_secret,
         aws_assume_role_trust_principal_arn=args.aws_assume_role_trust_principal_arn,
         llm_provider=str(args.llm_provider),

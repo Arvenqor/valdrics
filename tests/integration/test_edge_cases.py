@@ -293,32 +293,28 @@ class TestHealthServiceIntegration:
         # Database fails
         mock_db.execute.side_effect = Exception("Database connection failed")
 
-        from app.shared.core.config import get_settings
+        mock_cache = MagicMock()
+        mock_cache.enabled = True
+        mock_cache.set = AsyncMock(side_effect=Exception("Redis connection failed"))
+        mock_cache.get = AsyncMock(return_value=None)
 
-        settings = get_settings()
-        original_redis = settings.REDIS_URL
-        settings.REDIS_URL = "redis://localhost"
-        try:
-            # Patch get_redis_client in the rate_limit module where it is defined
-            with patch("app.shared.core.rate_limit.get_redis_client") as mock_get_redis:
-                mock_redis = AsyncMock()
-                mock_redis.ping.side_effect = Exception("Redis connection failed")
-                mock_get_redis.return_value = mock_redis
+        with (
+            patch.object(health_service, "_testing_mode", return_value=False),
+            patch("app.shared.core.health.get_cache_service", return_value=mock_cache),
+            patch("app.shared.core.http.get_http_client") as mock_get_client,
+        ):
+            mock_response = MagicMock()
+            mock_response.status_code = 500
+            mock_client = AsyncMock()
+            mock_client.get.return_value = mock_response
+            mock_get_client.return_value = mock_client
 
-                # AWS fails
-                with patch("app.shared.core.http.get_http_client") as mock_get_client:
-                    mock_response = MagicMock()
-                    mock_response.status_code = 500
-                    mock_client = AsyncMock()
-                    mock_client.get.return_value = mock_response
-                    mock_get_client.return_value = mock_client
+            result = await health_service.check_all()
 
-                    result = await health_service.check_all()
-
-                    # Overall status should be unhealthy due to database failure
-                    assert result["aws"]["status"] == "unhealthy"
-        finally:
-            settings.REDIS_URL = original_redis
+        assert result["status"] == "unhealthy"
+        assert result["database"]["status"] == "down"
+        assert result["redis"]["status"] == "unhealthy"
+        assert result["aws"]["status"] == "unhealthy"
 
     @pytest.mark.asyncio
     async def test_health_check_timeout_handling(self, health_service, mock_db):
@@ -343,27 +339,25 @@ class TestHealthServiceIntegration:
     @pytest.mark.asyncio
     async def test_health_check_partial_configuration(self, health_service):
         """Test health check with partial service configuration."""
-        # Redis not configured, AWS working
-        from app.shared.core.config import get_settings
+        # Cache not configured, AWS working
+        mock_cache = MagicMock()
+        mock_cache.enabled = False
 
-        settings = get_settings()
-        original_redis = settings.REDIS_URL
-        settings.REDIS_URL = None
-        try:
-            with patch("app.shared.core.http.get_http_client") as mock_get_client:
-                mock_response = MagicMock()
-                mock_response.status_code = 200
-                mock_client = AsyncMock()
-                mock_client.get.return_value = mock_response
-                mock_get_client.return_value = mock_client
+        with (
+            patch.object(health_service, "_testing_mode", return_value=False),
+            patch("app.shared.core.health.get_cache_service", return_value=mock_cache),
+            patch("app.shared.core.http.get_http_client") as mock_get_client,
+        ):
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_client = AsyncMock()
+            mock_client.get.return_value = mock_response
+            mock_get_client.return_value = mock_client
 
-                result = await health_service.check_all()
+            result = await health_service.check_all()
 
-                # Redis should be disabled if not configured
-                assert result["redis"]["status"] == "disabled"
-                assert result["aws"]["status"] == "healthy"
-        finally:
-            settings.REDIS_URL = original_redis
+        assert result["redis"]["status"] == "disabled"
+        assert result["aws"]["status"] == "healthy"
 
 
 class TestNotificationDispatcherIntegration:

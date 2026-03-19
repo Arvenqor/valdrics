@@ -86,3 +86,69 @@ def test_main_writes_fail_artifact_before_raising_when_failures_not_allowed(
     text = output.read_text(encoding="utf-8")
     assert "- pre_rotation_tokens_accepted: false" in text
     assert "- post_drill_status: FAIL" in text
+
+
+def test_main_rejects_non_positive_pytest_timeout_before_running_checks(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = tmp_path / "key_rotation_drill.md"
+    monkeypatch.setattr(
+        drill_generator,
+        "_execute_checks",
+        lambda **_: (_ for _ in ()).throw(AssertionError("checks should not run")),
+    )
+
+    with pytest.raises(ValueError, match="pytest_timeout_seconds must be > 0"):
+        drill_generator.main(
+            [
+                "--output",
+                str(output),
+                "--pytest-timeout-seconds",
+                "0",
+            ]
+        )
+
+
+def test_main_rejects_negative_selector_retries_before_running_checks(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = tmp_path / "key_rotation_drill.md"
+    monkeypatch.setattr(
+        drill_generator,
+        "_execute_checks",
+        lambda **_: (_ for _ in ()).throw(AssertionError("checks should not run")),
+    )
+
+    with pytest.raises(ValueError, match="selector_retries must be >= 0"):
+        drill_generator.main(
+            [
+                "--output",
+                str(output),
+                "--selector-retries",
+                "-1",
+            ]
+        )
+
+
+def test_main_rejects_non_positive_max_drill_age_before_running_checks(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = tmp_path / "key_rotation_drill.md"
+    monkeypatch.setattr(
+        drill_generator,
+        "_execute_checks",
+        lambda **_: (_ for _ in ()).throw(AssertionError("checks should not run")),
+    )
+
+    with pytest.raises(ValueError, match="max_drill_age_days must be > 0"):
+        drill_generator.main(
+            [
+                "--output",
+                str(output),
+                "--max-drill-age-days",
+                "0",
+            ]
+        )

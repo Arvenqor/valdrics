@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import subprocess  # nosec B404 - controlled local verifier execution only
 import sys
 from dataclasses import dataclass
@@ -66,6 +67,22 @@ FINDING_PROBE_MAP: dict[str, tuple[str, ...]] = {
     "VAL-API-002": ("audit_controls",),
     "VAL-API-004": ("env_hygiene", "audit_controls"),
 }
+
+
+def _parse_positive_float_arg(value: float, *, field: str) -> float:
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise ValueError(f"{field} must be finite")
+    if parsed <= 0.0:
+        raise ValueError(f"{field} must be > 0")
+    return parsed
+
+
+def _parse_non_empty_str_arg(value: str, *, field: str) -> str:
+    parsed = str(value or "").strip()
+    if not parsed:
+        raise ValueError(f"{field} must be a non-empty string")
+    return parsed
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -235,17 +252,33 @@ def _build_payload(
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    max_artifact_age_days = _parse_positive_float_arg(
+        float(args.max_artifact_age_days),
+        field="max_artifact_age_days",
+    )
+    max_review_window_days = _parse_positive_float_arg(
+        float(args.max_review_window_days),
+        field="max_review_window_days",
+    )
+    probe_timeout_seconds = _parse_positive_float_arg(
+        float(args.probe_timeout_seconds),
+        field="probe_timeout_seconds",
+    )
+    source_audit_path = _parse_non_empty_str_arg(
+        str(args.source_audit_path),
+        field="source_audit_path",
+    )
     payload = _build_payload(
-        source_audit_path=str(args.source_audit_path).strip(),
-        probe_timeout_seconds=float(args.probe_timeout_seconds),
+        source_audit_path=source_audit_path,
+        probe_timeout_seconds=probe_timeout_seconds,
     )
     output_path = Path(str(args.output))
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
     verify_disposition_register(
         register_path=output_path,
-        max_artifact_age_days=float(args.max_artifact_age_days),
-        max_review_window_days=float(args.max_review_window_days),
+        max_artifact_age_days=max_artifact_age_days,
+        max_review_window_days=max_review_window_days,
     )
     print(f"Generated Valdrics disposition register: {output_path}")
     return 0

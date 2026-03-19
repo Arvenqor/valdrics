@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -90,6 +91,29 @@ def _build_sources(*, captured_at: datetime) -> list[dict[str, Any]]:
     return source_rows
 
 
+def _normalize_max_source_age_days(value: float) -> float:
+    normalized = float(value)
+    if not math.isfinite(normalized):
+        raise ValueError("max_source_age_days must be finite")
+    if normalized < 1.0:
+        raise ValueError("max_source_age_days must be >= 1.0")
+    return normalized
+
+
+def _normalize_confidence_score(value: Any, *, field: str) -> float:
+    try:
+        normalized = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field} must be numeric") from exc
+    if not math.isfinite(normalized):
+        raise ValueError(f"{field} must be finite")
+    if normalized < 0.0:
+        raise ValueError(f"{field} must be >= 0")
+    if normalized > 1.0:
+        raise ValueError(f"{field} must be <= 1")
+    return normalized
+
+
 def _build_payload(*, captured_at: datetime, max_source_age_days: float) -> dict[str, Any]:
     required_classes = [
         "vendor_pricing_page",
@@ -108,9 +132,15 @@ def _build_payload(*, captured_at: datetime, max_source_age_days: float) -> dict
 
     minimum_source_count = 5
     minimum_confidence_score = 0.7
-    min_confidence_met = all(
-        float(source["confidence_score"]) >= minimum_confidence_score for source in sources
-    )
+    min_confidence_met = True
+    for idx, source in enumerate(sources):
+        confidence_score = _normalize_confidence_score(
+            source.get("confidence_score"),
+            field=f"sources[{idx}].confidence_score",
+        )
+        source["confidence_score"] = confidence_score
+        if confidence_score < minimum_confidence_score:
+            min_confidence_met = False
     required_classes_present = all(class_counts.get(cls, 0) > 0 for cls in required_classes)
     minimum_sources_met = len(sources) >= minimum_source_count
     register_fresh = oldest_source_age_days <= max_source_age_days
@@ -146,9 +176,10 @@ def _build_payload(*, captured_at: datetime, max_source_age_days: float) -> dict
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     captured_at = datetime.now(timezone.utc).replace(microsecond=0)
+    max_source_age_days = _normalize_max_source_age_days(float(args.max_source_age_days))
     payload = _build_payload(
         captured_at=captured_at,
-        max_source_age_days=float(args.max_source_age_days),
+        max_source_age_days=max_source_age_days,
     )
 
     output_path = Path(str(args.output))
@@ -157,7 +188,7 @@ def main(argv: list[str] | None = None) -> int:
 
     verify_register(
         register_path=output_path,
-        max_source_age_days=float(args.max_source_age_days),
+        max_source_age_days=max_source_age_days,
     )
     print(f"Generated pricing benchmark register: {output_path}")
     return 0

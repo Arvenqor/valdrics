@@ -322,12 +322,12 @@
 
 			<OpsOperationalHealthSection {data} />
 
-	<OpsBacklogSection
-		{pendingRequests}
-		recentCompletions={remediationHistory}
-		{processingJobs}
-		{jobs}
-		{recommendations}
+			<OpsBacklogSection
+				{pendingRequests}
+				recentCompletions={remediationHistory}
+				{processingJobs}
+				{jobs}
+				{recommendations}
 				{refreshingStrategies}
 				{actingId}
 				{formatDate}

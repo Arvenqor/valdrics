@@ -33,6 +33,7 @@ def test_env_example_contains_required_runtime_contract_keys() -> None:
     required = {
         "ENVIRONMENT",
         "DATABASE_URL",
+        "SUPABASE_ANON_KEY",
         "SUPABASE_JWT_SECRET",
         "ENCRYPTION_KEY",
         "KDF_SALT",
@@ -59,6 +60,7 @@ def test_prod_env_template_contains_required_runtime_contract_keys() -> None:
         "DATABASE_URL",
         "REDIS_URL",
         "SUPABASE_URL",
+        "SUPABASE_ANON_KEY",
         "SUPABASE_JWT_SECRET",
         "ENCRYPTION_KEY",
         "KDF_SALT",

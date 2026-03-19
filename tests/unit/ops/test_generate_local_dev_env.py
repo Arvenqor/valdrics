@@ -145,3 +145,15 @@ def test_generate_local_dev_env_creates_parent_directories(tmp_path: Path) -> No
 
     assert result == output
     assert output.exists()
+
+
+def test_generate_local_dev_env_rejects_template_output_path_collision(
+    tmp_path: Path,
+) -> None:
+    template = tmp_path / ".env.dev"
+    _write(template, "CSRF_SECRET_KEY=\nENCRYPTION_KEY=\n")
+
+    import pytest
+
+    with pytest.raises(ValueError, match="template_path and output_path must be different files"):
+        generate_local_dev_env(template_path=template, output_path=template, seed="seed-5")

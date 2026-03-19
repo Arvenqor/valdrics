@@ -11,7 +11,7 @@
 	let prefersReducedMotion = $state(false);
 
 	const actions = [
-		{ id: 'dash', label: 'Go to Dashboard', icon: '📊', path: '/' },
+		{ id: 'dash', label: 'Go to Dashboard', icon: '📊', path: '/dashboard' },
 		{ id: 'ops', label: 'Open Ops Center', icon: '🛠️', path: '/ops' },
 		{ id: 'onb', label: 'Open Onboarding', icon: '🧭', path: '/onboarding' },
 		{ id: 'audit', label: 'Open Audit Logs', icon: '🧾', path: '/audit' },

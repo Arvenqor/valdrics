@@ -7,8 +7,19 @@ import subprocess
 import sys
 from unittest.mock import patch
 
+import pytest
+
 from scripts.generate_managed_runtime_env import generate_managed_runtime_env
 from scripts import validate_runtime_env
+
+
+@pytest.fixture(autouse=True)
+def _patch_supported_python_runtime() -> None:
+    with patch(
+        "app.shared.core.runtime_dependencies._is_supported_python_runtime",
+        return_value=True,
+    ):
+        yield
 
 
 def _write(path: Path, content: str) -> None:
@@ -43,6 +54,7 @@ def test_generate_managed_runtime_env_generates_internal_secrets_and_reports_unr
                 "DATABASE_URL=",
                 "REDIS_URL=",
                 "SUPABASE_URL=",
+                "SUPABASE_ANON_KEY=",
                 "SUPABASE_JWT_SECRET=",
                 "CSRF_SECRET_KEY=",
                 "ENCRYPTION_KEY=",
@@ -101,8 +113,11 @@ def test_generate_managed_runtime_env_generates_internal_secrets_and_reports_unr
     assert "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN" in report_payload["unresolved_external_keys"]
     assert "GROQ_API_KEY" in report_payload["unresolved_external_keys"]
     assert "SUPABASE_URL" in report_payload["declared_external_placeholders"]
+    assert "SUPABASE_ANON_KEY" in report_payload["declared_external_placeholders"]
     assert "SUPABASE_URL" in report_payload["declared_but_not_runtime_required"]
+    assert "SUPABASE_ANON_KEY" in report_payload["declared_but_not_runtime_required"]
     assert "SUPABASE_URL" not in report_payload["runtime_validation_blockers"]
+    assert "SUPABASE_ANON_KEY" not in report_payload["runtime_validation_blockers"]
     assert "DATABASE_URL" in report_payload["runtime_validation_blockers"]
     assert report_payload["generated_internal_secret_keys"]
 
@@ -123,6 +138,7 @@ def test_generate_managed_runtime_env_respects_overrides_and_is_shell_source_saf
                 "DATABASE_URL=",
                 "REDIS_URL=",
                 "SUPABASE_URL=",
+                "SUPABASE_ANON_KEY=",
                 "SUPABASE_JWT_SECRET=",
                 "LLM_PROVIDER=groq",
                 "OPENAI_API_KEY=",
@@ -151,6 +167,7 @@ def test_generate_managed_runtime_env_respects_overrides_and_is_shell_source_saf
         database_url="postgresql+asyncpg://user:pass@db.example.com:5432/postgres",
         redis_url="redis://redis.example.com:6379/0",
         supabase_url="https://example.supabase.co",
+        supabase_anon_key="anon-key-for-dashboard",
         supabase_jwt_secret="x" * 40,
         aws_assume_role_trust_principal_arn=(
             "arn:aws:iam::123456789012:role/ValdricsControlPlane"
@@ -174,6 +191,7 @@ def test_generate_managed_runtime_env_respects_overrides_and_is_shell_source_saf
     report_payload = json.loads(report_path.read_text(encoding="utf-8"))
 
     assert values["LLM_PROVIDER"] == "openai"
+    assert values["SUPABASE_ANON_KEY"] == "anon-key-for-dashboard"
     assert values["OPENAI_API_KEY"] == "sk-test-openai-key"
     assert (
         values["AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN"]
@@ -203,6 +221,7 @@ def test_generate_managed_runtime_env_can_satisfy_strict_runtime_validator(
                 "DATABASE_URL=",
                 "REDIS_URL=",
                 "SUPABASE_URL=",
+                "SUPABASE_ANON_KEY=",
                 "SUPABASE_JWT_SECRET=",
                 "CSRF_SECRET_KEY=",
                 "ENCRYPTION_KEY=",
@@ -233,6 +252,7 @@ def test_generate_managed_runtime_env_can_satisfy_strict_runtime_validator(
         database_url="postgresql+asyncpg://postgres:postgres@db.example.com:5432/postgres",
         redis_url="redis://redis.example.com:6379/0",
         supabase_url="https://example.supabase.co",
+        supabase_anon_key="anon-key-for-dashboard",
         supabase_jwt_secret="x" * 40,
         aws_assume_role_trust_principal_arn=(
             "arn:aws:iam::123456789012:role/ValdricsControlPlane"
@@ -266,3 +286,41 @@ def test_generate_managed_runtime_env_can_satisfy_strict_runtime_validator(
 
     assert result == 0
     assert "runtime_env_validation_passed environment=production testing=False" in capsys.readouterr().out
+
+
+def test_generate_managed_runtime_env_rejects_shared_output_and_report_path(
+    tmp_path: Path,
+) -> None:
+    template = tmp_path / ".env.example"
+    combined = tmp_path / "staging.env"
+    _write(template, "API_URL=\nFRONTEND_URL=\nDATABASE_URL=\n")
+
+    with pytest.raises(
+        ValueError,
+        match="template_path, output_path, and report_path must be different files",
+    ):
+        generate_managed_runtime_env(
+            template_path=template,
+            output_path=combined,
+            report_path=combined,
+            environment="staging",
+        )
+
+
+def test_generate_managed_runtime_env_rejects_template_path_collisions(
+    tmp_path: Path,
+) -> None:
+    template = tmp_path / ".env.example"
+    report_path = tmp_path / "staging.report.json"
+    _write(template, "API_URL=\nFRONTEND_URL=\nDATABASE_URL=\n")
+
+    with pytest.raises(
+        ValueError,
+        match="template_path, output_path, and report_path must be different files",
+    ):
+        generate_managed_runtime_env(
+            template_path=template,
+            output_path=template,
+            report_path=report_path,
+            environment="staging",
+        )

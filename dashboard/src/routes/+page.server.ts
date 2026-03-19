@@ -1,10 +1,16 @@
+import { base } from '$app/paths';
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 const MOTION_QUERY_KEY = 'motion';
 const SUPPORTED_MOTION_VALUES = new Set(['subtle', 'cinematic']);
 
-export const load: PageServerLoad = ({ url }) => {
+export const load: PageServerLoad = async ({ url, locals }) => {
+	const sessionResult = await locals.safeGetSession().catch(() => ({ user: null }));
+	if (sessionResult.user) {
+		throw redirect(307, `${base}/dashboard${url.search}`);
+	}
+
 	const rawMotion = url.searchParams.get(MOTION_QUERY_KEY);
 	if (!rawMotion) {
 		return {};

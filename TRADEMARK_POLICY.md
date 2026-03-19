@@ -1,12 +1,12 @@
 # Valdrics Trademark Policy
 
-Last updated: March 11, 2026
+Last updated: March 19, 2026
 
 This policy covers use of the "Valdrics" name, logos, and related brand assets.
 
-## Trademark Owner
+## Brand Stewardship
 
-Unless otherwise noted, "Valdrics" word marks and logos are trademarks of Valdrics-AI.
+Until a formal legal owner is designated in writing, the "Valdrics" name and logos are stewarded by the maintainers of this repository for use with this project. References in this policy to official branding or permission mean approval from those maintainers.
 
 ## Allowed Uses (No Separate Permission Needed)
 
@@ -41,7 +41,7 @@ When referencing Valdrics:
 
 Suggested attribution:
 
-"Valdrics is a trademark of Valdrics-AI. This project is not affiliated with or endorsed by Valdrics-AI."
+"Valdrics" refers to the Valdrics project and its related brand assets. This project is not affiliated with or endorsed by the Valdrics maintainers.
 
 ## Reporting and Contact
 

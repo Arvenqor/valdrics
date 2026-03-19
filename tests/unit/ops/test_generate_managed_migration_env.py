@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from scripts.generate_managed_migration_env import generate_managed_migration_env
 
 
@@ -59,3 +61,35 @@ def test_generate_managed_migration_env_requires_ca_path_for_verified_ssl(
         "DB_SSL_CA_CERT_PATH",
     ]
     assert report_payload["migration_validation_blockers"] == ["DB_SSL_CA_CERT_PATH"]
+
+
+def test_generate_managed_migration_env_treats_placeholder_ca_path_as_blocker(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "staging.migrate.env"
+    report_path = tmp_path / "staging.migrate.report.json"
+
+    generate_managed_migration_env(
+        output_path=output,
+        report_path=report_path,
+        environment="staging",
+        database_url="postgresql+asyncpg://postgres:postgres@db.example.com:5432/postgres",
+        db_ssl_mode="verify-ca",
+        db_ssl_ca_cert_path="REPLACE_WITH_DB_CA_CERT_PATH",
+    )
+    report_payload = json.loads(report_path.read_text(encoding="utf-8"))
+
+    assert report_payload["migration_validation_blockers"] == ["DB_SSL_CA_CERT_PATH"]
+
+
+def test_generate_managed_migration_env_rejects_shared_output_and_report_path(
+    tmp_path: Path,
+) -> None:
+    combined = tmp_path / "staging.migrate.env"
+
+    with pytest.raises(ValueError, match="output_path and report_path must be different files"):
+        generate_managed_migration_env(
+            output_path=combined,
+            report_path=combined,
+            environment="staging",
+        )

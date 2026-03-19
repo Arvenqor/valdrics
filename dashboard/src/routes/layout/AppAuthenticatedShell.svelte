@@ -3,7 +3,6 @@
 	import { uiState } from '$lib/stores/ui.svelte';
 	import CloudLogo from '$lib/components/CloudLogo.svelte';
 	import CommandPalette from '$lib/components/CommandPalette.svelte';
-	import { jobStore } from '$lib/stores/jobs.svelte';
 	import ErrorBoundary from '$lib/components/ErrorBoundary.svelte';
 
 	type NavItem = { href: string; label: string; icon: string };
@@ -21,6 +20,9 @@
 		showAllNav: boolean;
 		persona: string;
 		prefersReducedMotion: boolean;
+		jobStore?: {
+			activeJobsCount: number;
+		} | null;
 		toAppPath: (path: string) => string;
 		isActive: (href: string) => boolean;
 		children: Snippet;
@@ -35,10 +37,13 @@
 		showAllNav = $bindable(),
 		persona,
 		prefersReducedMotion,
+		jobStore = null,
 		toAppPath,
 		isActive,
 		children
 	}: Props = $props();
+
+	let activeJobsCount = $derived(jobStore?.activeJobsCount ?? 0);
 </script>
 
 <aside id="sidebar" class="sidebar" class:sidebar-collapsed={!uiState.isSidebarOpen}>
@@ -178,7 +183,7 @@
 					<kbd class="px-1.5 py-0.5 rounded border border-ink-700 bg-ink-800">⌘</kbd>
 					<kbd class="px-1.5 py-0.5 rounded border border-ink-700 bg-ink-800">K</kbd>
 				</button>
-				{#if jobStore.activeJobsCount > 0}
+				{#if activeJobsCount > 0}
 					<div
 						class="flex items-center gap-2 px-3 py-1 rounded-full bg-accent-500/10 border border-accent-500/20 mr-2"
 					>
@@ -189,7 +194,7 @@
 							<span class="relative inline-flex rounded-full h-2 w-2 bg-accent-500"></span>
 						</span>
 						<span class="text-xs font-bold uppercase tracking-wider text-accent-400">
-							{jobStore.activeJobsCount} Active {jobStore.activeJobsCount === 1 ? 'Job' : 'Jobs'}
+							{activeJobsCount} Active {activeJobsCount === 1 ? 'Job' : 'Jobs'}
 						</span>
 					</div>
 				{/if}
@@ -205,7 +210,11 @@
 	</div>
 </main>
 
-<CommandPalette bind:isOpen={uiState.isCommandPaletteOpen} />
+<CommandPalette
+	bind:isOpen={
+		() => uiState.isCommandPaletteOpen, (value) => (uiState.isCommandPaletteOpen = value)
+	}
+/>
 
 <style>
 	.authenticated-shell-enter {

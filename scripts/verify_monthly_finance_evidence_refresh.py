@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -38,8 +39,22 @@ def _parse_positive_float(value: Any, *, field: str) -> float:
         parsed = float(value)
     except (TypeError, ValueError) as exc:
         raise ValueError(f"{field} must be numeric") from exc
+    if not math.isfinite(parsed):
+        raise ValueError(f"{field} must be finite")
     if parsed <= 0.0:
         raise ValueError(f"{field} must be > 0")
+    return parsed
+
+
+def _parse_non_negative_float(value: Any, *, field: str) -> float:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field} must be numeric") from exc
+    if not math.isfinite(parsed):
+        raise ValueError(f"{field} must be finite")
+    if parsed < 0.0:
+        raise ValueError(f"{field} must be >= 0")
     return parsed
 
 
@@ -73,8 +88,10 @@ def verify_monthly_refresh(
         max_capture_spread_days,
         field="max_capture_spread_days",
     )
-    if float(max_future_skew_hours) < 0.0:
-        raise ValueError("max_future_skew_hours must be >= 0")
+    max_future_skew_hours = _parse_non_negative_float(
+        max_future_skew_hours,
+        field="max_future_skew_hours",
+    )
     now_utc = as_of.astimezone(timezone.utc) if as_of is not None else datetime.now(timezone.utc)
 
     artifacts = (
@@ -92,10 +109,10 @@ def verify_monthly_refresh(
     for artifact in artifacts:
         if artifact.captured_at > now_utc:
             future_skew_hours = (artifact.captured_at - now_utc).total_seconds() / 3600.0
-            if future_skew_hours > float(max_future_skew_hours):
+            if future_skew_hours > max_future_skew_hours:
                 raise ValueError(
                     f"{artifact.label}.captured_at is too far in the future "
-                    f"({future_skew_hours:.2f}h > max {float(max_future_skew_hours):.2f}h): "
+                    f"({future_skew_hours:.2f}h > max {max_future_skew_hours:.2f}h): "
                     f"{artifact.captured_at.isoformat()}"
                 )
         age_days = (now_utc - artifact.captured_at).total_seconds() / 86400.0

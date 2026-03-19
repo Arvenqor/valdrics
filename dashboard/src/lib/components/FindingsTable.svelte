@@ -255,9 +255,7 @@
 									{#if remediating === finding.resource_id}
 										<span class="animate-pulse">...</span>
 									{:else}
-										{finding.finding_id
-											? finding.recommended_action || 'Review'
-											: 'Unavailable'}
+										{finding.finding_id ? finding.recommended_action || 'Review' : 'Unavailable'}
 									{/if}
 								</button>
 							</div>

@@ -9,9 +9,13 @@ const IMMUTABLE_DIR_CANDIDATES = [
 
 const MAX_CHUNK_KB = Number(process.env.BUNDLE_MAX_CHUNK_KB ?? '350');
 const MAX_TOTAL_KB = Number(process.env.BUNDLE_MAX_TOTAL_KB ?? '4000');
+const MAX_CSS_CHUNK_KB = Number(process.env.BUNDLE_MAX_CSS_CHUNK_KB ?? '120');
+const MAX_CSS_TOTAL_KB = Number(process.env.BUNDLE_MAX_CSS_TOTAL_KB ?? '600');
 
 const MAX_CHUNK_BYTES = Math.max(1, MAX_CHUNK_KB) * 1024;
 const MAX_TOTAL_BYTES = Math.max(1, MAX_TOTAL_KB) * 1024;
+const MAX_CSS_CHUNK_BYTES = Math.max(1, MAX_CSS_CHUNK_KB) * 1024;
+const MAX_CSS_TOTAL_BYTES = Math.max(1, MAX_CSS_TOTAL_KB) * 1024;
 
 async function listFiles(dir) {
 	const entries = await fs.readdir(dir, { withFileTypes: true });
@@ -32,16 +36,18 @@ function formatKb(bytes) {
 }
 
 async function main() {
-	let immutableDir = null;
+	const existingCandidates = [];
 	for (const candidate of IMMUTABLE_DIR_CANDIDATES) {
 		try {
-			await fs.access(candidate);
-			immutableDir = candidate;
-			break;
+			const stat = await fs.stat(candidate);
+			existingCandidates.push({ candidate, mtimeMs: stat.mtimeMs });
 		} catch {
 			// Try next candidate path.
 		}
 	}
+
+	const immutableDir =
+		existingCandidates.sort((a, b) => b.mtimeMs - a.mtimeMs)[0]?.candidate ?? null;
 
 	if (!immutableDir) {
 		console.error(
@@ -56,38 +62,70 @@ async function main() {
 	const jsFiles = allFiles
 		.filter((file) => file.endsWith('.js'))
 		.filter((file) => !file.endsWith('.map.js'));
+	const cssFiles = allFiles
+		.filter((file) => file.endsWith('.css'))
+		.filter((file) => !file.endsWith('.map.css'));
 
-	const sizes = await Promise.all(
+	const jsSizes = await Promise.all(
 		jsFiles.map(async (file) => {
 			const stat = await fs.stat(file);
 			return { file, bytes: stat.size };
 		})
 	);
+	const cssSizes = await Promise.all(
+		cssFiles.map(async (file) => {
+			const stat = await fs.stat(file);
+			return { file, bytes: stat.size };
+		})
+	);
 
-	sizes.sort((a, b) => b.bytes - a.bytes);
+	jsSizes.sort((a, b) => b.bytes - a.bytes);
+	cssSizes.sort((a, b) => b.bytes - a.bytes);
 
-	const total = sizes.reduce((sum, item) => sum + item.bytes, 0);
-	const largest = sizes[0];
+	const totalJs = jsSizes.reduce((sum, item) => sum + item.bytes, 0);
+	const totalCss = cssSizes.reduce((sum, item) => sum + item.bytes, 0);
+	const largestJs = jsSizes[0];
+	const largestCss = cssSizes[0];
 
 	const failures = [];
-	if (largest && largest.bytes > MAX_CHUNK_BYTES) {
+	if (largestJs && largestJs.bytes > MAX_CHUNK_BYTES) {
 		failures.push(
-			`Largest JS chunk exceeds budget: ${formatKb(largest.bytes)} > ${MAX_CHUNK_KB} KB\n` +
-				`  ${path.relative(projectRoot, largest.file)}`
+			`Largest JS chunk exceeds budget: ${formatKb(largestJs.bytes)} > ${MAX_CHUNK_KB} KB\n` +
+				`  ${path.relative(projectRoot, largestJs.file)}`
 		);
 	}
 
-	if (total > MAX_TOTAL_BYTES) {
+	if (totalJs > MAX_TOTAL_BYTES) {
 		failures.push(
-			`Total client JS exceeds budget: ${formatKb(total)} > ${MAX_TOTAL_KB} KB\n` +
+			`Total client JS exceeds budget: ${formatKb(totalJs)} > ${MAX_TOTAL_KB} KB\n` +
 				`  (sum of all .js files under build/client/_app/immutable)`
+		);
+	}
+
+	if (largestCss && largestCss.bytes > MAX_CSS_CHUNK_BYTES) {
+		failures.push(
+			`Largest CSS chunk exceeds budget: ${formatKb(largestCss.bytes)} > ${MAX_CSS_CHUNK_KB} KB\n` +
+				`  ${path.relative(projectRoot, largestCss.file)}`
+		);
+	}
+
+	if (totalCss > MAX_CSS_TOTAL_BYTES) {
+		failures.push(
+			`Total client CSS exceeds budget: ${formatKb(totalCss)} > ${MAX_CSS_TOTAL_KB} KB\n` +
+				`  (sum of all .css files under build/client/_app/immutable)`
 		);
 	}
 
 	if (failures.length > 0) {
 		console.error(failures.join('\n\n'));
 		console.error('\nTop JS chunks:');
-		for (const item of sizes.slice(0, 10)) {
+		for (const item of jsSizes.slice(0, 10)) {
+			console.error(
+				`- ${formatKb(item.bytes).padStart(10)}  ${path.relative(projectRoot, item.file)}`
+			);
+		}
+		console.error('\nTop CSS chunks:');
+		for (const item of cssSizes.slice(0, 10)) {
 			console.error(
 				`- ${formatKb(item.bytes).padStart(10)}  ${path.relative(projectRoot, item.file)}`
 			);
@@ -96,8 +134,11 @@ async function main() {
 	}
 
 	console.log(
-		`Bundle budgets OK: largest=${largest ? formatKb(largest.bytes) : 'n/a'} (<= ${MAX_CHUNK_KB} KB), ` +
-			`total=${formatKb(total)} (<= ${MAX_TOTAL_KB} KB)`
+		`Bundle budgets OK: ` +
+			`largest-js=${largestJs ? formatKb(largestJs.bytes) : 'n/a'} (<= ${MAX_CHUNK_KB} KB), ` +
+			`total-js=${formatKb(totalJs)} (<= ${MAX_TOTAL_KB} KB), ` +
+			`largest-css=${largestCss ? formatKb(largestCss.bytes) : 'n/a'} (<= ${MAX_CSS_CHUNK_KB} KB), ` +
+			`total-css=${formatKb(totalCss)} (<= ${MAX_CSS_TOTAL_KB} KB)`
 	);
 }
 

@@ -9,6 +9,7 @@ PINNED_WORKFLOW_PATHS = (
     REPO_ROOT / ".github/workflows/ci.yml",
     REPO_ROOT / ".github/workflows/security-scan.yml",
     REPO_ROOT / ".github/workflows/sbom.yml",
+    REPO_ROOT / ".github/workflows/publish-release-images.yml",
     REPO_ROOT / ".github/workflows/performance-gate.yml",
     REPO_ROOT / ".github/workflows/disaster-recovery-drill.yml",
     REPO_ROOT / ".github/workflows/cla.yml",
@@ -45,6 +46,28 @@ def test_sbom_workflow_verifies_attestations_before_promotion() -> None:
     assert "--artifact ./sbom/valdrics-python-sbom.json" in text
     assert "--artifact ./sbom/valdrics-container-sbom.json" in text
     assert "--artifact ./provenance/supply-chain-manifest.json" in text
+
+
+def test_publish_release_images_workflow_uses_ghcr_digest_promotion_contract() -> None:
+    text = (
+        REPO_ROOT / ".github/workflows/publish-release-images.yml"
+    ).read_text(encoding="utf-8")
+
+    assert "workflow_dispatch:" in text
+    assert "release:" in text
+    assert "types: [published]" in text
+    assert "packages: write" in text
+    assert "attestations: write" in text
+    assert "id-token: write" in text
+    assert "docker login ghcr.io" in text
+    assert "ghcr-release.json" in text
+    assert "ghcr-release.env" in text
+    assert "valdrics-api" in text
+    assert "valdrics-dashboard" in text
+    assert "promotion_ref" in text
+    assert "API_IMAGE_DIGEST" in text
+    assert "DASHBOARD_IMAGE_DIGEST" in text
+    assert "actions/attest-build-provenance@" in text
 
 
 def test_ci_workflow_enforces_enterprise_placeholder_guard() -> None:

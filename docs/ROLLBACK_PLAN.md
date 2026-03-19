@@ -21,22 +21,22 @@ For destructive or uncertain migrations:
 2. Redeploy an application version that matches that schema state.
 3. Re-run validation on `/health/live` and `/health`.
 
-## 2. Kubernetes / Helm Rollback
+## 2. Koyeb Rollback
 
-For the Helm deployment profile:
+For the supported Koyeb production profile:
+
+1. Redeploy the prior known-good immutable release tag for API, worker, and dashboard.
+2. Confirm `/health/live`, `/health`, and key dashboard/API flows after rollback.
+3. Re-check internal metrics scraping via `/_internal/metrics`.
+4. Confirm the rollback used the generated Koyeb release bundle rather than an ad hoc branch deploy.
+
+## 3. Kubernetes / Helm Future-Scale Rollback
+
+For the future Helm deployment profile:
 
 1. Roll back to the prior Helm revision.
 2. Confirm API and worker pods become ready.
 3. Re-check internal metrics scraping via `/_internal/metrics`.
-
-## 3. Reference Managed-Platform Rollback
-
-For the Cloudflare Pages + Koyeb reference manifests:
-
-1. Restore the prior Cloudflare Pages deployment for the dashboard if the frontend regressed.
-2. Redeploy the prior known-good Koyeb revision for both `koyeb.yaml` and `koyeb-worker.yaml`.
-3. Treat this as preview/reference rollback guidance only; it is not part of the supported production rollback contract unless external release automation adds immutable artifact promotion.
-4. Verify `/health/live` and key dashboard/API flows after rollback.
 
 ## 4. Infrastructure Rollback
 

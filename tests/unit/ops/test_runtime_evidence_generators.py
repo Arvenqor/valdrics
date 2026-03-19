@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
+import pytest
+
+import scripts.generate_pricing_benchmark_register as pricing_generator
 from scripts.generate_finance_telemetry_snapshot import (
     main as generate_finance_telemetry_snapshot_main,
 )
@@ -43,6 +47,22 @@ def test_generate_finance_telemetry_snapshot_emits_verifiable_artifact(
     assert verify_snapshot(snapshot_path=output, max_artifact_age_hours=4.0) == 0
 
 
+def test_generate_finance_telemetry_snapshot_rejects_database_output_collision(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "finance_telemetry_snapshot.json"
+
+    with pytest.raises(ValueError, match="output and database_path must be different files"):
+        generate_finance_telemetry_snapshot_main(
+            [
+                "--output",
+                str(output),
+                "--database-path",
+                str(output),
+            ]
+        )
+
+
 def test_generate_pricing_benchmark_register_emits_verifiable_artifact(
     tmp_path: Path,
 ) -> None:
@@ -59,6 +79,59 @@ def test_generate_pricing_benchmark_register_emits_verifiable_artifact(
         == 0
     )
     assert verify_register(register_path=output, max_source_age_days=120.0) == 0
+
+
+def test_generate_pricing_benchmark_register_rejects_invalid_source_age_threshold(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "pricing_benchmark_register.json"
+
+    with pytest.raises(ValueError, match="max_source_age_days must be >= 1.0"):
+        generate_pricing_benchmark_register_main(
+            [
+                "--output",
+                str(output),
+                "--max-source-age-days",
+                "0",
+            ]
+        )
+
+
+@pytest.mark.parametrize(
+    ("value", "expected_message"),
+    [
+        (math.nan, r"sources\[0\]\.confidence_score must be finite"),
+        (math.inf, r"sources\[0\]\.confidence_score must be finite"),
+        (-0.1, r"sources\[0\]\.confidence_score must be >= 0"),
+        (1.1, r"sources\[0\]\.confidence_score must be <= 1"),
+        ("oops", r"sources\[0\]\.confidence_score must be numeric"),
+    ],
+)
+def test_generate_pricing_benchmark_register_rejects_invalid_confidence_scores(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    value: object,
+    expected_message: str,
+) -> None:
+    output = tmp_path / "pricing_benchmark_register.json"
+    original_sources = pricing_generator._build_sources
+
+    def _build_sources_with_invalid_score(*, captured_at):
+        sources = original_sources(captured_at=captured_at)
+        sources[0]["confidence_score"] = value
+        return sources
+
+    monkeypatch.setattr(pricing_generator, "_build_sources", _build_sources_with_invalid_score)
+
+    with pytest.raises(ValueError, match=expected_message):
+        generate_pricing_benchmark_register_main(
+            [
+                "--output",
+                str(output),
+                "--max-source-age-days",
+                "120",
+            ]
+        )
 
 
 def test_generate_pkg_fin_policy_decisions_emits_verifiable_artifact(
@@ -238,3 +311,35 @@ def test_generate_valdrics_disposition_register_emits_verifiable_artifact(
         )
         == 0
     )
+
+
+def test_generate_valdrics_disposition_register_rejects_blank_source_audit_path(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "valdrics_disposition_register.json"
+
+    with pytest.raises(ValueError, match="source_audit_path must be a non-empty string"):
+        generate_valdrics_disposition_register_main(
+            [
+                "--output",
+                str(output),
+                "--source-audit-path",
+                "   ",
+            ]
+        )
+
+
+def test_generate_valdrics_disposition_register_rejects_non_positive_probe_timeout(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "valdrics_disposition_register.json"
+
+    with pytest.raises(ValueError, match="probe_timeout_seconds must be > 0"):
+        generate_valdrics_disposition_register_main(
+            [
+                "--output",
+                str(output),
+                "--probe-timeout-seconds",
+                "0",
+            ]
+        )

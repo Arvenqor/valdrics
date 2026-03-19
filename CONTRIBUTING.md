@@ -5,7 +5,7 @@ Thank you for your interest in contributing to Valdrics! This guide will help yo
 ## Development Setup
 
 ### Prerequisites
-- Python 3.12+
+- Python 3.12.x
 - [uv](https://github.com/astral-sh/uv) (recommended) or pip
 - Docker (for running tests with PostgreSQL)
 - Node.js 20+ (for dashboard development)
@@ -17,8 +17,11 @@ Thank you for your interest in contributing to Valdrics! This guide will help yo
 git clone https://github.com/Valdrics/valdrics.git
 cd valdrics
 
+# Ensure the local interpreter matches the repository contract
+# (`.python-version` is pinned to Python 3.12)
+
 # Install dependencies
-uv sync --dev
+uv sync --python 3.12 --dev
 
 # Copy environment template
 cp .env.example .env

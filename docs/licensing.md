@@ -47,7 +47,7 @@ file wins.
 
 Yes, for your own internal operations.
 
-### Can Valdrics-AI offer an official hosted SaaS?
+### Can Valdrics offer an official hosted SaaS?
 
 Yes. The BUSL/BSL restriction targets third parties offering competing hosted
 services. It does not block the project owner from operating the official
@@ -75,9 +75,9 @@ separate commercial agreement.
 
 On January 5, 2030, per the change terms in `LICENSE`.
 
-### Does Apache conversion stop Valdrics-AI from making money?
+### Does Apache conversion stop Valdrics from making money?
 
-No. Valdrics-AI can continue monetizing through the official SaaS, enterprise
+No. Valdrics can continue monetizing through the official SaaS, enterprise
 features, support, compliance packaging, and commercial agreements.
 
 ## Related Policy Documents

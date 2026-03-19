@@ -58,8 +58,9 @@
 	position: absolute;
 	top: 1rem;
 	right: 1rem;
-	background: rgba(99, 102, 241, 0.1);
-	color: var(--primary, #6366f1);
+	background: rgba(79, 70, 229, 0.22);
+	color: #e0e7ff;
+	border: 1px solid rgba(165, 180, 252, 0.28);
 	font-size: var(--text-xs);
 	font-weight: 700;
 	padding: 0.25rem 0.6rem;

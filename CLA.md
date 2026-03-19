@@ -1,20 +1,21 @@
 # Valdrics Contributor License Agreement (CLA)
 
-Last updated: February 12, 2026
+Last updated: March 19, 2026
 
 This CLA applies to contributions submitted to this repository.
 
-By submitting a pull request, you agree to the terms below unless your organization has a separately signed agreement with Valdrics-AI.
+By submitting a pull request, you agree to the terms below unless your organization has a separately signed agreement with the Project Maintainers.
 
 ## 1. Definitions
 
 - "You": the individual or legal entity making a Contribution.
 - "Contribution": any code, documentation, tests, assets, or other material submitted to the project.
-- "Project": Valdrics and related repository materials maintained by Valdrics-AI.
+- "Project": Valdrics and related repository materials maintained in this repository.
+- "Project Maintainers": the individual maintainers of the Project, or any successor legal owner they designate in writing for this repository.
 
 ## 2. Copyright License Grant
 
-You grant Valdrics-AI and downstream recipients a perpetual, worldwide, non-exclusive, royalty-free, irrevocable license to use, reproduce, modify, distribute, publicly perform, and publicly display your Contributions as part of the Project.
+You grant the Project Maintainers and downstream recipients a perpetual, worldwide, non-exclusive, royalty-free, irrevocable license to use, reproduce, modify, distribute, publicly perform, and publicly display your Contributions as part of the Project.
 
 ## 3. Patent License Grant
 
@@ -22,7 +23,7 @@ You grant a perpetual, worldwide, non-exclusive, royalty-free, irrevocable paten
 
 ## 4. License Flexibility
 
-You acknowledge that the Project may be distributed under source-available, open-source, commercial, or future successor licenses, and you grant rights required for Valdrics-AI to relicense the Project and your Contributions accordingly.
+You acknowledge that the Project may be distributed under source-available, open-source, commercial, or future successor licenses, and you grant rights required for the Project Maintainers to relicense the Project and your Contributions accordingly.
 
 ## 5. Representations
 

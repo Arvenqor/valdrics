@@ -5,8 +5,8 @@ present in the repository.
 
 ## Supported Profiles
 
-- Supported production: Helm + Terraform on AWS/EKS with AWS RDS and ElastiCache
-- Reference managed-platform manifests: Cloudflare Pages + Koyeb for preview evaluation only
+- Current supported production: Koyeb-managed API, worker, and dashboard services with operator-managed PostgreSQL and Redis
+- Future scale profile: Helm + Terraform on AWS/EKS with AWS RDS and ElastiCache
 
 ## Recovery Posture
 
@@ -27,7 +27,7 @@ present in the repository.
   credentials through GitHub OIDC before promotion and DNS mutation.
 - The automated cutover path records `aws_execution_identity` so the assumed
   AWS principal is preserved in failover evidence.
-- Managed-platform preview manifests are excluded from the production DR contract unless an operator adds immutable release and regional recovery controls outside this repository.
+- Koyeb production recovery assumes immutable image promotion and prior known-good release tags are available for API, worker, and dashboard.
 
 ## 1. AWS RDS Database Failure
 
@@ -78,22 +78,21 @@ provisioned.
 6. Update Cloudflare API DNS to the secondary origin through the scripted cutover only when the Cloudflare response reports `success=true`.
 7. Re-run `/health`, worker-consumption checks, and tenant-scoped API validation after cutover.
 
-## 3. Reference Managed-Platform Failure
+## 3. Koyeb Managed-Service Failure
 
 ### Detection
 
-- dashboard pages fail to render
-- backend health checks fail on the PaaS profile
-- edge proxy requests stop reaching the API
+- dashboard fails to render
+- backend health checks fail on the managed-service profile
+- worker stops consuming tasks or the API loses Redis/database connectivity
 
 ### Recovery Steps
 
-1. Identify whether the issue is isolated to Cloudflare Pages, Koyeb, or both.
-2. Roll back the affected Cloudflare deployment if the dashboard release regressed.
-3. Redeploy the prior known-good Koyeb revision for both `koyeb.yaml` and `koyeb-worker.yaml` if the API or worker regressed.
-4. Confirm the Koyeb runtime secrets include `SENTRY_DSN`, `OTEL_EXPORTER_OTLP_ENDPOINT`, and the audited `TRUSTED_PROXY_CIDRS` allowlist before reopening traffic.
-5. Treat this as preview/reference recovery only; it is not part of the supported production DR contract without external immutable release and regional failover controls.
-6. Re-validate health checks, authentication flows, queue consumption, and dashboard-to-API connectivity.
+1. Identify whether the issue is isolated to API, worker, dashboard, database, or Redis.
+2. Redeploy the prior known-good immutable Koyeb release tag for API, worker, and dashboard.
+3. Confirm the Koyeb runtime secrets include `SENTRY_DSN`, `OTEL_EXPORTER_OTLP_ENDPOINT`, and the audited `TRUSTED_PROXY_CIDRS` allowlist before reopening traffic.
+4. Re-validate health checks, authentication flows, queue consumption, and dashboard-to-API connectivity.
+5. If the failure was caused by a forward-only database change, follow the backup/restore path before reopening traffic.
 
 ## 4. Secret Exposure or Rotation Event
 

@@ -2,10 +2,12 @@ import { base } from '$app/paths';
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
+const DEFAULT_CALLBACK_TARGET = '/dashboard';
+
 function _safeRedirectTarget(value: string | null): string {
-	if (!value) return '/';
-	if (!value.startsWith('/')) return '/';
-	if (value.startsWith('//') || value.startsWith('/\\')) return '/';
+	if (!value) return DEFAULT_CALLBACK_TARGET;
+	if (!value.startsWith('/')) return DEFAULT_CALLBACK_TARGET;
+	if (value.startsWith('//') || value.startsWith('/\\')) return DEFAULT_CALLBACK_TARGET;
 	return value;
 }
 

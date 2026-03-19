@@ -1,3 +1,5 @@
+const DEFAULT_POST_AUTH_PATH = '/dashboard';
+
 export type PublicAuthMode = 'login' | 'signup';
 
 export type PublicAuthIntent =
@@ -127,7 +129,7 @@ export function buildPostAuthRedirectPath(context: PublicAuthContext): string {
 		return context.nextPath;
 	}
 	if (!context.intent) {
-		return '/';
+		return DEFAULT_POST_AUTH_PATH;
 	}
 
 	const params = new URLSearchParams({ intent: context.intent });

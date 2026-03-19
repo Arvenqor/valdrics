@@ -64,6 +64,9 @@
 					class="public-brand-wordmark hidden sm:block"
 					width="155"
 					height="45"
+					loading="eager"
+					decoding="async"
+					fetchpriority="high"
 				/>
 			</a>
 

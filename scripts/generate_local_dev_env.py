@@ -86,6 +86,8 @@ def generate_local_dev_env(
     output_path: Path,
     seed: str,
 ) -> Path:
+    if template_path.resolve() == output_path.resolve():
+        raise ValueError("template_path and output_path must be different files")
     if not template_path.exists():
         raise FileNotFoundError(f"Template file does not exist: {template_path.as_posix()}")
     rendered = _render_env(

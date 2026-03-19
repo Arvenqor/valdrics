@@ -153,15 +153,20 @@ def parse_close_history(payload: dict[str, Any]) -> list[dict[str, Any]]:
         raise ValueError("close_history must be an array")
 
     parsed: list[dict[str, Any]] = []
+    seen_months: set[str] = set()
     for idx, item in enumerate(raw):
         if not isinstance(item, dict):
             raise ValueError(f"close_history[{idx}] must be an object")
+        month = parse_non_empty_str(
+            item.get("month"),
+            field=f"close_history[{idx}].month",
+        )
+        if month in seen_months:
+            raise ValueError(f"close_history contains duplicate month: {month}")
+        seen_months.add(month)
         parsed.append(
             {
-                "month": parse_non_empty_str(
-                    item.get("month"),
-                    field=f"close_history[{idx}].month",
-                ),
+                "month": month,
                 "blended_gross_margin_percent": parse_float(
                     item.get("blended_gross_margin_percent"),
                     field=f"close_history[{idx}].blended_gross_margin_percent",

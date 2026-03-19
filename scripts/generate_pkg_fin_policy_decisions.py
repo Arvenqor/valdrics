@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -13,6 +14,7 @@ from scripts.pkg_fin_policy_decisions_constants import (
     REQUIRED_DECISION_BACKLOG_IDS,
     REQUIRED_TIERS,
 )
+from scripts.verify_finance_telemetry_snapshot import verify_snapshot
 from scripts.verify_pkg_fin_policy_decisions import verify_evidence
 
 INFRA_COGS_PCT_BY_TIER: dict[str, float] = {
@@ -96,6 +98,8 @@ def _as_non_negative_float(value: Any, *, field: str) -> float:
         parsed = float(value)
     except (TypeError, ValueError) as exc:
         raise ValueError(f"{field} must be numeric") from exc
+    if not math.isfinite(parsed):
+        raise ValueError(f"{field} must be finite")
     if parsed < 0:
         raise ValueError(f"{field} must be >= 0")
     return parsed
@@ -296,13 +300,16 @@ def _build_payload(
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     telemetry_path = Path(str(args.telemetry_snapshot_path))
+    output_path = Path(str(args.output))
+    if telemetry_path.resolve() == output_path.resolve():
+        raise ValueError("telemetry_snapshot_path and output must be different files")
+    verify_snapshot(snapshot_path=telemetry_path, max_artifact_age_hours=24.0)
     telemetry_payload = _load_json(telemetry_path, field="telemetry_snapshot_path")
     payload = _build_payload(
         telemetry_payload=telemetry_payload,
         months_observed=int(args.months_observed),
     )
 
-    output_path = Path(str(args.output))
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
 

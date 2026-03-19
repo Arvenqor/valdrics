@@ -1,20 +1,28 @@
 # Valdrics Deployment Guide
 
-Last verified: **2026-03-07**
+Last verified: **2026-03-18**
 
-## Supported Production Deployment Profile
+## Current Supported Production Deployment Profile
 
-The repository-backed production deployment profile is:
+The current supported production deployment profile is:
+Current supported production deployment profile means the Koyeb-managed release path below.
 
-Supported production deployment profile: `Helm + Terraform (AWS/EKS)`.
+`Koyeb managed services with immutable image promotion`
 
-1. `Helm + Terraform (AWS/EKS)`
+This is the active operating model for both staging and production.
 
-Do not mix preview/reference manifests into the production operational contract.
+## Future Scale Profile
+
+The repository retains a future scale profile:
+
+`Helm + Terraform (AWS/EKS)`
+
+That path remains in-repo for later scale-up work, but it is not the current
+day-to-day operating default.
 
 ## Shared Runtime Contract
 
-All production profiles should satisfy these checks:
+All deployment profiles must satisfy these checks:
 
 - `ENVIRONMENT=production`
 - explicit public URLs: `API_URL=https://...` and `FRONTEND_URL=https://...`
@@ -25,50 +33,74 @@ All production profiles should satisfy these checks:
 - immutable image or deployment versioning
 - any forecasting break-glass expiry must remain within the configured max break-glass window
 
-## Profile A: Helm + Terraform (AWS/EKS)
+## Profile A: Koyeb Managed Services
+
+Repository evidence:
+
+- runtime and deploy bundle generators:
+  - `scripts/generate_managed_runtime_env.py`
+  - `scripts/generate_managed_migration_env.py`
+  - `scripts/generate_managed_deployment_artifacts.py`
+  - `scripts/verify_managed_deployment_bundle.py`
+- immutable image publish workflow:
+  - `.github/workflows/publish-release-images.yml`
+- generated Koyeb artifacts:
+  - `.runtime/deploy/<environment>/koyeb-api.yaml`
+  - `.runtime/deploy/<environment>/koyeb-worker.yaml`
+  - `.runtime/deploy/<environment>/koyeb-dashboard-env.json`
+  - `.runtime/deploy/<environment>/koyeb-release.json`
+
+Expected posture:
+
+- separate Koyeb apps or service groups for `staging` and `production`
+- separate database, Redis, and secret stores per environment
+- API and worker release from the same immutable GHCR image digest
+- dashboard release from a separate immutable GHCR image digest
+- GHCR is the supported current registry; Docker Hub is not part of the release contract
+- Koyeb deploys from immutable digest refs, not Git branch tracking
+- production promotion reuses the exact tested release image digests from staging
+- dashboard public configuration remains runtime-driven through `koyeb-dashboard-env.json`, so the same dashboard image can be promoted between environments
+
+Core operator steps:
+
+1. Generate or refresh the runtime and migration bundles.
+2. Publish immutable API and dashboard images with `.github/workflows/publish-release-images.yml`.
+3. Capture the published `sha256:...` digests from `ghcr-release.json` / `ghcr-release.env`.
+4. Generate the deployment bundle with `--release-tag`, `--api-image-digest`, and `--dashboard-image-digest`.
+5. Apply migrations with the environment-specific migration env.
+6. Deploy API, worker, and dashboard in Koyeb using the digest-pinned `promotion_ref` values in `koyeb-release.json`.
+7. Apply dashboard public env from `koyeb-dashboard-env.json`.
+8. Validate `/health/live`, `/health`, worker connectivity, dashboard-to-API connectivity, and `/_internal/metrics`.
+
+## Profile B: Helm + Terraform (AWS/EKS) Future Scale
 
 Repository evidence:
 
 - Helm chart: `helm/valdrics/`
 - Infrastructure modules: `terraform/`
 
-Expected posture:
+Expected posture when activated:
 
 - API replicas >= 2
 - ExternalSecrets enabled for production values
 - AWS RDS Multi-AZ and automated backups
 - ElastiCache Multi-AZ replication group
 
-Core operator steps:
+Future-scale operator steps:
 
 1. Provision infrastructure with Terraform.
-2. Publish an immutable application image.
+2. Publish immutable application images.
 3. Deploy with Helm values that preserve the production defaults.
 4. Validate `/health/live`, `/health`, and cluster-internal `/_internal/metrics`.
 
-## Reference Managed-Platform Manifests
+## Legacy Checked-In Manifests
 
-Repository evidence:
+- `koyeb.yaml`
+- `koyeb-worker.yaml`
 
-- Dashboard adapter/config: `dashboard/svelte.config.js`
-- Backend API manifest: `koyeb.yaml`
-- Backend worker manifest: `koyeb-worker.yaml`
-
-These manifests remain checked in as a managed-platform reference and preview
-surface. They are not a supported production profile because the checked-in
-Koyeb definitions are branch-driven and do not, by themselves, satisfy the
-repository requirement for immutable release artifacts.
-
-Reference operator steps:
-
-1. Deploy the dashboard to Cloudflare Pages.
-2. Deploy the API to Koyeb using the checked-in `Dockerfile`.
-3. Deploy the Celery worker to Koyeb using `koyeb-worker.yaml`; the worker starts with the image-bundled `celery` entrypoint rather than `uv run`.
-4. Configure runtime secrets through the platform secret store, including `SENTRY_DSN`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `TRUSTED_PROXY_CIDRS`, `INTERNAL_METRICS_AUTH_TOKEN`, and `INTERNAL_JOB_SECRET`.
-5. Validate dashboard-to-API connectivity, worker connectivity to Redis, and API health endpoints.
-
-Promote this path to production only if external release automation enforces
-immutable artifacts and a separate DR/rollback contract.
+These remain checked in as compatibility helpers for local/manual evaluation, but
+the authoritative Koyeb production handoff is the generated managed bundle under
+`.runtime/deploy/<environment>/`.
 
 ## Verification Checklist
 
@@ -80,6 +112,8 @@ immutable artifacts and a separate DR/rollback contract.
 
 ## Related Runbooks
 
+- `docs/runbooks/production_env_checklist.md`
+- `docs/runbooks/koyeb_release_promotion.md`
 - `docs/ROLLBACK_PLAN.md`
 - `docs/runbooks/disaster_recovery.md`
 - `docs/runbooks/tenant_data_lifecycle.md`

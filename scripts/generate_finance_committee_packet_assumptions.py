@@ -13,9 +13,6 @@ from scripts.finance_committee_packet_assumptions_engine import (
     derive_assumptions_inputs,
 )
 from scripts.finance_committee_packet_common import load_json
-from scripts.generate_finance_telemetry_snapshot import (
-    main as generate_finance_telemetry_snapshot_main,
-)
 from scripts.verify_finance_telemetry_snapshot import verify_snapshot
 
 
@@ -46,6 +43,10 @@ def _resolve_telemetry_payload(
         return load_json(telemetry_path, field="telemetry_path"), str(telemetry_path.resolve())
 
     with tempfile.TemporaryDirectory(prefix="finance-assumptions-") as tmp_dir:
+        from scripts.generate_finance_telemetry_snapshot import (
+            main as generate_finance_telemetry_snapshot_main,
+        )
+
         generated = Path(tmp_dir) / "finance_telemetry_snapshot.json"
         exit_code = generate_finance_telemetry_snapshot_main(
             [
@@ -64,12 +65,14 @@ def _resolve_telemetry_payload(
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     telemetry_path = Path(str(args.telemetry_path)) if args.telemetry_path else None
+    output_path = Path(str(args.output))
+    if telemetry_path is not None and telemetry_path.resolve() == output_path.resolve():
+        raise ValueError("telemetry_path and output must be different files")
     telemetry, source_telemetry = _resolve_telemetry_payload(telemetry_path=telemetry_path)
 
     assumptions = derive_assumptions_inputs(telemetry=telemetry)
     assumptions["source_telemetry_path"] = source_telemetry
 
-    output_path = Path(str(args.output))
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(assumptions, indent=2, sort_keys=True), encoding="utf-8")
     print(f"Generated finance committee packet assumptions: {output_path}")

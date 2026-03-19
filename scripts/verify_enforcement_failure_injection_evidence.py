@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -48,9 +49,12 @@ def _parse_iso_utc(value: Any, *, field: str) -> datetime:
 
 def _parse_float(value: Any, *, field: str) -> float:
     try:
-        return float(value)
+        parsed = float(value)
     except (TypeError, ValueError) as exc:
         raise ValueError(f"{field} must be numeric") from exc
+    if not math.isfinite(parsed):
+        raise ValueError(f"{field} must be finite")
+    return parsed
 
 
 def _parse_int(value: Any, *, field: str) -> int:

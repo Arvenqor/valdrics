@@ -15,7 +15,7 @@ describe('publicAuthIntent', () => {
 		expect(context.intent).toBeUndefined();
 		expect(context.persona).toBeUndefined();
 		expect(context.nextPath).toBeUndefined();
-		expect(buildPostAuthRedirectPath(context)).toBe('/');
+		expect(buildPostAuthRedirectPath(context)).toBe('/dashboard');
 	});
 
 	it('auto-switches to signup mode when landing intent exists without explicit mode', () => {
@@ -58,12 +58,12 @@ describe('publicAuthIntent', () => {
 			new URL('https://example.com/auth/login?mode=login&next=https://evil.example')
 		);
 		expect(external.nextPath).toBeUndefined();
-		expect(buildPostAuthRedirectPath(external)).toBe('/');
+		expect(buildPostAuthRedirectPath(external)).toBe('/dashboard');
 
 		const protocolRelative = parsePublicAuthContext(
 			new URL('https://example.com/auth/login?mode=login&next=%2F%2Fevil.example')
 		);
 		expect(protocolRelative.nextPath).toBeUndefined();
-		expect(buildPostAuthRedirectPath(protocolRelative)).toBe('/');
+		expect(buildPostAuthRedirectPath(protocolRelative)).toBe('/dashboard');
 	});
 });
