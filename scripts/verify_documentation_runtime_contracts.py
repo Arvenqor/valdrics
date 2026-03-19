@@ -21,27 +21,30 @@ DOCUMENTATION_CONTRACTS: tuple[DocumentationContract, ...] = (
         required_phrases=(
             "boundary target",
             "Helm chart",
-            "reference managed-platform surface",
+            "Koyeb-managed services",
         ),
         forbidden_phrases=("Zero external dependencies", "`k8s/`"),
     ),
     DocumentationContract(
         path="docs/DEPLOYMENT.md",
         required_phrases=(
-            "Supported production deployment profile",
-            "Helm + Terraform (AWS/EKS)",
-            "Reference Managed-Platform Manifests",
-            "koyeb-worker.yaml",
+            "Current supported production deployment profile",
+            "Koyeb managed services with immutable image promotion",
+            "Future Scale Profile",
+            ".github/workflows/publish-release-images.yml",
+            "digest-pinned `promotion_ref` values",
+            "koyeb-release.json",
+            "koyeb-dashboard-env.json",
         ),
-        forbidden_phrases=("Vercel", "two supported deployment profiles"),
+        forbidden_phrases=("Vercel", "Cloudflare Pages + Koyeb"),
     ),
     DocumentationContract(
         path="docs/CAPACITY_PLAN.md",
         required_phrases=(
-            "sole supported production scale path",
-            "managed-platform preview/reference surface",
+            "current supported operating profile is Koyeb",
+            "future scale path",
             "AWS RDS profile",
-            "koyeb-worker.yaml",
+            "Koyeb-managed API, worker, and dashboard services",
             "docs/architecture/tiering-2026.md",
         ),
     ),
@@ -66,7 +69,12 @@ DOCUMENTATION_CONTRACTS: tuple[DocumentationContract, ...] = (
     ),
     DocumentationContract(
         path="docs/ROLLBACK_PLAN.md",
-        required_phrases=("ENABLE_SCHEDULER=false", "backup/restore"),
+        required_phrases=(
+            "ENABLE_SCHEDULER=false",
+            "backup/restore",
+            "Koyeb Rollback",
+            "immutable release artifacts",
+        ),
         forbidden_phrases=("Koyeb/Vercel", "alembic downgrade [VERSION_ID]"),
     ),
     DocumentationContract(
@@ -102,8 +110,8 @@ DOCUMENTATION_CONTRACTS: tuple[DocumentationContract, ...] = (
     DocumentationContract(
         path="docs/runbooks/disaster_recovery.md",
         required_phrases=(
+            "Current supported production: Koyeb-managed API, worker, and dashboard services",
             "AWS RDS",
-            "Cloudflare",
             "disaster-recovery-drill.yml",
             "regional-failover.yml",
             "scripts/run_regional_failover.py",
@@ -114,7 +122,6 @@ DOCUMENTATION_CONTRACTS: tuple[DocumentationContract, ...] = (
             "/health",
             "success=true",
             "regional_recovery_mode=automated_secondary_region_failover",
-            "koyeb-worker.yaml",
             "1200 seconds",
             "duration_seconds",
             "regional_recovery_mode=manual_restore_redeploy_reroute",
@@ -134,8 +141,11 @@ DOCUMENTATION_CONTRACTS: tuple[DocumentationContract, ...] = (
     DocumentationContract(
         path="docs/runbooks/production_env_checklist.md",
         required_phrases=(
+            "Python 3.12.x",
+            ".python-version",
             "API_URL=https://",
             "FRONTEND_URL=https://",
+            "SUPABASE_ANON_KEY=...",
             "SENTRY_DSN=https://",
             "OTEL_EXPORTER_OTLP_ENDPOINT=https://",
             "ENFORCEMENT_APPROVAL_TOKEN_SECRET=...",
@@ -146,13 +156,27 @@ DOCUMENTATION_CONTRACTS: tuple[DocumentationContract, ...] = (
             "generate_managed_migration_env.py",
             "generate_managed_deployment_artifacts.py",
             "verify_managed_deployment_bundle.py",
+            "publish-release-images.yml",
+            "--api-image-digest <sha256:...>",
+            "--dashboard-image-digest <sha256:...>",
             "run_public_frontend_quality_gate.py",
             "deployment.report.json",
+            "koyeb-dashboard-env.json",
+            "koyeb-release.json",
             "--env-file .runtime/production.env",
             "--env-file .runtime/production.migrate.env",
             "set -a && source .runtime/production.migrate.env && uv run alembic upgrade head",
         ),
         forbidden_phrases=("Optional but recommended: `SENTRY_DSN",),
+    ),
+    DocumentationContract(
+        path="docs/runbooks/koyeb_release_promotion.md",
+        required_phrases=(
+            "publish-release-images.yml",
+            "ghcr-release.env",
+            "promotion_ref",
+            "GHCR_NAMESPACE=valdrics",
+        ),
     ),
     DocumentationContract(
         path="docs/integrations/workflow_automation.md",
@@ -210,6 +234,8 @@ DOCUMENTATION_CONTRACTS: tuple[DocumentationContract, ...] = (
     DocumentationContract(
         path="DEPLOYMENT.md",
         required_phrases=(
+            "Python 3.12.x",
+            "uv sync --python 3.12",
             "/health/live",
             "/_internal/metrics",
             "--from-literal=DATABASE_URL=",

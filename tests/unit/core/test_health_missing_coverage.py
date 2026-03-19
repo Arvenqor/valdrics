@@ -29,6 +29,11 @@ class TestHealthServiceMissingCoverage:
         with (
             patch.object(
                 health_service,
+                "_testing_mode",
+                return_value=False,
+            ),
+            patch.object(
+                health_service,
                 "_check_database",
                 return_value={"status": "up", "latency_ms": 10.5},
             ),
@@ -72,6 +77,11 @@ class TestHealthServiceMissingCoverage:
     async def test_check_all_redis_degraded_only(self, health_service, mock_db):
         """Test overall health check when only Redis is degraded (lines 25-26)."""
         with (
+            patch.object(
+                health_service,
+                "_testing_mode",
+                return_value=False,
+            ),
             patch.object(
                 health_service,
                 "_check_database",
@@ -151,6 +161,11 @@ class TestHealthServiceMissingCoverage:
         with (
             patch.object(
                 health_service,
+                "_testing_mode",
+                return_value=False,
+            ),
+            patch.object(
+                health_service,
                 "_check_database",
                 return_value={"status": "down", "error": "Connection failed"},
             ),
@@ -191,13 +206,11 @@ class TestHealthServiceMissingCoverage:
     @pytest.mark.asyncio
     async def test_check_database_exception(self, health_service, mock_db):
         """Test database check handling exception (lines 43-45)."""
-        with patch(
-            "app.shared.core.health.db_health_check", side_effect=RuntimeError("DB error")
-        ):
-            success, details = await health_service.check_database()
+        mock_db.execute.side_effect = RuntimeError("DB error")
+        success, details = await health_service.check_database()
 
-            assert success is False
-            assert "DB error" in details["error"]
+        assert success is False
+        assert "DB error" in details["error"]
 
     @pytest.mark.asyncio
     async def test_check_redis_not_configured(self, health_service):
@@ -275,41 +288,48 @@ class TestHealthServiceMissingCoverage:
     @pytest.mark.asyncio
     async def test_check_all_healthy(self, health_service):
         """Test overall health check when all services are healthy (line 22)."""
-        with patch.object(
-            health_service,
-            "_check_database",
-            return_value={"status": "up", "latency_ms": 10.5},
-        ):
-            with patch.object(
+        with (
+            patch.object(
+                health_service,
+                "_testing_mode",
+                return_value=False,
+            ),
+            patch.object(
+                health_service,
+                "_check_database",
+                return_value={"status": "up", "latency_ms": 10.5},
+            ),
+            patch.object(
                 health_service,
                 "_check_cache",
                 return_value={"status": "healthy", "latency_ms": 5.2},
-            ):
-                with patch.object(
-                    health_service,
-                    "_check_external_services",
-                    return_value={
-                        "status": "healthy",
-                        "services": {"aws_sts": {"status": "healthy"}},
-                    },
-                ):
-                    with patch.object(
-                        health_service,
-                        "_check_circuit_breakers",
-                        return_value={"status": "healthy"},
-                    ):
-                        with patch.object(
-                            health_service,
-                            "_check_system_resources",
-                            return_value={"status": "healthy"},
-                        ):
-                            with patch.object(
-                                health_service,
-                                "_check_background_jobs",
-                                return_value={"status": "healthy"},
-                            ):
-                                result = await health_service.check_all()
-                                assert result["status"] == "healthy"
+            ),
+            patch.object(
+                health_service,
+                "_check_external_services",
+                return_value={
+                    "status": "healthy",
+                    "services": {"aws_sts": {"status": "healthy"}},
+                },
+            ),
+            patch.object(
+                health_service,
+                "_check_circuit_breakers",
+                return_value={"status": "healthy"},
+            ),
+            patch.object(
+                health_service,
+                "_check_system_resources",
+                return_value={"status": "healthy"},
+            ),
+            patch.object(
+                health_service,
+                "_check_background_jobs",
+                return_value={"status": "healthy"},
+            ),
+        ):
+            result = await health_service.check_all()
+            assert result["status"] == "healthy"
 
     @pytest.mark.asyncio
     async def test_check_aws_server_error(self, health_service):

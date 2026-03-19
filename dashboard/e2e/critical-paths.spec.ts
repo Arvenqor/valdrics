@@ -8,11 +8,7 @@
  */
 
 import { test, expect, type Page } from '@playwright/test';
-
-// Test configuration
-const BASE_URL = process.env.DASHBOARD_URL || 'http://localhost:4173';
-const E2E_AUTH_HEADER_NAME = 'x-valdrics-e2e-auth';
-const E2E_AUTH_HEADER_VALUE = process.env.E2E_AUTH_SECRET || 'playwright';
+import { BASE_URL, enableAuthenticatedSession } from './support/e2eAuth';
 
 // Helper to wait for page load
 async function waitForPageLoad(page: Page) {
@@ -26,10 +22,12 @@ test.describe('Onboarding Flow', () => {
 		await page.goto(BASE_URL);
 		await waitForPageLoad(page);
 
-		// Check for key elements - title is in the header link
-		await expect(page.locator('header')).toContainText('Valdrics');
-		await expect(page.locator('h1')).toContainText('Cloud Cost');
-		await expect(page.getByRole('link', { name: /Get Started Free/i }).first()).toBeVisible();
+		await expect(page.getByRole('heading', { level: 1 })).toContainText(
+			/turn cloud, saas, and software spend into governed action without slowing delivery/i
+		);
+		await expect(
+			page.getByRole('link', { name: /Start Free Workspace|Book Executive Briefing/i }).first()
+		).toBeVisible();
 	});
 
 	test('skip link is keyboard reachable', async ({ page }) => {
@@ -47,10 +45,11 @@ test.describe('Onboarding Flow', () => {
 		await waitForPageLoad(page);
 
 		// Check all tiers are visible
+		await expect(page.getByRole('heading', { name: 'Free', exact: true })).toBeVisible();
 		await expect(page.getByRole('heading', { name: 'Starter', exact: true })).toBeVisible();
 		await expect(page.getByRole('heading', { name: 'Growth', exact: true })).toBeVisible();
 		await expect(page.getByRole('heading', { name: 'Pro', exact: true })).toBeVisible();
-		await expect(page.getByRole('heading', { name: 'Enterprise', exact: true })).toBeVisible();
+		await expect(page.getByRole('link', { name: /Open Enterprise Path/i })).toBeVisible();
 	});
 
 	test('login page loads', async ({ page }) => {
@@ -94,14 +93,12 @@ test.describe('SEO and Indexability', () => {
 // ==================== Dashboard Flow ====================
 
 test.describe('Dashboard Flow (Authenticated)', () => {
-	test.beforeEach(async ({ page }) => {
-		await page.context().setExtraHTTPHeaders({
-			[E2E_AUTH_HEADER_NAME]: E2E_AUTH_HEADER_VALUE
-		});
+	test.beforeEach(async ({ context }) => {
+		await enableAuthenticatedSession(context);
 	});
 
 	test('dashboard loads with key metrics', async ({ page }) => {
-		await page.goto(`${BASE_URL}/`);
+		await page.goto(`${BASE_URL}/dashboard`);
 		await waitForPageLoad(page);
 
 		// Dashboard should have these sections
@@ -119,28 +116,26 @@ test.describe('Dashboard Flow (Authenticated)', () => {
 // ==================== Billing Flow ====================
 
 test.describe('Billing Flow', () => {
+	test.beforeEach(async ({ context }) => {
+		await enableAuthenticatedSession(context);
+	});
+
 	test('billing page loads', async ({ page }) => {
 		await page.goto(`${BASE_URL}/billing`);
 		await waitForPageLoad(page);
 
-		// Protected routes may redirect to login when unauthenticated.
-		if (page.url().includes('/auth/login')) {
-			await expect(page).toHaveURL(/\/auth\/login/);
-			return;
-		}
-
-		await expect(page.locator('h1:has-text("Billing & Plans")')).toBeVisible();
+		await expect(page.locator('h1:has-text("Subscription and usage")')).toBeVisible();
 	});
 
 	test('pricing cards are interactive', async ({ page }) => {
 		await page.goto(`${BASE_URL}/pricing`);
 		await waitForPageLoad(page);
 
-		// Find a CTA button
-		const ctaButton = page.locator('.cta-button').first();
+		const ctaButton = page
+			.getByRole('link', { name: /Start Free Workspace|Open Enterprise Path/i })
+			.first();
 		await expect(ctaButton).toBeVisible();
 
-		// Check it's clickable (not disabled)
 		await expect(ctaButton).toBeEnabled();
 	});
 });
@@ -148,14 +143,13 @@ test.describe('Billing Flow', () => {
 // ==================== Connections Flow ====================
 
 test.describe('Connections Flow', () => {
+	test.beforeEach(async ({ context }) => {
+		await enableAuthenticatedSession(context);
+	});
+
 	test('connections page loads', async ({ page }) => {
 		await page.goto(`${BASE_URL}/connections`);
 		await waitForPageLoad(page);
-
-		if (page.url().includes('/auth/login')) {
-			await expect(page).toHaveURL(/\/auth\/login/);
-			return;
-		}
 
 		await expect(page.locator('h1:has-text("Cloud Accounts")')).toBeVisible();
 	});
@@ -164,20 +158,16 @@ test.describe('Connections Flow', () => {
 // ==================== GreenOps Flow ====================
 
 test.describe('GreenOps Flow', () => {
+	test.beforeEach(async ({ context }) => {
+		await enableAuthenticatedSession(context);
+	});
+
 	test('greenops page loads', async ({ page }) => {
 		await page.goto(`${BASE_URL}/greenops`);
 		await waitForPageLoad(page);
 
-		if (page.url().includes('/auth/login')) {
-			await expect(page).toHaveURL(/\/auth\/login/);
-			return;
-		}
-
-		// Should show carbon tracking
-		const hasCarbon = await page.locator('text=carbon, text=Carbon').first().isVisible();
-		const hasGreenOps = await page.locator('text=GreenOps').isVisible();
-
-		expect(hasCarbon || hasGreenOps).toBeTruthy();
+		await expect(page.getByRole('heading', { name: /greenops dashboard/i })).toBeVisible();
+		await expect(page.getByText(/carbon/i).first()).toBeVisible();
 	});
 });
 

@@ -71,6 +71,15 @@ def _normalize_dependency_inputs(
     return tuple(normalized_paths)
 
 
+def _resolve_output_path(repo_root: Path, output: Path) -> Path:
+    resolved = Path(output).resolve()
+    try:
+        resolved.relative_to(repo_root)
+    except ValueError as exc:
+        raise ValueError("output must stay within repo root") from exc
+    return resolved
+
+
 def _resolve_file(repo_root: Path, relative_path: Path) -> Path:
     candidate = repo_root / relative_path
     if not candidate.exists() or not candidate.is_file():
@@ -210,11 +219,36 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
 
     repo_root = args.repo_root.resolve()
+    output_path = _resolve_output_path(repo_root, args.output)
+    normalized_dependency_inputs = _normalize_dependency_inputs(
+        repo_root,
+        dependency_inputs,
+    )
     sbom_dir: Path | None
     if args.allow_missing_sbom and not (repo_root / args.sbom_dir).exists():
         sbom_dir = None
     else:
         sbom_dir = args.sbom_dir
+    output_relative = output_path.relative_to(repo_root)
+    if output_relative in normalized_dependency_inputs:
+        raise ValueError(
+            "output must not overwrite dependency input: "
+            f"{output_relative.as_posix()}"
+        )
+    if sbom_dir is not None:
+        normalized_sbom_dir = _normalize_repo_relative_path(
+            repo_root,
+            sbom_dir,
+            field="sbom_dir",
+        )
+        absolute_sbom_dir = (repo_root / normalized_sbom_dir).resolve()
+        if absolute_sbom_dir.exists() and absolute_sbom_dir.is_dir():
+            for candidate in absolute_sbom_dir.glob("*.json"):
+                if output_path == candidate.resolve():
+                    raise ValueError(
+                        "output must not overwrite SBOM artifact: "
+                        f"{candidate.relative_to(repo_root).as_posix()}"
+                    )
 
     manifest = generate_provenance_manifest(
         repo_root=repo_root,
@@ -223,7 +257,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         env=os.environ,
     )
 
-    output_path = args.output.resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n",

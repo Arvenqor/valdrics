@@ -238,7 +238,7 @@ def build_workflow_payload(
         payload = build_notification_payload(
             jira_enabled=False,
             workflow_github_enabled=True,
-            workflow_github_owner="Valdrics-AI",
+            workflow_github_owner="Valdrics",
             workflow_github_repo="valdrics",
             workflow_github_workflow_id="remediation.yml",
             workflow_github_ref="main",

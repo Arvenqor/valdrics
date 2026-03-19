@@ -58,9 +58,10 @@ def test_rollback_and_recovery_docs_match_supported_platforms() -> None:
 
     assert "ENABLE_SCHEDULER=false" in rollback
     assert "backup/restore" in rollback.lower()
+    assert "Koyeb Rollback" in rollback
     assert "Koyeb/Vercel" not in rollback
+    assert "Current supported production: Koyeb-managed API, worker, and dashboard services" in recovery
     assert "AWS RDS" in recovery
-    assert "Cloudflare" in recovery
     assert "disaster-recovery-drill.yml" in recovery
     assert "regional-failover.yml" in recovery
     assert "scripts/run_regional_failover.py" in recovery
@@ -101,13 +102,13 @@ def test_rollback_and_recovery_docs_match_supported_platforms() -> None:
         in failover
     )
     assert "Route 53" not in failover
-    assert "Supported production deployment profile" in deployment
-    assert "Helm + Terraform (AWS/EKS)" in deployment
-    assert "Reference Managed-Platform Manifests" in deployment
-    assert "koyeb-worker.yaml" in deployment
-    assert "sole supported production scale path" in capacity
-    assert "managed-platform preview/reference surface" in capacity
-    assert "koyeb-worker.yaml" in capacity
+    assert "Current supported production deployment profile" in deployment
+    assert "Koyeb managed services with immutable image promotion" in deployment
+    assert "Future Scale Profile" in deployment
+    assert "koyeb-release.json" in deployment
+    assert "current supported operating profile is Koyeb" in capacity
+    assert "future scale path" in capacity
+    assert "Koyeb-managed API, worker, and dashboard services" in capacity
     assert "docs/architecture/tiering-2026.md" in capacity
     assert "active planning document" in roadmap
     assert "reports/roadmap/" in roadmap
@@ -153,7 +154,7 @@ def test_architecture_overview_does_not_overclaim_domain_purity_or_raw_k8s() -> 
     assert "`k8s/`" not in text
     assert "Helm chart" in text
     assert "boundary target" in text
-    assert "reference managed-platform surface" in text
+    assert "Koyeb-managed services" in text
 
 
 def test_incident_and_production_runbooks_match_strict_saas_observability_contract() -> None:
@@ -163,6 +164,7 @@ def test_incident_and_production_runbooks_match_strict_saas_observability_contra
     production = (
         REPO_ROOT / "docs/runbooks/production_env_checklist.md"
     ).read_text(encoding="utf-8")
+    deployment = (REPO_ROOT / "DEPLOYMENT.md").read_text(encoding="utf-8")
     workflow = (REPO_ROOT / "docs/integrations/workflow_automation.md").read_text(
         encoding="utf-8"
     )
@@ -173,8 +175,11 @@ def test_incident_and_production_runbooks_match_strict_saas_observability_contra
     assert "specified in `SLACK_CHANNEL_ID`" not in incident
     assert "SENTRY_DSN=https://" in production
     assert "OTEL_EXPORTER_OTLP_ENDPOINT=https://" in production
+    assert "Python 3.12.x" in production
+    assert ".python-version" in production
     assert "API_URL=https://" in production
     assert "FRONTEND_URL=https://" in production
+    assert "SUPABASE_ANON_KEY=..." in production
     assert "INTERNAL_METRICS_AUTH_TOKEN=<32+ char secret>" in production
     assert "EXPOSE_API_DOCUMENTATION_PUBLICLY=false" in production
     assert "generate_managed_runtime_env.py" in production
@@ -183,6 +188,8 @@ def test_incident_and_production_runbooks_match_strict_saas_observability_contra
     assert "verify_managed_deployment_bundle.py" in production
     assert "run_public_frontend_quality_gate.py" in production
     assert "deployment.report.json" in production
+    assert "koyeb-dashboard-env.json" in production
+    assert "koyeb-release.json" in production
     assert "--env-file .runtime/production.env" in production
     assert "--env-file .runtime/production.migrate.env" in production
     assert "set -a && source .runtime/production.migrate.env && uv run alembic upgrade head" in production
@@ -194,6 +201,8 @@ def test_incident_and_production_runbooks_match_strict_saas_observability_contra
     assert "`app/core/logging.py`" not in soc2
     assert "`docs/DR_RUNBOOK.md`" not in soc2
     assert "`technical_due_diligence.md`" not in soc2
+    assert "Python 3.12.x" in deployment
+    assert "uv sync --python 3.12" in deployment
 
 
 def test_partition_archival_helpers_match_runtime_maintenance_path() -> None:

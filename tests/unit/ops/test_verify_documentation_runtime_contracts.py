@@ -16,15 +16,15 @@ def _write(path: Path, content: str) -> None:
 def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
     _write(
         tmp_path / "docs/architecture/overview.md",
-        "boundary target\nHelm chart\nreference managed-platform surface\n",
+        "boundary target\nHelm chart\nKoyeb-managed services\n",
     )
     _write(
         tmp_path / "docs/DEPLOYMENT.md",
-        "Supported production deployment profile\nHelm + Terraform (AWS/EKS)\nReference Managed-Platform Manifests\nkoyeb-worker.yaml\n",
+        "Current supported production deployment profile\nKoyeb managed services with immutable image promotion\nFuture Scale Profile\n.github/workflows/publish-release-images.yml\ndigest-pinned `promotion_ref` values\nkoyeb-release.json\nkoyeb-dashboard-env.json\n",
     )
     _write(
         tmp_path / "docs/CAPACITY_PLAN.md",
-        "sole supported production scale path\nmanaged-platform preview/reference surface\nAWS RDS profile\nkoyeb-worker.yaml\ndocs/architecture/tiering-2026.md\n",
+        "current supported operating profile is Koyeb\nfuture scale path\nAWS RDS profile\nKoyeb-managed API, worker, and dashboard services\ndocs/architecture/tiering-2026.md\n",
     )
     _write(
         tmp_path / "docs/roadmap.md",
@@ -36,7 +36,7 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
     )
     _write(
         tmp_path / "docs/ROLLBACK_PLAN.md",
-        "ENABLE_SCHEDULER=false\nbackup/restore\n",
+        "ENABLE_SCHEDULER=false\nbackup/restore\nKoyeb Rollback\nimmutable release artifacts\n",
     )
     _write(
         tmp_path / "docs/architecture/database_schema_overview.md",
@@ -48,7 +48,7 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
     )
     _write(
         tmp_path / "docs/runbooks/disaster_recovery.md",
-        "AWS RDS\nCloudflare\ndisaster-recovery-drill.yml\nregional-failover.yml\nscripts/run_regional_failover.py\nenable_multi_region_failover=true\nsecondary_db_endpoint\naws_role_to_assume\nGitHub OIDC\n/health\nsuccess=true\nregional_recovery_mode=automated_secondary_region_failover\nkoyeb-worker.yaml\n1200 seconds\nduration_seconds\nregional_recovery_mode=manual_restore_redeploy_reroute\nregional_recovery_rto_seconds=1200\nregional_recovery_rpo_contract=provider_backup_restore_external_to_repository\n",
+        "Current supported production: Koyeb-managed API, worker, and dashboard services\nAWS RDS\ndisaster-recovery-drill.yml\nregional-failover.yml\nscripts/run_regional_failover.py\nenable_multi_region_failover=true\nsecondary_db_endpoint\naws_role_to_assume\nGitHub OIDC\n/health\nsuccess=true\nregional_recovery_mode=automated_secondary_region_failover\n1200 seconds\nduration_seconds\nregional_recovery_mode=manual_restore_redeploy_reroute\nregional_recovery_rto_seconds=1200\nregional_recovery_rpo_contract=provider_backup_restore_external_to_repository\n",
     )
     _write(
         tmp_path / "docs/runbooks/incident_response.md",
@@ -56,7 +56,11 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
     )
     _write(
         tmp_path / "docs/runbooks/production_env_checklist.md",
-        "API_URL=https://api.example.com\nFRONTEND_URL=https://app.example.com\nSENTRY_DSN=https://...\nOTEL_EXPORTER_OTLP_ENDPOINT=https://collector:4317\nENFORCEMENT_APPROVAL_TOKEN_SECRET=...\nENFORCEMENT_EXPORT_SIGNING_SECRET=...\nINTERNAL_METRICS_AUTH_TOKEN=<32+ char secret>\nEXPOSE_API_DOCUMENTATION_PUBLICLY=false\ngenerate_managed_runtime_env.py\ngenerate_managed_migration_env.py\ngenerate_managed_deployment_artifacts.py\nverify_managed_deployment_bundle.py\nrun_public_frontend_quality_gate.py\ndeployment.report.json\n--env-file .runtime/production.env\n--env-file .runtime/production.migrate.env\nset -a && source .runtime/production.migrate.env && uv run alembic upgrade head\n",
+        "Python 3.12.x\n.python-version\nAPI_URL=https://api.example.com\nFRONTEND_URL=https://app.example.com\nSUPABASE_ANON_KEY=...\nSENTRY_DSN=https://...\nOTEL_EXPORTER_OTLP_ENDPOINT=https://collector:4317\nENFORCEMENT_APPROVAL_TOKEN_SECRET=...\nENFORCEMENT_EXPORT_SIGNING_SECRET=...\nINTERNAL_METRICS_AUTH_TOKEN=<32+ char secret>\nEXPOSE_API_DOCUMENTATION_PUBLICLY=false\ngenerate_managed_runtime_env.py\ngenerate_managed_migration_env.py\ngenerate_managed_deployment_artifacts.py\nverify_managed_deployment_bundle.py\npublish-release-images.yml\n--api-image-digest <sha256:...>\n--dashboard-image-digest <sha256:...>\nrun_public_frontend_quality_gate.py\ndeployment.report.json\nkoyeb-dashboard-env.json\nkoyeb-release.json\n--env-file .runtime/production.env\n--env-file .runtime/production.migrate.env\nset -a && source .runtime/production.migrate.env && uv run alembic upgrade head\n",
+    )
+    _write(
+        tmp_path / "docs/runbooks/koyeb_release_promotion.md",
+        "publish-release-images.yml\nghcr-release.env\npromotion_ref\nGHCR_NAMESPACE=valdrics\n",
     )
     _write(
         tmp_path / "docs/integrations/workflow_automation.md",
@@ -84,7 +88,7 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
     )
     _write(
         tmp_path / "DEPLOYMENT.md",
-        "/health/live\n/_internal/metrics\n--from-literal=DATABASE_URL=\n",
+        "Python 3.12.x\nuv sync --python 3.12\n/health/live\n/_internal/metrics\n--from-literal=DATABASE_URL=\n",
     )
 
     errors = verify_contracts(root=tmp_path)
@@ -138,13 +142,27 @@ def test_verify_contracts_reports_missing_and_forbidden_phrases(tmp_path: Path) 
         DocumentationContract(
             path="docs/runbooks/production_env_checklist.md",
             required_phrases=(
+                "Python 3.12.x",
+                ".python-version",
                 "OTEL_EXPORTER_OTLP_ENDPOINT=https://",
                 "ENFORCEMENT_APPROVAL_TOKEN_SECRET=...",
                 "ENFORCEMENT_EXPORT_SIGNING_SECRET=...",
                 "generate_managed_migration_env.py",
                 "generate_managed_deployment_artifacts.py",
                 "verify_managed_deployment_bundle.py",
+                "publish-release-images.yml",
+                "--api-image-digest <sha256:...>",
+                "--dashboard-image-digest <sha256:...>",
                 "run_public_frontend_quality_gate.py",
+            ),
+        ),
+        DocumentationContract(
+            path="docs/runbooks/koyeb_release_promotion.md",
+            required_phrases=(
+                "publish-release-images.yml",
+                "ghcr-release.env",
+                "promotion_ref",
+                "GHCR_NAMESPACE=valdrics",
             ),
         ),
         DocumentationContract(
@@ -174,7 +192,7 @@ def test_verify_contracts_reports_missing_and_forbidden_phrases(tmp_path: Path) 
         ),
         DocumentationContract(
             path="DEPLOYMENT.md",
-            required_phrases=("/health/live",),
+            required_phrases=("Python 3.12.x", "/health/live"),
         ),
     ):
         _write(tmp_path / contract.path, "placeholder\n")

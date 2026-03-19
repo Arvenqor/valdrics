@@ -188,9 +188,11 @@ async def _generate_snapshot(
     _ensure_runtime_env(database_path)
     _register_models()
 
-    from app.shared.db.session import reset_db_runtime
+    from app.shared.core.config import reload_settings_from_environment
+    from app.shared.db.session import dispose_db_runtime
 
-    reset_db_runtime()
+    reload_settings_from_environment()
+    await dispose_db_runtime()
     window_start, window_end_exclusive = _window_bounds(start_date, end_date)
     await _seed_runtime_data(
         window_start=window_start,
@@ -211,6 +213,9 @@ async def _generate_snapshot(
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     database_path = Path(str(args.database_path))
+    output_path = Path(str(args.output))
+    if output_path.resolve() == database_path.resolve():
+        raise ValueError("output and database_path must be different files")
     database_path.parent.mkdir(parents=True, exist_ok=True)
 
     if args.start_date and args.end_date:
@@ -231,7 +236,6 @@ def main(argv: list[str] | None = None) -> int:
         )
     )
 
-    output_path = Path(str(args.output))
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
     verify_snapshot(snapshot_path=output_path, max_artifact_age_hours=4.0)

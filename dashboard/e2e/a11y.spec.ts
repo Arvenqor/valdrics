@@ -1,9 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { getViolations, injectAxe } from 'axe-playwright';
+import { enableAuthenticatedSession } from './support/e2eAuth';
 
 const CRITICAL_AND_SERIOUS = ['critical', 'serious'] as const;
-const E2E_AUTH_HEADER_NAME = 'x-valdrics-e2e-auth';
-const E2E_AUTH_HEADER_VALUE = process.env.E2E_AUTH_SECRET || 'playwright';
 
 type RouteCase = {
 	path: string;
@@ -16,6 +15,7 @@ const A11Y_ROUTES: RouteCase[] = [
 	{ path: '/auth/login' },
 	{ path: '/privacy' },
 	{ path: '/terms' },
+	{ path: '/dashboard', authenticated: true },
 	{ path: '/settings', authenticated: true },
 	{ path: '/connections', authenticated: true },
 	{ path: '/billing', authenticated: true },
@@ -34,11 +34,7 @@ async function expectNoCriticalOrSeriousViolations(
 	page: Parameters<typeof test>[0]['page']
 ) {
 	if (routeCase.authenticated) {
-		await page.context().setExtraHTTPHeaders({
-			[E2E_AUTH_HEADER_NAME]: E2E_AUTH_HEADER_VALUE
-		});
-	} else {
-		await page.context().setExtraHTTPHeaders({});
+		await enableAuthenticatedSession(page.context());
 	}
 
 	await page.goto(routeCase.path);

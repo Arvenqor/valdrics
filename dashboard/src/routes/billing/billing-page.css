@@ -246,8 +246,8 @@
 }
 
 .billing-cycle-toggle button.active {
-	background: var(--color-brand-600);
-	color: white;
+	background: var(--color-accent-700);
+	color: var(--color-ink-50);
 }
 
 .billing-usage-card__bar {

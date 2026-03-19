@@ -25,6 +25,12 @@ function createPageStore(initial: PageState) {
 
 const mocks = vi.hoisted(() => {
 	const pageStore = createPageStore({ url: new URL('https://example.com/') });
+	const authSubscription = { unsubscribe: vi.fn() };
+	const onAuthStateChange = vi.fn((_callback: (event: string) => void) => ({
+		data: {
+			subscription: authSubscription
+		}
+	}));
 	return {
 		pageStore,
 		uiState: {
@@ -35,10 +41,12 @@ const mocks = vi.hoisted(() => {
 		},
 		jobStore: {
 			activeJobsCount: 0,
-			init: vi.fn(),
+			init: vi.fn().mockResolvedValue(undefined),
 			disconnect: vi.fn()
 		},
-		invalidate: vi.fn()
+		invalidate: vi.fn(),
+		authSubscription,
+		onAuthStateChange
 	};
 });
 
@@ -61,13 +69,7 @@ vi.mock('$app/environment', () => ({
 vi.mock('$lib/supabase', () => ({
 	createSupabaseBrowserClient: () => ({
 		auth: {
-			onAuthStateChange: () => ({
-				data: {
-					subscription: {
-						unsubscribe: vi.fn()
-					}
-				}
-			})
+			onAuthStateChange: mocks.onAuthStateChange
 		}
 	})
 }));
@@ -85,6 +87,19 @@ describe('public layout mobile menu', () => {
 
 	beforeEach(() => {
 		mocks.pageStore.set({ url: new URL('https://example.com/') });
+		mocks.jobStore.init.mockClear();
+		mocks.jobStore.disconnect.mockClear();
+		mocks.invalidate.mockClear();
+		mocks.onAuthStateChange.mockClear();
+		mocks.authSubscription.unsubscribe.mockClear();
+		Object.defineProperty(window, 'matchMedia', {
+			configurable: true,
+			value: vi.fn().mockReturnValue({
+				matches: false,
+				addEventListener: vi.fn(),
+				removeEventListener: vi.fn()
+			})
+		});
 	});
 
 	function getMenuToggle(): HTMLButtonElement {
@@ -100,6 +115,40 @@ describe('public layout mobile menu', () => {
 				profile: null,
 				subscription: { tier: 'free', status: 'active' }
 			},
+			children: emptySnippet
+		});
+	}
+
+	function renderAuthenticatedLayout() {
+		mocks.pageStore.set({ url: new URL('https://example.com/dashboard') });
+		return render(Layout, {
+			data: {
+				user: {
+					id: 'user-1',
+					email: 'engineer@example.com',
+					app_metadata: {},
+					user_metadata: {},
+					aud: 'authenticated',
+					created_at: '2026-03-18T00:00:00.000Z'
+				},
+				session: {
+					access_token: 'token',
+					refresh_token: 'refresh-token',
+					expires_in: 3600,
+					expires_at: 9999999999,
+					token_type: 'bearer',
+					user: {
+						id: 'user-1',
+						email: 'engineer@example.com',
+						app_metadata: {},
+						user_metadata: {},
+						aud: 'authenticated',
+						created_at: '2026-03-18T00:00:00.000Z'
+					}
+				},
+				profile: { persona: 'engineering', role: 'member' },
+				subscription: { tier: 'pro', status: 'active' }
+			} as never,
 			children: emptySnippet
 		});
 	}
@@ -208,6 +257,25 @@ describe('public layout mobile menu', () => {
 		await fireEvent.pointerDown(document.body);
 		await waitFor(() => {
 			expect(screen.queryByRole('menu', { name: /^resources$/i })).toBeNull();
+		});
+	});
+
+	it('loads auth listeners and job streaming only for authenticated layouts', async () => {
+		renderAuthenticatedLayout();
+
+		await waitFor(() => {
+			expect(mocks.onAuthStateChange).toHaveBeenCalledTimes(1);
+			expect(mocks.jobStore.init).toHaveBeenCalledTimes(1);
+		});
+
+		const authCallback = mocks.onAuthStateChange.mock.calls[0]?.[0] as
+			| ((event: string) => void)
+			| undefined;
+		expect(authCallback).toBeTypeOf('function');
+		authCallback?.('SIGNED_IN');
+
+		await waitFor(() => {
+			expect(mocks.invalidate).toHaveBeenCalledWith('supabase:auth');
 		});
 	});
 

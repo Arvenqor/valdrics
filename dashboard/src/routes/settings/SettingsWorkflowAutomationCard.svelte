@@ -71,7 +71,7 @@
 				type="text"
 				id="workflow_github_owner"
 				bind:value={settings.workflow_github_owner}
-				placeholder="Valdrics-AI"
+				placeholder="Valdrics"
 				disabled={!settings.workflow_github_enabled || !isProTier}
 			/>
 		</div>

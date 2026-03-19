@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 import yaml
 
 from scripts.generate_managed_deployment_artifacts import (
@@ -43,7 +44,9 @@ def test_generate_managed_deployment_artifacts_outputs_platform_ready_bundle(
             "APP_RUNTIME_DATA_DIR=/tmp/valdrics",
             "DATABASE_URL=postgresql+asyncpg://postgres:postgres@db.example.com:5432/postgres",
             "REDIS_URL=redis://redis.example.com:6379/0",
+            "SUPABASE_URL=https://example.supabase.co",
             "SUPABASE_JWT_SECRET=ci-supabase-jwt-secret-32-chars-0000",
+            "SUPABASE_ANON_KEY=ci-public-supabase-anon-key",
             "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN=arn:aws:iam::123456789012:role/ValdricsControlPlane",
             "OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.example.com:4317",
             "PAYSTACK_SECRET_KEY=sk_live_runtime_paystack_key",
@@ -65,11 +68,18 @@ def test_generate_managed_deployment_artifacts_outputs_platform_ready_bundle(
         environment="production",
         runtime_env_file=runtime_env,
         output_dir=output_dir,
+        release_tag="2026.03.18",
+        api_image_digest="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        dashboard_image_digest="sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     )
 
     api_manifest = _load_yaml(output_dir / "koyeb-api.yaml")
     worker_manifest = _load_yaml(output_dir / "koyeb-worker.yaml")
     koyeb_secrets = json.loads((output_dir / "koyeb-secrets.json").read_text(encoding="utf-8"))
+    koyeb_dashboard_env = json.loads(
+        (output_dir / "koyeb-dashboard-env.json").read_text(encoding="utf-8")
+    )
+    koyeb_release = json.loads((output_dir / "koyeb-release.json").read_text(encoding="utf-8"))
     helm_values = _load_yaml(output_dir / "helm-values.yaml")
     helm_secret = json.loads((output_dir / "aws-runtime-secret.json").read_text(encoding="utf-8"))
     terraform_tfvars = json.loads(
@@ -77,15 +87,13 @@ def test_generate_managed_deployment_artifacts_outputs_platform_ready_bundle(
     )
 
     assert report["ready_for_koyeb"] is True
+    assert report["ready_for_koyeb_release"] is True
     assert report["ready_for_helm"] is True
     assert report["runtime_validation_blockers"] == []
     assert api_manifest["name"] == "valdrics-api"
     assert worker_manifest["name"] == "valdrics-worker"
     assert api_manifest["definition"]["git"]["repository"] == "github.com/Valdrics/valdrics"
-    assert (
-        worker_manifest["definition"]["git"]["repository"]
-        == "github.com/Valdrics/valdrics"
-    )
+    assert worker_manifest["definition"]["git"]["repository"] == "github.com/Valdrics/valdrics"
     assert worker_manifest["definition"]["command"][0:3] == [
         "celery",
         "-A",
@@ -105,6 +113,7 @@ def test_generate_managed_deployment_artifacts_outputs_platform_ready_bundle(
         worker_env["AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN"]
         == "valdrics-aws-trust-principal-arn"
     )
+    assert worker_env["ENABLE_SCHEDULER"] == "false"
     assert "INTERNAL_METRICS_AUTH_TOKEN" not in worker_env
 
     assert koyeb_secrets["valdrics-internal-job-secret"] == "ci-internal-job-secret-32-chars-min-000"
@@ -115,6 +124,35 @@ def test_generate_managed_deployment_artifacts_outputs_platform_ready_bundle(
     )
     assert "valdrics-forecaster-break-glass-enabled" not in koyeb_secrets
     assert "valdrics-outbound-tls-break-glass-enabled" not in koyeb_secrets
+    assert koyeb_dashboard_env["PUBLIC_API_URL"] == "https://api.runtime.example/api/v1"
+    assert koyeb_dashboard_env["PUBLIC_SUPABASE_URL"] == "https://example.supabase.co"
+    assert (
+        koyeb_dashboard_env["PUBLIC_SUPABASE_ANON_KEY"]
+        == "ci-public-supabase-anon-key"
+    )
+    assert koyeb_release["strategy"] == "immutable_image_promotion"
+    assert koyeb_release["services"]["api"]["repository"] == "ghcr.io/valdrics/valdrics-api"
+    assert koyeb_release["services"]["api"]["image"] == "ghcr.io/valdrics/valdrics-api:2026.03.18"
+    assert (
+        koyeb_release["services"]["api"]["image_digest"]
+        == "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    )
+    assert (
+        koyeb_release["services"]["api"]["promotion_ref"]
+        == "ghcr.io/valdrics/valdrics-api@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    )
+    assert (
+        koyeb_release["services"]["dashboard"]["image"]
+        == "ghcr.io/valdrics/valdrics-dashboard:2026.03.18"
+    )
+    assert (
+        koyeb_release["services"]["dashboard"]["image_digest"]
+        == "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    )
+    assert (
+        koyeb_release["services"]["dashboard"]["promotion_ref"]
+        == "ghcr.io/valdrics/valdrics-dashboard@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    )
     assert helm_values["global"]["apiHostOverride"] == "api.runtime.example"
     assert helm_values["global"]["frontendHostOverride"] == "console.other-example.com"
     assert helm_values["externalSecrets"]["remoteSecretKey"] == "/valdrics/prod/app-runtime"
@@ -152,6 +190,8 @@ def test_generate_managed_deployment_artifacts_reports_placeholder_blockers_for_
             "APP_RUNTIME_DATA_DIR=/tmp/valdrics",
             "DATABASE_URL=postgresql+asyncpg://REPLACE_WITH_DB_USER:REPLACE_WITH_DB_PASSWORD@REPLACE_WITH_DB_HOST:5432/postgres",
             "REDIS_URL=redis://REPLACE_WITH_REDIS_HOST:6379/0",
+            "SUPABASE_URL=https://REPLACE_WITH_SUPABASE_PROJECT.supabase.co",
+            "SUPABASE_ANON_KEY=REPLACE_WITH_SUPABASE_ANON_KEY",
             "SUPABASE_JWT_SECRET=REPLACE_WITH_SUPABASE_JWT_SECRET_MINIMUM_32_CHARS_VALUE",
             "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN=arn:aws:iam::123456789012:role/REPLACE_WITH_VALDRICS_CONTROL_PLANE_ROLE",
             "OTEL_EXPORTER_OTLP_ENDPOINT=https://REPLACE_WITH_OTEL_COLLECTOR:4317",
@@ -178,6 +218,7 @@ def test_generate_managed_deployment_artifacts_reports_placeholder_blockers_for_
     api_manifest = _load_yaml(output_dir / "koyeb-api.yaml")
 
     assert report["ready_for_koyeb"] is False
+    assert report["ready_for_koyeb_release"] is False
     assert report["ready_for_helm"] is False
     assert "DATABASE_URL" in report["runtime_validation_blockers"]
     assert "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN" in report["runtime_validation_blockers"]
@@ -187,4 +228,83 @@ def test_generate_managed_deployment_artifacts_reports_placeholder_blockers_for_
     assert report["helm_external_secret_remote_key"] == "/valdrics/staging/app-runtime"
     assert api_manifest["name"] == "valdrics-api-staging"
     assert api_manifest["definition"]["git"]["repository"] == "github.com/Valdrics/valdrics"
+    assert "PUBLIC_SUPABASE_ANON_KEY" in report["koyeb_dashboard_public_env_blockers"]
+    assert "release_tag" in report["koyeb_release_value_blockers"]
+    assert "services.api.image_digest" in report["koyeb_release_value_blockers"]
+    assert "services.dashboard.image_digest" in report["koyeb_release_value_blockers"]
     assert "valdrics-internal-job-secret-staging" in report["koyeb_secret_names"]
+
+
+def test_generate_managed_deployment_artifacts_rejects_runtime_env_collision(
+    tmp_path: Path,
+) -> None:
+    output_dir = tmp_path / "deploy" / "production"
+    runtime_env = output_dir / "deployment.report.json"
+    _write_env(
+        runtime_env,
+        [
+            "ENVIRONMENT=production",
+            "ENABLE_SCHEDULER=true",
+            "WEB_CONCURRENCY=2",
+            "API_URL=https://api.runtime.example",
+            "FRONTEND_URL=https://console.runtime.example",
+            "LOG_LEVEL=INFO",
+            "LLM_PROVIDER=openai",
+            "OPENAI_API_KEY=sk-openai-live-key",
+            "DATABASE_URL=postgresql+asyncpg://postgres:postgres@db.example.com:5432/postgres",
+            "REDIS_URL=redis://redis.example.com:6379/0",
+            "SUPABASE_URL=https://example.supabase.co",
+            "SUPABASE_JWT_SECRET=ci-supabase-jwt-secret-32-chars-0000",
+            "TRUSTED_PROXY_CIDRS='[\"203.0.113.10/32\"]'",
+        ],
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="runtime_env_file must not overwrite generated deployment artifacts",
+    ):
+        generate_managed_deployment_artifacts(
+            environment="production",
+            runtime_env_file=runtime_env,
+            output_dir=output_dir,
+        )
+
+
+def test_generate_managed_deployment_artifacts_rejects_invalid_image_digest(
+    tmp_path: Path,
+) -> None:
+    runtime_env = tmp_path / "production.env"
+    output_dir = tmp_path / "deploy" / "production"
+    _write_env(
+        runtime_env,
+        [
+            "ENVIRONMENT=production",
+            "ENABLE_SCHEDULER=true",
+            "WEB_CONCURRENCY=2",
+            "API_URL=https://api.runtime.example",
+            "FRONTEND_URL=https://console.runtime.example",
+            "LOG_LEVEL=INFO",
+            "LLM_PROVIDER=groq",
+            "GROQ_API_KEY=test-groq-key",
+            "DATABASE_URL=postgresql+asyncpg://postgres:postgres@db.example.com:5432/postgres",
+            "REDIS_URL=redis://redis.example.com:6379/0",
+            "SUPABASE_URL=https://example.supabase.co",
+            "SUPABASE_JWT_SECRET=ci-supabase-jwt-secret-32-chars-0000",
+            "TRUSTED_PROXY_CIDRS='[\"203.0.113.10/32\"]'",
+            "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN=arn:aws:iam::123456789012:role/ValdricsControlPlane",
+            "OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.example.com:4317",
+            "PAYSTACK_SECRET_KEY=sk_live_runtime_paystack_key",
+            "PAYSTACK_PUBLIC_KEY=pk_live_runtime_paystack_key",
+            "SENTRY_DSN=https://key@example.com/1",
+        ],
+    )
+
+    with pytest.raises(ValueError, match="api_image_digest must be a sha256:<64-hex> digest"):
+        generate_managed_deployment_artifacts(
+            environment="production",
+            runtime_env_file=runtime_env,
+            output_dir=output_dir,
+            release_tag="2026.03.18",
+            api_image_digest="sha256:not-a-real-digest",
+            dashboard_image_digest="sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        )

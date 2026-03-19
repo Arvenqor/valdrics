@@ -1,6 +1,8 @@
 # Valdrics Koyeb Worker Configuration
-# Reference managed-platform manifest only. The checked-in definition is branch-driven
-# and is not, by itself, a supported immutable-production release profile.
+# Legacy single-file helper only. The supported production handoff lives in the
+# generated managed bundle under `.runtime/deploy/<environment>/`.
+# This checked-in definition remains Git-branch driven and is not the
+# authoritative immutable-release contract.
 # https://www.koyeb.com/docs/deploy/koyeb-files
 
 name: valdrics-worker

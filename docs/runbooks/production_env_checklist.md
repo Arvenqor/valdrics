@@ -2,6 +2,27 @@
 
 Use this checklist before every production rollout.
 
+## 0. Runtime toolchain contract
+
+- Backend operator tooling and runtime validation are pinned to Python 3.12.x.
+- The repository `.python-version` is the local source of truth for `uv` workflows.
+- Do not promote or validate production with Python 3.13+ or older unsupported minors.
+
+Preflight the interpreter before generating env files or running validation:
+
+```bash
+cat .python-version
+uv run python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')"
+```
+
+Expected result:
+
+- `.python-version` prints `3.12`
+- `uv run python ...` prints `3.12.x`
+
+If either check drifts, fix the local/runtime interpreter first. Do not continue with
+deployment validation on an unsupported Python runtime.
+
 ## 1. Ownership model (who sets what)
 
 - Platform operator (you/Valdrics team) sets infrastructure env vars and deploys backend/frontend.
@@ -16,6 +37,7 @@ Set these in production runtime (Koyeb/Kubernetes/etc):
 - `API_URL=https://<your-api-domain>`
 - `FRONTEND_URL=https://<your-frontend-domain>`
 - `DATABASE_URL=...`
+- `SUPABASE_ANON_KEY=...` for the dashboard public runtime/build contract
 - `SUPABASE_JWT_SECRET=...`
 - `ENFORCEMENT_APPROVAL_TOKEN_SECRET=...`
 - `ENFORCEMENT_EXPORT_SIGNING_SECRET=...`
@@ -131,18 +153,56 @@ uv run python scripts/validate_migration_env.py --env-file .runtime/production.m
 
 ## 2c. Generate deployment artifacts from the runtime env
 
-Once the runtime env is filled, generate deployment-ready artifacts for both the
-reference managed-platform path and the supported Helm/EKS production path:
+Once the runtime env is filled, publish immutable images first, then generate
+deployment-ready artifacts for the current Koyeb production path and the future
+Helm/EKS scale path.
+
+### 2c.1 Publish immutable GHCR images first
+
+Use the repository-managed GHCR release workflow:
+
+- `.github/workflows/publish-release-images.yml`
+
+Recommended GitHub repository or organization variable:
+
+- `GHCR_NAMESPACE=valdrics`
+
+Inputs:
+
+- `release_tag=<immutable release tag>`
+- optional `git_ref=<commit or tag to build>`
+- optional `registry_namespace=<ghcr namespace override>`
+
+Outputs:
+
+- `release/ghcr-release.json`
+- `release/ghcr-release.env`
+
+The release artifact records the digest-pinned refs you must promote through
+staging and production:
+
+- `API_IMAGE_DIGEST=sha256:...`
+- `DASHBOARD_IMAGE_DIGEST=sha256:...`
+- `API_PROMOTION_REF=ghcr.io/.../valdrics-api@sha256:...`
+- `DASHBOARD_PROMOTION_REF=ghcr.io/.../valdrics-dashboard@sha256:...`
+
+Do not rebuild a second image for production after staging signoff.
+
+You can source `release/ghcr-release.env` directly before running `make deploy`.
+
+### 2c.2 Generate digest-pinned deployment artifacts
 
 ```bash
-uv run python scripts/generate_managed_deployment_artifacts.py --environment staging --runtime-env-file .runtime/staging.env
-uv run python scripts/generate_managed_deployment_artifacts.py --environment production --runtime-env-file .runtime/production.env
+uv run python scripts/generate_managed_deployment_artifacts.py --environment staging --runtime-env-file .runtime/staging.env --release-tag <release-tag> --api-image-digest <sha256:...> --dashboard-image-digest <sha256:...>
+uv run python scripts/generate_managed_deployment_artifacts.py --environment production --runtime-env-file .runtime/production.env --release-tag <release-tag> --api-image-digest <sha256:...> --dashboard-image-digest <sha256:...>
 ```
 
 Default outputs:
 
 - `.runtime/deploy/<environment>/koyeb-api.yaml`
 - `.runtime/deploy/<environment>/koyeb-worker.yaml`
+- `.runtime/deploy/<environment>/koyeb-dashboard-env.json`
+- `.runtime/deploy/<environment>/koyeb-release.json`
 - `.runtime/deploy/<environment>/koyeb-secrets.json`
 - `.runtime/deploy/<environment>/helm-values.yaml`
 - `.runtime/deploy/<environment>/aws-runtime-secret.json`
@@ -153,6 +213,8 @@ The deployment report separates:
 
 - `runtime_validation_blockers`: app-runtime values still blocking startup
 - `koyeb_secret_value_blockers`: placeholder/empty values still blocking the generated Koyeb bundle
+- `koyeb_dashboard_public_env_blockers`: missing/placeholder dashboard public env values still blocking the Koyeb dashboard service contract
+- `koyeb_release_value_blockers`: placeholder release tag or image digest values still blocking immutable Koyeb promotion
 - `helm_runtime_secret_value_blockers`: placeholder/empty values still blocking the Helm/EKS secret payload
 - `terraform_remaining_inputs`: infrastructure values still required outside the runtime env, such as `external_id` and `valdrics_account_id`
 
@@ -201,16 +263,18 @@ All tokens/secrets are stored in tenant notification settings.
 
 ## 5. Deployment sequence
 
-1. Generate or refresh `.runtime/production.env`, `.runtime/production.migrate.env`, and `.runtime/deploy/production/deployment.report.json`.
-2. Verify the bundle: `uv run python scripts/verify_managed_deployment_bundle.py --environment production`
-3. Validate the migration env: `uv run python scripts/validate_migration_env.py --env-file .runtime/production.migrate.env`
-4. Run migrations with the migration env:
+1. Generate or refresh `.runtime/production.env` and `.runtime/production.migrate.env`.
+2. Publish immutable images with `.github/workflows/publish-release-images.yml`.
+3. Generate `.runtime/deploy/production/deployment.report.json` with `--release-tag`, `--api-image-digest`, and `--dashboard-image-digest`.
+4. Verify the bundle: `uv run python scripts/verify_managed_deployment_bundle.py --environment production`
+5. Validate the migration env: `uv run python scripts/validate_migration_env.py --env-file .runtime/production.migrate.env`
+6. Run migrations with the migration env:
    `set -a && source .runtime/production.migrate.env && uv run alembic upgrade head`
-5. Validate the full runtime env:
+7. Validate the full runtime env:
    `uv run python scripts/validate_runtime_env.py --environment production --env-file .runtime/production.env`
-6. Apply the full runtime env and restart the app.
-7. Deploy frontend.
-8. Validate health and notification paths.
+8. Apply the generated Koyeb secrets and dashboard public env.
+9. Promote API, worker, and dashboard using the digest-pinned `promotion_ref` values recorded in `.runtime/deploy/production/koyeb-release.json`.
+10. Validate health and notification paths.
 
 ## 6. Smoke tests after deploy
 

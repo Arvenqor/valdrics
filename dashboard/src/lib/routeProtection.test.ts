@@ -52,6 +52,7 @@ describe('isPublicPath', () => {
 	});
 
 	it('protects app routes by default', () => {
+		expect(isPublicPath('/dashboard')).toBe(false);
 		expect(isPublicPath('/ops')).toBe(false);
 		expect(isPublicPath('/settings')).toBe(false);
 		expect(isPublicPath('/connections')).toBe(false);

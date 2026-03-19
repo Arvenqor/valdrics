@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import subprocess  # nosec B404 - controlled local pytest invocation only
 import sys
@@ -12,6 +13,8 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+
+from scripts.verify_enforcement_failure_injection_evidence import verify_evidence
 
 
 @dataclass(frozen=True)
@@ -63,6 +66,7 @@ SCENARIOS: tuple[FailureScenario, ...] = (
         ),
     ),
 )
+EXPECTED_PROFILE = "enforcement_failure_injection"
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -86,8 +90,14 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--profile",
-        default="enforcement_failure_injection",
+        default=EXPECTED_PROFILE,
         help="Evidence profile name.",
+    )
+    parser.add_argument(
+        "--pytest-timeout-seconds",
+        type=float,
+        default=240.0,
+        help="Timeout in seconds for each scenario pytest invocation.",
     )
     return parser.parse_args(argv)
 
@@ -99,7 +109,21 @@ def _validate_selector(selector: str) -> str:
     return candidate
 
 
-def _run_scenario(scenario: FailureScenario, *, cwd: Path) -> tuple[dict[str, object], bool]:
+def _parse_positive_float_arg(value: float, *, field: str) -> float:
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise ValueError(f"{field} must be finite")
+    if parsed <= 0.0:
+        raise ValueError(f"{field} must be > 0")
+    return parsed
+
+
+def _run_scenario(
+    scenario: FailureScenario,
+    *,
+    cwd: Path,
+    timeout_seconds: float = 240.0,
+) -> tuple[dict[str, object], bool]:
     command = [
         sys.executable,
         "-m",
@@ -115,29 +139,43 @@ def _run_scenario(scenario: FailureScenario, *, cwd: Path) -> tuple[dict[str, ob
     subprocess_env["TESTING"] = "true"
     subprocess_env["DEBUG"] = "false"
     started = time.perf_counter()
-    result = subprocess.run(
-        command,
-        cwd=cwd,
-        capture_output=True,
-        text=True,
-        check=False,
-        env=subprocess_env,
-    )  # nosec B603 - pytest invocation uses static repo-local selectors
-    duration_seconds = round(time.perf_counter() - started, 3)
-    passed = result.returncode == 0
-    scenario_payload = {
-        "id": scenario.scenario_id,
-        "status": "pass" if passed else "fail",
-        "duration_seconds": max(duration_seconds, 0.001),
-        "checks": list(scenario.checks),
-        "evidence_refs": list(scenario.selectors),
-        "command": " ".join(command),
-        "result_tail": "\n".join(
-            (result.stdout or "").strip().splitlines()[-10:]
-            + (result.stderr or "").strip().splitlines()[-10:]
-        ).strip(),
-    }
-    return scenario_payload, passed
+    try:
+        result = subprocess.run(
+            command,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            check=False,
+            env=subprocess_env,
+            timeout=timeout_seconds,
+        )  # nosec B603 - pytest invocation uses static repo-local selectors
+        duration_seconds = round(time.perf_counter() - started, 3)
+        passed = result.returncode == 0
+        scenario_payload = {
+            "id": scenario.scenario_id,
+            "status": "pass" if passed else "fail",
+            "duration_seconds": max(duration_seconds, 0.001),
+            "checks": list(scenario.checks),
+            "evidence_refs": list(scenario.selectors),
+            "command": " ".join(command),
+            "result_tail": "\n".join(
+                (result.stdout or "").strip().splitlines()[-10:]
+                + (result.stderr or "").strip().splitlines()[-10:]
+            ).strip(),
+        }
+        return scenario_payload, passed
+    except subprocess.TimeoutExpired as exc:
+        duration_seconds = round(time.perf_counter() - started, 3)
+        scenario_payload = {
+            "id": scenario.scenario_id,
+            "status": "fail",
+            "duration_seconds": max(duration_seconds, 0.001),
+            "checks": list(scenario.checks),
+            "evidence_refs": list(scenario.selectors),
+            "command": " ".join(command),
+            "result_tail": f"timeout after {timeout_seconds:.1f}s ({exc})",
+        }
+        return scenario_payload, False
 
 
 def generate_evidence(
@@ -147,18 +185,28 @@ def generate_evidence(
     approved_by: str,
     profile: str,
     cwd: Path,
+    timeout_seconds: float = 240.0,
 ) -> tuple[dict[str, object], bool]:
     normalized_executed_by = executed_by.strip()
     normalized_approved_by = approved_by.strip()
+    normalized_profile = str(profile or "").strip()
     if not normalized_executed_by or not normalized_approved_by:
         raise ValueError("executed_by and approved_by must be non-empty")
     if normalized_executed_by == normalized_approved_by:
         raise ValueError("executed_by and approved_by must be distinct")
+    if not normalized_profile:
+        raise ValueError("profile must be non-empty")
+    if normalized_profile != EXPECTED_PROFILE:
+        raise ValueError(f"profile must equal {EXPECTED_PROFILE!r}")
 
     scenario_rows: list[dict[str, object]] = []
     passed_count = 0
     for scenario in SCENARIOS:
-        payload, passed = _run_scenario(scenario, cwd=cwd)
+        payload, passed = _run_scenario(
+            scenario,
+            cwd=cwd,
+            timeout_seconds=timeout_seconds,
+        )
         scenario_rows.append(payload)
         if passed:
             passed_count += 1
@@ -168,7 +216,7 @@ def generate_evidence(
     overall_passed = failed == 0
 
     artifact: dict[str, object] = {
-        "profile": profile,
+        "profile": normalized_profile,
         "runner": "staged_failure_injection",
         "execution_class": "staged",
         "captured_at": datetime.now(timezone.utc).isoformat(),
@@ -190,12 +238,22 @@ def generate_evidence(
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    pytest_timeout_seconds = _parse_positive_float_arg(
+        float(args.pytest_timeout_seconds),
+        field="pytest_timeout_seconds",
+    )
     artifact, passed = generate_evidence(
         output=Path(args.output),
         executed_by=str(args.executed_by),
         approved_by=str(args.approved_by),
         profile=str(args.profile),
         cwd=Path(__file__).resolve().parents[1],
+        timeout_seconds=pytest_timeout_seconds,
+    )
+    verify_evidence(
+        evidence_path=Path(args.output),
+        expected_profile=EXPECTED_PROFILE,
+        max_artifact_age_hours=4.0,
     )
     print(json.dumps(artifact, indent=2, sort_keys=True))
     return 0 if passed else 1

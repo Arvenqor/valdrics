@@ -68,6 +68,7 @@ def test_release_artifact_template_pack_contains_required_contract_tokens() -> N
 
     assert '"profile": "enforcement_failure_injection"' in failure_raw
     assert '"runner": "staged_failure_injection"' in failure_raw
+    assert '"status": "pass"' in failure_raw
     assert '"fin_gate_1_gross_margin_floor"' in finance_raw
     assert '"tier_unit_economics"' in finance_raw
     assert '"telemetry_gate_required_tiers_present"' in finance_telemetry_raw

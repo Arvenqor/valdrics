@@ -23,7 +23,7 @@ This SCP prevents any user (including the root user) from deleting or modifying 
         "iam:UpdateRoleDescription"
       ],
       "Resource": [
-        "arn:aws:iam::*:role/Valdrics-AI-Role"
+        "arn:aws:iam::*:role/Valdrics-Role"
       ]
     }
   ]
@@ -38,4 +38,3 @@ Limit the regions where Valdrics (or any entity) can perform destructive actions
 2. Enable Service Control Policies in the Settings.
 3. Create a new policy with the JSON above.
 4. Attach the policy to the target OUs or accounts.
-

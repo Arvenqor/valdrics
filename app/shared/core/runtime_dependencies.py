@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from importlib.util import find_spec
+import sys
 
 import structlog
 
 from app.shared.core.config import ENV_PRODUCTION, ENV_STAGING, Settings
 
 logger = structlog.get_logger()
+SUPPORTED_PYTHON_MAJOR_MINOR = (3, 12)
 
 
 def _module_available(module_name: str) -> bool:
@@ -26,6 +28,28 @@ def _parse_iso8601_utc(value: str) -> datetime:
     if parsed.tzinfo is None:
         raise ValueError("timezone offset required")
     return parsed.astimezone(timezone.utc)
+
+
+def _is_supported_python_runtime() -> bool:
+    """Return True when the interpreter matches the repository runtime contract."""
+    version = sys.version_info
+    return (version.major, version.minor) == SUPPORTED_PYTHON_MAJOR_MINOR
+
+
+def _validate_supported_python_runtime() -> None:
+    """Fail fast when startup uses an interpreter outside the supported contract."""
+    if _is_supported_python_runtime():
+        return
+
+    version = sys.version_info
+    expected = ".".join(str(part) for part in SUPPORTED_PYTHON_MAJOR_MINOR)
+    current = f"{version.major}.{version.minor}.{version.micro}"
+    raise RuntimeError(
+        "Unsupported Python runtime "
+        f"{current}. Valdrics is pinned to Python {expected}.x. "
+        "Use the repository .python-version for local uv workflows and "
+        "Python 3.12 container/runtime images for deployment."
+    )
 
 
 def _validate_prophet_break_glass(settings: Settings, strict_env: bool) -> tuple[str, datetime] | None:
@@ -96,6 +120,8 @@ def validate_runtime_dependencies(settings: Settings) -> None:
     if settings.TESTING:
         logger.info("runtime_dependency_validation_skipped_testing")
         return
+
+    _validate_supported_python_runtime()
 
     strict_env = settings.ENVIRONMENT in {ENV_PRODUCTION, ENV_STAGING}
     break_glass = _validate_prophet_break_glass(settings, strict_env)

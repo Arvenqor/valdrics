@@ -338,7 +338,9 @@
 													<td class="text-xs text-ink-500">
 														<div>Request {event.remediation_request_id.slice(0, 8)}...</div>
 														<div>
-															Finding {event.finding_id ? `${event.finding_id.slice(0, 8)}...` : 'n/a'}
+															Finding {event.finding_id
+																? `${event.finding_id.slice(0, 8)}...`
+																: 'n/a'}
 														</div>
 													</td>
 												</tr>

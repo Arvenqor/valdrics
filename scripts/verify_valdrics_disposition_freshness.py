@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -68,6 +69,8 @@ def _parse_positive_float(value: Any, *, field: str) -> float:
         parsed = float(value)
     except (TypeError, ValueError) as exc:
         raise ValueError(f"{field} must be numeric") from exc
+    if not math.isfinite(parsed):
+        raise ValueError(f"{field} must be finite")
     if parsed <= 0.0:
         raise ValueError(f"{field} must be > 0")
     return parsed

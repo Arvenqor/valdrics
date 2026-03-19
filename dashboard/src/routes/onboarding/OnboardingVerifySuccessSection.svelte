@@ -128,6 +128,6 @@
 			confirm the first live signal, owner context, and next action.
 		</p>
 
-		<a href={`${base}/`} class="primary-btn"> Open First-Value Dashboard → </a>
+		<a href={`${base}/dashboard`} class="primary-btn"> Open First-Value Dashboard → </a>
 	</div>
 {/if}

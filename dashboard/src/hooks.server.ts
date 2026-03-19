@@ -12,24 +12,37 @@ import { env as publicEnv } from '$env/dynamic/public';
 import { env } from '$env/dynamic/private';
 import type { Handle } from '@sveltejs/kit';
 import type { Session, User } from '@supabase/supabase-js';
-import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { serverLogger } from '$lib/logging/server';
 import { isPublicPath } from '$lib/routeProtection';
 import { canUseE2EAuthBypass, shouldUseSecureCookies } from '$lib/serverSecurity';
+import {
+	createPlaywrightE2EAccessToken,
+	resolvePlaywrightE2EFixture
+} from '$lib/testing/playwrightE2EAuth';
 
 const E2E_AUTH_HEADER = 'x-valdrics-e2e-auth';
 
-function buildE2EBypassAuth(): { session: Session; user: User } {
+function buildE2EBypassAuth(params: {
+	jwtSecret: string;
+	jwtIssuer: string;
+	fixture: ReturnType<typeof resolvePlaywrightE2EFixture>;
+}): { session: Session; user: User } {
 	const now = Math.floor(Date.now() / 1000);
+	const accessToken = createPlaywrightE2EAccessToken({
+		secret: params.jwtSecret,
+		issuer: params.jwtIssuer,
+		fixture: params.fixture
+	});
 	const user = {
-		id: randomUUID(),
+		id: params.fixture.userId,
 		aud: 'authenticated',
 		role: 'authenticated',
-		email: 'e2e@valdrics.test',
+		email: params.fixture.email,
 		email_confirmed_at: new Date(0).toISOString(),
 		phone: '',
 		app_metadata: { provider: 'email', providers: ['email'] },
-		user_metadata: { name: 'E2E Test User', source: 'playwright' },
+		user_metadata: { name: params.fixture.userName, source: 'playwright' },
 		identities: [],
 		created_at: new Date(0).toISOString(),
 		updated_at: new Date().toISOString(),
@@ -37,7 +50,7 @@ function buildE2EBypassAuth(): { session: Session; user: User } {
 	} as unknown as User;
 
 	const session = {
-		access_token: randomBytes(32).toString('hex'),
+		access_token: accessToken,
 		refresh_token: randomBytes(32).toString('hex'),
 		expires_in: 3600,
 		expires_at: now + 3600,
@@ -115,7 +128,28 @@ export const handle: Handle = async ({ event, resolve }) => {
 			const provided = event.request.headers.get(E2E_AUTH_HEADER);
 			const expected = String(env.E2E_AUTH_SECRET || '').trim();
 			if (hasMatchingE2ESecret(provided, expected)) {
-				return buildE2EBypassAuth();
+				try {
+					return buildE2EBypassAuth({
+						jwtSecret: String(env.SUPABASE_JWT_SECRET || '').trim(),
+						jwtIssuer: String(env.SUPABASE_JWT_ISSUER || 'supabase').trim() || 'supabase',
+						fixture: resolvePlaywrightE2EFixture({
+							tenantId: env.PLAYWRIGHT_E2E_TENANT_ID,
+							tenantName: env.PLAYWRIGHT_E2E_TENANT_NAME,
+							userId: env.PLAYWRIGHT_E2E_USER_ID,
+							userName: env.PLAYWRIGHT_E2E_USER_NAME,
+							email: env.PLAYWRIGHT_E2E_USER_EMAIL,
+							role: env.PLAYWRIGHT_E2E_USER_ROLE,
+							persona: env.PLAYWRIGHT_E2E_USER_PERSONA,
+							tier: env.PLAYWRIGHT_E2E_TIER
+						})
+					});
+				} catch (error) {
+					serverLogger.error('e2e_auth_bypass_session_build_failed', {
+						url: event.url.toString(),
+						error: error instanceof Error ? error.message : String(error)
+					});
+					return { session: null, user: null };
+				}
 			}
 		}
 

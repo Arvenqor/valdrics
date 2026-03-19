@@ -1,23 +1,15 @@
-import type * as ChartJs from 'chart.js';
-
-let chartJsPromise: Promise<typeof ChartJs> | null = null;
-let registered = false;
+let chartJsPromise: Promise<Pick<typeof import('chart.js'), 'Chart'>> | null = null;
 
 /**
- * Lazy-load Chart.js and register built-in chart types/plugins once.
+ * Lazy-load only the Chart.js primitives required by the dashboard charts.
  *
- * This keeps Chart.js out of the initial route bundle and improves Core Web Vitals
- * on pages where charts are not immediately needed.
+ * Keeping the loader behind a local runtime module lets Vite tree-shake the
+ * unused Chart.js controllers out of the finance route chunk.
  */
-export async function loadChartJs(): Promise<typeof ChartJs> {
+export async function loadChartJs(): Promise<Pick<typeof import('chart.js'), 'Chart'>> {
 	if (!chartJsPromise) {
-		chartJsPromise = import('chart.js');
+		chartJsPromise = import('./chartjsRuntime').then((module) => module.getChartJs());
 	}
 
-	const mod = await chartJsPromise;
-	if (!registered) {
-		mod.Chart.register(...mod.registerables);
-		registered = true;
-	}
-	return mod;
+	return chartJsPromise;
 }

@@ -25,7 +25,7 @@ def _async_client_cm(client: AsyncMock) -> AsyncMock:
 @pytest.mark.asyncio
 async def test_github_dispatch_success_and_failure() -> None:
     dispatcher = GitHubActionsDispatcher(
-        owner="valdrics-ai",
+        owner="Valdrics",
         repo="valdrics",
         workflow_id="remediation.yml",
         ref="main",
@@ -86,7 +86,7 @@ async def test_gitlab_dispatch_success() -> None:
 @pytest.mark.asyncio
 async def test_github_dispatch_handles_httpx_error() -> None:
     dispatcher = GitHubActionsDispatcher(
-        owner="valdrics-ai",
+        owner="Valdrics",
         repo="valdrics",
         workflow_id="remediation.yml",
         ref="main",
@@ -165,7 +165,7 @@ def test_get_workflow_dispatchers_returns_all_enabled() -> None:
         SAAS_STRICT_INTEGRATIONS=False,
         WORKFLOW_DISPATCH_TIMEOUT_SECONDS=7.0,
         GITHUB_ACTIONS_ENABLED=True,
-        GITHUB_ACTIONS_OWNER="valdrics-ai",
+        GITHUB_ACTIONS_OWNER="Valdrics",
         GITHUB_ACTIONS_REPO="valdrics",
         GITHUB_ACTIONS_WORKFLOW_ID="remediation.yml",
         GITHUB_ACTIONS_REF="main",
@@ -219,7 +219,7 @@ def test_get_workflow_dispatchers_returns_empty_in_strict_mode() -> None:
         SAAS_STRICT_INTEGRATIONS=True,
         WORKFLOW_DISPATCH_TIMEOUT_SECONDS=7.0,
         GITHUB_ACTIONS_ENABLED=True,
-        GITHUB_ACTIONS_OWNER="valdrics-ai",
+        GITHUB_ACTIONS_OWNER="Valdrics",
         GITHUB_ACTIONS_REPO="valdrics",
         GITHUB_ACTIONS_WORKFLOW_ID="remediation.yml",
         GITHUB_ACTIONS_REF="main",
@@ -247,7 +247,7 @@ async def test_get_tenant_workflow_dispatchers_builds_from_notification_settings
     db = MagicMock()
     notif = SimpleNamespace(
         workflow_github_enabled=True,
-        workflow_github_owner="Valdrics-AI",
+        workflow_github_owner="Valdrics",
         workflow_github_repo="valdrics",
         workflow_github_workflow_id="remediation.yml",
         workflow_github_ref="main",

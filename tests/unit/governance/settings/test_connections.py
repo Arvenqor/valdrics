@@ -32,15 +32,6 @@ def disable_cache():
 
 
 @pytest.fixture(autouse=True)
-def disable_cache():
-    cache = MagicMock()
-    cache.get = AsyncMock(return_value=None)
-    cache.set = AsyncMock(return_value=True)
-    with patch("app.shared.core.cache.get_cache_service", return_value=cache):
-        yield
-
-
-@pytest.fixture(autouse=True)
 def override_auth(mock_user):
     app.dependency_overrides[get_current_user] = lambda: mock_user
     yield
@@ -77,6 +68,7 @@ async def test_get_cloud_plus_setup_templates(async_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_create_aws_connection(async_client: AsyncClient, db_session, mock_user):
     """Test creating an AWS connection (all tiers)."""
+    mock_user.role = UserRole.ADMIN
     payload = {
         "aws_account_id": "123456789012",
         "role_arn": "arn:aws:iam::123456789012:role/Valdrics",
@@ -97,6 +89,7 @@ async def test_create_azure_connection_denied_on_free_tier(
     async_client: AsyncClient, db_session, mock_user
 ):
     """Test Azure connection denied for Free tier."""
+    mock_user.role = UserRole.ADMIN
     # Ensure tenant is on FREE plan
     tenant = Tenant(
         id=mock_user.tenant_id, name="Free Tenant", plan=PricingTier.FREE.value
@@ -122,6 +115,7 @@ async def test_create_azure_connection_denied_on_free_tier(
 async def test_create_azure_connection_allowed_on_pro_tier(
     async_client: AsyncClient, db_session, mock_user
 ):
+    mock_user.role = UserRole.ADMIN
     # Ensure tenant is on PRO plan
     tenant = Tenant(
         id=mock_user.tenant_id, name="Pro Tenant", plan=PricingTier.PRO.value
@@ -154,6 +148,7 @@ async def test_create_azure_connection_allowed_on_pro_tier(
 @pytest.mark.asyncio
 async def test_verify_aws_connection(async_client: AsyncClient, db_session, mock_user):
     """Test calling AWS connection verification."""
+    mock_user.role = UserRole.ADMIN
     conn = AWSConnection(
         tenant_id=mock_user.tenant_id,
         aws_account_id="123456789012",

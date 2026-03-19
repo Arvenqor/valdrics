@@ -248,6 +248,33 @@ def test_generate_finance_committee_packet_returns_non_zero_when_gate_fails(
     )
 
 
+def test_generate_finance_committee_packet_rejects_duplicate_close_history_months(
+    tmp_path: Path,
+) -> None:
+    telemetry = tmp_path / "telemetry.json"
+    assumptions = tmp_path / "assumptions.json"
+    output_dir = tmp_path / "output"
+    payload = _assumptions_payload()
+    payload["close_history"] = [
+        {"month": "2026-01", "blended_gross_margin_percent": 78.0},
+        {"month": "2026-01", "blended_gross_margin_percent": 79.0},
+    ]
+    _write(telemetry, _telemetry_payload())
+    _write(assumptions, payload)
+
+    with pytest.raises(ValueError, match="duplicate month"):
+        main(
+            [
+                "--telemetry-path",
+                str(telemetry),
+                "--assumptions-path",
+                str(assumptions),
+                "--output-dir",
+                str(output_dir),
+            ]
+        )
+
+
 def test_generate_finance_committee_packet_sends_alert_when_gate_fails(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -286,3 +313,83 @@ def test_generate_finance_committee_packet_sends_alert_when_gate_fails(
     )
     assert exit_code == 0
     assert calls == ["https://alerts.example.test/hook"]
+
+
+@pytest.mark.parametrize(
+    ("input_kind", "reserved_name"),
+    (
+        ("telemetry", "finance_guardrails_2026-02.json"),
+        ("assumptions", "finance_committee_packet_2026-02.json"),
+    ),
+)
+def test_generate_finance_committee_packet_rejects_input_output_path_collisions(
+    tmp_path: Path,
+    input_kind: str,
+    reserved_name: str,
+) -> None:
+    output_dir = tmp_path / "output"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    telemetry = (
+        output_dir / reserved_name
+        if input_kind == "telemetry"
+        else tmp_path / "telemetry.json"
+    )
+    assumptions = (
+        output_dir / reserved_name
+        if input_kind == "assumptions"
+        else tmp_path / "assumptions.json"
+    )
+    _write(telemetry, _telemetry_payload())
+    _write(assumptions, _assumptions_payload())
+
+    with pytest.raises(ValueError, match="output_dir would overwrite"):
+        main(
+            [
+                "--telemetry-path",
+                str(telemetry),
+                "--assumptions-path",
+                str(assumptions),
+                "--output-dir",
+                str(output_dir),
+            ]
+        )
+
+
+@pytest.mark.parametrize(
+    ("arg_name", "arg_value", "expected_message"),
+    [
+        ("--max-telemetry-age-hours", "nan", "max_telemetry_age_hours must be finite"),
+        ("--max-telemetry-age-hours", "-inf", "max_telemetry_age_hours must be finite"),
+        ("--alert-webhook-timeout-seconds", "inf", "alert_webhook_timeout_seconds must be finite"),
+        ("--alert-webhook-timeout-seconds", "0", "alert_webhook_timeout_seconds must be > 0"),
+    ],
+)
+def test_generate_finance_committee_packet_rejects_invalid_float_args(
+    tmp_path: Path,
+    arg_name: str,
+    arg_value: str,
+    expected_message: str,
+) -> None:
+    telemetry = tmp_path / "telemetry.json"
+    assumptions = tmp_path / "assumptions.json"
+    output_dir = tmp_path / "output"
+    _write(telemetry, _telemetry_payload())
+    _write(assumptions, _assumptions_payload())
+    arg_tokens = (
+        [f"{arg_name}={arg_value}"]
+        if arg_value.startswith("-")
+        else [arg_name, arg_value]
+    )
+
+    with pytest.raises(ValueError, match=expected_message):
+        main(
+            [
+                "--telemetry-path",
+                str(telemetry),
+                "--assumptions-path",
+                str(assumptions),
+                "--output-dir",
+                str(output_dir),
+                *arg_tokens,
+            ]
+        )

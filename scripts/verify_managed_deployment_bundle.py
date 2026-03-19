@@ -14,6 +14,8 @@ if __package__ in {None, ""}:
 
 from scripts.env_generation_common import parse_env_file
 from scripts.generate_managed_deployment_artifacts import (
+    _artifact_output_paths,
+    _json_placeholder_blockers,
     _placeholder_keys,
     _runtime_blockers,
 )
@@ -34,9 +36,19 @@ EXPECTED_DEPLOYMENT_ARTIFACT_KEYS = (
     "koyeb_api_manifest",
     "koyeb_worker_manifest",
     "koyeb_secret_payload",
+    "koyeb_dashboard_env_json",
+    "koyeb_release_metadata",
     "helm_values",
     "helm_runtime_secret_json",
 )
+EXPECTED_DEPLOYMENT_ARTIFACT_FILENAMES = {
+    artifact_key: artifact_path.name
+    for artifact_key, artifact_path in zip(
+        EXPECTED_DEPLOYMENT_ARTIFACT_KEYS,
+        _artifact_output_paths(Path("/tmp/verify-managed-deployment-bundle"))[:7],
+        strict=True,
+    )
+}
 
 
 def _normalize_path(path_value: str | Path, *, base_dir: Path) -> Path:
@@ -44,6 +56,14 @@ def _normalize_path(path_value: str | Path, *, base_dir: Path) -> Path:
     if not path.is_absolute():
         path = (base_dir / path).resolve()
     return path
+
+
+def _path_within(path: Path, *, base_dir: Path) -> bool:
+    try:
+        path.resolve().relative_to(base_dir.resolve())
+    except ValueError:
+        return False
+    return True
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -305,6 +325,7 @@ def verify_managed_deployment_bundle(
     if not isinstance(artifacts, dict):
         errors.append("deployment report artifacts must be a JSON object")
         return errors
+    seen_artifact_paths: dict[Path, str] = {}
     for artifact_key in EXPECTED_DEPLOYMENT_ARTIFACT_KEYS:
         artifact_path = artifacts.get(artifact_key)
         _expect(
@@ -314,6 +335,33 @@ def verify_managed_deployment_bundle(
         )
         if artifact_path:
             resolved = _normalize_path(str(artifact_path), base_dir=deployment_report_path.parent)
+            previous_key = seen_artifact_paths.get(resolved)
+            _expect(
+                previous_key is None,
+                (
+                    "deployment artifact paths must be distinct: "
+                    f"{artifact_key} collides with {previous_key} at {resolved.as_posix()}"
+                ),
+                errors=errors,
+            )
+            seen_artifact_paths.setdefault(resolved, artifact_key)
+            _expect(
+                _path_within(resolved, base_dir=deployment_output_dir),
+                (
+                    "deployment artifact path must stay within deployment output_dir: "
+                    f"{resolved.as_posix()} not under {deployment_output_dir.as_posix()}"
+                ),
+                errors=errors,
+            )
+            _expect(
+                resolved.name == EXPECTED_DEPLOYMENT_ARTIFACT_FILENAMES[artifact_key],
+                (
+                    "deployment artifact path has unexpected filename for "
+                    f"{artifact_key}: {resolved.name!r} != "
+                    f"{EXPECTED_DEPLOYMENT_ARTIFACT_FILENAMES[artifact_key]!r}"
+                ),
+                errors=errors,
+            )
             _expect(
                 resolved.exists(),
                 f"deployment artifact missing on disk: {resolved.as_posix()}",
@@ -323,6 +371,14 @@ def verify_managed_deployment_bundle(
     terraform_tfvars_path = _normalize_path(
         deployment_report.get("terraform_runtime_tfvars_path", ""),
         base_dir=deployment_report_path.parent,
+    )
+    _expect(
+        _path_within(terraform_tfvars_path, base_dir=deployment_output_dir),
+        (
+            "terraform runtime tfvars must stay within deployment output_dir: "
+            f"{terraform_tfvars_path.as_posix()} not under {deployment_output_dir.as_posix()}"
+        ),
+        errors=errors,
     )
     _expect(
         terraform_tfvars_path.exists(),
@@ -336,17 +392,33 @@ def verify_managed_deployment_bundle(
         str(artifacts["koyeb_secret_payload"]),
         base_dir=deployment_report_path.parent,
     )
+    koyeb_dashboard_env_path = _normalize_path(
+        str(artifacts["koyeb_dashboard_env_json"]),
+        base_dir=deployment_report_path.parent,
+    )
+    koyeb_release_metadata_path = _normalize_path(
+        str(artifacts["koyeb_release_metadata"]),
+        base_dir=deployment_report_path.parent,
+    )
     helm_secret_payload_path = _normalize_path(
         str(artifacts["helm_runtime_secret_json"]),
         base_dir=deployment_report_path.parent,
     )
 
     koyeb_secret_payload = _load_json(koyeb_secret_payload_path)
+    koyeb_dashboard_env = _load_json(koyeb_dashboard_env_path)
+    koyeb_release_metadata = _load_json(koyeb_release_metadata_path)
     helm_secret_payload = _load_json(helm_secret_payload_path)
     terraform_tfvars_payload = _load_json(terraform_tfvars_path)
 
     expected_koyeb_blockers = _placeholder_keys(
         {str(key): str(value) for key, value in koyeb_secret_payload.items()}
+    )
+    expected_koyeb_dashboard_blockers = _placeholder_keys(
+        {str(key): str(value) for key, value in koyeb_dashboard_env.items()}
+    )
+    expected_koyeb_release_blockers = sorted(
+        set(_json_placeholder_blockers(koyeb_release_metadata))
     )
     expected_helm_blockers = _placeholder_keys(
         {str(key): str(value) for key, value in helm_secret_payload.items()}
@@ -375,6 +447,32 @@ def verify_managed_deployment_bundle(
         errors=errors,
     )
     _expect(
+        _sorted_strings(deployment_report.get("koyeb_dashboard_public_env_keys"))
+        == sorted(str(key) for key in koyeb_dashboard_env),
+        "deployment report koyeb_dashboard_public_env_keys drift from generated dashboard env payload",
+        errors=errors,
+    )
+    _expect(
+        _sorted_strings(deployment_report.get("koyeb_dashboard_public_env_blockers"))
+        == expected_koyeb_dashboard_blockers,
+        (
+            "deployment report koyeb_dashboard_public_env_blockers drift from generated dashboard env payload: "
+            f"expected {expected_koyeb_dashboard_blockers!r}, "
+            f"got {_sorted_strings(deployment_report.get('koyeb_dashboard_public_env_blockers'))!r}"
+        ),
+        errors=errors,
+    )
+    _expect(
+        _sorted_strings(deployment_report.get("koyeb_release_value_blockers"))
+        == expected_koyeb_release_blockers,
+        (
+            "deployment report koyeb_release_value_blockers drift from generated release metadata: "
+            f"expected {expected_koyeb_release_blockers!r}, "
+            f"got {_sorted_strings(deployment_report.get('koyeb_release_value_blockers'))!r}"
+        ),
+        errors=errors,
+    )
+    _expect(
         _sorted_strings(deployment_report.get("helm_runtime_secret_value_blockers"))
         == expected_helm_blockers,
         (
@@ -386,8 +484,23 @@ def verify_managed_deployment_bundle(
     )
     _expect(
         bool(deployment_report.get("ready_for_koyeb"))
-        == (not expected_deployment_blockers and not expected_koyeb_blockers),
+        == (
+            not expected_deployment_blockers
+            and not expected_koyeb_blockers
+            and not expected_koyeb_dashboard_blockers
+        ),
         "deployment report ready_for_koyeb does not match blockers",
+        errors=errors,
+    )
+    _expect(
+        bool(deployment_report.get("ready_for_koyeb_release"))
+        == (
+            not expected_deployment_blockers
+            and not expected_koyeb_blockers
+            and not expected_koyeb_dashboard_blockers
+            and not expected_koyeb_release_blockers
+        ),
+        "deployment report ready_for_koyeb_release does not match blockers",
         errors=errors,
     )
     _expect(

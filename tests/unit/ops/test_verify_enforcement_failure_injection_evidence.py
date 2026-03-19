@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 import pytest
@@ -143,6 +144,30 @@ def test_verify_evidence_rejects_stale_or_invalid_freshness_bound(tmp_path: Path
     _write(path, _valid_payload())
     with pytest.raises(ValueError, match="max_artifact_age_hours must be > 0"):
         _verify(path, max_artifact_age_hours=0.0)
+
+
+@pytest.mark.parametrize(
+    ("field_path", "value", "expected_message"),
+    [
+        (("scenarios", 0, "duration_seconds"), math.nan, r"scenarios\[0\]\.duration_seconds must be finite"),
+        (("scenarios", 1, "duration_seconds"), math.inf, r"scenarios\[1\]\.duration_seconds must be finite"),
+    ],
+)
+def test_verify_evidence_rejects_non_finite_duration_seconds(
+    tmp_path: Path,
+    field_path: tuple[object, ...],
+    value: float,
+    expected_message: str,
+) -> None:
+    payload = _valid_payload()
+    target: object = payload
+    for part in field_path[:-1]:
+        target = target[part]  # type: ignore[index]
+    target[field_path[-1]] = value  # type: ignore[index]
+    path = tmp_path / "duration-non-finite.json"
+    _write(path, payload)
+    with pytest.raises(ValueError, match=expected_message):
+        _verify(path)
 
 
 def test_main_succeeds_for_valid_payload(tmp_path: Path) -> None:

@@ -161,7 +161,8 @@
 	}
 }
 .landing-section-lazy {
-	contain-intrinsic-size: auto;
+	content-visibility: auto;
+	contain-intrinsic-size: auto 960px;
 }
 @media (max-width: 767px) {
 	.landing .landing-section-lazy {

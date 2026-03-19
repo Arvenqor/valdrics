@@ -9,7 +9,6 @@
  */
 
 import { uiState } from './stores/ui.svelte';
-import { createSupabaseBrowserClient } from './supabase';
 import { fetchWithTimeout } from './fetchWithTimeout';
 import { edgeApiPath } from './edgeProxy';
 
@@ -45,6 +44,11 @@ const DEV_TENANT_ID_CACHE_TTL_MS = 30000;
 let cachedTenantId: string | null = null;
 let cachedTenantIdExpiresAt = 0;
 
+async function getSupabaseBrowserClient() {
+	const { createSupabaseBrowserClient } = await import('./supabase');
+	return createSupabaseBrowserClient();
+}
+
 function checkTenantIsolation(payload: unknown, tenantId: string): void {
 	const stack: unknown[] = [payload];
 	while (stack.length > 0) {
@@ -71,7 +75,8 @@ async function getDevTenantId(): Promise<string | null> {
 	if (typeof window === 'undefined') return null;
 	const now = Date.now();
 	if (now < cachedTenantIdExpiresAt) return cachedTenantId;
-	const session = (await createSupabaseBrowserClient().auth.getSession()).data.session;
+	const supabase = await getSupabaseBrowserClient();
+	const session = (await supabase.auth.getSession()).data.session;
 	cachedTenantId =
 		typeof session?.user?.user_metadata?.tenant_id === 'string'
 			? session.user.user_metadata.tenant_id
@@ -150,7 +155,7 @@ export async function resilientFetch(
 
 	if (response.status === 401) {
 		// FE-M8: Token Refresh Logic
-		const supabase = createSupabaseBrowserClient();
+		const supabase = await getSupabaseBrowserClient();
 		const {
 			data: { session }
 		} = await supabase.auth.refreshSession();

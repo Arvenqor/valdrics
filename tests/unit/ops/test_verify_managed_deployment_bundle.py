@@ -25,6 +25,7 @@ def _runtime_template() -> str:
             "DATABASE_URL=",
             "REDIS_URL=",
             "SUPABASE_URL=",
+            "SUPABASE_ANON_KEY=",
             "SUPABASE_JWT_SECRET=",
             "CSRF_SECRET_KEY=",
             "ENCRYPTION_KEY=",
@@ -66,6 +67,7 @@ def _build_bundle(tmp_path: Path, *, environment: str = "production") -> tuple[P
         database_url="postgresql+asyncpg://postgres:postgres@db.example.com:5432/postgres",
         redis_url="redis://redis.example.com:6379/0",
         supabase_url="https://example.supabase.co",
+        supabase_anon_key="dashboard-anon-key",
         supabase_jwt_secret="x" * 40,
         aws_assume_role_trust_principal_arn=(
             "arn:aws:iam::123456789012:role/ValdricsControlPlane"
@@ -140,3 +142,87 @@ def test_verify_managed_deployment_bundle_detects_missing_artifact_and_report_en
 
     assert any("runtime report environment mismatch" in error for error in errors)
     assert any("deployment artifact missing on disk" in error for error in errors)
+
+
+def test_verify_managed_deployment_bundle_rejects_artifact_path_outside_output_dir(
+    tmp_path: Path,
+) -> None:
+    runtime_report, migrate_report, deployment_report = _build_bundle(tmp_path)
+    outside_artifact = tmp_path / "outside-worker.yaml"
+    outside_artifact.write_text("kind: service\n", encoding="utf-8")
+
+    payload = json.loads(deployment_report.read_text(encoding="utf-8"))
+    payload["artifacts"]["koyeb_worker_manifest"] = str(outside_artifact)
+    deployment_report.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+
+    errors = verify_managed_deployment_bundle(
+        environment="production",
+        runtime_report_path=runtime_report,
+        migration_report_path=migrate_report,
+        deployment_report_path=deployment_report,
+    )
+
+    assert any("deployment artifact path must stay within deployment output_dir" in error for error in errors)
+
+
+def test_verify_managed_deployment_bundle_rejects_tfvars_path_outside_output_dir(
+    tmp_path: Path,
+) -> None:
+    runtime_report, migrate_report, deployment_report = _build_bundle(tmp_path)
+    outside_tfvars = tmp_path / "outside.tfvars.json"
+    outside_tfvars.write_text("{}", encoding="utf-8")
+
+    payload = json.loads(deployment_report.read_text(encoding="utf-8"))
+    payload["terraform_runtime_tfvars_path"] = str(outside_tfvars)
+    deployment_report.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+
+    errors = verify_managed_deployment_bundle(
+        environment="production",
+        runtime_report_path=runtime_report,
+        migration_report_path=migrate_report,
+        deployment_report_path=deployment_report,
+    )
+
+    assert any("terraform runtime tfvars must stay within deployment output_dir" in error for error in errors)
+
+
+def test_verify_managed_deployment_bundle_rejects_duplicate_artifact_paths(
+    tmp_path: Path,
+) -> None:
+    runtime_report, migrate_report, deployment_report = _build_bundle(tmp_path)
+
+    payload = json.loads(deployment_report.read_text(encoding="utf-8"))
+    payload["artifacts"]["koyeb_worker_manifest"] = payload["artifacts"]["koyeb_api_manifest"]
+    deployment_report.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+
+    errors = verify_managed_deployment_bundle(
+        environment="production",
+        runtime_report_path=runtime_report,
+        migration_report_path=migrate_report,
+        deployment_report_path=deployment_report,
+    )
+
+    assert any("deployment artifact paths must be distinct" in error for error in errors)
+
+
+def test_verify_managed_deployment_bundle_rejects_unexpected_artifact_filename(
+    tmp_path: Path,
+) -> None:
+    runtime_report, migrate_report, deployment_report = _build_bundle(tmp_path)
+    output_dir = deployment_report.parent
+    renamed = output_dir / "renamed-worker.yaml"
+    original = output_dir / "koyeb-worker.yaml"
+    original.rename(renamed)
+
+    payload = json.loads(deployment_report.read_text(encoding="utf-8"))
+    payload["artifacts"]["koyeb_worker_manifest"] = str(renamed)
+    deployment_report.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+
+    errors = verify_managed_deployment_bundle(
+        environment="production",
+        runtime_report_path=runtime_report,
+        migration_report_path=migrate_report,
+        deployment_report_path=deployment_report,
+    )
+
+    assert any("deployment artifact path has unexpected filename" in error for error in errors)

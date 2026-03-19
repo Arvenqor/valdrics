@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -11,16 +12,22 @@ from typing import Any
 
 def _parse_float(value: Any, *, field: str) -> float:
     try:
-        return float(value)
+        parsed = float(value)
     except (TypeError, ValueError) as exc:
         raise ValueError(f"{field} must be numeric") from exc
+    if not math.isfinite(parsed):
+        raise ValueError(f"{field} must be finite")
+    return parsed
 
 
-def _parse_int(value: Any, *, field: str) -> int:
+def _parse_int(value: Any, *, field: str, min_value: int | None = None) -> int:
     try:
-        return int(value)
+        parsed = int(value)
     except (TypeError, ValueError) as exc:
         raise ValueError(f"{field} must be integer-like") from exc
+    if min_value is not None and parsed < min_value:
+        raise ValueError(f"{field} must be >= {min_value}")
+    return parsed
 
 
 def _parse_iso_utc(value: Any, *, field: str) -> datetime:
@@ -142,13 +149,14 @@ def verify_evidence(
             f"{missing_sorted}"
         )
 
-    rounds = _parse_int(payload.get("rounds"), field="rounds")
+    rounds = _parse_int(payload.get("rounds"), field="rounds", min_value=0)
     if rounds < min_rounds:
         raise ValueError(f"rounds must be >= {min_rounds}, got {rounds}")
 
     duration_seconds = _parse_int(
         payload.get("duration_seconds"),
         field="duration_seconds",
+        min_value=0,
     )
     if duration_seconds < min_duration_seconds:
         raise ValueError(
@@ -158,6 +166,7 @@ def verify_evidence(
     concurrent_users = _parse_int(
         payload.get("concurrent_users"),
         field="concurrent_users",
+        min_value=0,
     )
     if concurrent_users < min_concurrent_users:
         raise ValueError(
@@ -184,8 +193,16 @@ def verify_evidence(
     results = payload.get("results")
     if not isinstance(results, dict):
         raise ValueError("results must be an object")
-    total_requests = _parse_int(results.get("total_requests"), field="results.total_requests")
-    failed_requests = _parse_int(results.get("failed_requests"), field="results.failed_requests")
+    total_requests = _parse_int(
+        results.get("total_requests"),
+        field="results.total_requests",
+        min_value=0,
+    )
+    failed_requests = _parse_int(
+        results.get("failed_requests"),
+        field="results.failed_requests",
+        min_value=0,
+    )
     if total_requests <= 0:
         raise ValueError("results.total_requests must be > 0")
     if failed_requests < 0 or failed_requests > total_requests:
@@ -193,6 +210,7 @@ def verify_evidence(
     successful_requests = _parse_int(
         results.get("successful_requests"),
         field="results.successful_requests",
+        min_value=0,
     )
     if successful_requests != (total_requests - failed_requests):
         raise ValueError(
@@ -239,15 +257,24 @@ def verify_evidence(
         run_total = _parse_int(
             run_results.get("total_requests"),
             field=f"runs[{idx - 1}].results.total_requests",
+            min_value=0,
         )
         run_success = _parse_int(
             run_results.get("successful_requests"),
             field=f"runs[{idx - 1}].results.successful_requests",
+            min_value=0,
         )
         run_failed = _parse_int(
             run_results.get("failed_requests"),
             field=f"runs[{idx - 1}].results.failed_requests",
+            min_value=0,
         )
+        if run_total <= 0:
+            raise ValueError(f"runs[{idx - 1}].results.total_requests must be > 0")
+        if run_failed > run_total:
+            raise ValueError(
+                f"runs[{idx - 1}].results.failed_requests must be between 0 and total_requests"
+            )
         if run_success != (run_total - run_failed):
             raise ValueError(
                 "runs[%d].results.successful_requests must equal total_requests - failed_requests"

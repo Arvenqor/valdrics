@@ -8,10 +8,12 @@ Commercial tier scope and the public plan ladder live in
 `docs/architecture/tiering-2026.md` and must stay aligned with runtime
 entitlements.
 
-It assumes the repository-managed `Helm + Terraform (AWS/EKS)` profile as the
-sole supported production scale path. The `Cloudflare Pages + Koyeb` manifests
-remain a managed-platform preview/reference surface only and are excluded from
-the enterprise scale commitments below.
+The current supported operating profile is Koyeb-managed services for staging
+and production. The Helm + Terraform (AWS/EKS) material remains the future
+scale path for when managed-platform limits or cost structure no longer fit the
+platform.
+This capacity plan keeps the phrase `future scale path` explicit because the
+Helm/EKS profile is not the current operating default.
 
 ## 1. Metric Targets
 
@@ -24,15 +26,15 @@ the enterprise scale commitments below.
 ## 2. Scaling Strategies
 
 ### Database (PostgreSQL / AWS RDS profile)
-- **Current**: Multi-AZ relational database with connection-pool budgeting enforced at the application layer.
+- **Current**: Managed PostgreSQL with connection-pool budgeting enforced at the application layer.
 - **10k Users**: Introduce read scaling for analytics/reporting and continue partition/index governance for high-volume tables.
 - **100k Users**: Move large analytical workloads off the primary OLTP path or introduce a horizontally scalable analytical store.
 
 ### Compute Workloads (API + Workers)
-- **Current**: FastAPI API replicas plus Celery workers with Redis-backed coordination.
-- **Managed-platform preview**: `koyeb.yaml` and `koyeb-worker.yaml` must be deployed together if used for preview evaluation; the API manifest alone is not a supported runtime topology.
+- **Current**: Koyeb-managed API, worker, and dashboard services with Redis-backed coordination.
+- **Current production topology**: Koyeb API and worker services must be promoted together from the same immutable release tag, and the dashboard must be promoted from the matching dashboard image tag.
 - **1k+ Users**: Scale API and worker pools independently and keep scheduler-driven sweeps bounded.
-- **Auto-Scaling**: Horizontal Pod Autoscaling (HPA) based on CPU and queue depth when running the Helm profile.
+- **Auto-Scaling**: Koyeb service autoscaling by CPU today; Horizontal Pod Autoscaling (HPA) based on CPU and queue depth when the future Helm profile is activated.
 
 ### LLM Consumption
 - **Strategy**: Leverage the **LLM Provider Waterfall** to prevent 429 errors.

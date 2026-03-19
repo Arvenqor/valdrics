@@ -30,6 +30,7 @@ help:
 	@echo "Deployment:"
 	@echo "  make helm-install  - Install to Kubernetes with Helm"
 	@echo "  make migrate       - Run database migrations"
+	@echo "  make deploy ENVIRONMENT=<staging|production> VERSION=<immutable-release-tag> API_IMAGE_DIGEST=<sha256:...> DASHBOARD_IMAGE_DIGEST=<sha256:...> - Generate and verify the Koyeb release bundle"
 
 # Development
 install:
@@ -161,12 +162,16 @@ generate-client:
 # ============================================================================
 
 deploy:
+	@test -n "$(ENVIRONMENT)" || (echo "ENVIRONMENT must be set to staging or production" && exit 1)
 	@test -n "$(VERSION)" || (echo "VERSION must be set to an immutable release tag" && exit 1)
-	@echo "🚀 Deploying to Koyeb..."
-	koyeb app init valdrics --docker ghcr.io/valdrics-ai/valdrics:$(VERSION) || true
-	koyeb deploy -f koyeb.yaml
-	@echo "✅ Koyeb deployment started"
-	@echo "Dashboard: https://app.koyeb.com"
+	@test -n "$(API_IMAGE_DIGEST)" || (echo "API_IMAGE_DIGEST must be set to a sha256:<64-hex> digest from the GHCR publish workflow" && exit 1)
+	@test -n "$(DASHBOARD_IMAGE_DIGEST)" || (echo "DASHBOARD_IMAGE_DIGEST must be set to a sha256:<64-hex> digest from the GHCR publish workflow" && exit 1)
+	@test -f ".runtime/$(ENVIRONMENT).env" || (echo "Missing .runtime/$(ENVIRONMENT).env. Generate the managed runtime env first." && exit 1)
+	@echo "📦 Generating Koyeb release bundle for $(ENVIRONMENT) with immutable tag $(VERSION) and digest-pinned promotion refs..."
+	uv run python3 scripts/generate_managed_deployment_artifacts.py --environment $(ENVIRONMENT) --runtime-env-file .runtime/$(ENVIRONMENT).env --release-tag $(VERSION) --api-image-digest $(API_IMAGE_DIGEST) --dashboard-image-digest $(DASHBOARD_IMAGE_DIGEST)
+	uv run python3 scripts/verify_managed_deployment_bundle.py --environment $(ENVIRONMENT)
+	@echo "✅ Release bundle ready: .runtime/deploy/$(ENVIRONMENT)/koyeb-release.json"
+	@echo "Next step: follow docs/runbooks/koyeb_release_promotion.md"
 
 deploy-status:
 	@echo "Koyeb status:"

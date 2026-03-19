@@ -5,24 +5,7 @@ import Page from './+page.svelte';
 
 describe('/+page.svelte', () => {
 	it('should render h1', async () => {
-		render(Page, {
-			data: {
-				user: null,
-				session: null,
-				subscription: { tier: 'free', status: 'active' },
-				profile: null,
-				costs: null,
-				carbon: null,
-				zombies: null,
-				analysis: null,
-				allocation: null,
-				unitEconomics: null,
-				freshness: null,
-				startDate: '',
-				endDate: '',
-				error: ''
-			}
-		});
+		render(Page);
 
 		const heading = page.getByRole('heading', { level: 1 });
 		await expect.element(heading).toBeInTheDocument();

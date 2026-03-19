@@ -74,7 +74,9 @@ def _migration_blockers(values: dict[str, str]) -> list[str]:
 
     db_ssl_mode = str(values.get("DB_SSL_MODE", "require") or "require").strip().lower()
     db_ssl_ca_cert_path = str(values.get("DB_SSL_CA_CERT_PATH", "") or "").strip()
-    if db_ssl_mode in {"verify-ca", "verify-full"} and not db_ssl_ca_cert_path:
+    if db_ssl_mode in {"verify-ca", "verify-full"} and (
+        not db_ssl_ca_cert_path or PLACEHOLDER_PREFIX in db_ssl_ca_cert_path
+    ):
         blockers.append("DB_SSL_CA_CERT_PATH")
 
     return blockers
@@ -102,6 +104,8 @@ def generate_managed_migration_env(
         raise ValueError(
             "environment must be one of: " + ", ".join(SUPPORTED_ENVIRONMENTS)
         )
+    if output_path.resolve() == report_path.resolve():
+        raise ValueError("output_path and report_path must be different files")
 
     overrides = _build_overrides(
         environment=normalized_environment,

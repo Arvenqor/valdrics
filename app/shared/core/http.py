@@ -145,7 +145,7 @@ async def init_http_client() -> None:
             max_keepalive_connections=50,
             keepalive_expiry=30.0,
         ),
-        user_agent="Valdrics-AI/2026.02",
+        user_agent="Valdrics/2026.02",
     )
     logger.info("http_client_initialized", http2=True, max_connections=500)
 

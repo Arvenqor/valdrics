@@ -24,17 +24,25 @@ export function allowedNavHrefs(persona: unknown, role: unknown): Set<string> {
 	let hrefs: string[];
 	switch (p) {
 		case 'finance':
-			hrefs = ['/', '/leaderboards', '/savings', '/billing', '/connections', '/greenops', '/audit'];
+			hrefs = [
+				'/dashboard',
+				'/leaderboards',
+				'/savings',
+				'/billing',
+				'/connections',
+				'/greenops',
+				'/audit'
+			];
 			break;
 		case 'platform':
 			hrefs = ['/ops', '/connections', '/audit', '/admin/health'];
 			break;
 		case 'leadership':
-			hrefs = ['/', '/leaderboards', '/savings', '/greenops', '/audit'];
+			hrefs = ['/dashboard', '/leaderboards', '/savings', '/greenops', '/audit'];
 			break;
 		case 'engineering':
 		default:
-			hrefs = ['/', '/ops', '/connections', '/greenops', '/llm', '/audit'];
+			hrefs = ['/dashboard', '/ops', '/connections', '/greenops', '/llm', '/audit'];
 			break;
 	}
 

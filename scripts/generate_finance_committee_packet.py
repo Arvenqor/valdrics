@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -88,17 +89,33 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def _parse_positive_float_arg(value: float, *, field: str) -> float:
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise ValueError(f"{field} must be finite")
+    if parsed <= 0:
+        raise ValueError(f"{field} must be > 0")
+    return parsed
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     telemetry_path = Path(str(args.telemetry_path))
     assumptions_path = Path(str(args.assumptions_path))
     output_dir = Path(str(args.output_dir))
+    telemetry_resolved = telemetry_path.resolve()
+    assumptions_resolved = assumptions_path.resolve()
+    if telemetry_resolved == assumptions_resolved:
+        raise ValueError("telemetry_path and assumptions_path must be different files")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     verify_snapshot(
         snapshot_path=telemetry_path,
         max_artifact_age_hours=(
-            float(args.max_telemetry_age_hours)
+            _parse_positive_float_arg(
+                float(args.max_telemetry_age_hours),
+                field="max_telemetry_age_hours",
+            )
             if args.max_telemetry_age_hours is not None
             else None
         ),
@@ -116,6 +133,22 @@ def main(argv: list[str] | None = None) -> int:
     committee_path = output_dir / f"finance_committee_packet_{label}.json"
     tiers_csv_path = output_dir / f"finance_committee_tier_unit_economics_{label}.csv"
     scenarios_csv_path = output_dir / f"finance_committee_scenarios_{label}.csv"
+    input_paths = {
+        telemetry_resolved: "telemetry_path",
+        assumptions_resolved: "assumptions_path",
+    }
+    for output_path in (
+        guardrails_path,
+        committee_path,
+        tiers_csv_path,
+        scenarios_csv_path,
+    ):
+        output_resolved = output_path.resolve()
+        if output_resolved in input_paths:
+            raise ValueError(
+                "output_dir would overwrite "
+                f"{input_paths[output_resolved]}: {output_path.as_posix()}"
+            )
 
     guardrails_path.write_text(
         json.dumps(finance_guardrails, indent=2, sort_keys=True),
@@ -132,7 +165,10 @@ def main(argv: list[str] | None = None) -> int:
 
     _send_alert_if_needed(
         webhook_url=(str(args.alert_webhook_url).strip() if args.alert_webhook_url else None),
-        webhook_timeout_seconds=float(args.alert_webhook_timeout_seconds),
+        webhook_timeout_seconds=_parse_positive_float_arg(
+            float(args.alert_webhook_timeout_seconds),
+            field="alert_webhook_timeout_seconds",
+        ),
         webhook_fail_on_error=bool(args.alert_webhook_fail_on_error),
         packet_summary=committee_packet["summary"],
         gate_results=committee_packet["gate_results"],

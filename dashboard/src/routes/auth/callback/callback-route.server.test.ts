@@ -43,7 +43,7 @@ describe('auth callback redirect safety', () => {
 			GET(createEvent('https://example.com/auth/callback?code=ok&next=%2F%2Fevil.example'))
 		).rejects.toMatchObject({
 			status: 303,
-			location: '/'
+			location: '/dashboard'
 		});
 	});
 

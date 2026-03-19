@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import subprocess
 from unittest.mock import MagicMock
 
 import pytest
@@ -18,6 +19,7 @@ def test_generate_evidence_requires_separation_of_duties(tmp_path: Path) -> None
             approved_by="same@valdrics.local",
             profile="enforcement_failure_injection",
             cwd=tmp_path,
+            timeout_seconds=60.0,
         )
 
 
@@ -29,6 +31,31 @@ def test_generate_evidence_requires_non_empty_identities(tmp_path: Path) -> None
             approved_by="approver@valdrics.local",
             profile="enforcement_failure_injection",
             cwd=tmp_path,
+            timeout_seconds=60.0,
+        )
+
+
+def test_generate_evidence_requires_non_empty_profile(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="profile must be non-empty"):
+        generator.generate_evidence(
+            output=tmp_path / "artifact.json",
+            executed_by="exec@valdrics.local",
+            approved_by="approver@valdrics.local",
+            profile="   ",
+            cwd=tmp_path,
+            timeout_seconds=60.0,
+        )
+
+
+def test_generate_evidence_rejects_profile_contract_drift(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="profile must equal"):
+        generator.generate_evidence(
+            output=tmp_path / "artifact.json",
+            executed_by="exec@valdrics.local",
+            approved_by="approver@valdrics.local",
+            profile="custom_profile",
+            cwd=tmp_path,
+            timeout_seconds=60.0,
         )
 
 
@@ -38,8 +65,9 @@ def test_generate_evidence_writes_summary_and_scenarios(
     calls = {"count": 0}
 
     def _fake_run_scenario(
-        scenario: generator.FailureScenario, *, cwd: Path
+        scenario: generator.FailureScenario, *, cwd: Path, timeout_seconds: float
     ) -> tuple[dict[str, object], bool]:
+        assert timeout_seconds == 60.0
         calls["count"] += 1
         passed = scenario.scenario_id != "FI-003"
         return (
@@ -64,6 +92,7 @@ def test_generate_evidence_writes_summary_and_scenarios(
         approved_by="approver@valdrics.local",
         profile="enforcement_failure_injection",
         cwd=tmp_path,
+        timeout_seconds=60.0,
     )
 
     assert overall_passed is False
@@ -101,6 +130,13 @@ def test_main_exit_code_follows_overall_result(
         )
 
     monkeypatch.setattr(generator, "generate_evidence", _fake_generate_evidence)
+    verify_calls: list[dict[str, object]] = []
+
+    def _fake_verify(**kwargs: object) -> int:
+        verify_calls.append(kwargs)
+        return 0
+
+    monkeypatch.setattr(generator, "verify_evidence", _fake_verify)
 
     exit_code = generator.main(
         [
@@ -113,6 +149,37 @@ def test_main_exit_code_follows_overall_result(
         ]
     )
     assert exit_code == 0
+    assert verify_calls == [
+        {
+            "evidence_path": tmp_path / "artifact.json",
+            "expected_profile": "enforcement_failure_injection",
+            "max_artifact_age_hours": 4.0,
+        }
+    ]
+
+
+def test_main_rejects_invalid_profile_before_generation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        generator,
+        "_run_scenario",
+        lambda *_, **__: (_ for _ in ()).throw(AssertionError("scenario execution should not run")),
+    )
+
+    with pytest.raises(ValueError, match="profile must equal"):
+        generator.main(
+            [
+                "--output",
+                str(tmp_path / "artifact.json"),
+                "--executed-by",
+                "exec@valdrics.local",
+                "--approved-by",
+                "approve@valdrics.local",
+                "--profile",
+                "custom_profile",
+            ]
+        )
 
 
 def test_run_scenario_uses_isolated_pytest_env(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -120,6 +187,7 @@ def test_run_scenario_uses_isolated_pytest_env(monkeypatch: pytest.MonkeyPatch) 
 
     def _fake_run(*args: object, **kwargs: object) -> MagicMock:
         captured["env"] = kwargs.get("env")
+        captured["timeout"] = kwargs.get("timeout")
         completed = MagicMock()
         completed.returncode = 0
         completed.stdout = "ok"
@@ -136,7 +204,12 @@ def test_run_scenario_uses_isolated_pytest_env(monkeypatch: pytest.MonkeyPatch) 
         checks=("isolated env",),
         selectors=("tests/unit/enforcement/test_enforcement_api.py::test_gate_failsafe_timeout_and_error_modes",),
     )
-    payload, passed = generator._run_scenario(scenario, cwd=Path("."))
+    payload, passed = generator._run_scenario(
+        scenario,
+        cwd=Path("."),
+        timeout_seconds=240.0,
+    )
+    timeout = captured.get("timeout")
 
     assert passed is True
     assert payload["status"] == "pass"
@@ -147,3 +220,50 @@ def test_run_scenario_uses_isolated_pytest_env(monkeypatch: pytest.MonkeyPatch) 
     assert "PGSSLMODE" not in env
     assert env["TESTING"] == "true"
     assert env["DEBUG"] == "false"
+    assert timeout == 240.0
+
+
+def test_run_scenario_marks_timeout_as_failed(monkeypatch: pytest.MonkeyPatch) -> None:
+    def _timeout(*args: object, **kwargs: object) -> MagicMock:
+        raise subprocess.TimeoutExpired(cmd=kwargs.get("args", "pytest"), timeout=5.0)
+
+    monkeypatch.setattr(generator.subprocess, "run", _timeout)
+    scenario = generator.FailureScenario(
+        scenario_id="FI-TEST",
+        checks=("timeout",),
+        selectors=("tests/unit/enforcement/test_enforcement_api.py::test_gate_failsafe_timeout_and_error_modes",),
+    )
+
+    payload, passed = generator._run_scenario(
+        scenario,
+        cwd=Path("."),
+        timeout_seconds=5.0,
+    )
+
+    assert passed is False
+    assert payload["status"] == "fail"
+    assert "timeout after 5.0s" in str(payload["result_tail"])
+
+
+def test_main_rejects_non_positive_pytest_timeout_before_generation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        generator,
+        "generate_evidence",
+        lambda **_: (_ for _ in ()).throw(AssertionError("generation should not run")),
+    )
+
+    with pytest.raises(ValueError, match="pytest_timeout_seconds must be > 0"):
+        generator.main(
+            [
+                "--output",
+                str(tmp_path / "artifact.json"),
+                "--executed-by",
+                "exec@valdrics.local",
+                "--approved-by",
+                "approve@valdrics.local",
+                "--pytest-timeout-seconds",
+                "0",
+            ]
+        )

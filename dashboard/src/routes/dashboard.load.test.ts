@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { TimeoutError } from '$lib/fetchWithTimeout';
-import { load } from './+page';
+import { load } from './dashboard/+page';
 
 function jsonResponse(payload: unknown, status = 200): Response {
 	return new Response(JSON.stringify(payload), {

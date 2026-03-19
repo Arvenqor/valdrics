@@ -9,7 +9,7 @@ test.describe('Landing Page Content', () => {
 		await expect(
 			page.getByRole('heading', {
 				level: 1,
-				name: /stop cloud and software waste|control every dollar|control cloud margin risk/i
+				name: /turn cloud, saas, and software spend into governed action without slowing delivery/i
 			})
 		).toBeVisible();
 		await expect(

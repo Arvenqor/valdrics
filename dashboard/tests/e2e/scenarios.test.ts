@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
-
-const E2E_AUTH_HEADER_NAME = 'x-valdrics-e2e-auth';
-const E2E_AUTH_HEADER_VALUE = process.env.E2E_AUTH_SECRET || 'playwright';
+import { enableAuthenticatedSession } from '../../e2e/support/e2eAuth';
 
 test.describe('Authentication Flow', () => {
 	test('shows landing page when not authenticated', async ({ page }) => {
 		await page.goto('/');
-		await expect(page.locator('h1')).toContainText(/Cloud Cost Intelligence/i);
+		await expect(page.locator('h1')).toContainText(
+			/turn cloud, saas, and software spend into governed action without slowing delivery/i
+		);
 	});
 
 	test('shows sign in button on login page', async ({ page }) => {
@@ -23,14 +23,13 @@ test.describe('Route Guards', () => {
 });
 
 test.describe('Authenticated Route Access (test-mode)', () => {
-	test.beforeEach(async ({ page }) => {
-		await page.context().setExtraHTTPHeaders({
-			[E2E_AUTH_HEADER_NAME]: E2E_AUTH_HEADER_VALUE
-		});
+	test.beforeEach(async ({ context }) => {
+		await enableAuthenticatedSession(context);
 	});
 
 	test('loads dashboard shell with authenticated heading', async ({ page }) => {
 		await page.goto('/');
+		await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/);
 		await expect(page.locator('h1')).toContainText(/Dashboard/i);
 	});
 

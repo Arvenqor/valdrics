@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from pathlib import Path
 import json
 
@@ -153,6 +154,45 @@ def test_verify_evidence_rejects_high_p95(tmp_path: Path) -> None:
         _verify(path)
 
 
+@pytest.mark.parametrize(
+    ("field_path", "value", "expected_message"),
+    [
+        (("results", "p95_response_time"), math.nan, r"results\.p95_response_time must be finite"),
+        (("results", "throughput_rps"), math.inf, r"results\.throughput_rps must be finite"),
+        (
+            ("runs", 0, "results", "p99_response_time"),
+            math.nan,
+            r"runs\[0\]\.results\.p99_response_time must be finite",
+        ),
+        (
+            ("thresholds", "max_p95_seconds"),
+            math.inf,
+            r"thresholds\.max_p95_seconds must be finite",
+        ),
+        (
+            ("evaluation", "worst_p95_seconds"),
+            math.nan,
+            r"evaluation\.worst_p95_seconds must be finite",
+        ),
+    ],
+)
+def test_verify_evidence_rejects_non_finite_float_fields(
+    tmp_path: Path,
+    field_path: tuple[object, ...],
+    value: float,
+    expected_message: str,
+) -> None:
+    payload = _valid_payload()
+    target: object = payload
+    for part in field_path[:-1]:
+        target = target[part]  # type: ignore[index]
+    target[field_path[-1]] = value  # type: ignore[index]
+    path = tmp_path / "non-finite.json"
+    _write(path, payload)
+    with pytest.raises(ValueError, match=expected_message):
+        _verify(path)
+
+
 def test_verify_evidence_rejects_high_error_rate(tmp_path: Path) -> None:
     payload = _valid_payload()
     for run in payload["runs"]:
@@ -166,6 +206,48 @@ def test_verify_evidence_rejects_high_error_rate(tmp_path: Path) -> None:
     path = tmp_path / "evidence.json"
     _write(path, payload)
     with pytest.raises(ValueError, match="error rate"):
+        _verify(path)
+
+
+@pytest.mark.parametrize(
+    ("field_path", "value", "expected_message"),
+    [
+        (
+            ("runs", 0, "results", "total_requests"),
+            -1,
+            r"runs\[0\]\.results\.total_requests must be >= 0",
+        ),
+        (
+            ("runs", 1, "results", "failed_requests"),
+            -1,
+            r"runs\[1\]\.results\.failed_requests must be >= 0",
+        ),
+        (
+            ("runs", 2, "results", "successful_requests"),
+            -1,
+            r"runs\[2\]\.results\.successful_requests must be >= 0",
+        ),
+        (
+            ("runs", 0, "results", "failed_requests"),
+            401,
+            r"runs\[0\]\.results\.failed_requests must be between 0 and total_requests",
+        ),
+    ],
+)
+def test_verify_evidence_rejects_invalid_per_run_request_counts(
+    tmp_path: Path,
+    field_path: tuple[object, ...],
+    value: int,
+    expected_message: str,
+) -> None:
+    payload = _valid_payload()
+    target: object = payload
+    for part in field_path[:-1]:
+        target = target[part]  # type: ignore[index]
+    target[field_path[-1]] = value  # type: ignore[index]
+    path = tmp_path / "run-counts-invalid.json"
+    _write(path, payload)
+    with pytest.raises(ValueError, match=expected_message):
         _verify(path)
 
 

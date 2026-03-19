@@ -12,6 +12,7 @@ import structlog
 from typing import Any, Dict, List
 from datetime import datetime, timezone, timedelta
 from httpx import HTTPError
+from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -168,14 +169,14 @@ class HealthService:
         Returns detailed health status for monitoring and alerting.
         """
         testing_mode = self._testing_mode()
-        component_checks = (
-            (
-                "database",
-                self._run_health_check(
-                    self._check_database(),
-                    component="database",
-                ),
-            ),
+        # Do not run the DB-backed checks concurrently when a request-scoped
+        # AsyncSession is injected. AsyncSession is not safe for concurrent use.
+        db_status = await self._run_health_check(
+            self._check_database(),
+            component="database",
+        )
+
+        parallel_checks = (
             (
                 "cache",
                 self._run_health_check(
@@ -224,32 +225,21 @@ class HealthService:
                     component="system_resources",
                 ),
             ),
-            (
-                "background_jobs",
-                self._run_health_check(
-                    self._check_background_jobs(),
-                    component="background_jobs",
-                ),
-            ),
         )
         gathered_checks = await asyncio.gather(
-            *(coro for _, coro in component_checks),
+            *(coro for _, coro in parallel_checks),
             return_exceptions=True,
         )
-        checks = [
+        parallel_results = [
             self._normalize_health_check_result(component=component, result=result)
-            for (component, _), result in zip(component_checks, gathered_checks)
+            for (component, _), result in zip(parallel_checks, gathered_checks)
         ]
 
-        # Unpack results
-        (
-            db_status,
-            cache_status,
-            external_status,
-            circuit_status,
-            system_status,
-            jobs_status,
-        ) = checks
+        cache_status, external_status, circuit_status, system_status = parallel_results
+        jobs_status = await self._run_health_check(
+            self._check_background_jobs(),
+            component="background_jobs",
+        )
 
         # Determine overall health
         overall_status = self._calculate_overall_health(
@@ -330,6 +320,20 @@ class HealthService:
                 "error": str(exc),
                 "component": component,
             }
+        except Exception as exc:
+            fallback_status = HEALTH_FALLBACK_STATUSES.get(component, "unknown")
+            logger.error(
+                "health_check_unhandled_exception",
+                component=component,
+                fallback_status=fallback_status,
+                error_type=type(exc).__name__,
+                error=str(exc),
+            )
+            return {
+                "status": fallback_status,
+                "error": str(exc),
+                "component": component,
+            }
 
         return self._normalize_health_check_result(component=component, result=result)
 
@@ -372,6 +376,21 @@ class HealthService:
 
     async def _check_database(self) -> Dict[str, Any]:
         """Check database connectivity and performance."""
+        if self.db is not None:
+            start_time = asyncio.get_running_loop().time()
+            try:
+                await self.db.execute(text("SELECT 1"))
+                latency = (asyncio.get_running_loop().time() - start_time) * 1000
+                return {"status": "up", "latency_ms": round(latency, 2)}
+            except HEALTH_RECOVERABLE_ERRORS as exc:
+                logger.error("database_health_check_failed", error=str(exc))
+                return {
+                    "status": "down",
+                    "error": str(exc),
+                    "latency_ms": (asyncio.get_running_loop().time() - start_time) * 1000,
+                    "component": "database",
+                }
+
         try:
             # db_health_check is imported from session.py
             db_health = await db_health_check()

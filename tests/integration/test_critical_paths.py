@@ -1,5 +1,5 @@
 """
-Integration tests for critical paths in Valdrics-AI.
+Integration tests for critical paths in Valdrics.
 Tests end-to-end workflows for zombie detection and remediation.
 """
 

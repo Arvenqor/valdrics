@@ -77,9 +77,9 @@ async def test_get_identity_settings_bootstraps_missing_identity() -> None:
     assert response.sso_enabled is False
     assert response.allowed_email_domains == []
     assert response.scim_enabled is False
-    mock_db.add.assert_called_once()
-    mock_db.commit.assert_awaited()
-    mock_db.refresh.assert_awaited()
+    mock_db.add.assert_not_called()
+    mock_db.commit.assert_not_awaited()
+    mock_db.refresh.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -96,9 +96,9 @@ async def test_get_identity_diagnostics_bootstraps_missing_identity() -> None:
 
     assert response.sso.enabled is False
     assert response.scim.enabled is False
-    mock_db.add.assert_called_once()
-    mock_db.commit.assert_awaited()
-    mock_db.refresh.assert_awaited()
+    mock_db.add.assert_not_called()
+    mock_db.commit.assert_not_awaited()
+    mock_db.refresh.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -182,9 +182,9 @@ async def test_sso_federation_validation_bootstraps_missing_identity(
     assert response.federation_enabled is False
     assert checks["sso.federation_enabled"].severity == "info"
     assert checks["supabase.expected_redirect_url_computed"].passed is True
-    mock_db.add.assert_called_once()
-    mock_db.commit.assert_awaited()
-    mock_db.refresh.assert_awaited()
+    mock_db.add.assert_not_called()
+    mock_db.commit.assert_not_awaited()
+    mock_db.refresh.assert_not_awaited()
 
 
 @pytest.mark.asyncio

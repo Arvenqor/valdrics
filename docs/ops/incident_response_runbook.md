@@ -2,7 +2,7 @@
 
 **Version:** 1.0 (Audit Remediation)
 **Status:** Operational
-**Scope:** Valdrics Valdrics-AI Platform
+**Scope:** Valdrics Platform
 
 ## 1. Detection and Analysis
 

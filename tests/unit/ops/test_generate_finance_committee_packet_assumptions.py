@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pytest
 
 from scripts.finance_committee_packet_assumptions_engine import (
     derive_assumptions_inputs,
 )
 from scripts.finance_committee_packet_common import TRACKED_TIERS
+from scripts.generate_finance_committee_packet_assumptions import main
 
 
 def _telemetry_payload() -> dict[str, object]:
@@ -84,3 +88,20 @@ def test_derive_assumptions_inputs_rejects_duplicate_tier_rows() -> None:
     ]
     with pytest.raises(ValueError, match="duplicate tier: starter"):
         derive_assumptions_inputs(telemetry=telemetry)
+
+
+def test_generate_finance_committee_packet_assumptions_rejects_input_output_collision(
+    tmp_path: Path,
+) -> None:
+    telemetry = tmp_path / "telemetry.json"
+    telemetry.write_text(json.dumps(_telemetry_payload()), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="telemetry_path and output must be different files"):
+        main(
+            [
+                "--output",
+                str(telemetry),
+                "--telemetry-path",
+                str(telemetry),
+            ]
+        )

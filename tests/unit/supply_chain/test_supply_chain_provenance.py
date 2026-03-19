@@ -8,7 +8,9 @@ import pytest
 
 from scripts.generate_provenance_manifest import (
     DEFAULT_DEPENDENCY_INPUTS,
+    _resolve_output_path,
     generate_provenance_manifest,
+    main,
 )
 
 
@@ -140,4 +142,52 @@ def test_generate_provenance_manifest_rejects_sbom_dir_outside_repo_root(
             dependency_inputs=(Path("pyproject.toml"),),
             sbom_dir=Path("../external-sbom"),
             env={},
+        )
+
+
+def test_resolve_output_path_rejects_output_outside_repo_root(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir(parents=True, exist_ok=True)
+
+    with pytest.raises(ValueError, match="output must stay within repo root"):
+        _resolve_output_path(repo_root, tmp_path / "outside.json")
+
+
+def test_main_rejects_output_collision_with_dependency_input(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir(parents=True, exist_ok=True)
+    _write(repo_root / "pyproject.toml", "[project]\nname='x'\n")
+
+    with pytest.raises(ValueError, match="output must not overwrite dependency input"):
+        main(
+            [
+                "--repo-root",
+                str(repo_root),
+                "--output",
+                str(repo_root / "pyproject.toml"),
+                "--allow-missing-sbom",
+                "--dependency-input",
+                "pyproject.toml",
+            ]
+        )
+
+
+def test_main_rejects_output_collision_with_sbom_artifact(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir(parents=True, exist_ok=True)
+    _write(repo_root / "pyproject.toml", "[project]\nname='x'\n")
+    _write(repo_root / "sbom/python.json", '{"bomFormat":"CycloneDX"}\n')
+
+    with pytest.raises(ValueError, match="output must not overwrite SBOM artifact"):
+        main(
+            [
+                "--repo-root",
+                str(repo_root),
+                "--output",
+                str(repo_root / "sbom/python.json"),
+                "--dependency-input",
+                "pyproject.toml",
+                "--sbom-dir",
+                "sbom",
+            ]
         )

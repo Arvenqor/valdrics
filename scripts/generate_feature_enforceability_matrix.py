@@ -134,13 +134,25 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def _resolve_output_path(*, repo_root: Path, output: str) -> Path:
+    out_path = (repo_root / str(output)).resolve()
+    try:
+        out_path.relative_to(repo_root)
+    except ValueError as exc:
+        raise ValueError("out must resolve inside the repository root") from exc
+    return out_path
+
+
 def main(argv: list[str] | None = None) -> int:
+    from scripts.verify_feature_enforceability_matrix import verify_matrix
+
     args = _parse_args(argv)
     repo_root = _repo_root()
     payload = generate_matrix(repo_root=repo_root)
-    out_path = (repo_root / str(args.out)).resolve()
+    out_path = _resolve_output_path(repo_root=repo_root, output=str(args.out))
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    verify_matrix(artifact_path=out_path, repo_root=repo_root)
     print(
         "Feature enforceability matrix generated: "
         f"path={out_path.relative_to(repo_root)} features={len(payload.get('features', {}))}"
