@@ -58,7 +58,7 @@
 	</div>
 	{#if showUsdToggle}
 		<p class="landing-currency-toggle__note">
-			Local display uses indicative FX for comparison. Toggle USD to view the base-model values.
+			Local currency uses indicative FX. Switch to USD to compare.
 		</p>
 	{/if}
 </div>

@@ -31,13 +31,11 @@ describe('about page', () => {
 		expect(screen.getByText(/abdulgoniyy dare/i)).toBeTruthy();
 		expect(
 			screen.getByText(
-				/valdrics supports buyer evaluations across multiple regions\. deployment, residency, and procurement requirements that vary by region move through the enterprise review path\./i
+				/valdrics supports teams across multiple regions\. deployment, residency, and procurement questions are handled during enterprise review\./i
 			)
 		).toBeTruthy();
-		expect(screen.getByText(/deployment claims stay factual/i)).toBeTruthy();
-		expect(screen.getAllByRole('link', { name: /open enterprise path/i }).length).toBeGreaterThan(
-			0
-		);
+		expect(screen.getByText(/deployment details stay factual/i)).toBeTruthy();
+		expect(screen.getAllByRole('link', { name: /enterprise review/i }).length).toBeGreaterThan(0);
 		expect(screen.getByRole('link', { name: /legal@valdrics\.com/i })).toBeTruthy();
 		expect(screen.getByRole('link', { name: /security@valdrics\.com/i })).toBeTruthy();
 	});

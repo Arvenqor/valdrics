@@ -107,8 +107,8 @@
 			Know the team footprint before signup or procurement
 		</h3>
 		<p class="landing-p">
-			Start with one controlled workflow in a workspace. Use the enterprise path only when audit,
-			procurement, or rollout governance needs a formal diligence lane.
+			Start with one controlled workflow in a workspace. Use enterprise review only when audit,
+			procurement, or rollout governance needs a separate process.
 		</p>
 
 		<div class="landing-rollout-grid">
@@ -144,7 +144,7 @@
 				class="btn btn-secondary"
 				onclick={() => onTrackCta('cta_click', 'plans', 'enterprise_review')}
 			>
-				Open Enterprise Path
+				Enterprise Review
 			</a>
 		</div>
 	</section>

@@ -204,11 +204,11 @@
 >
 	{#snippet heroActions()}
 		{#if buyingMotion === 'enterprise_first'}
-			<a href={pricingHeroEnterpriseHref} class="btn btn-primary">Open Enterprise Path</a>
+			<a href={pricingHeroEnterpriseHref} class="btn btn-primary">Enterprise Review</a>
 			<a href={getFreeTierHref()} class="btn btn-secondary">Start Free Workspace</a>
 		{:else}
 			<a href={getFreeTierHref()} class="btn btn-primary">Start Free Workspace</a>
-			<a href={pricingHeroEnterpriseHref} class="btn btn-secondary">See Enterprise Path</a>
+			<a href={pricingHeroEnterpriseHref} class="btn btn-secondary">Enterprise Review</a>
 		{/if}
 	{/snippet}
 
@@ -398,15 +398,15 @@
 				<div class="public-page__band-copy">
 					<p class="public-page__eyebrow">Need enterprise review?</p>
 					<h2 id="pricing-enterprise-title" class="public-page__section-title">
-						Keep the enterprise lane for buyers who truly need a separate diligence track
+						Use enterprise review only when the buying process requires it
 					</h2>
 					<p class="public-page__section-subtitle">
-						Most buyers should start with self-serve pricing. Move into enterprise review only when
-						procurement, private deployment, or custom control requirements need their own path.
+						Start with workspace access or published pricing. Use enterprise review for private
+						deployment, procurement, or custom control requirements.
 					</p>
 				</div>
 				<div class="public-page__actions-row">
-					<a href={pricingEnterprisePathHref} class="btn btn-primary">Open Enterprise Path</a>
+					<a href={pricingEnterprisePathHref} class="btn btn-primary">Enterprise Review</a>
 					<a href={pricingValidationBriefingHref} class="btn btn-secondary">
 						Request Validation Briefing
 					</a>

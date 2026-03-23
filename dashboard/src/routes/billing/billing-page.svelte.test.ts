@@ -62,7 +62,7 @@ describe('billing page plan messaging', () => {
 		).toBeTruthy();
 		expect(
 			screen.getByText(
-				/move to the enterprise lane only when scim, private deployment, procurement review/i
+				/use enterprise review only when scim, private deployment, procurement review/i
 			)
 		).toBeTruthy();
 		const growthPlanCard = screen.getByRole('heading', { name: /^growth$/i }).closest('article');

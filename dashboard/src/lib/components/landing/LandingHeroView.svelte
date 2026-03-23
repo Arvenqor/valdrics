@@ -10,6 +10,7 @@
 	import LandingRoiSimulator from '$lib/components/landing/LandingRoiSimulator.svelte';
 	import LandingCookieConsent from '$lib/components/landing/LandingCookieConsent.svelte';
 	import LandingExitIntentPrompt from '$lib/components/landing/LandingExitIntentPrompt.svelte';
+	import './LandingMarketingShared.css';
 	import './LandingHeroView.public.css';
 
 	const productPillars = [
@@ -73,7 +74,7 @@
 		}).format(date);
 	}
 
-	let hoveredLaneId = $state<SignalLaneId | null>(null);
+	const dashboardStillSrc = `${base}/landing-dashboard-still.jpg`;
 
 	let {
 		motionProfile,
@@ -179,17 +180,13 @@
 		showBackToTop: boolean;
 	} = $props();
 
-	let interactiveSignalLane = $derived(
-		activeSnapshot.lanes.find((lane) => lane.id === hoveredLaneId) ?? activeSignalLane
-	);
 	let highlightedWasteUsd = $derived(
-		interactiveSignalLane.wasteUsd ??
+		activeSignalLane.wasteUsd ??
 			activeSnapshot.lanes.find((lane) => typeof lane.wasteUsd === 'number')?.wasteUsd ??
 			12400
 	);
-	let highlightedSources = $derived(activeSnapshot.sources.slice(0, 3));
-	let highlightedActionLabel = $derived(interactiveSignalLane.actionLabel ?? 'Assign owner');
-	let laneSeverityTone = $derived(interactiveSignalLane.severity ?? 'healthy');
+	let highlightedActionLabel = $derived(activeSignalLane.actionLabel ?? 'Assign owner');
+	let laneSeverityTone = $derived(activeSignalLane.severity ?? 'healthy');
 </script>
 
 <div
@@ -228,8 +225,8 @@
 				/>
 
 				<aside
-					class="landing-public-surface landing-public-mockup"
-					aria-label="Product decision mockup"
+					class="landing-public-surface landing-public-product-still"
+					aria-label="Real product dashboard screenshot"
 				>
 					<div class="landing-public-windowbar">
 						<div class="landing-public-window-dots" aria-hidden="true">
@@ -237,152 +234,46 @@
 							<span></span>
 							<span></span>
 						</div>
-						<p class="landing-public-window-title">Valdrics workspace · {activeSnapshot.label}</p>
+						<p class="landing-public-window-title">
+							Valdrics dashboard · {activeSnapshot.label}
+						</p>
 						<p class={`landing-public-window-status is-${laneSeverityTone}`}>
-							{interactiveSignalLane.status}
+							{activeSignalLane.status}
 						</p>
 					</div>
 
-					<div class="landing-public-mockup-body">
-						<div class="landing-public-mockup-rail">
-							<p class="landing-public-eyebrow">What the first workflow looks like</p>
-							<ol class="landing-public-step-list">
-								{#each activeSnapshot.lanes as lane, index (lane.id)}
-									<li class:active={interactiveSignalLane.id === lane.id}>
-										<button
-											type="button"
-											class="landing-public-step-trigger"
-											aria-pressed={interactiveSignalLane.id === lane.id}
-											aria-label={`Inspect ${publicLaneTitles[lane.id] ?? lane.title}`}
-											onmouseenter={() => (hoveredLaneId = lane.id)}
-											onfocus={() => (hoveredLaneId = lane.id)}
-											onmouseleave={() => (hoveredLaneId = null)}
-											onblur={() => (hoveredLaneId = null)}
-											onclick={() =>
-												(hoveredLaneId = interactiveSignalLane.id === lane.id ? null : lane.id)}
-										>
-											<span>0{index + 1}</span>
-											<div>
-												<strong>{publicLaneTitles[lane.id] ?? lane.title}</strong>
-												<p>{lane.metric}</p>
-											</div>
-										</button>
-									</li>
-								{/each}
-							</ol>
-						</div>
+					<figure class="landing-public-still-frame">
+						<img
+							class="landing-public-still-image"
+							src={dashboardStillSrc}
+							alt="Real Valdrics dashboard showing savings metrics, active findings, and owner-routed actions."
+							width="1440"
+							height="960"
+							loading="eager"
+							decoding="async"
+							fetchpriority="high"
+						/>
+						<figcaption class="landing-public-still-caption">
+							Real workspace still from the signed-in dashboard.
+						</figcaption>
+					</figure>
 
-						<div class="landing-public-mockup-main">
-							<div class="landing-public-record-card">
-								<div class="landing-public-record-head">
-									<div>
-										<p class="landing-public-proof-label">Active decision record</p>
-										<h2 class="landing-public-preview-title">{activeSnapshot.headline}</h2>
-										<p class="landing-public-preview-copy">{activeSnapshot.decisionSummary}</p>
-									</div>
-									<div class="landing-public-record-pill">
-										{publicLaneTitles[interactiveSignalLane.id] ?? interactiveSignalLane.title}
-									</div>
-								</div>
-
-								<div class="landing-public-record-stats">
-									<article>
-										<span>Decision record</span>
-										<strong>{activeSnapshot.traceId}</strong>
-									</article>
-									<article>
-										<span>Captured</span>
-										<strong>{formatCapturedAt(activeSnapshot.capturedAt)}</strong>
-									</article>
-									<article>
-										<span>Spend at risk</span>
-										<strong>{formatUsd(highlightedWasteUsd, currencyCode)}</strong>
-									</article>
-									<article>
-										<span>Next action</span>
-										<strong>{highlightedActionLabel}</strong>
-									</article>
-								</div>
-							</div>
-
-							<div class="landing-public-kpi-strip" aria-label="Workspace summary">
-								<article class="landing-public-kpi-card">
-									<span>Owners aligned</span>
-									<strong>Finance + Engineering</strong>
-									<small>One shared record instead of handoff threads.</small>
-								</article>
-								<article class="landing-public-kpi-card">
-									<span>Approval queue</span>
-									<strong>{activeSnapshot.lanes.length} tracked stages</strong>
-									<small>Checks and approvals stay visible in one view.</small>
-								</article>
-								<article class="landing-public-kpi-card">
-									<span>Evidence ready</span>
-									<strong>{activeSnapshot.sources.length} linked inputs</strong>
-									<small>Exports and proof stay attached to the decision.</small>
-								</article>
-							</div>
-
-							<div class="landing-public-drawer-grid">
-								<article class="landing-public-drawer">
-									<p class="landing-public-proof-label">Approval queue</p>
-									<div class="landing-public-queue-list">
-										{#each activeSnapshot.lanes as lane, index (lane.id)}
-											<div class="landing-public-queue-row">
-												<span class="landing-public-queue-index">0{index + 1}</span>
-												<div class="landing-public-queue-copy">
-													<strong>{publicLaneTitles[lane.id] ?? lane.title}</strong>
-													<small>{lane.status}</small>
-												</div>
-												<span class={`landing-public-queue-pill is-${lane.severity}`}>
-													{lane.metric}
-												</span>
-											</div>
-										{/each}
-									</div>
-									<div class="landing-public-drawer-foot">
-										<span>Current stage</span>
-										<strong
-											>{publicLaneTitles[interactiveSignalLane.id] ??
-												interactiveSignalLane.title}</strong
-										>
-									</div>
-								</article>
-
-								<article class="landing-public-drawer">
-									<p class="landing-public-proof-label">Evidence linked</p>
-									<div class="landing-public-evidence-list" aria-label="Linked sources">
-										{#each highlightedSources as source (source)}
-											<div class="landing-public-evidence-row">
-												<strong>{source}</strong>
-												<small>Attached to {activeSnapshot.traceId}</small>
-											</div>
-										{/each}
-									</div>
-									<div class="landing-public-drawer-foot">
-										<span>Why teams care</span>
-										<strong>Context, owner, and proof stay in one review screen.</strong>
-									</div>
-								</article>
-							</div>
-						</div>
-					</div>
-
-					<div class="landing-public-annotation-row" aria-label="Product mockup annotations">
-						<div class="landing-public-annotation">
-							<span>Context</span>
-							<strong>Signal, source, and cost impact stay attached before review starts.</strong>
-						</div>
-						<div class="landing-public-annotation">
-							<span>Control</span>
-							<strong>Checks, approval, and execution path stay visible on the same record.</strong>
-						</div>
-						<div class="landing-public-annotation">
-							<span>Proof</span>
-							<strong
-								>Outcome and savings narrative are ready for finance or procurement reuse.</strong
-							>
-						</div>
+					<div class="landing-public-still-notes" aria-label="Why this screenshot matters">
+						<article class="landing-public-still-note">
+							<span>Decision record</span>
+							<strong>{activeSnapshot.traceId}</strong>
+							<small>{formatCapturedAt(activeSnapshot.capturedAt)}</small>
+						</article>
+						<article class="landing-public-still-note">
+							<span>Current stage</span>
+							<strong>{publicLaneTitles[activeSignalLane.id] ?? activeSignalLane.title}</strong>
+							<small>{highlightedActionLabel}</small>
+						</article>
+						<article class="landing-public-still-note">
+							<span>Linked proof</span>
+							<strong>{activeSnapshot.sources.length} attached inputs</strong>
+							<small>{formatUsd(highlightedWasteUsd, currencyCode)} at risk tracked</small>
+						</article>
 					</div>
 				</aside>
 			</div>
@@ -397,8 +288,8 @@
 					<strong>Owner, approval, and proof stay on one operating record</strong>
 				</article>
 				<article class="landing-public-surface landing-public-proof-item" role="listitem">
-					<p class="landing-public-proof-label">Buyer readiness</p>
-					<strong>Pricing, proof, docs, and company details stay public before a call</strong>
+					<p class="landing-public-proof-label">Open materials</p>
+					<strong>Pricing, proof, docs, and company details are public</strong>
 				</article>
 			</div>
 		</div>
@@ -434,13 +325,11 @@
 				<div class="landing-public-impact-grid">
 					<div>
 						<span>Current stage</span>
-						<strong
-							>{publicLaneTitles[interactiveSignalLane.id] ?? interactiveSignalLane.title}</strong
-						>
+						<strong>{publicLaneTitles[activeSignalLane.id] ?? activeSignalLane.title}</strong>
 					</div>
 					<div>
 						<span>Action path</span>
-						<strong>{interactiveSignalLane.actionLabel ?? 'Assigned before review'}</strong>
+						<strong>{activeSignalLane.actionLabel ?? 'Assigned before review'}</strong>
 					</div>
 					<div>
 						<span>Linked sources</span>
@@ -515,11 +404,11 @@
 			</div>
 			<div class="landing-public-band landing-public-band--compact">
 				<div>
-					<p class="landing-public-eyebrow">Need more detail?</p>
-					<h3>Published list pricing stays in USD for clean comparison</h3>
+					<p class="landing-public-eyebrow">Full pricing</p>
+					<h3>Prices shown in USD.</h3>
 					<p>
-						Use the pricing page for full comparison. Move into the enterprise lane only when
-						security, procurement, or deployment requirements need a separate process.
+						Use the pricing page for full plan details. Contact enterprise for security,
+						procurement, or deployment requirements.
 					</p>
 				</div>
 				<div class="landing-public-band-actions">
@@ -547,10 +436,7 @@
 			<div class="landing-public-section-head">
 				<p class="landing-public-eyebrow">Trust</p>
 				<h2>Review the company before you talk to us</h2>
-				<p>
-					Before a buyer books a call, they should be able to review the company, the proof pack,
-					and the enterprise path without hitting a wall of internal product language.
-				</p>
+				<p>Review the company, proof pack, and technical materials before you book a call.</p>
 			</div>
 			<div class="landing-public-trust-grid">
 				<article class="landing-public-surface landing-public-trust-card">
@@ -586,18 +472,18 @@
 					</div>
 				</article>
 				<article class="landing-public-surface landing-public-trust-card">
-					<p class="landing-public-proof-label">Enterprise lane</p>
-					<h3>Use the formal review path only when it is needed</h3>
+					<p class="landing-public-proof-label">Enterprise review</p>
+					<h3>Use enterprise review when it is needed</h3>
 					<p>
-						Security, privacy, residency, and procurement questions can move into a dedicated lane
-						without forcing every buyer into it from the start.
+						Security, privacy, residency, and procurement questions can be handled separately
+						without slowing down a basic evaluation.
 					</p>
 					<div class="landing-public-link-list">
 						<a
 							href={trustEnterpriseHref}
 							onclick={() => onTrackCta('cta_click', 'trust', 'enterprise')}
 						>
-							Open Enterprise Path
+							Enterprise Review
 						</a>
 						<a
 							href={requestValidationBriefingHref}

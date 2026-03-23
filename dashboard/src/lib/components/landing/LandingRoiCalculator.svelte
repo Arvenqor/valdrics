@@ -2,6 +2,7 @@
 	import type { LandingCurrencyCode } from '$lib/landing/currencyPreference';
 	import LandingCurrencyToggle from '$lib/components/landing/LandingCurrencyToggle.svelte';
 	import { type LandingRoiInputs, type LandingRoiResult } from '$lib/landing/roiCalculator';
+	import './LandingMarketingShared.css';
 
 	let {
 		roiInputs,

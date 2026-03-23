@@ -67,7 +67,7 @@ export const RAW_PUBLIC_CONTENT_DOCS = [
 			{
 				title: 'Use the first connection to prove trust, not breadth',
 				body: [
-					'The first connection should answer the buyer-safe questions early: what access is required, what context becomes visible, and what proof survives after action.',
+					'The first connection should answer the basic questions early: what access is required, what context becomes visible, and what proof survives after action.',
 					'Starting small reduces integration risk and gives security and platform teams a real review surface.'
 				],
 				bullets: [
@@ -109,7 +109,7 @@ export const RAW_PUBLIC_CONTENT_DOCS = [
 		readingMinutes: 6,
 		audiences: ['engineering', 'finance', 'platform'],
 		primaryCta: { label: 'See the Decision Loop', href: '/#product' },
-		secondaryCta: { label: 'Open Enterprise Path', href: '/enterprise' },
+		secondaryCta: { label: 'Enterprise Review', href: '/enterprise' },
 		sections: [
 			{
 				title: 'Why routing matters',

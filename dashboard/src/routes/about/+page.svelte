@@ -53,7 +53,7 @@
 			label: 'Public review',
 			value: 'Proof, docs, and enterprise diligence available upfront'
 		},
-		{ label: 'Evaluation style', value: 'Proof pack first, enterprise lane when needed' }
+		{ label: 'How to evaluate', value: 'Proof, docs, pricing, and team details are public' }
 	] as const;
 
 	const originCards = [
@@ -63,9 +63,9 @@
 				'Most teams can already see spend problems. The harder part is turning the alert into one accountable action path with approvals and proof.'
 		},
 		{
-			title: 'What the public site should do',
+			title: 'How to evaluate',
 			detail:
-				'The public site should help buyers understand the company, the workflow, the pricing posture, and the review path without dumping internal product details on every page.'
+				'Start with proof, docs, pricing, or a trial workspace. Use enterprise review only when a separate procurement or deployment conversation is required.'
 		}
 	] as const;
 
@@ -81,9 +81,9 @@
 			note: 'Technical validation, onboarding, and rollout guidance.'
 		},
 		{
-			label: 'Enterprise Path',
+			label: 'Enterprise Review',
 			href: enterpriseHref,
-			note: 'Formal review lane for procurement, residency, and rollout governance.'
+			note: 'Security, procurement, residency, and rollout review.'
 		}
 	]);
 </script>
@@ -140,8 +140,8 @@
 				{/if}
 			</div>
 			<p class="public-page__inline-note">
-				Valdrics supports buyer evaluations across multiple regions. Deployment, residency, and
-				procurement requirements that vary by region move through the enterprise review path.
+				Valdrics supports teams across multiple regions. Deployment, residency, and procurement
+				questions are handled during enterprise review.
 			</p>
 		</section>
 
@@ -168,11 +168,11 @@
 				<article class="public-page__card">
 					<p class="public-page__eyebrow">Deployment stance</p>
 					<h2 id="about-contact-title" class="public-page__section-title">
-						Deployment claims stay factual
+						Deployment details stay factual
 					</h2>
 					<p class="public-page__card-copy">{deploymentFact?.answer}</p>
 					<div class="public-page__actions-row">
-						<a href={enterpriseHref} class="btn btn-secondary">Open Enterprise Path</a>
+						<a href={enterpriseHref} class="btn btn-secondary">Enterprise Review</a>
 						<a href={docsHref} class="btn btn-secondary">Open Docs</a>
 					</div>
 				</article>

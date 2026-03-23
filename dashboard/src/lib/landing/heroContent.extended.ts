@@ -66,7 +66,7 @@ export const PLAN_COMPARE_CARDS = Object.freeze(
 );
 
 export const PLANS_PRICING_EXPLANATION =
-	'Monthly starting prices shown here are entry points. Start self-serve for a first controlled workflow, then use the enterprise path when governance depth, procurement, or finance close requirements expand.';
+	'Monthly starting prices shown here are entry points. Start with one controlled workflow, then move up only when the team needs deeper governance, procurement support, or finance-close support.';
 
 export const FREE_TIER_HIGHLIGHTS = Object.freeze([
 	'Permanent free workspace for one owner-routed savings workflow',

@@ -204,7 +204,7 @@
 					data-sveltekit-preload-data="hover"
 					data-sveltekit-preload-code="hover"
 				>
-					Enterprise Path
+					Enterprise Review
 				</a>
 				<a
 					href={toAppPath('/auth/login')}
@@ -340,8 +340,8 @@
 					<div class="public-mobile-menu-copy">
 						<p class="public-mobile-menu-kicker">Explore Valdrics</p>
 						<p class="public-mobile-menu-intro">
-							Start in a workspace, review pricing, or use the enterprise path when formal security
-							and procurement review is required.
+							Start in a workspace, review pricing, or contact enterprise when formal security and
+							procurement review is required.
 						</p>
 						<button
 							type="button"
@@ -400,7 +400,7 @@
 							data-sveltekit-preload-code="hover"
 							onclick={closePublicMenu}
 						>
-							Enterprise Path
+							Enterprise Review
 						</a>
 						<a
 							href={toAppPath('/auth/login')}
