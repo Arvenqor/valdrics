@@ -21,7 +21,7 @@ describe('insights page', () => {
 			screen.getByRole('link', { name: /start free workspace/i }).getAttribute('href') || ''
 		).toContain('/auth/login?');
 		expect(
-			screen.getByRole('link', { name: /see enterprise path/i }).getAttribute('href') || ''
+			screen.getByRole('link', { name: /enterprise review/i }).getAttribute('href') || ''
 		).toContain('/enterprise?');
 		expect(
 			screen.getByRole('heading', {

@@ -2,6 +2,7 @@
 	import { base } from '$app/paths';
 	import type { LandingCurrencyCode } from '$lib/landing/currencyPreference';
 	import LandingCurrencyToggle from '$lib/components/landing/LandingCurrencyToggle.svelte';
+	import './LandingMarketingShared.css';
 
 	let {
 		normalizedScenarioWasteWithoutPct,

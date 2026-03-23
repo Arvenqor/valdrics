@@ -13,7 +13,7 @@ vi.mock('$app/stores', () => ({
 }));
 
 describe('technical validation page', () => {
-	it('renders buyer-safe validation matrix and public links', () => {
+	it('renders the public validation matrix and public links', () => {
 		render(Page);
 
 		expect(

@@ -4,25 +4,25 @@ export const RAW_PUBLIC_CONTENT_RESOURCES = [
 		slug: 'enterprise-governance-overview',
 		title: 'Enterprise Governance Overview',
 		summary:
-			'Understand the enterprise buying lane across governance, procurement, rollout design, and operating controls.',
+			'Understand enterprise buying across governance, procurement, rollout design, and operating controls.',
 		kicker: 'Resource',
 		seoTitle: 'Enterprise Governance Overview',
 		seoDescription:
-			'Review the enterprise governance lane for Valdrics, including procurement, security review, and rollout expectations.',
+			'Review enterprise governance for Valdrics, including procurement, security review, and rollout expectations.',
 		updatedAt: '2026-03-09T00:00:00.000Z',
 		stage: 'evaluate',
 		readingMinutes: 4,
 		audiences: ['procurement', 'security', 'executive'],
-		primaryCta: { label: 'Open Enterprise Path', href: '/enterprise' },
+		primaryCta: { label: 'Enterprise Review', href: '/enterprise' },
 		secondaryCta: {
 			label: 'Request Validation Briefing',
 			href: '/talk-to-sales?intent=enterprise_briefing'
 		},
 		sections: [
 			{
-				title: 'When to use the enterprise lane',
+				title: 'When to use enterprise review',
 				body: [
-					'Use the enterprise lane when security review, procurement diligence, SSO or SCIM expectations, or staged rollout controls need a dedicated path.',
+					'Use enterprise review when security review, procurement diligence, SSO or SCIM expectations, or staged rollout controls need a dedicated process.',
 					'The goal is to separate fast product evaluation from formal organizational review when those motions need different participants.'
 				],
 				bullets: [
@@ -126,7 +126,7 @@ export const RAW_PUBLIC_CONTENT_RESOURCES = [
 				]
 			},
 			{
-				title: 'What a buyer-safe framework looks like',
+				title: 'What a clear framework looks like',
 				body: [
 					'The framework should show who owns the decision, what guardrails apply, and what evidence remains afterward.',
 					'That gives platform and leadership teams one narrative instead of multiple competing reports.'
@@ -204,7 +204,7 @@ export const RAW_PUBLIC_CONTENT_RESOURCES = [
 			label: 'Download One-Pager',
 			href: '/resources/valdrics-enterprise-one-pager.md'
 		},
-		secondaryCta: { label: 'Open Enterprise Path', href: '/enterprise' },
+		secondaryCta: { label: 'Enterprise Review', href: '/enterprise' },
 		downloads: [
 			{
 				label: 'Executive One-Pager (Markdown)',
@@ -302,7 +302,7 @@ export const RAW_PUBLIC_CONTENT_RESOURCES = [
 			label: 'Download Workbook',
 			href: '/resources/global-finops-compliance-workbook.md'
 		},
-		secondaryCta: { label: 'Open Enterprise Path', href: '/enterprise' },
+		secondaryCta: { label: 'Enterprise Review', href: '/enterprise' },
 		downloads: [
 			{
 				label: 'Compliance Workbook (Markdown)',

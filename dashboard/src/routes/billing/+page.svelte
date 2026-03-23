@@ -321,7 +321,7 @@
 		{#if !hasSelfServeUpgrade}
 			<article class="card billing-upgrade-note">
 				<p class="billing-card__copy">
-					You are already on the highest available self-serve tier. Use the enterprise lane for
+					You are already on the highest available self-serve tier. Use enterprise review for
 					security, procurement, or custom commercial review.
 				</p>
 			</article>
@@ -381,11 +381,11 @@
 			{/each}
 
 			<article class="card billing-enterprise-card">
-				<p class="billing-card__kicker">Enterprise lane</p>
+				<p class="billing-card__kicker">Enterprise review</p>
 				<h3 class="billing-card__title">Security, procurement, and rollout review</h3>
 				<p class="billing-card__copy">
-					Use the sales-assisted lane when your workspace needs SCIM, procurement diligence, private
-					deployment, or complex rollout governance.
+					Use the sales-assisted review when your workspace needs SCIM, procurement diligence,
+					private deployment, or complex rollout governance.
 				</p>
 				<ul class="billing-bullets">
 					<li>Security and identity review for SCIM and private deployment requirements</li>

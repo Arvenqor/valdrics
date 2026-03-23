@@ -17,7 +17,7 @@ export const salesMailHref =
 
 export const heroHighlights = [
 	{
-		label: 'Buyer-safe path',
+		label: 'Direct review',
 		value: 'Security, rollout effort, and commercial fit handled in one conversation'
 	},
 	{
@@ -25,7 +25,7 @@ export const heroHighlights = [
 		value: 'Most qualified inquiries receive a human reply within one business day'
 	},
 	{
-		label: 'No forced lane',
+		label: 'Flexible next step',
 		value: 'We can route you to free, self-serve, or enterprise without restarting the process'
 	}
 ] as const;

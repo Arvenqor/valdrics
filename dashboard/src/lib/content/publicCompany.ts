@@ -25,7 +25,7 @@ export const PUBLIC_DEPLOYMENT_RESIDENCY_FACTS: readonly DeploymentResidencyFact
 	{
 		question: 'What does the public site commit to on data residency today?',
 		answer:
-			'Current public materials do not commit to a region-specific residency promise. Deployment-region and residency-specific requirements are handled through the enterprise review path.',
+			'Current public materials do not commit to a region-specific residency promise. Deployment-region and residency-specific requirements are handled during enterprise review.',
 		status: 'enterprise'
 	},
 	{
@@ -37,7 +37,7 @@ export const PUBLIC_DEPLOYMENT_RESIDENCY_FACTS: readonly DeploymentResidencyFact
 	{
 		question: 'How are region-specific requests handled?',
 		answer:
-			'Region-specific hosting, residency constraints, and procurement conditions are handled as scoped diligence items in the enterprise validation lane.',
+			'Region-specific hosting, residency constraints, and procurement conditions are handled as scoped items during enterprise review.',
 		status: 'enterprise'
 	}
 ]);
@@ -54,9 +54,9 @@ export const PUBLIC_REVIEW_CHANNELS = Object.freeze([
 		note: 'Technical validation, onboarding, owner routing, and export-ready operating guidance.'
 	},
 	{
-		label: 'Enterprise Path',
+		label: 'Enterprise Review',
 		href: '/enterprise',
-		note: 'Formal diligence lane for procurement, architecture review, and rollout governance.'
+		note: 'Procurement, architecture review, and rollout governance.'
 	},
 	{
 		label: 'Talk to Sales',

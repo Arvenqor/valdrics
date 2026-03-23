@@ -41,7 +41,6 @@
 	import { getReducedMotionPreference } from '$lib/landing/reducedMotion';
 	import { BUYER_ROLE_VIEWS, HERO_ROLE_CONTEXT } from '$lib/landing/heroContent';
 	import LandingHeroView from '$lib/components/landing/LandingHeroView.svelte';
-	import './LandingHero.css';
 	const DEFAULT_SIGNAL_SNAPSHOT = REALTIME_SIGNAL_SNAPSHOTS[0];
 	const ONE_PAGER_HREF = `${base}/resources/valdrics-enterprise-one-pager.md`,
 		RESOURCES_PATH = `${base}/resources`;

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { ABOVE_FOLD_TRUST_RAIL } from '$lib/landing/heroContent';
+	import './LandingMarketingShared.css';
 
 	const heroTrustRail = ABOVE_FOLD_TRUST_RAIL.slice(0, 3);
 

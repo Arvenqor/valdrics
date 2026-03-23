@@ -91,14 +91,14 @@
 >
 	{#snippet heroActions()}
 		{#if buyingMotion === 'enterprise_first'}
-			<a href={enterprisePathHref} class="btn btn-primary">Open Enterprise Path</a>
+			<a href={enterprisePathHref} class="btn btn-primary">Enterprise Review</a>
 			<a href={`${base}/docs/technical-validation`} class="btn btn-secondary">
 				Open Technical Validation
 			</a>
 			<a href={startFreeHref} class="btn btn-secondary">Start Free Workspace</a>
 		{:else}
 			<a href={startFreeHref} class="btn btn-primary">Start Free Workspace</a>
-			<a href={enterprisePathHref} class="btn btn-secondary">See Enterprise Path</a>
+			<a href={enterprisePathHref} class="btn btn-secondary">Enterprise Review</a>
 			<a href={`${base}/docs/technical-validation`} class="btn btn-secondary">
 				Open Technical Validation
 			</a>
@@ -185,7 +185,7 @@
 					</p>
 				</div>
 				<div class="public-page__actions-row">
-					<a href={enterprisePathHref} class="btn btn-primary">Open Enterprise Path</a>
+					<a href={enterprisePathHref} class="btn btn-primary">Enterprise Review</a>
 					<a href={`${base}/docs`} class="btn btn-secondary">Documentation</a>
 					<a href={`${base}/docs/api`} class="btn btn-secondary">API Reference</a>
 					<a href={startFreeHref} class="btn btn-secondary">Start Free Workspace</a>

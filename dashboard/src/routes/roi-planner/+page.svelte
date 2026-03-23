@@ -16,7 +16,6 @@
 		normalizeLandingRoiInputs,
 		formatCurrencyAmount
 	} from '$lib/landing/roiCalculator';
-	import '$lib/components/LandingHero.css';
 
 	let { data } = $props();
 

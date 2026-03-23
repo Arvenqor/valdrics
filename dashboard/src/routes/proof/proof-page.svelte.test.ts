@@ -20,7 +20,7 @@ describe('proof page', () => {
 			screen.getByRole('heading', { level: 1, name: /proof surfaces for buyer diligence/i })
 		).toBeTruthy();
 		expect(
-			screen.getAllByRole('link', { name: /open enterprise path/i })[0]?.getAttribute('href') || ''
+			screen.getAllByRole('link', { name: /enterprise review/i })[0]?.getAttribute('href') || ''
 		).toContain('/enterprise?');
 		expect(
 			screen.getAllByRole('link', { name: /start free workspace/i })[0]?.getAttribute('href') || ''

@@ -65,7 +65,9 @@ describe('LandingHero', () => {
 
 		expect(screen.queryByText(/prelaunch, with honest public review surfaces/i)).toBeNull();
 		expect(screen.getAllByRole('link', { name: /about \/ team/i }).length).toBeGreaterThan(0);
-		expect(screen.getByRole('link', { name: /open enterprise path/i })).toBeTruthy();
+		const enterpriseReviewLinks = screen.getAllByRole('link', { name: /^enterprise review$/i });
+		expect(enterpriseReviewLinks.length).toBeGreaterThan(0);
+		expect(enterpriseReviewLinks[0]?.getAttribute('href') || '').toContain('/enterprise?');
 
 		await fireEvent.click(
 			screen.getAllByRole('link', { name: /start free workspace|book executive briefing/i })[0]!

@@ -174,7 +174,7 @@ export const DEFAULT_PRICING_PLANS: PricingPlan[] = [
 			bestFor:
 				'Finance, platform, and leadership need APIs, audit logs, reconciliation, close workflow, workflow automation, and stronger governance evidence.',
 			whyUpgrade:
-				'Move to the enterprise lane only when SCIM, private deployment, procurement review, or custom control requirements need a separate buying path.'
+				'Use enterprise review only when SCIM, private deployment, procurement review, or custom control requirements need a separate process.'
 		}
 	}
 ];

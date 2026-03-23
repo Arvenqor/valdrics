@@ -57,11 +57,11 @@
 >
 	{#snippet heroActions()}
 		{#if buyingMotion === 'enterprise_first'}
-			<a href={enterprisePathHref} class="btn btn-primary">Open Enterprise Path</a>
+			<a href={enterprisePathHref} class="btn btn-primary">Enterprise Review</a>
 			<a href={startFreeHref} class="btn btn-secondary">Start Free Workspace</a>
 		{:else}
 			<a href={startFreeHref} class="btn btn-primary">Start Free Workspace</a>
-			<a href={enterprisePathHref} class="btn btn-secondary">See Enterprise Path</a>
+			<a href={enterprisePathHref} class="btn btn-secondary">Enterprise Review</a>
 		{/if}
 		<a href={`${base}/resources`} class="btn btn-secondary">Open Resources</a>
 	{/snippet}

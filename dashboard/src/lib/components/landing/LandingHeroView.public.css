@@ -207,7 +207,8 @@
 	box-shadow: 0 16px 34px rgb(15 23 42 / 0.05);
 }
 
-.landing-public-mockup {
+.landing-public-mockup,
+.landing-public-product-still {
 	display: grid;
 	gap: 0;
 	overflow: hidden;
@@ -215,7 +216,8 @@
 	position: relative;
 }
 
-.landing-public-mockup::after {
+.landing-public-mockup::after,
+.landing-public-product-still::after {
 	content: '';
 	position: absolute;
 	inset: auto auto 1rem 1rem;
@@ -226,6 +228,10 @@
 	filter: blur(10px);
 	pointer-events: none;
 	animation: landingPublicHaloPulse 8s ease-in-out infinite;
+}
+
+.landing-public-product-still {
+	gap: 0;
 }
 
 .landing-public-windowbar {
@@ -311,6 +317,70 @@
 	grid-template-columns: minmax(13rem, 15rem) minmax(0, 1fr);
 	gap: 1rem;
 	padding: 1rem;
+}
+
+.landing-public-still-frame {
+	display: grid;
+	gap: 0.6rem;
+	padding: 1rem 1rem 0.85rem;
+	margin: 0;
+}
+
+.landing-public-still-image {
+	display: block;
+	width: 100%;
+	height: auto;
+	border-radius: 1rem;
+	border: 1px solid rgb(8 126 164 / 0.1);
+	box-shadow: 0 22px 44px rgb(15 23 42 / 0.1);
+	background: rgb(240 245 248);
+}
+
+.landing-public-still-caption {
+	margin: 0;
+	font-size: 0.83rem;
+	line-height: 1.45;
+	color: var(--color-ink-500);
+}
+
+.landing-public-still-notes {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.75rem;
+	padding: 0 1rem 1rem;
+}
+
+.landing-public-still-note {
+	display: grid;
+	gap: 0.24rem;
+	padding: 0.85rem 0.9rem;
+	border: 1px solid rgb(8 126 164 / 0.08);
+	border-radius: 0.95rem;
+	background: rgb(246 250 252 / 0.96);
+	box-shadow: 0 12px 26px rgb(15 23 42 / 0.04);
+}
+
+.landing-public-still-note span,
+.landing-public-still-note small {
+	color: var(--color-ink-500);
+}
+
+.landing-public-still-note span {
+	font-size: 0.72rem;
+	font-weight: 800;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+
+.landing-public-still-note strong {
+	font-size: 0.98rem;
+	line-height: 1.35;
+	color: var(--color-ink-950);
+}
+
+.landing-public-still-note small {
+	font-size: 0.82rem;
+	line-height: 1.45;
 }
 
 .landing-public-mockup-rail {
@@ -793,6 +863,7 @@
 }
 
 .landing-public-mockup,
+.landing-public-product-still,
 .landing-public-proof-item,
 .landing-public-pillar-card,
 .landing-public-plan-card,
@@ -801,7 +872,8 @@
 	animation: landingPublicRise 680ms var(--ease-out) both;
 }
 
-.landing-public-mockup {
+.landing-public-mockup,
+.landing-public-product-still {
 	animation-delay: 140ms;
 }
 
@@ -824,6 +896,7 @@
 }
 
 .landing-public-mockup:hover,
+.landing-public-product-still:hover,
 .landing-public-pillar-card:hover,
 .landing-public-plan-card:hover,
 .landing-public-trust-card:hover,
@@ -853,7 +926,8 @@
 	.landing-public-annotation-row,
 	.landing-public-record-stats,
 	.landing-public-kpi-strip,
-	.landing-public-drawer-grid {
+	.landing-public-drawer-grid,
+	.landing-public-still-notes {
 		grid-template-columns: 1fr;
 	}
 
@@ -874,6 +948,7 @@
 	}
 
 	.landing-public-mockup,
+	.landing-public-product-still,
 	.landing-public-pillar-card,
 	.landing-public-plan-card,
 	.landing-public-trust-card,
@@ -883,13 +958,16 @@
 		border-radius: 1.15rem;
 	}
 
-	.landing-public-mockup {
+	.landing-public-mockup,
+	.landing-public-product-still {
 		padding: 0;
 	}
 
 	.landing-public-windowbar,
 	.landing-public-mockup-body,
-	.landing-public-annotation-row {
+	.landing-public-annotation-row,
+	.landing-public-still-frame,
+	.landing-public-still-notes {
 		padding-left: 0.85rem;
 		padding-right: 0.85rem;
 	}
@@ -1029,7 +1107,8 @@
 	animation-delay: 280ms;
 }
 
-.landing-motion-cinematic .landing-public-mockup {
+.landing-motion-cinematic .landing-public-mockup,
+.landing-motion-cinematic .landing-public-product-still {
 	animation:
 		landingPublicRise 680ms var(--ease-out) both,
 		landingPublicPreviewFloat 7s ease-in-out 820ms infinite;
@@ -1224,7 +1303,23 @@
 	color: rgb(103 232 249);
 }
 
+.public-site-shell[data-public-theme='dark'] .landing-public-still-caption,
+.public-site-shell[data-public-theme='dark'] .landing-public-still-note span,
+.public-site-shell[data-public-theme='dark'] .landing-public-still-note small {
+	color: var(--color-ink-400);
+}
+
+.public-site-shell[data-public-theme='dark'] .landing-public-still-note {
+	border-color: rgb(255 255 255 / 0.1);
+	background: rgb(255 255 255 / 0.04);
+}
+
+.public-site-shell[data-public-theme='dark'] .landing-public-still-note strong {
+	color: var(--color-ink-100);
+}
+
 .public-site-shell[data-public-theme='dark'] .landing-public-mockup:hover,
+.public-site-shell[data-public-theme='dark'] .landing-public-product-still:hover,
 .public-site-shell[data-public-theme='dark'] .landing-public-pillar-card:hover,
 .public-site-shell[data-public-theme='dark'] .landing-public-plan-card:hover,
 .public-site-shell[data-public-theme='dark'] .landing-public-trust-card:hover,
@@ -1239,12 +1334,13 @@
 	.landing-public-pillar-card,
 	.landing-public-plan-card,
 	.landing-public-trust-card,
-	.landing-public-band,
-	.landing-public-hero::before,
-	.landing-public-hero::after,
-	.landing-public-hero-orb,
-	.landing-public-hero-ring,
-	.landing-public-mockup::after {
+		.landing-public-band,
+		.landing-public-hero::before,
+		.landing-public-hero::after,
+		.landing-public-hero-orb,
+		.landing-public-hero-ring,
+		.landing-public-mockup::after,
+		.landing-public-product-still::after {
 		animation: none !important;
 		opacity: 1;
 		transform: none;

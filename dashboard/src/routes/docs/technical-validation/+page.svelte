@@ -98,7 +98,7 @@
 	<div class="glass-panel space-y-3">
 		<h2 class="text-xl font-semibold">What this page is and is not</h2>
 		<ul class="text-sm text-ink-300 space-y-1 list-disc pl-5">
-			<li>It is a public, buyer-safe validation map for capability coverage.</li>
+			<li>It is a public validation map for capability coverage.</li>
 			<li>
 				It does not expose internal incident data, private traces, or tenant-sensitive evidence.
 			</li>

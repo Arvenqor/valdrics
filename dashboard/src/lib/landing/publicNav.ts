@@ -28,7 +28,7 @@ export const PUBLIC_RESOURCES_DROPDOWN_LINKS: readonly PublicNavLink[] = Object.
 export const PUBLIC_SECONDARY_LINKS: readonly PublicNavLink[] = Object.freeze([
 	{ href: '/docs', label: 'Docs' },
 	{ href: '/insights', label: 'Insights' },
-	{ href: '/enterprise', label: 'Enterprise Path' }
+	{ href: '/enterprise', label: 'Enterprise Review' }
 ]);
 
 export const PUBLIC_MOBILE_LINKS: readonly PublicNavLink[] = Object.freeze([
@@ -67,7 +67,7 @@ export const PUBLIC_FOOTER_SUBTITLE =
 	'Valdrics gives finance and engineering one operating layer for spend review, owner routing, approvals, and proof.';
 
 export const PUBLIC_FOOTER_CAPTION =
-	'Designed for teams that want clearer spend decisions, cleaner rollout paths, and buyer-safe review surfaces.';
+	'Designed for teams that want clearer spend decisions, cleaner rollout, and review-ready proof.';
 
 export const PUBLIC_CONTACT_CHANNELS: readonly PublicContactChannel[] = Object.freeze([
 	{ label: 'Sales', email: 'sales@valdrics.com', href: 'mailto:sales@valdrics.com' },

@@ -51,7 +51,7 @@
 		<h2 class="landing-h2">Proof, review surfaces, and rollout clarity</h2>
 		<p class="landing-section-sub">
 			Public proof should reduce uncertainty without inventing customer evidence. Valdrics exposes
-			buyer-safe materials for security, rollout, procurement, and executive review.
+			clear materials for security, rollout, procurement, and executive review.
 		</p>
 	</div>
 
@@ -123,9 +123,8 @@
 			<p class="landing-proof-k">Enterprise validation lane</p>
 			<h3 class="landing-h3">Use the formal path only when diligence actually needs it</h3>
 			<p class="landing-p">
-				Self-serve teams can start in the workspace path. Procurement, architecture review, and
-				security review can move into a dedicated enterprise lane without restarting the
-				conversation.
+				Self-serve teams can start in the workspace. Procurement, architecture review, and security
+				review can move into enterprise review without restarting the conversation.
 			</p>
 			<div class="landing-lead-actions">
 				<a
@@ -133,7 +132,7 @@
 					class="btn btn-primary w-fit pulse-glow"
 					onclick={() => onTrackCta('enterprise_review')}
 				>
-					Open Enterprise Path
+					Enterprise Review
 				</a>
 				<a
 					href={requestValidationBriefingHref}

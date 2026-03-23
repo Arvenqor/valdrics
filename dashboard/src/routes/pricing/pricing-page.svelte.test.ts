@@ -32,7 +32,7 @@ vi.mock('$app/stores', () => {
 });
 
 describe('pricing page public messaging', () => {
-	it('shows the free tier entry path plus self-serve paid plans and enterprise lane', () => {
+	it('shows the free tier entry path plus self-serve paid plans and enterprise review', () => {
 		render(Page, {
 			props: {
 				data: {
@@ -73,21 +73,21 @@ describe('pricing page public messaging', () => {
 
 		expect(
 			screen.getByRole('heading', {
-				name: /keep the enterprise lane for buyers who truly need a separate diligence track/i
+				name: /use enterprise review only when the buying process requires it/i
 			})
 		).toBeTruthy();
-		expect(screen.getByText(/most buyers should start with self-serve pricing/i)).toBeTruthy();
-		expect(screen.getByText(/prices are shown in usd for easy plan comparison/i)).toBeTruthy();
+		expect(screen.getByText(/start with workspace access or published pricing/i)).toBeTruthy();
+		expect(screen.getByText(/prices shown in usd\./i)).toBeTruthy();
 		expect(
 			screen.getByText(/the permanent free tier does not require a checkout session/i)
 		).toBeTruthy();
 
-		expect(
-			screen.getByRole('link', { name: /see enterprise path/i }).getAttribute('href') || ''
-		).toContain('/enterprise?');
-		expect(
-			screen.getByRole('link', { name: /open enterprise path/i }).getAttribute('href') || ''
-		).toContain('/enterprise?');
+		const enterpriseReviewLinks = screen.getAllByRole('link', {
+			name: /^enterprise review$/i
+		});
+		expect(enterpriseReviewLinks.length).toBeGreaterThanOrEqual(2);
+		expect(enterpriseReviewLinks[0]?.getAttribute('href') || '').toContain('/enterprise?');
+		expect(enterpriseReviewLinks[1]?.getAttribute('href') || '').toContain('/enterprise?');
 		expect(
 			screen.getByRole('link', { name: /request validation briefing/i }).getAttribute('href') || ''
 		).toContain('/talk-to-sales?');

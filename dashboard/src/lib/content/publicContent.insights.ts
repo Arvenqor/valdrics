@@ -108,7 +108,7 @@ export const RAW_PUBLIC_CONTENT_INSIGHTS = [
 		readingMinutes: 6,
 		audiences: ['engineering', 'finance', 'procurement'],
 		primaryCta: { label: 'See the Decision Loop', href: '/#product' },
-		secondaryCta: { label: 'Open Enterprise Path', href: '/enterprise' },
+		secondaryCta: { label: 'Enterprise Review', href: '/enterprise' },
 		sections: [
 			{
 				title: 'Where the commercial story changes',

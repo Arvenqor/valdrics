@@ -170,7 +170,7 @@ describe('public layout mobile menu', () => {
 
 		await waitFor(() => {
 			const active = document.activeElement as HTMLElement | null;
-			expect(active?.textContent?.trim()).toMatch(/dark mode|light mode|enterprise path/i);
+			expect(active?.textContent?.trim()).toMatch(/dark mode|light mode|enterprise review/i);
 		});
 
 		await fireEvent.keyDown(window, { key: 'Tab', shiftKey: true });
@@ -182,7 +182,7 @@ describe('public layout mobile menu', () => {
 		await fireEvent.keyDown(window, { key: 'Tab' });
 		await waitFor(() => {
 			const active = document.activeElement as HTMLElement | null;
-			expect(active?.textContent?.trim()).toMatch(/dark mode|light mode|enterprise path/i);
+			expect(active?.textContent?.trim()).toMatch(/dark mode|light mode|enterprise review/i);
 		});
 
 		await fireEvent.keyDown(window, { key: 'Escape' });
@@ -215,7 +215,7 @@ describe('public layout mobile menu', () => {
 	it('keeps desktop conversion actions in the public header', () => {
 		renderPublicLayout();
 
-		expect(screen.getAllByRole('link', { name: /^enterprise path$/i }).length).toBeGreaterThan(0);
+		expect(screen.getAllByRole('link', { name: /^enterprise review$/i }).length).toBeGreaterThan(0);
 		expect(screen.getAllByRole('link', { name: /^start free$/i }).length).toBeGreaterThan(0);
 	});
 

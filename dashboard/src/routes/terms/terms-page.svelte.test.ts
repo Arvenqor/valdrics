@@ -22,19 +22,19 @@ describe('terms page', () => {
 		expect(screen.getByRole('heading', { name: /limitation of liability/i })).toBeTruthy();
 		expect(screen.getByRole('heading', { name: /governing law and disputes/i })).toBeTruthy();
 		expect(
-			screen.getByRole('heading', { name: /enterprise contracting and procurement path/i })
+			screen.getByRole('heading', { name: /enterprise contracting and procurement/i })
 		).toBeTruthy();
 		const legalMailLink = screen.getByRole('link', { name: /legal@valdrics.com/i });
 		expect(legalMailLink.getAttribute('href')).toBe('mailto:legal@valdrics.com');
 		const billingMailLink = screen.getByRole('link', { name: /billing@valdrics.com/i });
 		expect(billingMailLink.getAttribute('href')).toBe('mailto:billing@valdrics.com');
-		expect(screen.getByRole('link', { name: /open enterprise path/i }).getAttribute('href')).toBe(
+		expect(screen.getByRole('link', { name: /enterprise review/i }).getAttribute('href')).toBe(
 			'/enterprise'
 		);
 		expect(screen.getByRole('link', { name: /view pricing/i }).getAttribute('href')).toBe(
 			'/pricing'
 		);
-		expect(screen.getByRole('link', { name: /privacy and dpa path/i }).getAttribute('href')).toBe(
+		expect(screen.getByRole('link', { name: /privacy and dpa/i }).getAttribute('href')).toBe(
 			'/privacy'
 		);
 		expect(screen.getByRole('link', { name: /talk to sales/i }).getAttribute('href')).toBe(

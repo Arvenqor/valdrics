@@ -4,7 +4,7 @@ export const RAW_PUBLIC_CONTENT_PROOF = [
 		slug: 'deployment-and-data-residency',
 		title: 'Deployment and Data Residency Review',
 		summary:
-			'Review what the public site commits to today on deployment posture and how residency-specific requirements are handled in the enterprise lane.',
+			'Review what the public site commits to today on deployment posture and how residency-specific requirements are handled during enterprise review.',
 		kicker: 'Proof Pack',
 		seoTitle: 'Deployment and Data Residency Review',
 		seoDescription:
@@ -13,19 +13,19 @@ export const RAW_PUBLIC_CONTENT_PROOF = [
 		stage: 'validate',
 		readingMinutes: 4,
 		audiences: ['security', 'procurement', 'executive'],
-		primaryCta: { label: 'Open Enterprise Path', href: '/enterprise' },
+		primaryCta: { label: 'Enterprise Review', href: '/enterprise' },
 		secondaryCta: { label: 'Talk to Sales', href: '/talk-to-sales?source=proof_residency' },
 		sections: [
 			{
 				title: 'What the public site can say today',
 				body: [
 					'Current public materials do not commit to a region-specific residency promise. That is a deliberate constraint so the site does not overclaim what must be handled as a scoped deployment discussion.',
-					'The right public posture is to expose review materials early and move environment-specific requirements into the enterprise diligence lane.'
+					'The right public posture is to expose review materials early and move environment-specific requirements into enterprise review.'
 				],
 				bullets: [
 					'No fabricated residency claim',
 					'Clear separation between public proof and scoped diligence',
-					'Buyer-safe review before environment-specific commitment'
+					'Clear review before any environment-specific commitment'
 				]
 			},
 			{
@@ -51,7 +51,7 @@ export const RAW_PUBLIC_CONTENT_PROOF = [
 		slug: 'safe-access-model',
 		title: 'Safe Access Model',
 		summary:
-			'Understand how Valdrics approaches buyer-safe access posture, early trust, and rollout proof without overclaiming prelaunch validation.',
+			'Understand how Valdrics approaches access posture, early trust, and rollout proof without overclaiming prelaunch validation.',
 		kicker: 'Proof Pack',
 		seoTitle: 'Safe Access Model',
 		seoDescription:
@@ -61,7 +61,7 @@ export const RAW_PUBLIC_CONTENT_PROOF = [
 		readingMinutes: 5,
 		audiences: ['security', 'platform', 'procurement'],
 		primaryCta: { label: 'Open Technical Validation', href: '/docs/technical-validation' },
-		secondaryCta: { label: 'Open Enterprise Path', href: '/enterprise' },
+		secondaryCta: { label: 'Enterprise Review', href: '/enterprise' },
 		sections: [
 			{
 				title: 'What buyers need early',
@@ -81,11 +81,7 @@ export const RAW_PUBLIC_CONTENT_PROOF = [
 					'This page is not a substitute for environment-specific security review, and it does not claim a blanket posture that every provider or workflow implements identically.',
 					'It exists to make the first diligence conversation concrete and honest.'
 				],
-				bullets: [
-					'Buyer-safe, not buyer-complacent',
-					'Specific before broad',
-					'Aligned with the enterprise diligence path'
-				]
+				bullets: ['Clear first review', 'Specific before broad', 'Aligned with enterprise review']
 			}
 		],
 		related: [
@@ -108,7 +104,7 @@ export const RAW_PUBLIC_CONTENT_PROOF = [
 		readingMinutes: 5,
 		audiences: ['security', 'finance', 'platform'],
 		primaryCta: { label: 'See the Decision Loop', href: '/#product' },
-		secondaryCta: { label: 'Open Enterprise Path', href: '/enterprise' },
+		secondaryCta: { label: 'Enterprise Review', href: '/enterprise' },
 		sections: [
 			{
 				title: 'Identity matters because accountability matters',
