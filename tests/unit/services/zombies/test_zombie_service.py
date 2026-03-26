@@ -1,5 +1,6 @@
 import pytest
 import asyncio
+from contextlib import suppress
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
@@ -164,12 +165,23 @@ async def test_scan_for_tenant_timeout_handling(zombie_service, db_session):
 
     mock_detector = MagicMock()
     mock_detector.scan_all = AsyncMock()
+
+    async def _timeout_wait_for(awaitable, timeout):
+        task = asyncio.ensure_future(awaitable)
+        task.cancel()
+        with suppress(asyncio.CancelledError):
+            await task
+        raise asyncio.TimeoutError()
+
     with patch(
         "app.modules.optimization.domain.factory.ZombieDetectorFactory.get_detector",
         return_value=mock_detector,
     ):
         with patch("app.shared.core.ops_metrics.SCAN_TIMEOUTS"):
-            with patch("asyncio.wait_for", side_effect=asyncio.TimeoutError()):
+            with patch(
+                "app.modules.optimization.domain.service.asyncio.wait_for",
+                side_effect=_timeout_wait_for,
+            ):
                 results = await zombie_service.scan_for_tenant(tenant_id)
                 assert results.get("scan_timeout") is True
                 assert results.get("partial_results") is True

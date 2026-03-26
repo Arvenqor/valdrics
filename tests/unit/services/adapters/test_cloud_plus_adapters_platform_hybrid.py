@@ -322,7 +322,14 @@ async def test_platform_discover_resources_projects_from_cost_rows() -> None:
 
     adapter = PlatformAdapter(conn)
     adapter.last_error = "stale"
-    resources = await adapter.discover_resources("platform", region="us-east-1")
+    with patch(
+        "app.shared.adapters.platform.resource_usage_lookback_window",
+        return_value=(
+            datetime(2026, 2, 1, tzinfo=timezone.utc),
+            datetime(2026, 2, 28, tzinfo=timezone.utc),
+        ),
+    ):
+        resources = await adapter.discover_resources("platform", region="us-east-1")
 
     assert len(resources) == 1
     assert resources[0]["id"] == "plat-svc-1"
@@ -351,7 +358,14 @@ async def test_hybrid_discover_resources_projects_from_cost_rows() -> None:
 
     adapter = HybridAdapter(conn)
     adapter.last_error = "stale"
-    resources = await adapter.discover_resources("hybrid", region="eu-west-1")
+    with patch(
+        "app.shared.adapters.hybrid.resource_usage_lookback_window",
+        return_value=(
+            datetime(2026, 2, 1, tzinfo=timezone.utc),
+            datetime(2026, 2, 28, tzinfo=timezone.utc),
+        ),
+    ):
+        resources = await adapter.discover_resources("hybrid", region="eu-west-1")
 
     assert len(resources) == 1
     assert resources[0]["id"] == "hyb-node-1"

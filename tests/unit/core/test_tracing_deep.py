@@ -1,5 +1,7 @@
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 import pytest
+import app.shared.core.tracing as tracing_module
 from app.shared.core.tracing import (
     setup_tracing,
     set_correlation_id,
@@ -8,6 +10,10 @@ from app.shared.core.tracing import (
 
 
 class TestTracingDeep:
+    def setup_method(self):
+        tracing_module._configured_tracer_provider = None
+        tracing_module._configured_tracing_signature = None
+
     def test_setup_tracing_skipped_in_test(self):
         with patch("app.shared.core.tracing.get_settings") as mock_settings:
             mock_settings.return_value.TESTING = True
@@ -22,16 +28,17 @@ class TestTracingDeep:
 
             # Patch classes within the tracing module namespace
             with patch("app.shared.core.tracing.TracerProvider") as mock_provider:
-                with patch(
-                    "app.shared.core.tracing.BatchSpanProcessor"
-                ) as mock_processor:
+                with patch("app.shared.core.tracing.trace.set_tracer_provider"):
                     with patch(
-                        "app.shared.core.tracing.ConsoleSpanExporter"
-                    ) as mock_exporter:
-                        setup_tracing()
-                        assert mock_provider.called
-                        assert mock_processor.called
-                        assert mock_exporter.called
+                        "app.shared.core.tracing.BatchSpanProcessor"
+                    ) as mock_processor:
+                        with patch(
+                            "app.shared.core.tracing.ConsoleSpanExporter"
+                        ) as mock_exporter:
+                            setup_tracing()
+                            assert mock_provider.called
+                            assert mock_processor.called
+                            assert mock_exporter.called
 
     def test_setup_tracing_fails_closed_in_production_without_sink(self):
         with patch("app.shared.core.tracing.get_settings") as mock_settings:
@@ -41,6 +48,7 @@ class TestTracingDeep:
 
             with (
                 patch("app.shared.core.tracing.TracerProvider") as mock_provider,
+                patch("app.shared.core.tracing.trace.set_tracer_provider"),
                 patch("app.shared.core.tracing.BatchSpanProcessor") as mock_processor,
                 patch("app.shared.core.tracing.ConsoleSpanExporter") as mock_exporter,
             ):
@@ -48,7 +56,7 @@ class TestTracingDeep:
                     RuntimeError, match="OTEL_EXPORTER_OTLP_ENDPOINT"
                 ):
                     setup_tracing()
-                assert mock_provider.called
+                assert not mock_provider.called
                 assert not mock_processor.called
                 assert not mock_exporter.called
 
@@ -63,20 +71,23 @@ class TestTracingDeep:
 
             with patch("app.shared.core.tracing.OTLPSpanExporter") as mock_exporter:
                 with patch("app.shared.core.tracing.TracerProvider") as mock_provider:
-                    setup_tracing()
-                    assert mock_exporter.called
-                    assert mock_provider.called
+                    with patch("app.shared.core.tracing.trace.set_tracer_provider"):
+                        setup_tracing()
+                        assert mock_exporter.called
+                        assert mock_provider.called
 
     def test_setup_tracing_fastapi(self):
         mock_app = MagicMock()
+        mock_app.state = SimpleNamespace()
         with patch("app.shared.core.tracing.get_settings") as mock_settings:
             mock_settings.return_value.TESTING = False
             mock_settings.return_value.OTEL_EXPORTER_OTLP_ENDPOINT = None
             mock_settings.return_value.ENVIRONMENT = "development"
 
-            with patch(
-                "app.shared.core.tracing.FastAPIInstrumentor"
-            ) as mock_instrumentor:
+            with (
+                patch("app.shared.core.tracing.trace.set_tracer_provider"),
+                patch("app.shared.core.tracing.FastAPIInstrumentor") as mock_instrumentor,
+            ):
                 setup_tracing(app=mock_app)
                 assert mock_instrumentor.instrument_app.called
 

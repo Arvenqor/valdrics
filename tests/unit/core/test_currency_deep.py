@@ -178,3 +178,15 @@ class TestCurrencyDeep:
             rate = await get_exchange_rate("NGN")
             assert rate == Decimal("1500.0")
             assert mock_cache._set.called
+
+    def test_exchange_rate_service_cache_ttl_hours_uses_live_settings(self):
+        first_settings = MagicMock(EXCHANGE_RATE_SYNC_INTERVAL_HOURS=2)
+        second_settings = MagicMock(EXCHANGE_RATE_SYNC_INTERVAL_HOURS=6)
+
+        with patch(
+            "app.shared.core.currency.get_settings",
+            side_effect=[first_settings, second_settings],
+        ):
+            service = ExchangeRateService()
+            assert service.cache_ttl_hours == 2
+            assert service.cache_ttl_hours == 6

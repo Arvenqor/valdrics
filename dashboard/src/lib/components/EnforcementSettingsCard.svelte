@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import { TimeoutError } from '$lib/fetchWithTimeout';
-	import { z } from 'zod';
+	import { formatValidationIssues } from '$lib/validation/clientZod';
 	import EnforcementSettingsCardView from './EnforcementSettingsCardView.svelte';
 	import {
 		createEnforcementCredit,
@@ -110,12 +110,7 @@
 			await loadPolicy();
 			success = 'Enforcement policy saved.';
 		} catch (e) {
-			if (e instanceof z.ZodError) {
-				error = e.issues.map((issue) => issue.message).join(', ');
-			} else {
-				const err = e as Error;
-				error = err.message || 'Failed to save enforcement policy';
-			}
+			error = formatValidationIssues(e, false) || 'Failed to save enforcement policy';
 		} finally {
 			savingPolicy = false;
 		}

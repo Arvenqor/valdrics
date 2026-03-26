@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -90,18 +90,53 @@ async def test_cache_get_handles_primitive_and_bytes_decode_to_none() -> None:
 
 
 def test_get_sync_client_reuses_existing_singleton() -> None:
-    existing = object()
+    class _ExistingClient:
+        def __init__(self) -> None:
+            self._valdrics_cache_url = "redis://example"
+            self._valdrics_cache_token = "token"
+
+    existing = _ExistingClient()
     with (
         patch("app.shared.core.cache._sync_client", new=existing),
-        patch("app.shared.core.cache.get_settings") as mock_settings,
+        patch(
+            "app.shared.core.cache._current_cache_configuration",
+            return_value=("redis://example", "token"),
+        ),
         patch("app.shared.core.cache.Redis") as mock_redis_cls,
     ):
-        mock_settings.return_value = SimpleNamespace(
-            UPSTASH_REDIS_URL="redis://example",
-            UPSTASH_REDIS_TOKEN="token",
-        )
         assert _get_sync_client() is existing
     mock_redis_cls.assert_not_called()
+
+
+def test_get_sync_client_recreates_when_configuration_changes() -> None:
+    first = MagicMock()
+    first.close = MagicMock(return_value=None)
+    second = MagicMock()
+    second.close = MagicMock(return_value=None)
+
+    with (
+        patch(
+            "app.shared.core.cache.get_settings",
+            side_effect=[
+                SimpleNamespace(
+                    UPSTASH_REDIS_URL="redis://one",
+                    UPSTASH_REDIS_TOKEN="token-one",
+                ),
+                SimpleNamespace(
+                    UPSTASH_REDIS_URL="redis://two",
+                    UPSTASH_REDIS_TOKEN="token-two",
+                ),
+            ],
+        ),
+        patch("app.shared.core.cache._sync_client", new=None),
+        patch("app.shared.core.cache.Redis", side_effect=[first, second]) as redis_cls,
+    ):
+        c1 = _get_sync_client()
+        c2 = _get_sync_client()
+
+    assert c1 is first
+    assert c2 is second
+    assert redis_cls.call_count == 2
 
 
 def test_query_cache_make_cache_key_includes_tenant_prefix() -> None:

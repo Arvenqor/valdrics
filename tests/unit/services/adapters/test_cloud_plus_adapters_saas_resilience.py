@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 import httpx
@@ -209,12 +209,15 @@ async def test_saas_get_json_retry_branches() -> None:
 
 @pytest.mark.asyncio
 async def test_saas_discover_resources_projects_from_cost_rows() -> None:
+    recent_timestamp = (
+        datetime.now(timezone.utc) - timedelta(days=7)
+    ).isoformat().replace("+00:00", "Z")
     conn = MagicMock()
     conn.auth_method = "manual"
     conn.vendor = "generic"
     conn.spend_feed = [
         {
-            "timestamp": "2026-02-20T00:00:00Z",
+            "timestamp": recent_timestamp,
             "service": "GitHub",
             "resource_id": "gh-seat-1",
             "cost_usd": 4.2,

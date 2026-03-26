@@ -91,6 +91,55 @@ async def test_get_http_client_reinitializes_when_event_loop_marker_changes() ->
 
 
 @pytest.mark.asyncio
+async def test_get_http_client_separates_clients_by_timeout() -> None:
+    with patch(
+        "app.shared.core.outbound_tls.get_settings",
+        return_value=type(
+            "_Settings",
+            (),
+            {
+                "is_strict_environment": False,
+                "ALLOW_INSECURE_OUTBOUND_TLS": False,
+            },
+        )(),
+    ):
+        default_client = http_module.get_http_client()
+        short_client = http_module.get_http_client(timeout=5.0)
+        long_client = http_module.get_http_client(timeout=30.0)
+        short_client_again = http_module.get_http_client(timeout=5.0)
+
+    assert default_client is not short_client
+    assert short_client is short_client_again
+    assert short_client is not long_client
+    assert default_client.timeout.read == 20.0
+    assert short_client.timeout.read == 5.0
+    assert long_client.timeout.read == 30.0
+
+
+@pytest.mark.asyncio
+async def test_close_http_client_closes_timeout_specific_clients() -> None:
+    with patch(
+        "app.shared.core.outbound_tls.get_settings",
+        return_value=type(
+            "_Settings",
+            (),
+            {
+                "is_strict_environment": False,
+                "ALLOW_INSECURE_OUTBOUND_TLS": False,
+            },
+        )(),
+    ):
+        default_client = http_module.get_http_client()
+        timed_client = http_module.get_http_client(timeout=7.5)
+
+    await http_module.close_http_client()
+
+    assert default_client.is_closed is True
+    assert timed_client.is_closed is True
+    assert http_module._configured_clients == {}
+
+
+@pytest.mark.asyncio
 async def test_init_http_client_warns_when_already_initialized() -> None:
     await http_module.init_http_client()
     with patch("app.shared.core.http.logger.warning") as warning:

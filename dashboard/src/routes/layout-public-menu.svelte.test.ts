@@ -25,12 +25,6 @@ function createPageStore(initial: PageState) {
 
 const mocks = vi.hoisted(() => {
 	const pageStore = createPageStore({ url: new URL('https://example.com/') });
-	const authSubscription = { unsubscribe: vi.fn() };
-	const onAuthStateChange = vi.fn((_callback: (event: string) => void) => ({
-		data: {
-			subscription: authSubscription
-		}
-	}));
 	return {
 		pageStore,
 		uiState: {
@@ -44,9 +38,7 @@ const mocks = vi.hoisted(() => {
 			init: vi.fn().mockResolvedValue(undefined),
 			disconnect: vi.fn()
 		},
-		invalidate: vi.fn(),
-		authSubscription,
-		onAuthStateChange
+		invalidate: vi.fn()
 	};
 });
 
@@ -64,14 +56,6 @@ vi.mock('$app/navigation', () => ({
 
 vi.mock('$app/environment', () => ({
 	browser: true
-}));
-
-vi.mock('$lib/supabase', () => ({
-	createSupabaseBrowserClient: () => ({
-		auth: {
-			onAuthStateChange: mocks.onAuthStateChange
-		}
-	})
 }));
 
 vi.mock('$lib/stores/ui.svelte', () => ({
@@ -94,8 +78,6 @@ describe('public layout mobile menu', () => {
 		mocks.jobStore.init.mockClear();
 		mocks.jobStore.disconnect.mockClear();
 		mocks.invalidate.mockClear();
-		mocks.onAuthStateChange.mockClear();
-		mocks.authSubscription.unsubscribe.mockClear();
 		Object.defineProperty(window, 'matchMedia', {
 			configurable: true,
 			value: vi.fn().mockReturnValue({
@@ -111,9 +93,9 @@ describe('public layout mobile menu', () => {
 		return screen.getAllByRole('button', { name: /toggle menu/i })[0] as HTMLButtonElement;
 	}
 
-	function renderPublicLayout() {
+	async function renderPublicLayout() {
 		mocks.pageStore.set({ url: new URL('https://example.com/') });
-		return render(Layout, {
+		const result = render(Layout, {
 			data: {
 				user: null,
 				session: null,
@@ -122,11 +104,13 @@ describe('public layout mobile menu', () => {
 			},
 			children: emptySnippet
 		});
+		await screen.findAllByRole('link', { name: /^start free$/i });
+		return result;
 	}
 
-	function renderAuthenticatedLayout() {
+	async function renderAuthenticatedLayout() {
 		mocks.pageStore.set({ url: new URL('https://example.com/dashboard') });
-		return render(Layout, {
+		const result = render(Layout, {
 			data: {
 				user: {
 					id: 'user-1',
@@ -156,10 +140,12 @@ describe('public layout mobile menu', () => {
 			} as never,
 			children: emptySnippet
 		});
+		await screen.findByRole('button', { name: /open command palette/i });
+		return result;
 	}
 
 	it('opens, traps focus, and closes with escape/backdrop', async () => {
-		renderPublicLayout();
+		await renderPublicLayout();
 
 		const toggle = getMenuToggle();
 		await fireEvent.click(toggle);
@@ -201,7 +187,7 @@ describe('public layout mobile menu', () => {
 	});
 
 	it('closes when route changes', async () => {
-		renderPublicLayout();
+		await renderPublicLayout();
 
 		await fireEvent.click(getMenuToggle());
 		await screen.findByRole('dialog', { name: /public navigation menu/i });
@@ -212,15 +198,15 @@ describe('public layout mobile menu', () => {
 		});
 	});
 
-	it('keeps desktop conversion actions in the public header', () => {
-		renderPublicLayout();
+	it('keeps desktop conversion actions in the public header', async () => {
+		await renderPublicLayout();
 
 		expect(screen.getAllByRole('link', { name: /^enterprise review$/i }).length).toBeGreaterThan(0);
 		expect(screen.getAllByRole('link', { name: /^start free$/i }).length).toBeGreaterThan(0);
 	});
 
 	it('persists the public theme toggle state', async () => {
-		const { container } = renderPublicLayout();
+		const { container } = await renderPublicLayout();
 		const shell = container.querySelector('.public-site-shell');
 		expect(shell?.getAttribute('data-public-theme')).toBe('light');
 
@@ -236,8 +222,8 @@ describe('public layout mobile menu', () => {
 		);
 	});
 
-	it('uses landing tone on the home page and default tone on other public routes', () => {
-		const { container, unmount } = renderPublicLayout();
+	it('uses landing tone on the home page and default tone on other public routes', async () => {
+		const { container, unmount } = await renderPublicLayout();
 		const homeShell = container.querySelector('.public-site-shell');
 		expect(homeShell?.getAttribute('data-public-tone')).toBe('landing');
 
@@ -252,12 +238,13 @@ describe('public layout mobile menu', () => {
 			},
 			children: emptySnippet
 		});
+		await screen.findAllByRole('link', { name: /^start free$/i });
 		const pricingShell = pricingRender.container.querySelector('.public-site-shell');
 		expect(pricingShell?.getAttribute('data-public-tone')).toBe('default');
 	});
 
-	it('surfaces concise conversion-safe contact channels in footer', () => {
-		renderPublicLayout();
+	it('surfaces concise conversion-safe contact channels in footer', async () => {
+		await renderPublicLayout();
 
 		expect(screen.getAllByRole('link', { name: /sales@valdrics\.com/i }).length).toBeGreaterThan(0);
 		expect(screen.getAllByRole('link', { name: /support@valdrics\.com/i }).length).toBeGreaterThan(
@@ -275,7 +262,7 @@ describe('public layout mobile menu', () => {
 	});
 
 	it('opens desktop resources dropdown and closes with escape or outside click', async () => {
-		renderPublicLayout();
+		await renderPublicLayout();
 
 		const resourcesTrigger = screen.getAllByRole('button', { name: /^resources$/i })[0];
 		expect(resourcesTrigger).toBeTruthy();
@@ -302,27 +289,19 @@ describe('public layout mobile menu', () => {
 		});
 	});
 
-	it('loads auth listeners and job streaming only for authenticated layouts', async () => {
-		renderAuthenticatedLayout();
+	it('loads job streaming only for authenticated layouts', async () => {
+		await renderPublicLayout();
+		expect(mocks.jobStore.init).not.toHaveBeenCalled();
+
+		await renderAuthenticatedLayout();
 
 		await waitFor(() => {
-			expect(mocks.onAuthStateChange).toHaveBeenCalledTimes(1);
 			expect(mocks.jobStore.init).toHaveBeenCalledTimes(1);
-		});
-
-		const authCallback = mocks.onAuthStateChange.mock.calls[0]?.[0] as
-			| ((event: string) => void)
-			| undefined;
-		expect(authCallback).toBeTypeOf('function');
-		authCallback?.('SIGNED_IN');
-
-		await waitFor(() => {
-			expect(mocks.invalidate).toHaveBeenCalledWith('supabase:auth');
 		});
 	});
 
 	it('closes when user scrolls after opening the menu', async () => {
-		renderPublicLayout();
+		await renderPublicLayout();
 
 		await fireEvent.click(getMenuToggle());
 		await screen.findByRole('dialog', { name: /public navigation menu/i });

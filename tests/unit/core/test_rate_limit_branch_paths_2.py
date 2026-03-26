@@ -53,6 +53,44 @@ def test_get_limiter_logs_break_glass_for_production_without_redis() -> None:
         logger.warning.assert_called_once()
 
 
+def test_get_limiter_recreates_when_storage_uri_changes() -> None:
+    with (
+        patch("app.shared.core.rate_limit._limiter", None),
+        patch("app.shared.core.rate_limit._limiter_storage_uri", None),
+        patch("app.shared.core.rate_limit._limiter_enabled", None),
+        patch(
+            "app.shared.core.rate_limit.get_settings",
+            side_effect=[
+                _settings(REDIS_URL="redis://one"),
+                _settings(REDIS_URL="redis://two"),
+            ],
+        ),
+    ):
+        first = rl.get_limiter()
+        second = rl.get_limiter()
+
+    assert first is not second
+
+
+def test_get_limiter_recreates_when_enabled_state_changes() -> None:
+    with (
+        patch("app.shared.core.rate_limit._limiter", None),
+        patch("app.shared.core.rate_limit._limiter_storage_uri", None),
+        patch("app.shared.core.rate_limit._limiter_enabled", None),
+        patch(
+            "app.shared.core.rate_limit.get_settings",
+            side_effect=[
+                _settings(RATELIMIT_ENABLED=True),
+                _settings(RATELIMIT_ENABLED=False),
+            ],
+        ),
+    ):
+        first = rl.get_limiter()
+        second = rl.get_limiter()
+
+    assert first is not second
+
+
 @pytest.mark.asyncio
 async def test_check_remediation_rate_limit_denies_when_production_without_redis() -> None:
     with (
@@ -97,6 +135,26 @@ def test_get_redis_client_recreates_client_when_event_loop_changes() -> None:
     ):
         client = rl.get_redis_client()
         assert client is second_client
+
+
+def test_get_redis_client_recreates_when_redis_url_changes() -> None:
+    first_client = MagicMock()
+    first_client._loop = "same-loop"
+    first_client._valdrics_redis_url = "redis://one"
+    second_client = MagicMock()
+
+    with (
+        patch("app.shared.core.rate_limit._redis_client", first_client),
+        patch(
+            "app.shared.core.rate_limit.get_settings",
+            return_value=_settings(REDIS_URL="redis://two"),
+        ),
+        patch("app.shared.core.rate_limit.from_url", side_effect=[second_client]),
+        patch("asyncio.get_running_loop", return_value="same-loop"),
+    ):
+        client = rl.get_redis_client()
+
+    assert client is second_client
 
 
 @pytest.mark.asyncio

@@ -6,8 +6,11 @@ and measuring system performance under various conditions.
 """
 
 import asyncio
+import json
+from pathlib import Path
 import time
 import statistics
+import tempfile
 from typing import Dict, Any, List
 from dataclasses import dataclass, field
 from datetime import timedelta
@@ -26,10 +29,16 @@ from app.shared.core.ops_metrics import (
 )
 
 logger = structlog.get_logger()
-settings = get_settings()
 PERFORMANCE_LOAD_REQUEST_RECOVERABLE_EXCEPTIONS: tuple[type[Exception], ...] = (httpx.HTTPError, RuntimeError, OSError, TimeoutError, TypeError, ValueError, ArithmeticError)
 PERFORMANCE_BASELINE_LOAD_RECOVERABLE_EXCEPTIONS: tuple[type[Exception], ...] = (OSError, TypeError, ValueError)
 PERFORMANCE_BASELINE_SAVE_RECOVERABLE_EXCEPTIONS: tuple[type[Exception], ...] = (OSError, TypeError, ValueError)
+
+
+def _default_baseline_file() -> str:
+    runtime_dir = Path(str(get_settings().APP_RUNTIME_DATA_DIR or "")).expanduser()
+    if not runtime_dir.is_absolute():
+        runtime_dir = runtime_dir.resolve()
+    return str(runtime_dir / "performance_baseline.json")
 
 
 def format_exception_message(exc: BaseException) -> str:
@@ -279,15 +288,13 @@ async def benchmark_cache_operations() -> BenchmarkResult:
 class PerformanceRegressionDetector:
     """Detect performance regressions by comparing benchmarks."""
 
-    def __init__(self, baseline_file: str = "performance_baseline.json"):
-        self.baseline_file = baseline_file
+    def __init__(self, baseline_file: str | None = None):
+        self.baseline_file = baseline_file or _default_baseline_file()
         self.baselines: Dict[str, BenchmarkResult] = {}
 
     def load_baselines(self) -> None:
         """Load baseline performance data."""
         try:
-            import json
-
             with open(self.baseline_file, "r") as f:
                 data = json.load(f)
                 for item in data.get("results", []):
@@ -301,10 +308,25 @@ class PerformanceRegressionDetector:
     def save_baselines(self, benchmark_summary: Dict[str, Any]) -> None:
         """Save current results as new baselines."""
         try:
-            import json
-
-            with open(self.baseline_file, "w") as f:
-                json.dump(benchmark_summary, f, indent=2, default=str)
+            baseline_path = Path(self.baseline_file)
+            baseline_path.parent.mkdir(parents=True, exist_ok=True)
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                dir=baseline_path.parent,
+                prefix=f".{baseline_path.stem}.",
+                suffix=f"{baseline_path.suffix or '.json'}.tmp",
+                delete=False,
+            ) as handle:
+                staged_path = Path(handle.name)
+                json.dump(benchmark_summary, handle, indent=2, default=str)
+            promoted = False
+            try:
+                staged_path.replace(baseline_path)
+                promoted = True
+            finally:
+                if not promoted:
+                    staged_path.unlink(missing_ok=True)
             logger.info("baselines_saved", file=self.baseline_file)
         except PERFORMANCE_BASELINE_SAVE_RECOVERABLE_EXCEPTIONS as e:
             logger.error("failed_to_save_baselines", error=str(e))

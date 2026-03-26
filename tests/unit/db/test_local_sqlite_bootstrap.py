@@ -79,6 +79,15 @@ def test_set_system_context_marker_updates_sync_connection_info() -> None:
     assert "rls_system_context" not in connection.sync_connection.info
 
 
+def test_get_alembic_heads_is_repo_root_independent(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    get_alembic_heads.cache_clear()
+    monkeypatch.chdir(tmp_path)
+
+    heads = get_alembic_heads()
+
+    assert heads
+
+
 @pytest.mark.asyncio
 async def test_bootstrap_local_sqlite_schema_creates_tables_and_stamps_head(
     tmp_path: Path,

@@ -30,7 +30,7 @@
 	import { edgeApiPath } from '$lib/edgeProxy';
 	import { TimeoutError } from '$lib/fetchWithTimeout';
 	import { clientLogger } from '$lib/logging/client';
-	import { z } from 'zod';
+	import { formatValidationIssues } from '$lib/validation/clientZod';
 
 	let {
 		accessToken,
@@ -99,10 +99,18 @@
 				const data = await res.json().catch(() => ({}));
 				throw new Error(extractErrorMessage(data, 'Failed to load identity settings'));
 			}
-			const loaded = IdentitySettingsResponseSchema.parse(await res.json());
+			const loadedResult = IdentitySettingsResponseSchema.safeParse(await res.json());
+			if (!loadedResult.success) {
+				throw loadedResult.error;
+			}
+			const loaded = loadedResult.data;
 			settings = {
 				...(loaded as IdentitySettings),
-				sso_federation_provider_id: loaded.sso_federation_provider_id ?? ''
+				sso_federation_provider_id: loaded.sso_federation_provider_id ?? '',
+				scim_group_mappings: (loaded.scim_group_mappings ?? []).map((mapping) => ({
+					...mapping,
+					persona: mapping.persona ?? null
+				}))
 			};
 			domainsText = (loaded.allowed_email_domains ?? []).join(', ');
 			await loadDiagnostics();
@@ -111,7 +119,7 @@
 			error =
 				e instanceof TimeoutError
 					? 'Identity settings request timed out. Try again.'
-					: (e as Error).message;
+					: formatValidationIssues(e, false);
 		} finally {
 			loading = false;
 		}
@@ -139,14 +147,18 @@
 				const data = await res.json().catch(() => ({}));
 				throw new Error(extractErrorMessage(data, 'Failed to load identity diagnostics'));
 			}
-			const parsed = IdentityDiagnosticsSchema.parse(await res.json());
+			const parsedResult = IdentityDiagnosticsSchema.safeParse(await res.json());
+			if (!parsedResult.success) {
+				throw parsedResult.error;
+			}
+			const parsed = parsedResult.data;
 			diagnostics = parsed as IdentityDiagnostics;
 		} catch (e) {
 			clientLogger.error('Failed to load identity diagnostics:', e);
 			error =
 				e instanceof TimeoutError
 					? 'Identity diagnostics request timed out. Try again.'
-					: (e as Error).message;
+					: formatValidationIssues(e, false);
 			diagnostics = null;
 		} finally {
 			diagnosticsLoading = false;
@@ -169,14 +181,14 @@
 				const data = await res.json().catch(() => ({}));
 				throw new Error(extractErrorMessage(data, 'Failed to test SCIM token'));
 			}
-			const payload = ScimTokenTestResponseSchema.parse(await res.json());
+			const payloadResult = ScimTokenTestResponseSchema.safeParse(await res.json());
+			if (!payloadResult.success) {
+				throw payloadResult.error;
+			}
+			const payload = payloadResult.data;
 			scimTokenTestStatus = payload.token_matches ? 'Token matches.' : 'Token does not match.';
 		} catch (e) {
-			if (e instanceof z.ZodError) {
-				error = e.issues.map((err: z.ZodIssue) => err.message).join(', ');
-			} else {
-				error = (e as Error).message;
-			}
+			error = formatValidationIssues(e, false);
 		} finally {
 			scimTokenTesting = false;
 			// Never keep tokens in UI state longer than needed.
@@ -207,7 +219,11 @@
 					persona: mapping.persona || null
 				}))
 			};
-			const validated = IdentitySettingsUpdateSchema.parse(payload);
+			const validatedResult = IdentitySettingsUpdateSchema.safeParse(payload);
+			if (!validatedResult.success) {
+				throw validatedResult.error;
+			}
+			const validated = validatedResult.data;
 
 			const headers = await getHeaders();
 			const res = await api.put(edgeApiPath('/settings/identity'), validated, { headers });
@@ -215,21 +231,25 @@
 				const data = await res.json().catch(() => ({}));
 				throw new Error(extractErrorMessage(data, 'Failed to save identity settings'));
 			}
-			const updated = IdentitySettingsResponseSchema.parse(await res.json());
+			const updatedResult = IdentitySettingsResponseSchema.safeParse(await res.json());
+			if (!updatedResult.success) {
+				throw updatedResult.error;
+			}
+			const updated = updatedResult.data;
 			settings = {
 				...(updated as IdentitySettings),
-				sso_federation_provider_id: updated.sso_federation_provider_id ?? ''
+				sso_federation_provider_id: updated.sso_federation_provider_id ?? '',
+				scim_group_mappings: (updated.scim_group_mappings ?? []).map((mapping) => ({
+					...mapping,
+					persona: mapping.persona ?? null
+				}))
 			};
 			domainsText = (updated.allowed_email_domains ?? []).join(', ');
 			success = 'Identity settings saved.';
 			setTimeout(() => (success = ''), 2500);
 			await loadDiagnostics();
 		} catch (e) {
-			if (e instanceof z.ZodError) {
-				error = e.issues.map((err: z.ZodIssue) => err.message).join(', ');
-			} else {
-				error = (e as Error).message;
-			}
+			error = formatValidationIssues(e, false);
 		} finally {
 			saving = false;
 		}
@@ -259,17 +279,17 @@
 					)
 				);
 			}
-			const payload = RotateTokenResponseSchema.parse(await res.json());
+			const payloadResult = RotateTokenResponseSchema.safeParse(await res.json());
+			if (!payloadResult.success) {
+				throw payloadResult.error;
+			}
+			const payload = payloadResult.data;
 			rotatedToken = payload.scim_token;
 			rotatedAt = payload.rotated_at;
 			success = 'SCIM token rotated. Store it now; it is shown only once.';
 			await loadIdentitySettings();
 		} catch (e) {
-			if (e instanceof z.ZodError) {
-				error = e.issues.map((err: z.ZodIssue) => err.message).join(', ');
-			} else {
-				error = (e as Error).message;
-			}
+			error = formatValidationIssues(e, false);
 		} finally {
 			rotating = false;
 		}

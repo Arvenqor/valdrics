@@ -120,12 +120,25 @@ def _default_worker_probe() -> dict[str, Any]:
     }
 
 
+def _default_worker_probe_requires_thread() -> bool:
+    settings = get_settings()
+    broker_url = _resolve_worker_broker_url()
+    return bool(
+        not settings.TESTING
+        and broker_url
+        and not broker_url.startswith("memory://")
+    )
+
+
 async def _probe_worker_health(
     *,
     worker_probe: Callable[[], Any] | None,
 ) -> dict[str, Any]:
     if worker_probe is None:
-        result = await asyncio.to_thread(_default_worker_probe)
+        if _default_worker_probe_requires_thread():
+            result = await asyncio.to_thread(_default_worker_probe)
+        else:
+            result = _default_worker_probe()
     else:
         result = await maybe_await(worker_probe())
 

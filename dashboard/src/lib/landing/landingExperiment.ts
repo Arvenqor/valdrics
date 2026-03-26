@@ -1,7 +1,7 @@
 import {
 	resolvePublicBuyerPersona,
 	resolvePublicBuyingMotion
-} from '$lib/public/publicBuyingMotion';
+} from '$lib/public/publicBuyerSignals';
 
 export type BuyerPersona = 'cto' | 'finops' | 'security' | 'cfo';
 export type HeroVariant = 'control_every_dollar' | 'from_metrics_to_control';

@@ -3,6 +3,7 @@ import inspect
 import re
 import ssl  # noqa: F401  # Retained for compatibility with focused DB test patches.
 import time
+from collections.abc import Awaitable
 from dataclasses import dataclass
 from threading import Lock
 from typing import Any, AsyncGenerator, Dict, Optional, cast
@@ -11,8 +12,8 @@ from uuid import UUID
 import structlog
 from fastapi import Request
 from sqlalchemy import event, text
-from sqlalchemy.engine import Connection
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.engine import Connection, make_url
+from sqlalchemy.exc import ArgumentError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -68,6 +69,7 @@ _AUDIT_LOG_RETENTION_DELETE_FLAG = "allow_audit_log_retention_purge"
 _SYSTEM_AUDIT_LOG_RETENTION_DELETE_FLAG = "allow_system_audit_log_retention_purge"
 _SQL_DELETE_PATTERN = re.compile(r"\bdelete\b")
 _SQL_UPDATE_PATTERN = re.compile(r"\bupdate\b")
+_DB_RUNTIME_HEARTBEAT_INTERVAL_SECONDS = 0.01
 
 
 @dataclass(slots=True)
@@ -108,6 +110,25 @@ class GuardedAsyncSession(AsyncSession):
             raise
 
 
+async def _heartbeat_loop(stop: asyncio.Event) -> None:
+    while not stop.is_set():
+        await asyncio.sleep(_DB_RUNTIME_HEARTBEAT_INTERVAL_SECONDS)
+
+
+async def _await_with_heartbeat(awaitable: Awaitable[Any]) -> Any:
+    stop = asyncio.Event()
+    heartbeat = asyncio.create_task(_heartbeat_loop(stop))
+    try:
+        return await awaitable
+    finally:
+        stop.set()
+        await heartbeat
+
+
+def _run_async_with_heartbeat(awaitable: Awaitable[Any]) -> Any:
+    return asyncio.run(_await_with_heartbeat(awaitable))
+
+
 def _normalize_db_url(raw_url: str) -> str:
     url = (raw_url or "").strip()
     if url.startswith("postgresql://"):
@@ -145,6 +166,13 @@ def _build_pool_config(
     settings_obj: Any, effective_url: str, use_null_pool: bool, external_pooler: bool
 ) -> dict[str, Any]:
     is_sqlite = "sqlite" in effective_url
+    sqlite_database = ""
+    if is_sqlite:
+        try:
+            sqlite_database = str(make_url(effective_url).database or "").strip()
+        except ArgumentError:
+            sqlite_database = ""
+    sqlite_is_memory = sqlite_database in {"", ":memory:"}
     pool_config: dict[str, Any] = {
         "pool_recycle": getattr(settings_obj, "DB_POOL_RECYCLE", 3600),
         "pool_pre_ping": True,
@@ -152,7 +180,8 @@ def _build_pool_config(
     }
 
     if is_sqlite:
-        pool_config["poolclass"] = StaticPool
+        if sqlite_is_memory:
+            pool_config["poolclass"] = StaticPool
     elif use_null_pool:
         pool_config["poolclass"] = NullPool
         logger.warning(
@@ -245,7 +274,7 @@ def reset_db_runtime() -> None:
     try:
         asyncio.get_running_loop()
     except RuntimeError:
-        asyncio.run(dispose_db_runtime())
+        _run_async_with_heartbeat(dispose_db_runtime())
         return
 
     # Async callers should use dispose_db_runtime() directly so disposal completes

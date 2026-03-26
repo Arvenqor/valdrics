@@ -16,6 +16,7 @@ Cost Benefits:
 import json
 import hashlib
 import asyncio
+import inspect
 from abc import ABC, abstractmethod
 from datetime import date, timedelta, datetime, timezone
 from typing import Any, Optional, cast
@@ -44,6 +45,16 @@ REDIS_OPERATION_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     TypeError,
     ValueError,
 )
+
+
+def _cache_settings() -> Any:
+    return settings
+
+
+def _configured_redis_url(settings_obj: Any | None = None) -> str | None:
+    settings_obj = settings_obj or _cache_settings()
+    redis_url = str(getattr(settings_obj, "REDIS_URL", "") or "").strip()
+    return redis_url or None
 
 
 def _safe_json_loads(raw_payload: Any, *, key: str) -> Any | None:
@@ -155,7 +166,7 @@ class RedisCache(CacheBackend):
     """
 
     def __init__(self, redis_url: str | None = None) -> None:
-        self.redis_url = redis_url or settings.REDIS_URL
+        self.redis_url = redis_url or _configured_redis_url()
         self._client: Any | None = None
         self._connected = False
 
@@ -384,6 +395,28 @@ _cache_instance: Optional[CostCache] = None
 _cache_instance_lock = asyncio.Lock()
 
 
+async def _close_backend(backend: CacheBackend) -> None:
+    client = getattr(backend, "_client", None)
+    if client is None:
+        return
+    close = getattr(client, "aclose", None) or getattr(client, "close", None)
+    if not callable(close):
+        return
+    maybe_awaitable = close()
+    if inspect.isawaitable(maybe_awaitable):
+        await maybe_awaitable
+
+
+def _cache_matches_configuration(
+    cache: CostCache,
+    *,
+    redis_url: str | None,
+) -> bool:
+    if redis_url:
+        return str(getattr(cache.backend, "redis_url", "") or "").strip() == redis_url
+    return isinstance(cache.backend, InMemoryCache)
+
+
 async def get_cost_cache() -> CostCache:
     """
     Factory to get cache instance.
@@ -393,21 +426,33 @@ async def get_cost_cache() -> CostCache:
     """
     global _cache_instance
 
-    if _cache_instance is None:
-        async with _cache_instance_lock:
-            if _cache_instance is None:
-                backend: CacheBackend
-                if settings.REDIS_URL:
-                    backend = RedisCache(settings.REDIS_URL)
-                    if await backend.health_check():
-                        logger.info("cost_cache_initialized", backend="redis")
-                    else:
-                        logger.warning("redis_unhealthy_using_memory")
-                        backend = InMemoryCache()
-                else:
-                    backend = InMemoryCache()
-                    logger.info("cost_cache_initialized", backend="memory")
+    redis_url = _configured_redis_url()
+    cache = _cache_instance
+    if cache is not None and _cache_matches_configuration(cache, redis_url=redis_url):
+        return cache
 
-                _cache_instance = CostCache(backend)
+    async with _cache_instance_lock:
+        cache = _cache_instance
+        if cache is not None and _cache_matches_configuration(
+            cache, redis_url=redis_url
+        ):
+            return cache
+
+        previous_backend = cache.backend if cache is not None else None
+        backend: CacheBackend
+        if redis_url:
+            backend = RedisCache(redis_url)
+            if await backend.health_check():
+                logger.info("cost_cache_initialized", backend="redis")
+            else:
+                logger.warning("redis_unhealthy_using_memory")
+                backend = InMemoryCache()
+        else:
+            backend = InMemoryCache()
+            logger.info("cost_cache_initialized", backend="memory")
+
+        _cache_instance = CostCache(backend)
+        if previous_backend is not None and previous_backend is not backend:
+            await _close_backend(previous_backend)
 
     return _cache_instance

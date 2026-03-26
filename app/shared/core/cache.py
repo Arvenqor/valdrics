@@ -15,6 +15,7 @@ import json
 import hashlib
 import structlog
 import asyncio
+import inspect
 from typing import Any, Optional
 from uuid import UUID
 from datetime import timedelta
@@ -54,6 +55,28 @@ CACHE_RECOVERABLE_ERRORS = (
 )
 
 
+def _current_cache_configuration() -> tuple[str | None, str | None]:
+    settings = get_settings()
+    cache_url = str(getattr(settings, "UPSTASH_REDIS_URL", "") or "").strip() or None
+    cache_token = (
+        str(getattr(settings, "UPSTASH_REDIS_TOKEN", "") or "").strip() or None
+    )
+    return cache_url, cache_token
+
+
+def _best_effort_close_client(client: object | None) -> None:
+    if client is None:
+        return
+    close = getattr(client, "aclose", None) or getattr(client, "close", None)
+    if not callable(close):
+        return
+    close_result = close()
+    if inspect.isawaitable(close_result):
+        close_coro = getattr(close_result, "close", None)
+        if callable(close_coro):
+            close_coro()
+
+
 def _safe_json_loads(payload: str, key: str) -> Optional[Any]:
     """Strict JSON decode with bounded-failure behavior."""
     try:
@@ -66,16 +89,28 @@ def _safe_json_loads(payload: str, key: str) -> Optional[Any]:
 def _get_sync_client() -> Optional[Redis]:
     """Get or create synchronous Redis client."""
     global _sync_client
-    settings = get_settings()
+    cache_url, cache_token = _current_cache_configuration()
 
-    if not settings.UPSTASH_REDIS_URL or not settings.UPSTASH_REDIS_TOKEN:
+    if not cache_url or not cache_token:
         logger.debug("redis_disabled", reason="UPSTASH credentials not configured")
+        _best_effort_close_client(_sync_client)
+        _sync_client = None
         return None
 
-    if _sync_client is None:
-        _sync_client = Redis(
-            url=settings.UPSTASH_REDIS_URL, token=settings.UPSTASH_REDIS_TOKEN
+    if (
+        _sync_client is not None
+        and (
+            getattr(_sync_client, "_valdrics_cache_url", None) != cache_url
+            or getattr(_sync_client, "_valdrics_cache_token", None) != cache_token
         )
+    ):
+        _best_effort_close_client(_sync_client)
+        _sync_client = None
+
+    if _sync_client is None:
+        _sync_client = Redis(url=cache_url, token=cache_token)
+        setattr(_sync_client, "_valdrics_cache_url", cache_url)
+        setattr(_sync_client, "_valdrics_cache_token", cache_token)
         logger.info("redis_sync_client_created")
 
     return _sync_client
@@ -84,16 +119,28 @@ def _get_sync_client() -> Optional[Redis]:
 def _get_async_client() -> Optional[AsyncRedis]:
     """Get or create async Redis client."""
     global _async_client
-    settings = get_settings()
+    cache_url, cache_token = _current_cache_configuration()
 
-    if not settings.UPSTASH_REDIS_URL or not settings.UPSTASH_REDIS_TOKEN:
+    if not cache_url or not cache_token:
         logger.debug("redis_disabled", reason="UPSTASH credentials not configured")
+        _best_effort_close_client(_async_client)
+        _async_client = None
         return None
 
-    if _async_client is None:
-        _async_client = AsyncRedis(
-            url=settings.UPSTASH_REDIS_URL, token=settings.UPSTASH_REDIS_TOKEN
+    if (
+        _async_client is not None
+        and (
+            getattr(_async_client, "_valdrics_cache_url", None) != cache_url
+            or getattr(_async_client, "_valdrics_cache_token", None) != cache_token
         )
+    ):
+        _best_effort_close_client(_async_client)
+        _async_client = None
+
+    if _async_client is None:
+        _async_client = AsyncRedis(url=cache_url, token=cache_token)
+        setattr(_async_client, "_valdrics_cache_url", cache_url)
+        setattr(_async_client, "_valdrics_cache_token", cache_token)
         logger.info("redis_async_client_created")
 
     return _async_client
@@ -465,6 +512,11 @@ _cache_service: Optional[CacheService] = None
 def get_cache_service() -> CacheService:
     """Get or create the global cache service."""
     global _cache_service
-    if _cache_service is None:
+    current_client = _get_async_client()
+    if (
+        _cache_service is None
+        or _cache_service.client is not current_client
+        or _cache_service.enabled is not (current_client is not None)
+    ):
         _cache_service = CacheService()
     return _cache_service

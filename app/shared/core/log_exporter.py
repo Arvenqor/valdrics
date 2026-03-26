@@ -23,12 +23,10 @@ OTEL_LOG_EXPORT_RECOVERABLE_EXCEPTIONS = (
 _OTEL_LOGGER_NAME = "valdrics.otlp"
 _otlp_lock = Lock()
 _otlp_logger_provider: LoggerProvider | None = None
+_otlp_logger_config: tuple[str, bool, str] | None = None
 
 
-def configure_otlp_log_export(settings: Any) -> logging.Logger | None:
-    """Configure a dedicated stdlib logger that exports logs to OTLP."""
-    global _otlp_logger_provider
-
+def _desired_otlp_logger_config(settings: Any) -> tuple[str, bool, str] | None:
     endpoint = str(getattr(settings, "OTEL_EXPORTER_OTLP_ENDPOINT", "") or "").strip()
     if bool(getattr(settings, "TESTING", False)):
         return None
@@ -36,20 +34,60 @@ def configure_otlp_log_export(settings: Any) -> logging.Logger | None:
         return None
     if not endpoint:
         return None
+    insecure = bool(getattr(settings, "OTEL_EXPORTER_OTLP_INSECURE", False))
+    environment = str(getattr(settings, "ENVIRONMENT", "") or "development")
+    return (endpoint, insecure, environment)
+
+
+def _reset_otlp_logger(logger: logging.Logger) -> None:
+    global _otlp_logger_provider, _otlp_logger_config
+
+    for handler in list(logger.handlers):
+        logger.removeHandler(handler)
+        close = getattr(handler, "close", None)
+        if callable(close):
+            close()
+
+    provider = _otlp_logger_provider
+    _otlp_logger_provider = None
+    _otlp_logger_config = None
+
+    if provider is None:
+        return
+
+    shutdown = getattr(provider, "shutdown", None)
+    if callable(shutdown):
+        shutdown()
+
+
+def configure_otlp_log_export(settings: Any) -> logging.Logger | None:
+    """Configure a dedicated stdlib logger that exports logs to OTLP."""
+    global _otlp_logger_provider, _otlp_logger_config
 
     logger = logging.getLogger(_OTEL_LOGGER_NAME)
-    if logger.handlers:
-        return logger
+    desired_config = _desired_otlp_logger_config(settings)
 
     with _otlp_lock:
-        if logger.handlers:
+        if desired_config is None:
+            if logger.handlers or _otlp_logger_provider is not None:
+                _reset_otlp_logger(logger)
+            return None
+
+        if (
+            _otlp_logger_config == desired_config
+            and _otlp_logger_provider is not None
+            and logger.handlers
+        ):
             return logger
 
-        insecure = bool(getattr(settings, "OTEL_EXPORTER_OTLP_INSECURE", False))
+        if logger.handlers or _otlp_logger_provider is not None:
+            _reset_otlp_logger(logger)
+
+        endpoint, insecure, environment = desired_config
         resource = Resource(
             attributes={
                 ResourceAttributes.SERVICE_NAME: "valdrics-api",
-                "env": str(getattr(settings, "ENVIRONMENT", "") or "development"),
+                "env": environment,
             }
         )
         _otlp_logger_provider = LoggerProvider(resource=resource)
@@ -64,6 +102,7 @@ def configure_otlp_log_export(settings: Any) -> logging.Logger | None:
         logger.setLevel(logging.INFO)
         logger.propagate = False
         logger.addHandler(handler)
+        _otlp_logger_config = desired_config
         return logger
 
 

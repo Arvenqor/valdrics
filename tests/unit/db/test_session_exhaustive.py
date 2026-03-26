@@ -139,7 +139,7 @@ class TestSessionExhaustive:
             session_mod._get_db_runtime()
             mock_create.assert_called()
             _, kwargs = mock_create.call_args
-            assert kwargs["poolclass"].__name__ == "StaticPool"
+            assert "poolclass" not in kwargs
 
         # Testing pool
         mock_settings_testing = MagicMock()

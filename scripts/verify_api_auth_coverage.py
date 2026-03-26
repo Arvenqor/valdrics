@@ -13,8 +13,17 @@ import os
 import sys
 from collections.abc import Iterable
 from dataclasses import dataclass
+from unittest.mock import patch
 
 from fastapi.routing import APIRoute
+
+
+APP_LOAD_RECOVERABLE_EXCEPTIONS: tuple[type[Exception], ...] = (
+    ImportError,
+    RuntimeError,
+    TypeError,
+    ValueError,
+)
 
 # Dependency call names that satisfy route-level authentication coverage.
 AUTH_DEPENDENCY_CALL_NAMES = {
@@ -116,18 +125,24 @@ def collect_auth_coverage_violations(app: object) -> list[AuthCoverageViolation]
 
 def load_app_for_audit() -> object:
     # Keep config deterministic and test-safe for script execution.
-    os.environ["TESTING"] = "true"
-    os.environ["DEBUG"] = "false"
-    from app.main import app
+    with patch.dict(
+        os.environ,
+        {
+            "TESTING": "true",
+            "DEBUG": "false",
+        },
+        clear=False,
+    ):
+        from app.main import app
 
-    return app
+        return app
 
 
 def main(argv: Iterable[str] | None = None) -> int:
     _ = argv
     try:
         app = load_app_for_audit()
-    except Exception as exc:
+    except APP_LOAD_RECOVERABLE_EXCEPTIONS as exc:
         print(f"Auth coverage check failed to load app: {exc}")
         return 2
     violations = collect_auth_coverage_violations(app)

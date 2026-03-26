@@ -278,10 +278,6 @@ def _resolve_distributed_redis_client() -> Any | None:
 async def get_circuit_breaker(tenant_id: str) -> CircuitBreaker:
     """Get or create a circuit breaker for a tenant."""
     async with _tenant_breakers_lock:
-        if tenant_id in _tenant_breakers:
-            _tenant_breakers.move_to_end(tenant_id)
-            return _tenant_breakers[tenant_id]
-
         redis_client = _resolve_distributed_redis_client()
         runtime_settings = get_settings()
         environment = str(getattr(runtime_settings, "ENVIRONMENT", "") or "").strip().lower()
@@ -300,13 +296,29 @@ async def get_circuit_breaker(tenant_id: str) -> CircuitBreaker:
                 environment=environment,
             )
 
+        current_config = CircuitBreakerConfig.from_settings()
+        existing_breaker = _tenant_breakers.get(tenant_id)
+        if (
+            existing_breaker is not None
+            and existing_breaker.config == current_config
+            and existing_breaker.state.redis is redis_client
+            and existing_breaker.backend_unavailable_reason
+            == backend_unavailable_reason
+        ):
+            _tenant_breakers.move_to_end(tenant_id)
+            return existing_breaker
+
         _tenant_breakers[tenant_id] = CircuitBreaker(
             tenant_id,
+            config=current_config,
             redis_client=redis_client,
             backend_unavailable_reason=backend_unavailable_reason,
         )
 
-        max_cache_size = max(1, int(settings.CIRCUIT_BREAKER_CACHE_SIZE))
+        max_cache_size = max(
+            1,
+            int(getattr(runtime_settings, "CIRCUIT_BREAKER_CACHE_SIZE", 100)),
+        )
         while len(_tenant_breakers) > max_cache_size:
             evicted_tenant_id, _ = _tenant_breakers.popitem(last=False)
             logger.info("circuit_breaker_cache_evicted", tenant_id=evicted_tenant_id)

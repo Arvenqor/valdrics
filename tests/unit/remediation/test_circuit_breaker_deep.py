@@ -129,7 +129,15 @@ class TestCircuitBreakerDeep:
     @pytest.mark.asyncio
     async def test_get_circuit_breaker_eviction_bound(self):
         cb_module._tenant_breakers.clear()
-        with patch.object(cb_module.settings, "CIRCUIT_BREAKER_CACHE_SIZE", 2):
+        runtime_settings = SimpleNamespace(
+            ENVIRONMENT="development",
+            CIRCUIT_BREAKER_DISTRIBUTED_STATE=False,
+            CIRCUIT_BREAKER_CACHE_SIZE=2,
+            CIRCUIT_BREAKER_FAILURE_THRESHOLD=3,
+            CIRCUIT_BREAKER_RECOVERY_SECONDS=120,
+            CIRCUIT_BREAKER_MAX_DAILY_SAVINGS=1000.0,
+        )
+        with patch.object(cb_module, "get_settings", return_value=runtime_settings):
             await get_circuit_breaker("tenant-1")
             await get_circuit_breaker("tenant-2")
             await get_circuit_breaker("tenant-3")
@@ -150,6 +158,55 @@ class TestCircuitBreakerDeep:
             breaker = await get_circuit_breaker("tenant-distributed")
 
         assert breaker.state.redis is redis_client
+
+    @pytest.mark.asyncio
+    async def test_get_circuit_breaker_rebuilds_when_runtime_threshold_changes(self):
+        cb_module._tenant_breakers.clear()
+        runtime_settings = SimpleNamespace(
+            ENVIRONMENT="development",
+            CIRCUIT_BREAKER_DISTRIBUTED_STATE=False,
+            CIRCUIT_BREAKER_CACHE_SIZE=100,
+            CIRCUIT_BREAKER_FAILURE_THRESHOLD=3,
+            CIRCUIT_BREAKER_RECOVERY_SECONDS=120,
+            CIRCUIT_BREAKER_MAX_DAILY_SAVINGS=1000.0,
+        )
+
+        with patch.object(cb_module, "get_settings", return_value=runtime_settings):
+            first = await get_circuit_breaker("tenant-runtime-refresh")
+            runtime_settings.CIRCUIT_BREAKER_FAILURE_THRESHOLD = 7
+            second = await get_circuit_breaker("tenant-runtime-refresh")
+
+        assert first is not second
+        assert second.config.failure_threshold == 7
+
+    @pytest.mark.asyncio
+    async def test_get_circuit_breaker_rebuilds_when_backend_mode_changes(self):
+        cb_module._tenant_breakers.clear()
+        runtime_settings = SimpleNamespace(
+            ENVIRONMENT="staging",
+            CIRCUIT_BREAKER_DISTRIBUTED_STATE=True,
+            CIRCUIT_BREAKER_CACHE_SIZE=100,
+            CIRCUIT_BREAKER_FAILURE_THRESHOLD=3,
+            CIRCUIT_BREAKER_RECOVERY_SECONDS=120,
+            CIRCUIT_BREAKER_MAX_DAILY_SAVINGS=1000.0,
+        )
+        redis_client = AsyncMock()
+
+        with (
+            patch.object(cb_module, "get_settings", return_value=runtime_settings),
+            patch.object(
+                cb_module,
+                "_resolve_distributed_redis_client",
+                side_effect=[None, redis_client],
+            ),
+        ):
+            first = await get_circuit_breaker("tenant-backend-refresh")
+            second = await get_circuit_breaker("tenant-backend-refresh")
+
+        assert first is not second
+        assert first.backend_unavailable_reason == "distributed_state_backend_unavailable"
+        assert second.backend_unavailable_reason is None
+        assert second.state.redis is redis_client
 
     @pytest.mark.asyncio
     async def test_get_circuit_breaker_falls_back_when_redis_client_unavailable(self):

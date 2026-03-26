@@ -84,6 +84,8 @@ class HybridAnalysisScheduler:
         self.cache = get_cache_service()
         self.delta_service = DeltaAnalysisService(self.cache)
         self._analyzer: FinOpsAnalyzer | None = None
+        self._analyzer_provider: str | None = None
+        self._analyzer_is_injected = False
         # Capture dependencies at construction for deterministic behavior in tests
         # that patch these symbols during scheduler creation.
         self._llm_factory_create = LLMFactory.create
@@ -93,16 +95,24 @@ class HybridAnalysisScheduler:
     def set_analyzer(self, value: FinOpsAnalyzer) -> None:
         """Inject an analyzer instance explicitly."""
         self._analyzer = value
+        self._analyzer_provider = None
+        self._analyzer_is_injected = True
 
     def _get_analyzer(self) -> FinOpsAnalyzer:
         """
         Lazily initialize analyzer to avoid constructor-time provider validation
         in code paths that only evaluate scheduling decisions.
         """
-        if self._analyzer is None:
-            settings = self._settings_getter()
-            llm = self._llm_factory_create(settings.LLM_PROVIDER)
+        settings = self._settings_getter()
+        provider = str(settings.LLM_PROVIDER or "").strip()
+
+        if self._analyzer is None or (
+            not self._analyzer_is_injected and self._analyzer_provider != provider
+        ):
+            llm = self._llm_factory_create(provider)
             self._analyzer = self._analyzer_cls(llm, db=self.db)
+            self._analyzer_provider = provider
+            self._analyzer_is_injected = False
         return self._analyzer
 
     async def should_run_full_analysis(self, tenant_id: UUID) -> bool:

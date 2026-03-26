@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from unittest.mock import AsyncMock, patch
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -76,6 +77,71 @@ def test_get_async_client_singleton_creation() -> None:
     assert c1 is not None
     assert c1 is c2
     async_redis_cls.assert_called_once()
+
+
+def test_get_async_client_recreates_when_configuration_changes() -> None:
+    first_client = MagicMock()
+    first_client.aclose = MagicMock(return_value=None)
+    second_client = MagicMock()
+    second_client.aclose = MagicMock(return_value=None)
+
+    with (
+        patch(
+            "app.shared.core.cache.get_settings",
+            side_effect=[
+                SimpleNamespace(
+                    UPSTASH_REDIS_URL="redis://one",
+                    UPSTASH_REDIS_TOKEN="token-one",
+                ),
+                SimpleNamespace(
+                    UPSTASH_REDIS_URL="redis://two",
+                    UPSTASH_REDIS_TOKEN="token-two",
+                ),
+            ],
+        ),
+        patch("app.shared.core.cache._async_client", new=None),
+        patch(
+            "app.shared.core.cache.AsyncRedis",
+            side_effect=[first_client, second_client],
+        ) as async_redis_cls,
+    ):
+        c1 = _get_async_client()
+        c2 = _get_async_client()
+
+    assert c1 is first_client
+    assert c2 is second_client
+    assert async_redis_cls.call_count == 2
+
+
+def test_get_cache_service_rebuilds_when_async_client_changes() -> None:
+    first_client = MagicMock()
+    first_client.aclose = MagicMock(return_value=None)
+    second_client = MagicMock()
+    second_client.aclose = MagicMock(return_value=None)
+    settings = SimpleNamespace(
+        UPSTASH_REDIS_URL="redis://one",
+        UPSTASH_REDIS_TOKEN="token-one",
+    )
+
+    with (
+        patch("app.shared.core.cache.get_settings", return_value=settings),
+        patch("app.shared.core.cache._async_client", new=None),
+        patch("app.shared.core.cache._cache_service", new=None),
+        patch(
+            "app.shared.core.cache.AsyncRedis",
+            side_effect=[first_client, second_client],
+        ),
+    ):
+        from app.shared.core.cache import get_cache_service
+
+        first_service = get_cache_service()
+        settings.UPSTASH_REDIS_URL = "redis://two"
+        settings.UPSTASH_REDIS_TOKEN = "token-two"
+        second_service = get_cache_service()
+
+    assert first_service is not second_service
+    assert first_service.client is first_client
+    assert second_service.client is second_client
 
 
 @pytest.mark.asyncio

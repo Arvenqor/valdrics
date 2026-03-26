@@ -164,6 +164,22 @@ def test_build_pool_config_null_pool_and_testing_override() -> None:
     )
     assert cfg["poolclass"] is session_mod.NullPool
 
+    sqlite_file_cfg = session_mod._build_pool_config(
+        settings,
+        "sqlite+aiosqlite:///tmp/test.db",
+        use_null_pool=False,
+        external_pooler=False,
+    )
+    assert "poolclass" not in sqlite_file_cfg
+
+    sqlite_memory_cfg = session_mod._build_pool_config(
+        settings,
+        "sqlite+aiosqlite:///:memory:",
+        use_null_pool=False,
+        external_pooler=False,
+    )
+    assert sqlite_memory_cfg["poolclass"] is session_mod.StaticPool
+
     settings_testing = SimpleNamespace(
         DB_POOL_RECYCLE=3600,
         DB_ECHO=False,

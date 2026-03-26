@@ -15,6 +15,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
 import app.models  # noqa: F401
+from app.shared.core.runtime_paths import PROJECT_ROOT
 from app.shared.db.base import Base
 
 logger = structlog.get_logger()
@@ -88,7 +89,7 @@ def _bootstrap_file_lock(db_path: Path | None) -> Iterator[None]:
 
 @lru_cache(maxsize=1)
 def get_alembic_heads() -> tuple[str, ...]:
-    config = Config("alembic.ini")
+    config = Config(str(PROJECT_ROOT / "alembic.ini"))
     script = ScriptDirectory.from_config(config)
     heads = tuple(sorted(script.get_heads()))
     if not heads:

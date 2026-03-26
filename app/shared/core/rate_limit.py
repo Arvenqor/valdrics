@@ -35,6 +35,8 @@ logger = structlog.get_logger()
 
 _limiter: Limiter | None = None
 _redis_client: Redis | None = None
+_limiter_storage_uri: str | None = None
+_limiter_enabled: bool | None = None
 TOKEN_HASH_FALLBACK_RECOVERABLE_EXCEPTIONS = (RuntimeError, TypeError, ValueError)
 ANALYSIS_TIER_RESOLUTION_RECOVERABLE_EXCEPTIONS = (
     AttributeError,
@@ -78,34 +80,42 @@ def get_limiter() -> Limiter:
     single-instance dev/test, but it is NOT suitable for multi-replica
     deployments where limits must be shared across processes.
     """
-    global _limiter
-    if _limiter is None:
-        settings = get_settings()
-        storage_uri = settings.REDIS_URL or "memory://"
-        is_production_like = settings.ENVIRONMENT.lower() in ("production", "staging")
-        if (
-            is_production_like
-            and not settings.REDIS_URL
-            and not settings.ALLOW_IN_MEMORY_RATE_LIMITS
-        ):
-            raise RuntimeError(
-                "Distributed rate limiting is required in staging/production. "
-                "Set REDIS_URL (or explicitly ALLOW_IN_MEMORY_RATE_LIMITS=true for break-glass)."
-            )
-        if is_production_like and not settings.REDIS_URL:
-            logger.warning(
-                "rate_limiting_in_memory_break_glass",
-                msg="REDIS_URL is not set. In-memory rate limiting is enabled via "
-                "ALLOW_IN_MEMORY_RATE_LIMITS and should be temporary.",
-            )
-            
+    global _limiter, _limiter_storage_uri, _limiter_enabled
+    settings = get_settings()
+    storage_uri = settings.REDIS_URL or "memory://"
+    enabled = getattr(settings, "RATELIMIT_ENABLED", True) and not getattr(
+        settings, "TESTING", False
+    )
+    is_production_like = settings.ENVIRONMENT.lower() in ("production", "staging")
+    if (
+        is_production_like
+        and not settings.REDIS_URL
+        and not settings.ALLOW_IN_MEMORY_RATE_LIMITS
+    ):
+        raise RuntimeError(
+            "Distributed rate limiting is required in staging/production. "
+            "Set REDIS_URL (or explicitly ALLOW_IN_MEMORY_RATE_LIMITS=true for break-glass)."
+        )
+    if is_production_like and not settings.REDIS_URL:
+        logger.warning(
+            "rate_limiting_in_memory_break_glass",
+            msg="REDIS_URL is not set. In-memory rate limiting is enabled via "
+            "ALLOW_IN_MEMORY_RATE_LIMITS and should be temporary.",
+        )
+
+    if (
+        _limiter is None
+        or _limiter_storage_uri != storage_uri
+        or _limiter_enabled != bool(enabled)
+    ):
         _limiter = Limiter(
             key_func=context_aware_key,
             storage_uri=storage_uri,
             strategy="fixed-window",
-            enabled=getattr(settings, "RATELIMIT_ENABLED", True)
-            and not getattr(settings, "TESTING", False),
+            enabled=enabled,
         )
+        _limiter_storage_uri = storage_uri
+        _limiter_enabled = bool(enabled)
     return _limiter
 
 
@@ -118,8 +128,10 @@ def get_redis_client() -> Redis | None:
     if getattr(settings, "TESTING", False) is True and not getattr(
         settings, "ALLOW_REDIS_IN_TESTS", False
     ):
+        _redis_client = None
         return None
     if not settings.REDIS_URL:
+        _redis_client = None
         return None
 
     # Check if client exists and ensure it is tied to the current running loop
@@ -129,7 +141,11 @@ def get_redis_client() -> Redis | None:
 
             loop = asyncio.get_running_loop()
             # If the client's loop is not the current one, reset it
-            if getattr(_redis_client, "_loop", None) != loop:
+            if (
+                getattr(_redis_client, "_loop", None) != loop
+                or getattr(_redis_client, "_valdrics_redis_url", None)
+                != settings.REDIS_URL
+            ):
                 _redis_client = None
         except (RuntimeError, AttributeError):
             _redis_client = None
@@ -137,14 +153,17 @@ def get_redis_client() -> Redis | None:
     if _redis_client is None:
         redis_from_url = cast(Callable[..., Redis], from_url)
         _redis_client = redis_from_url(settings.REDIS_URL, decode_responses=True)
+        setattr(_redis_client, "_valdrics_redis_url", settings.REDIS_URL)
     return _redis_client
 
 
 async def reset_rate_limit_runtime() -> None:
-    global _limiter, _redis_client
+    global _limiter, _redis_client, _limiter_storage_uri, _limiter_enabled
     redis_client = _redis_client
     _limiter = None
     _redis_client = None
+    _limiter_storage_uri = None
+    _limiter_enabled = None
     if redis_client is not None:
         await redis_client.aclose()
 

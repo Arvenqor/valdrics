@@ -48,6 +48,18 @@ if (process.env.VITEST_BROWSER === '1') {
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
 
+	build: {
+		rollupOptions: {
+			output: {
+				manualChunks(id) {
+					if (!id.includes('node_modules')) return undefined;
+					if (id.includes('/node_modules/zod/')) return 'vendor-zod';
+					return undefined;
+				}
+			}
+		}
+	},
+
 	test: {
 		expect: { requireAssertions: true },
 		projects

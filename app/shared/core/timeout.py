@@ -217,29 +217,38 @@ class TimeoutMiddleware(BaseHTTPMiddleware):
 
     def __init__(self, app: ASGIApp, timeout_seconds: int | None = None) -> None:
         super().__init__(app)
+        self._timeout_seconds_override = timeout_seconds
+
+    def _timeout_seconds(self) -> float:
+        if self._timeout_seconds_override is not None:
+            return float(self._timeout_seconds_override)
         settings = get_settings()
-        self.timeout_seconds = timeout_seconds or getattr(
-            settings, "REQUEST_TIMEOUT", DEFAULT_TIMEOUT_SECONDS
-        )
+        raw_timeout = getattr(settings, "REQUEST_TIMEOUT", DEFAULT_TIMEOUT_SECONDS)
+        try:
+            timeout_seconds = float(raw_timeout)
+        except (TypeError, ValueError):
+            timeout_seconds = float(DEFAULT_TIMEOUT_SECONDS)
+        if timeout_seconds <= 0:
+            return float(DEFAULT_TIMEOUT_SECONDS)
+        return timeout_seconds
 
     async def dispatch(
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
+        timeout_seconds = self._timeout_seconds()
         try:
-            return await asyncio.wait_for(
-                call_next(request), timeout=self.timeout_seconds
-            )
+            return await asyncio.wait_for(call_next(request), timeout=timeout_seconds)
         except asyncio.TimeoutError:
             logger.warning(
                 "request_timeout",
                 path=request.url.path,
                 method=request.method,
-                timeout_seconds=self.timeout_seconds,
+                timeout_seconds=timeout_seconds,
             )
             return JSONResponse(
                 status_code=504,
                 content={
-                    "detail": f"Request timed out after {self.timeout_seconds} seconds",
+                    "detail": f"Request timed out after {timeout_seconds} seconds",
                     "error": "gateway_timeout",
                 },
             )
