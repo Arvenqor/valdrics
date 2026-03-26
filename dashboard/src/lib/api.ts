@@ -11,6 +11,7 @@
 import { uiState } from './stores/ui.svelte';
 import { fetchWithTimeout } from './fetchWithTimeout';
 import { edgeApiPath } from './edgeProxy';
+import { base } from '$app/paths';
 
 export type ResilientRequestInit = RequestInit & {
 	/**
@@ -43,10 +44,44 @@ let csrfPromise: Promise<string | undefined> | null = null;
 const DEV_TENANT_ID_CACHE_TTL_MS = 30000;
 let cachedTenantId: string | null = null;
 let cachedTenantIdExpiresAt = 0;
+const AUTH_SESSION_TIMEOUT_MS = 5000;
 
-async function getSupabaseBrowserClient() {
-	const { createSupabaseBrowserClient } = await import('./supabase.browser');
-	return createSupabaseBrowserClient();
+type AuthSessionResponse = {
+	accessToken: string | null;
+	tenantId: string | null;
+};
+
+function authSessionPath(): string {
+	const normalizedBase = base === '/' ? '' : base;
+	return `${normalizedBase}/auth/session`;
+}
+
+async function getServerAuthSession(timeoutMs: number): Promise<AuthSessionResponse> {
+	if (typeof window === 'undefined') {
+		return { accessToken: null, tenantId: null };
+	}
+
+	const response = await fetchWithTimeout(
+		fetch,
+		authSessionPath(),
+		{
+			method: 'GET',
+			headers: { Accept: 'application/json' },
+			credentials: 'include',
+			cache: 'no-store'
+		},
+		Math.min(timeoutMs, AUTH_SESSION_TIMEOUT_MS)
+	).catch(() => null);
+
+	if (!response) {
+		return { accessToken: null, tenantId: null };
+	}
+
+	const payload = (await response.json().catch(() => null)) as AuthSessionResponse | null;
+	return {
+		accessToken: typeof payload?.accessToken === 'string' ? payload.accessToken : null,
+		tenantId: typeof payload?.tenantId === 'string' ? payload.tenantId : null
+	};
 }
 
 function checkTenantIsolation(payload: unknown, tenantId: string): void {
@@ -75,12 +110,8 @@ async function getDevTenantId(): Promise<string | null> {
 	if (typeof window === 'undefined') return null;
 	const now = Date.now();
 	if (now < cachedTenantIdExpiresAt) return cachedTenantId;
-	const supabase = await getSupabaseBrowserClient();
-	const session = (await supabase.auth.getSession()).data.session;
-	cachedTenantId =
-		typeof session?.user?.user_metadata?.tenant_id === 'string'
-			? session.user.user_metadata.tenant_id
-			: null;
+	const session = await getServerAuthSession(DEV_TENANT_ID_CACHE_TTL_MS);
+	cachedTenantId = session.tenantId;
 	cachedTenantIdExpiresAt = now + DEV_TENANT_ID_CACHE_TTL_MS;
 	return cachedTenantId;
 }
@@ -154,20 +185,18 @@ export async function resilientFetch(
 	let response = await fetchWithTimeout(fetch, url, requestOptions, timeoutMs);
 
 	if (response.status === 401) {
-		// FE-M8: Token Refresh Logic
-		const supabase = await getSupabaseBrowserClient();
-		const {
-			data: { session }
-		} = await supabase.auth.refreshSession();
+		const session = await getServerAuthSession(timeoutMs);
 
-		if (session?.access_token) {
-			// Retry once with new token
+		if (session.accessToken) {
+			cachedTenantId = session.tenantId;
+			cachedTenantIdExpiresAt = Date.now() + DEV_TENANT_ID_CACHE_TTL_MS;
 			const headers = new Headers(requestOptions.headers);
-			headers.set('Authorization', `Bearer ${session.access_token}`);
+			headers.set('Authorization', `Bearer ${session.accessToken}`);
 			requestOptions.headers = headers;
 			response = await fetchWithTimeout(fetch, url, requestOptions, timeoutMs);
 		} else {
-			// Session expired
+			cachedTenantId = null;
+			cachedTenantIdExpiresAt = 0;
 		}
 	}
 

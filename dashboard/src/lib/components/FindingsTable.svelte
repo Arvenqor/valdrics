@@ -129,7 +129,13 @@
 						<td class="findings-table__cell">
 							<div class={providerTone(finding.provider)}>
 								<CloudLogo provider={finding.provider} size={10} />
-								<span>{finding.provider === 'aws' ? 'AWS' : finding.provider === 'azure' ? 'Azure' : 'GCP'}</span>
+								<span
+									>{finding.provider === 'aws'
+										? 'AWS'
+										: finding.provider === 'azure'
+											? 'Azure'
+											: 'GCP'}</span
+								>
 							</div>
 						</td>
 						<td class="findings-table__cell">
@@ -164,7 +170,9 @@
 						<td class="findings-table__cell">
 							{#if finding.confidence}
 								<span class="findings-table__confidence">
-									<span class={`findings-table__confidence-dot ${confidenceTone(finding.confidence)}`}></span>
+									<span
+										class={`findings-table__confidence-dot ${confidenceTone(finding.confidence)}`}
+									></span>
 									<span class="findings-table__confidence-label">{finding.confidence}</span>
 								</span>
 							{:else}

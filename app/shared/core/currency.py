@@ -47,10 +47,16 @@ class ExchangeRateService:
 
     def __init__(self, db: AsyncSession | None = None):
         self.db = db
-        self.settings = get_settings()
-        self.cache_ttl_hours = max(
-            1, int(self.settings.EXCHANGE_RATE_SYNC_INTERVAL_HOURS)
-        )
+
+    @property
+    def cache_ttl_hours(self) -> int:
+        settings = get_settings()
+        raw_ttl = getattr(settings, "EXCHANGE_RATE_SYNC_INTERVAL_HOURS", 1)
+        try:
+            ttl_hours = int(raw_ttl)
+        except (TypeError, ValueError):
+            ttl_hours = 1
+        return max(1, ttl_hours)
 
     @asynccontextmanager
     async def _session_scope(self) -> AsyncGenerator[AsyncSession, None]:

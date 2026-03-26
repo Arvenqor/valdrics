@@ -5,6 +5,7 @@ Tests for CostCache - Caching logic for cost data
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import date, datetime, timezone, timedelta
+from types import SimpleNamespace
 from app.shared.adapters.cost_cache import (
     InMemoryCache,
     RedisCache,
@@ -262,3 +263,29 @@ async def test_get_cost_cache_factory():
                 with patch("app.shared.adapters.cost_cache._cache_instance", None):
                     cache = await get_cost_cache()
                     assert isinstance(cache.backend, InMemoryCache)
+
+
+@pytest.mark.asyncio
+async def test_get_cost_cache_rebuilds_when_redis_url_changes_without_manual_reset():
+    with patch("app.shared.adapters.cost_cache._cache_instance", None):
+        with patch(
+            "app.shared.adapters.cost_cache.settings",
+            SimpleNamespace(REDIS_URL=None),
+        ):
+            cache = await get_cost_cache()
+            assert isinstance(cache.backend, InMemoryCache)
+
+        with (
+            patch(
+                "app.shared.adapters.cost_cache.settings",
+                SimpleNamespace(REDIS_URL="redis://localhost"),
+            ),
+            patch("app.shared.adapters.cost_cache.RedisCache") as mock_redis_cls,
+        ):
+            mock_redis = MagicMock(spec=RedisCache)
+            mock_redis.health_check = AsyncMock(return_value=True)
+            mock_redis_cls.return_value = mock_redis
+
+            cache = await get_cost_cache()
+
+        assert cache.backend is mock_redis

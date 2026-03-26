@@ -1,10 +1,9 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import AuthGate from '$lib/components/AuthGate.svelte';
 	import { createLazyComponent } from '$lib/lazyComponent';
 	import { getUpgradePrompt } from '$lib/pricing/upgradePrompt';
-	import SettingsActiveOpsCard from './SettingsActiveOpsCard.svelte';
-	import SettingsAiStrategyCard from './SettingsAiStrategyCard.svelte';
 	import {
 		INITIAL_ACTIVEOPS_SETTINGS,
 		INITIAL_CARBON_SETTINGS,
@@ -12,8 +11,7 @@
 		INITIAL_NOTIFICATION_SETTINGS,
 		INITIAL_PROVIDER_MODELS
 	} from './settingsPageInitialState';
-	import type { PolicyDiagnostics, SafetyStatus } from './settingsPageSchemas';
-	import SettingsSafetyControlsCard from './SettingsSafetyControlsCard.svelte';
+	import type { PolicyDiagnostics, SafetyStatus } from './settingsPageModels';
 
 	type AsyncAction = () => void | Promise<void>;
 	type NotificationSettingsState = typeof INITIAL_NOTIFICATION_SETTINGS;
@@ -152,9 +150,62 @@
 	const loadEnforcementOpsCard = createLazyComponent<TieredSettingsCardProps>(
 		() => import('$lib/components/EnforcementOpsCard.svelte')
 	);
+	const loadSettingsAiStrategyCard = createLazyComponent<{
+		loadingLLM: boolean;
+		llmSettings: LlmSettingsState;
+		providerModels: ProviderModelsState;
+		saveLLMSettings: AsyncAction;
+		savingLLM: boolean;
+	}>(() => import('./SettingsAiStrategyCard.svelte'));
+	const loadSettingsActiveOpsCard = createLazyComponent<{
+		data: {
+			user?: unknown;
+			session?: { access_token?: string };
+			subscription?: { tier?: string };
+			profile?: { persona?: string };
+		};
+		loadingActiveOps: boolean;
+		activeOpsSettings: ActiveOpsSettingsState;
+		saveActiveOpsSettings: AsyncAction;
+		savingActiveOps: boolean;
+	}>(() => import('./SettingsActiveOpsCard.svelte'));
+	const loadSettingsSafetyControlsCard = createLazyComponent<{
+		loadingSafety: boolean;
+		resettingSafety: boolean;
+		loadSafetyStatus: AsyncAction;
+		resetSafetyCircuitBreaker: AsyncAction;
+		safetyError: string;
+		safetySuccess: string;
+		safetyStatus: SafetyStatus | null;
+	}>(() => import('./SettingsSafetyControlsCard.svelte'));
 	const loadSettingsNotificationControls = createLazyComponent<SettingsNotificationControlsProps>(
 		() => import('./SettingsNotificationControls.svelte')
 	);
+	let advancedSettingsAnchor: HTMLDivElement | null = $state(null);
+	let advancedSettingsVisible = $state(false);
+
+	onMount(() => {
+		if (import.meta.env.MODE === 'test' || typeof IntersectionObserver === 'undefined') {
+			advancedSettingsVisible = true;
+			return;
+		}
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries.some((entry) => entry.isIntersecting)) {
+					advancedSettingsVisible = true;
+					observer.disconnect();
+				}
+			},
+			{ rootMargin: '320px 0px' }
+		);
+
+		if (advancedSettingsAnchor) {
+			observer.observe(advancedSettingsAnchor);
+		}
+
+		return () => observer.disconnect();
+	});
 </script>
 
 <div class="space-y-8">
@@ -405,64 +456,112 @@
 				</div>
 			{/await}
 
-			<SettingsAiStrategyCard
-				{loadingLLM}
-				bind:llmSettings
-				{providerModels}
-				{saveLLMSettings}
-				{savingLLM}
-			/>
+			<div bind:this={advancedSettingsAnchor}>
+				{#if advancedSettingsVisible}
+					{#await loadSettingsAiStrategyCard()}
+						<div class="card">
+							<div class="skeleton h-6 w-48 mb-4"></div>
+							<div class="skeleton h-24 rounded-2xl"></div>
+						</div>
+					{:then module}
+						{@const SettingsAiStrategyCard = module.default}
+						<SettingsAiStrategyCard
+							{loadingLLM}
+							bind:llmSettings
+							{providerModels}
+							{saveLLMSettings}
+							{savingLLM}
+						/>
+					{:catch}
+						<div class="card">
+							<div class="skeleton h-6 w-48 mb-4"></div>
+							<div class="skeleton h-24 rounded-2xl"></div>
+						</div>
+					{/await}
 
-			<SettingsActiveOpsCard
-				{data}
-				{loadingActiveOps}
-				bind:activeOpsSettings
-				{saveActiveOpsSettings}
-				{savingActiveOps}
-			/>
+					{#await loadSettingsActiveOpsCard()}
+						<div class="card">
+							<div class="skeleton h-6 w-48 mb-4"></div>
+							<div class="skeleton h-24 rounded-2xl"></div>
+						</div>
+					{:then module}
+						{@const SettingsActiveOpsCard = module.default}
+						<SettingsActiveOpsCard
+							{data}
+							{loadingActiveOps}
+							bind:activeOpsSettings
+							{saveActiveOpsSettings}
+							{savingActiveOps}
+						/>
+					{:catch}
+						<div class="card">
+							<div class="skeleton h-6 w-48 mb-4"></div>
+							<div class="skeleton h-24 rounded-2xl"></div>
+						</div>
+					{/await}
 
-			<SettingsSafetyControlsCard
-				{loadingSafety}
-				{resettingSafety}
-				{loadSafetyStatus}
-				{resetSafetyCircuitBreaker}
-				{safetyError}
-				{safetySuccess}
-				{safetyStatus}
-			/>
+					{#await loadSettingsSafetyControlsCard()}
+						<div class="card">
+							<div class="skeleton h-6 w-56 mb-4"></div>
+							<div class="skeleton h-20 rounded-2xl"></div>
+						</div>
+					{:then module}
+						{@const SettingsSafetyControlsCard = module.default}
+						<SettingsSafetyControlsCard
+							{loadingSafety}
+							{resettingSafety}
+							{loadSafetyStatus}
+							{resetSafetyCircuitBreaker}
+							{safetyError}
+							{safetySuccess}
+							{safetyStatus}
+						/>
+					{:catch}
+						<div class="card">
+							<div class="skeleton h-6 w-56 mb-4"></div>
+							<div class="skeleton h-20 rounded-2xl"></div>
+						</div>
+					{/await}
 
-			{#await loadSettingsNotificationControls()}
-				<div class="card">
-					<div class="skeleton h-6 w-52 mb-4"></div>
-					<div class="skeleton h-4 w-full mb-2"></div>
-					<div class="skeleton h-4 w-3/4"></div>
-				</div>
-			{:then module}
-				{@const SettingsNotificationControls = module.default}
-				<SettingsNotificationControls
-					{data}
-					bind:settings
-					{testing}
-					{testingJira}
-					{testingTeams}
-					{testingWorkflow}
-					{diagnosticsLoading}
-					{policyDiagnostics}
-					{testSlack}
-					{testJira}
-					{testTeams}
-					{testWorkflowDispatch}
-					{runPolicyDiagnostics}
-					{saveSettings}
-					{saving}
-				/>
-			{:catch}
-				<div class="card">
-					<div class="skeleton h-6 w-52 mb-4"></div>
-					<div class="skeleton h-4 w-full mb-2"></div>
-					<div class="skeleton h-4 w-3/4"></div>
-				</div>
-			{/await}
+					{#await loadSettingsNotificationControls()}
+						<div class="card">
+							<div class="skeleton h-6 w-52 mb-4"></div>
+							<div class="skeleton h-4 w-full mb-2"></div>
+							<div class="skeleton h-4 w-3/4"></div>
+						</div>
+					{:then module}
+						{@const SettingsNotificationControls = module.default}
+						<SettingsNotificationControls
+							{data}
+							bind:settings
+							{testing}
+							{testingJira}
+							{testingTeams}
+							{testingWorkflow}
+							{diagnosticsLoading}
+							{policyDiagnostics}
+							{testSlack}
+							{testJira}
+							{testTeams}
+							{testWorkflowDispatch}
+							{runPolicyDiagnostics}
+							{saveSettings}
+							{saving}
+						/>
+					{:catch}
+						<div class="card">
+							<div class="skeleton h-6 w-52 mb-4"></div>
+							<div class="skeleton h-4 w-full mb-2"></div>
+							<div class="skeleton h-4 w-3/4"></div>
+						</div>
+					{/await}
+				{:else}
+					<div class="card">
+						<div class="skeleton h-6 w-48 mb-4"></div>
+						<div class="skeleton h-24 rounded-2xl"></div>
+					</div>
+				{/if}
+			</div>
 		{/if}
 	</AuthGate>
 </div>

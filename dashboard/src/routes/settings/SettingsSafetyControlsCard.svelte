@@ -4,7 +4,7 @@
 		formatSafetyDate,
 		safetyUsagePercent,
 		type SafetyStatus
-	} from './settingsPageSchemas';
+	} from './settingsPageModels';
 
 	type AsyncAction = () => void | Promise<void>;
 

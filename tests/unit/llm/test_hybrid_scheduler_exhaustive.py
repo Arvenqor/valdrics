@@ -1,7 +1,7 @@
 import pytest
 import uuid
 import json
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock, AsyncMock, call, patch
 from datetime import date
 from app.shared.llm.hybrid_scheduler import HybridAnalysisScheduler
 
@@ -319,6 +319,57 @@ def test_set_analyzer_allows_manual_injection(scheduler) -> None:
     injected = MagicMock()
     scheduler.set_analyzer(injected)
     assert scheduler._get_analyzer() is injected
+
+
+def test_get_analyzer_rebuilds_when_provider_changes(mock_db, mock_cache, mock_delta_service):
+    settings = MagicMock()
+    settings.LLM_PROVIDER = "groq"
+    analyzer_one = MagicMock()
+    analyzer_two = MagicMock()
+
+    with (
+        patch(
+            "app.shared.llm.hybrid_scheduler.get_cache_service", return_value=mock_cache
+        ),
+        patch(
+            "app.shared.llm.hybrid_scheduler.DeltaAnalysisService",
+            return_value=mock_delta_service,
+        ),
+        patch(
+            "app.shared.llm.hybrid_scheduler.get_settings", return_value=settings
+        ),
+        patch(
+            "app.shared.llm.hybrid_scheduler.LLMFactory.create",
+            side_effect=["llm-one", "llm-two"],
+        ) as mock_create,
+        patch(
+            "app.shared.llm.hybrid_scheduler.FinOpsAnalyzer",
+            side_effect=[analyzer_one, analyzer_two],
+        ),
+    ):
+        scheduler = HybridAnalysisScheduler(mock_db)
+        first = scheduler._get_analyzer()
+        settings.LLM_PROVIDER = "openai"
+        second = scheduler._get_analyzer()
+
+    assert first is analyzer_one
+    assert second is analyzer_two
+    assert first is not second
+    assert mock_create.call_args_list == [call("groq"), call("openai")]
+
+
+def test_get_analyzer_keeps_explicitly_injected_analyzer_when_provider_changes(scheduler) -> None:
+    settings = MagicMock()
+    settings.LLM_PROVIDER = "groq"
+    scheduler._settings_getter = MagicMock(return_value=settings)
+    scheduler._llm_factory_create = MagicMock()
+    injected = MagicMock()
+
+    scheduler.set_analyzer(injected)
+    settings.LLM_PROVIDER = "openai"
+
+    assert scheduler._get_analyzer() is injected
+    scheduler._llm_factory_create.assert_not_called()
 
 
 @pytest.mark.asyncio

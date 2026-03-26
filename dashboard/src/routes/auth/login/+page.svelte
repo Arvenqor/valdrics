@@ -14,6 +14,7 @@
 		type PublicAuthContext
 	} from '$lib/auth/publicAuthIntent';
 	import { emitLandingTelemetry } from '$lib/landing/landingTelemetry';
+	import { broadcastAuthSessionChanged } from '$lib/auth/authSessionSignal';
 
 	let email = $state('');
 	let password = $state('');
@@ -27,15 +28,49 @@
 	let intentLabel = $derived<string | null>(describePublicIntent(authContext.intent));
 	let personaLabel = $derived<string | null>(describePublicPersona(authContext.persona));
 
-	async function getSupabaseClient() {
-		try {
-			const { createSupabaseBrowserClient } = await import('$lib/supabase.browser');
-			return createSupabaseBrowserClient();
-		} catch {
+	type AuthFlowRequest =
+		| { action: 'password-login'; email: string; password: string }
+		| { action: 'password-signup'; email: string; password: string; emailRedirectTo: string }
+		| {
+				action: 'magic-link';
+				email: string;
+				shouldCreateUser: boolean;
+				emailRedirectTo: string;
+		  }
+		| {
+				action: 'sso';
+				mode: 'domain' | 'provider_id';
+				domain?: string;
+				providerId?: string;
+				redirectTo: string;
+		  };
+
+	type AuthFlowResponse = {
+		ok?: boolean;
+		url?: string | null;
+		message?: string;
+	};
+
+	async function postAuthFlow(payload: AuthFlowRequest): Promise<AuthFlowResponse> {
+		const response = await fetch(`${base}/auth/flow`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Accept: 'application/json'
+			},
+			credentials: 'include',
+			body: JSON.stringify(payload)
+		});
+
+		const body = (await response.json().catch(() => null)) as AuthFlowResponse | null;
+		if (!response.ok) {
 			throw new Error(
-				'Authentication is not configured for this environment. Contact support if this should be enabled.'
+				body?.message ||
+					'Authentication is not configured for this environment. Contact support if this should be enabled.'
 			);
 		}
+
+		return body ?? { ok: true };
 	}
 
 	$effect(() => {
@@ -90,15 +125,15 @@
 		success = '';
 
 		try {
-			const supabase = await getSupabaseClient();
 			if (mode === 'login') {
 				emitAuthEvent('auth_password_submit', 'login');
-				const { error: authError } = await supabase.auth.signInWithPassword({
+				await postAuthFlow({
+					action: 'password-login',
 					email,
 					password
 				});
 
-				if (authError) throw authError;
+				broadcastAuthSessionChanged();
 
 				// Invalidate all load functions to refresh user data, then navigate
 				await invalidateAll();
@@ -106,13 +141,12 @@
 				await goto(`${base}${nextPath}`);
 			} else {
 				emitAuthEvent('auth_password_submit', 'signup');
-				const { error: authError } = await supabase.auth.signUp({
+				await postAuthFlow({
+					action: 'password-signup',
 					email,
 					password,
-					options: { emailRedirectTo: callbackRedirectTo() }
+					emailRedirectTo: callbackRedirectTo()
 				});
-
-				if (authError) throw authError;
 				success =
 					'Check your email for the confirmation link. Your setup flow will continue after verification.';
 			}
@@ -129,20 +163,17 @@
 		error = '';
 		success = '';
 		try {
-			const supabase = await getSupabaseClient();
 			const normalizedEmail = email.trim().toLowerCase();
 			if (!normalizedEmail) {
 				throw new Error('Enter your work email to continue.');
 			}
 			emitAuthEvent('auth_magic_link_submit', mode);
-			const { error: authError } = await supabase.auth.signInWithOtp({
+			await postAuthFlow({
+				action: 'magic-link',
 				email: normalizedEmail,
-				options: {
-					emailRedirectTo: callbackRedirectTo(),
-					shouldCreateUser: mode === 'signup'
-				}
+				emailRedirectTo: callbackRedirectTo(),
+				shouldCreateUser: mode === 'signup'
 			});
-			if (authError) throw authError;
 			success = 'Secure sign-in link sent. Check your inbox to continue.';
 		} catch (e) {
 			const err = e as Error;
@@ -157,7 +188,6 @@
 		error = '';
 		success = '';
 		try {
-			const supabase = await getSupabaseClient();
 			if (!email.trim()) {
 				throw new Error('Enter your work email to continue with SSO.');
 			}
@@ -189,12 +219,16 @@
 				if (!discovery.provider_id) {
 					throw new Error('SSO provider configuration is incomplete.');
 				}
-				const { data, error: authError } = await supabase.auth.signInWithSSO({
+				const data = await postAuthFlow({
+					action: 'sso',
+					mode: 'provider_id',
 					providerId: discovery.provider_id,
-					options: { redirectTo }
+					redirectTo
 				});
-				if (authError) throw authError;
-				if (data?.url) window.location.assign(data.url);
+				if (!data.url) {
+					throw new Error('SSO redirect URL was not returned.');
+				}
+				window.location.assign(data.url);
 				return;
 			}
 
@@ -202,12 +236,16 @@
 			if (!domain) {
 				throw new Error('Unable to determine your SSO domain.');
 			}
-			const { data, error: authError } = await supabase.auth.signInWithSSO({
+			const data = await postAuthFlow({
+				action: 'sso',
+				mode: 'domain',
 				domain,
-				options: { redirectTo }
+				redirectTo
 			});
-			if (authError) throw authError;
-			if (data?.url) window.location.assign(data.url);
+			if (!data.url) {
+				throw new Error('SSO redirect URL was not returned.');
+			}
+			window.location.assign(data.url);
 		} catch (e) {
 			const err = e as Error;
 			error = err.message;

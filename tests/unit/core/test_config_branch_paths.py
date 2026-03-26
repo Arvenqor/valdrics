@@ -204,27 +204,47 @@ def test_reload_settings_from_environment_refreshes_loaded_celery_config() -> No
 
 def test_reload_settings_from_environment_refreshes_loaded_fastapi_metadata() -> None:
     current = types.SimpleNamespace(APP_NAME="old-name", VERSION="0.1.0")
-    refreshed = MagicMock()
-    refreshed.APP_NAME = "new-name"
-    refreshed.VERSION = "0.2.0"
-    refreshed.model_dump.return_value = {
-        "APP_NAME": refreshed.APP_NAME,
-        "VERSION": refreshed.VERSION,
-    }
+
+    class _RefreshedSettings:
+        APP_NAME = "new-name"
+        VERSION = "0.2.0"
+
+        def model_dump(self) -> dict[str, str]:
+            return {
+                "APP_NAME": self.APP_NAME,
+                "VERSION": self.VERSION,
+            }
+
+    refreshed = _RefreshedSettings()
     logger = MagicMock()
 
     fake_security_module = types.ModuleType("app.shared.core.security")
     fake_encryption_module = types.ModuleType("app.models._encryption")
+    fake_celery_module = types.ModuleType("app.shared.core.celery_app")
     fake_app_main_module = types.ModuleType("app.main")
 
-    class _KeyManager:
-        clear_key_caches = MagicMock()
+    cache_warm_flags: list[bool] = []
+    cleared_encryption_cache: list[bool] = []
+    refreshed_celery_config: list[object] = []
+    refreshed_fastapi_metadata: list[object] = []
 
-    clear_encryption_key_cache = MagicMock()
-    refresh_fastapi_app_metadata = MagicMock()
+    class _KeyManager:
+        @staticmethod
+        def clear_key_caches(*, warm: bool) -> None:
+            cache_warm_flags.append(warm)
+
+    def clear_encryption_key_cache() -> None:
+        cleared_encryption_cache.append(True)
+
+    def refresh_celery_app_config(settings_obj: object) -> None:
+        refreshed_celery_config.append(settings_obj)
+
+    def refresh_fastapi_app_metadata(settings_obj: object) -> None:
+        refreshed_fastapi_metadata.append(settings_obj)
 
     fake_security_module.EncryptionKeyManager = _KeyManager
     fake_encryption_module.clear_encryption_key_cache = clear_encryption_key_cache
+    fake_celery_module.refresh_celery_app_config = refresh_celery_app_config
     fake_app_main_module.refresh_fastapi_app_metadata = refresh_fastapi_app_metadata
 
     with (
@@ -233,19 +253,23 @@ def test_reload_settings_from_environment_refreshes_loaded_fastapi_metadata() ->
         patch("app.shared.core.config.structlog.get_logger", return_value=logger),
         patch.dict(
             "sys.modules",
-            {
-                "app.shared.core.security": fake_security_module,
-                "app.models._encryption": fake_encryption_module,
-                "app.main": fake_app_main_module,
-            },
-        ),
+                {
+                    "app.shared.core.security": fake_security_module,
+                    "app.models._encryption": fake_encryption_module,
+                    "app.shared.core.celery_app": fake_celery_module,
+                    "app.main": fake_app_main_module,
+                },
+            ),
     ):
         result = reload_settings_from_environment()
 
     assert result is current
     assert current.APP_NAME == "new-name"
     assert current.VERSION == "0.2.0"
-    refresh_fastapi_app_metadata.assert_called_once_with(current)
+    assert cache_warm_flags == [True]
+    assert cleared_encryption_cache == [True]
+    assert refreshed_celery_config == [current]
+    assert refreshed_fastapi_metadata == [current]
 
 
 def test_environment_validator_normalizes_and_rejects_invalid_values() -> None:

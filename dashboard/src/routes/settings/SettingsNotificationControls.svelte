@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { tierAtLeast } from '$lib/tier';
-	import { type PolicyDiagnostics } from './settingsPageSchemas';
+	import type { PolicyDiagnostics } from './settingsPageModels';
 	import SettingsDigestAlertCard from './SettingsDigestAlertCard.svelte';
 	import { INITIAL_NOTIFICATION_SETTINGS } from './settingsPageInitialState';
 	import SettingsWorkflowAutomationCard from './SettingsWorkflowAutomationCard.svelte';

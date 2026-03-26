@@ -27,8 +27,8 @@
 		buildLandingHeroSalesPath,
 		buildLandingHeroSignupPath
 	} from '$lib/landing/landingHeroActions';
+	import { buildLandingPublicPath } from '$lib/landing/landingPublicAttribution';
 	import { createLandingHeroTelemetryBridge } from '$lib/landing/landingHeroTelemetryBridge';
-	import { appendPublicAttribution } from '$lib/public/publicBuyingMotion';
 	import {
 		calculateLandingHeroScenarioMetrics,
 		formatLandingHeroCurrencyAmount
@@ -264,10 +264,11 @@
 		});
 	}
 	function buildPublicPath(path: string, source: string): string {
-		return appendPublicAttribution(path, $page.url, {
-			entry: 'landing',
+		return buildLandingPublicPath({
+			path,
 			source,
-			persona: activeBuyerRole.id
+			persona: activeBuyerRole.id,
+			utm: attribution.utm
 		});
 	}
 	function buildEnterpriseReviewHref(source: string): string {

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from '$lib/validation/clientZod';
 
 import type { ScimGroupMapping } from './identitySettingsTypes';
 
@@ -7,31 +7,35 @@ export const IDENTITY_REQUEST_TIMEOUT_MS = 8000;
 const PersonaSchema = z.enum(['engineering', 'finance', 'platform', 'leadership']);
 
 const ScimGroupMappingSchema = z.object({
-	group: z.string().min(1).max(255),
+	group: z.string().check(z.minLength(1), z.maxLength(255)),
 	role: z.enum(['admin', 'member']),
-	persona: PersonaSchema.nullable().optional()
+	persona: z.optional(z.nullable(PersonaSchema))
 });
 
 export const IdentitySettingsResponseSchema = z.object({
 	sso_enabled: z.boolean(),
-	allowed_email_domains: z.array(z.string().min(1).max(255)).max(50),
+	allowed_email_domains: z
+		.array(z.string().check(z.minLength(1), z.maxLength(255)))
+		.check(z.maxLength(50)),
 	sso_federation_enabled: z.boolean(),
 	sso_federation_mode: z.enum(['domain', 'provider_id']),
-	sso_federation_provider_id: z.string().max(255).nullable().optional(),
+	sso_federation_provider_id: z.optional(z.nullable(z.string().check(z.maxLength(255)))),
 	scim_enabled: z.boolean(),
 	has_scim_token: z.boolean(),
-	scim_last_rotated_at: z.string().nullable(),
-	scim_group_mappings: z.array(ScimGroupMappingSchema).max(50).default([])
+	scim_last_rotated_at: z.nullable(z.string()),
+	scim_group_mappings: z.optional(z.array(ScimGroupMappingSchema).check(z.maxLength(50)))
 });
 
 export const IdentitySettingsUpdateSchema = z.object({
 	sso_enabled: z.boolean(),
-	allowed_email_domains: z.array(z.string().min(1).max(255)).max(50),
+	allowed_email_domains: z
+		.array(z.string().check(z.minLength(1), z.maxLength(255)))
+		.check(z.maxLength(50)),
 	sso_federation_enabled: z.boolean(),
 	sso_federation_mode: z.enum(['domain', 'provider_id']),
-	sso_federation_provider_id: z.string().max(255).nullable().optional(),
+	sso_federation_provider_id: z.optional(z.nullable(z.string().check(z.maxLength(255)))),
 	scim_enabled: z.boolean(),
-	scim_group_mappings: z.array(ScimGroupMappingSchema).max(50)
+	scim_group_mappings: z.array(ScimGroupMappingSchema).check(z.maxLength(50))
 });
 
 export const IdentityDiagnosticsSchema = z.object({
@@ -43,8 +47,8 @@ export const IdentityDiagnosticsSchema = z.object({
 		federation_enabled: z.boolean(),
 		federation_mode: z.enum(['domain', 'provider_id']),
 		federation_ready: z.boolean(),
-		current_admin_domain: z.string().nullable(),
-		current_admin_domain_allowed: z.boolean().nullable(),
+		current_admin_domain: z.nullable(z.string()),
+		current_admin_domain_allowed: z.nullable(z.boolean()),
 		issues: z.array(z.string())
 	}),
 	scim: z.object({
@@ -52,9 +56,9 @@ export const IdentityDiagnosticsSchema = z.object({
 		enabled: z.boolean(),
 		has_token: z.boolean(),
 		token_blind_index_present: z.boolean(),
-		last_rotated_at: z.string().nullable(),
-		token_age_days: z.number().int().nullable(),
-		rotation_recommended_days: z.number().int(),
+		last_rotated_at: z.nullable(z.string()),
+		token_age_days: z.nullable(z.number().check(z.int())),
+		rotation_recommended_days: z.number().check(z.int()),
 		rotation_overdue: z.boolean(),
 		issues: z.array(z.string())
 	}),
@@ -62,8 +66,8 @@ export const IdentityDiagnosticsSchema = z.object({
 });
 
 export const RotateTokenResponseSchema = z.object({
-	scim_token: z.string().min(16),
-	rotated_at: z.string().min(10)
+	scim_token: z.string().check(z.minLength(16)),
+	rotated_at: z.string().check(z.minLength(10))
 });
 
 export const ScimTokenTestResponseSchema = z.object({

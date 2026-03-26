@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import asyncio
 import os
 import tempfile
 from datetime import datetime, timedelta
@@ -13,11 +12,10 @@ from pathlib import Path
 from contextlib import suppress
 from unittest.mock import patch
 from uuid import UUID, uuid4
-from collections.abc import Awaitable
-from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from scripts.async_heartbeat import run_async_with_heartbeat
 from scripts.collect_finance_telemetry_snapshot import (
     _default_window,
     _parse_date,
@@ -46,25 +44,6 @@ TIER_MATRIX: dict[str, tuple[int, int, Decimal]] = {
     "pro": (4, 3, Decimal("0.6000")),
     "enterprise": (3, 3, Decimal("1.2000")),
 }
-
-
-async def _heartbeat_loop(stop: asyncio.Event) -> None:
-    while not stop.is_set():
-        await asyncio.sleep(0.01)
-
-
-async def _await_with_heartbeat(awaitable: Awaitable[Any]) -> Any:
-    stop = asyncio.Event()
-    heartbeat = asyncio.create_task(_heartbeat_loop(stop))
-    try:
-        return await awaitable
-    finally:
-        stop.set()
-        await heartbeat
-
-
-def _run_async(awaitable: Awaitable[Any]) -> Any:
-    return asyncio.run(_await_with_heartbeat(awaitable))
 
 
 def _repo_root() -> Path:
@@ -145,12 +124,14 @@ def _ensure_parent_dir(path: Path, *, field_name: str) -> None:
 
 def _write_verified_snapshot(*, output_path: Path, payload: dict[str, object]) -> None:
     temp_path = _stage_json_file(output_path, payload)
+    promoted = False
     try:
         verify_snapshot(snapshot_path=temp_path, max_artifact_age_hours=4.0)
         _promote_staged_file(temp_path, output_path)
-    except Exception:
-        temp_path.unlink(missing_ok=True)
-        raise
+        promoted = True
+    finally:
+        if not promoted:
+            temp_path.unlink(missing_ok=True)
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -379,7 +360,7 @@ def main(argv: list[str] | None = None) -> int:
             label = f"{start_date}_{end_date}"
 
         database_path.parent.mkdir(parents=True, exist_ok=True)
-        payload = _run_async(
+        payload = run_async_with_heartbeat(
             _generate_snapshot(
                 database_path=database_path,
                 start_date=start_date,

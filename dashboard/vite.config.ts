@@ -53,7 +53,6 @@ export default defineConfig({
 			output: {
 				manualChunks(id) {
 					if (!id.includes('node_modules')) return undefined;
-					if (id.includes('/node_modules/@supabase/')) return 'vendor-supabase';
 					if (id.includes('/node_modules/zod/')) return 'vendor-zod';
 					return undefined;
 				}

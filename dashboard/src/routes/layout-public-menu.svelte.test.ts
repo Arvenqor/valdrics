@@ -25,12 +25,6 @@ function createPageStore(initial: PageState) {
 
 const mocks = vi.hoisted(() => {
 	const pageStore = createPageStore({ url: new URL('https://example.com/') });
-	const authSubscription = { unsubscribe: vi.fn() };
-	const onAuthStateChange = vi.fn((_callback: (event: string) => void) => ({
-		data: {
-			subscription: authSubscription
-		}
-	}));
 	return {
 		pageStore,
 		uiState: {
@@ -44,9 +38,7 @@ const mocks = vi.hoisted(() => {
 			init: vi.fn().mockResolvedValue(undefined),
 			disconnect: vi.fn()
 		},
-		invalidate: vi.fn(),
-		authSubscription,
-		onAuthStateChange
+		invalidate: vi.fn()
 	};
 });
 
@@ -64,14 +56,6 @@ vi.mock('$app/navigation', () => ({
 
 vi.mock('$app/environment', () => ({
 	browser: true
-}));
-
-vi.mock('$lib/supabase.browser', () => ({
-	createSupabaseBrowserClient: () => ({
-		auth: {
-			onAuthStateChange: mocks.onAuthStateChange
-		}
-	})
 }));
 
 vi.mock('$lib/stores/ui.svelte', () => ({
@@ -94,8 +78,6 @@ describe('public layout mobile menu', () => {
 		mocks.jobStore.init.mockClear();
 		mocks.jobStore.disconnect.mockClear();
 		mocks.invalidate.mockClear();
-		mocks.onAuthStateChange.mockClear();
-		mocks.authSubscription.unsubscribe.mockClear();
 		Object.defineProperty(window, 'matchMedia', {
 			configurable: true,
 			value: vi.fn().mockReturnValue({
@@ -307,22 +289,14 @@ describe('public layout mobile menu', () => {
 		});
 	});
 
-	it('loads auth listeners and job streaming only for authenticated layouts', async () => {
+	it('loads job streaming only for authenticated layouts', async () => {
+		await renderPublicLayout();
+		expect(mocks.jobStore.init).not.toHaveBeenCalled();
+
 		await renderAuthenticatedLayout();
 
 		await waitFor(() => {
-			expect(mocks.onAuthStateChange).toHaveBeenCalledTimes(1);
 			expect(mocks.jobStore.init).toHaveBeenCalledTimes(1);
-		});
-
-		const authCallback = mocks.onAuthStateChange.mock.calls[0]?.[0] as
-			| ((event: string) => void)
-			| undefined;
-		expect(authCallback).toBeTypeOf('function');
-		authCallback?.('SIGNED_IN');
-
-		await waitFor(() => {
-			expect(mocks.invalidate).toHaveBeenCalledWith('supabase:auth');
 		});
 	});
 

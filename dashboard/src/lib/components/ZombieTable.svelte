@@ -25,7 +25,7 @@
 	type ZombieCategoryConfig = {
 		key: ZombieCollectionKey;
 		defaultExplainability: string;
-		resourceClassName?: string;
+		compactResource?: boolean;
 		typeLabel: string | ((finding: RemediationFinding) => string);
 	};
 
@@ -75,7 +75,7 @@
 			key: 'stale_ecr_images',
 			typeLabel: 'ECR Image',
 			defaultExplainability: 'Untagged or superseded by multiple newer versions.',
-			resourceClassName: 'truncate max-w-[150px]'
+			compactResource: true
 		},
 		{
 			key: 'idle_sagemaker_endpoints',
@@ -95,10 +95,10 @@
 		onRemediate: (finding: RemediationFinding) => void;
 	}>();
 
-	function providerColorClass(provider: string | undefined): string {
-		if (provider === 'aws') return 'text-orange-400';
-		if (provider === 'azure') return 'text-blue-400';
-		return 'text-yellow-400';
+	function providerTone(provider: string | undefined): string {
+		if (provider === 'aws') return 'zombie-table__provider-label--aws';
+		if (provider === 'azure') return 'zombie-table__provider-label--azure';
+		return 'zombie-table__provider-label--gcp';
 	}
 
 	function providerLabel(provider: string | undefined): string {
@@ -110,9 +110,9 @@
 		return Math.max(0, Math.min(1, score));
 	}
 
-	function confidenceBarWidth(score: number | undefined): string {
+	function confidencePercent(score: number | undefined): number {
 		const ratio = confidenceRatio(score);
-		return `${Math.round((ratio ?? 0) * 100)}%`;
+		return Math.round((ratio ?? 0) * 100);
 	}
 
 	function confidenceLabel(score: number | undefined): string {
@@ -142,14 +142,14 @@
 	);
 </script>
 
-<div class="card stagger-enter" style="animation-delay: 250ms;">
-	<div class="flex items-center justify-between mb-5">
-		<h2 class="text-lg font-semibold">Zombie Resources</h2>
+<div class="card stagger-enter zombie-table">
+	<div class="zombie-table__header">
+		<h2 class="zombie-table__title">Zombie Resources</h2>
 		<span class="badge badge-warning">{zombieCount} found</span>
 	</div>
 
-	<div class="overflow-x-auto">
-		<table class="table">
+	<div class="zombie-table__scroller">
+		<table class="table zombie-table__table">
 			<thead>
 				<tr>
 					<th>Cloud</th>
@@ -164,38 +164,41 @@
 			<tbody>
 				{#each zombieRows as row (row.key)}
 					<tr>
-						<td class="flex items-center gap-1.5">
+						<td class="zombie-table__cloud-cell">
 							<CloudLogo provider={row.finding.provider} size={12} />
-							<span class="text-xs font-bold uppercase {providerColorClass(row.finding.provider)}">
+							<span class={`zombie-table__provider-label ${providerTone(row.finding.provider)}`}>
 								{providerLabel(row.finding.provider)}
 							</span>
 						</td>
-						<td class="font-mono text-xs {row.config.resourceClassName ?? ''}">
+						<td
+							class="zombie-table__resource-id"
+							class:zombie-table__resource-id--compact={row.config.compactResource}
+							title={row.finding.resource_id}
+						>
 							{row.finding.resource_id}
 						</td>
 						<td>
-							<div class="flex items-center gap-1.5">
+							<div class="zombie-table__type-group">
 								<span class="badge badge-default">{typeLabel(row.config, row.finding)}</span>
 								{#if row.config.key === 'idle_instances' && row.finding.is_gpu}
-									<span class="badge badge-error py-0 text-xs uppercase font-bold">GPU</span>
+									<span class="zombie-table__gpu-badge">GPU</span>
 								{/if}
 							</div>
 						</td>
-						<td class="text-danger-400">${monthlyCostLabel(row.finding.monthly_cost)}</td>
-						<td class="text-xs text-ink-400">{row.finding.owner || 'unknown'}</td>
+						<td class="zombie-table__cost">${monthlyCostLabel(row.finding.monthly_cost)}</td>
+						<td class="zombie-table__owner">{row.finding.owner || 'unknown'}</td>
 						<td>
-							<div class="flex flex-col gap-1 max-w-xs">
-								<p class="text-xs leading-tight text-ink-300">
+							<div class="zombie-table__confidence">
+								<p class="zombie-table__explanation">
 									{row.finding.explainability_notes || row.config.defaultExplainability}
 								</p>
-								<div class="flex items-center gap-2">
-									<div class="h-1 w-16 bg-ink-700 rounded-full overflow-hidden">
-										<div
-											class="h-full bg-accent-500"
-											style="width: {confidenceBarWidth(row.finding.confidence_score)}"
-										></div>
-									</div>
-									<span class="text-xs font-bold text-accent-400">
+								<div class="zombie-table__confidence-meta">
+									<progress
+										class="zombie-table__confidence-meter"
+										value={confidencePercent(row.finding.confidence_score)}
+										max="100"
+									></progress>
+									<span class="zombie-table__confidence-label">
 										{confidenceLabel(row.finding.confidence_score)}
 									</span>
 								</div>
@@ -204,7 +207,7 @@
 						<td>
 							<button
 								type="button"
-								class="btn btn-ghost text-xs"
+								class="btn btn-ghost zombie-table__action"
 								onclick={() => onRemediate(row.finding)}
 								disabled={!row.finding.finding_id}
 								title={!row.finding.finding_id
@@ -220,3 +223,158 @@
 		</table>
 	</div>
 </div>
+
+<style>
+	.zombie-table {
+		animation-delay: 250ms;
+	}
+
+	.zombie-table__header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-3);
+		margin-bottom: var(--space-5);
+	}
+
+	.zombie-table__title {
+		margin: 0;
+		font-size: var(--text-lg);
+		font-weight: 600;
+	}
+
+	.zombie-table__scroller {
+		overflow-x: auto;
+	}
+
+	.zombie-table__table {
+		min-width: 100%;
+	}
+
+	.zombie-table__cloud-cell {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+	}
+
+	.zombie-table__provider-label {
+		font-size: var(--text-xs);
+		font-weight: 700;
+		text-transform: uppercase;
+	}
+
+	.zombie-table__provider-label--aws {
+		color: #fb923c;
+	}
+
+	.zombie-table__provider-label--azure {
+		color: #60a5fa;
+	}
+
+	.zombie-table__provider-label--gcp {
+		color: #facc15;
+	}
+
+	.zombie-table__resource-id {
+		max-width: 14rem;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font-family: var(--font-mono);
+		font-size: var(--text-xs);
+	}
+
+	.zombie-table__resource-id--compact {
+		max-width: 9.375rem;
+	}
+
+	.zombie-table__type-group {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+	}
+
+	.zombie-table__gpu-badge {
+		display: inline-flex;
+		align-items: center;
+		padding: 0 0.375rem;
+		border-radius: var(--radius-full);
+		background: rgb(239 68 68 / 0.18);
+		color: var(--color-danger-400);
+		font-size: var(--text-xs);
+		font-weight: 700;
+		text-transform: uppercase;
+	}
+
+	.zombie-table__cost {
+		color: var(--color-danger-400);
+	}
+
+	.zombie-table__owner {
+		font-size: var(--text-xs);
+		color: var(--color-ink-400);
+	}
+
+	.zombie-table__confidence {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		max-width: 20rem;
+	}
+
+	.zombie-table__explanation {
+		margin: 0;
+		font-size: var(--text-xs);
+		line-height: 1.35;
+		color: var(--color-ink-300);
+	}
+
+	.zombie-table__confidence-meta {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.zombie-table__confidence-meter {
+		inline-size: 4rem;
+		block-size: 0.25rem;
+		appearance: none;
+		border: none;
+		border-radius: var(--radius-full);
+		background: var(--color-ink-700);
+		overflow: hidden;
+	}
+
+	.zombie-table__confidence-meter::-webkit-progress-bar {
+		background: var(--color-ink-700);
+	}
+
+	.zombie-table__confidence-meter::-webkit-progress-value {
+		background: var(--color-accent-500);
+	}
+
+	.zombie-table__confidence-meter::-moz-progress-bar {
+		background: var(--color-accent-500);
+	}
+
+	.zombie-table__confidence-label {
+		font-size: var(--text-xs);
+		font-weight: 700;
+		color: var(--color-accent-400);
+	}
+
+	.zombie-table__action {
+		font-size: var(--text-xs);
+	}
+
+	@media (max-width: 900px) {
+		.zombie-table__header {
+			flex-direction: column;
+			align-items: flex-start;
+		}
+
+		.zombie-table__table {
+			min-width: 52rem;
+		}
+	}
+</style>

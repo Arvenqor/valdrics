@@ -259,6 +259,9 @@ class TestZombieServiceEdgeCases:
                 "app.modules.optimization.domain.service.ZombieDetectorFactory"
             ) as mock_factory,
             patch(
+                "app.modules.optimization.adapters.aws.region_discovery.RegionDiscovery"
+            ) as MockRD,
+            patch(
                 "app.shared.core.pricing.get_tenant_tier",
                 new=AsyncMock(return_value=PricingTier.FREE),
             ),
@@ -268,6 +271,9 @@ class TestZombieServiceEdgeCases:
             ),
             patch.object(zombie_service, "_send_notifications", new=AsyncMock()),
         ):
+            MockRD.return_value.get_enabled_regions = AsyncMock(
+                return_value=["us-east-1"]
+            )
             mock_detector = AsyncMock()
             mock_detector.provider_name = "aws"
             mock_detector.scan_all.return_value = {

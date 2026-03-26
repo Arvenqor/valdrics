@@ -10,7 +10,8 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
-from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient
+from scripts.async_heartbeat import run_async_with_heartbeat
 from scripts.env_generation_common import ensure_parent_dir, repo_root_for
 
 
@@ -86,10 +87,7 @@ def run_local_sqlite_bootstrap_smoke(
                 patch("app.main.EmissionsTracker", None),
                 patch("app.shared.core.http.get_http_client", return_value=_STSClient()),
             ):
-                with TestClient(app) as client:
-                    response = client.get("/health")
-                    response.raise_for_status()
-                    payload = response.json()
+                payload = run_async_with_heartbeat(_fetch_health_payload(app))
         finally:
             reset_db_runtime()
             get_settings.cache_clear()
@@ -110,6 +108,18 @@ def run_local_sqlite_bootstrap_smoke(
         .get("status"),
         "database_path": database_path.as_posix(),
     }
+
+
+async def _fetch_health_payload(app: Any) -> dict[str, Any]:
+    async with app.router.lifespan_context(app):
+        transport = ASGITransport(app=app, raise_app_exceptions=True)
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+        ) as client:
+            response = await client.get("/health")
+            response.raise_for_status()
+            return response.json()
 
 
 def _build_parser() -> argparse.ArgumentParser:

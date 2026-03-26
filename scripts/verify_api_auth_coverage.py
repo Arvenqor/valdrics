@@ -17,6 +17,14 @@ from unittest.mock import patch
 
 from fastapi.routing import APIRoute
 
+
+APP_LOAD_RECOVERABLE_EXCEPTIONS: tuple[type[Exception], ...] = (
+    ImportError,
+    RuntimeError,
+    TypeError,
+    ValueError,
+)
+
 # Dependency call names that satisfy route-level authentication coverage.
 AUTH_DEPENDENCY_CALL_NAMES = {
     "get_current_user",
@@ -134,7 +142,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     _ = argv
     try:
         app = load_app_for_audit()
-    except Exception as exc:
+    except APP_LOAD_RECOVERABLE_EXCEPTIONS as exc:
         print(f"Auth coverage check failed to load app: {exc}")
         return 2
     violations = collect_auth_coverage_violations(app)

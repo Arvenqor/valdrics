@@ -685,6 +685,7 @@ def main(argv: list[str] | None = None) -> int:
     load_profile = _normalize_load_profile_args(args)
     payload = asyncio.run(generate_evidence(args))
     temp_path = _stage_json_file(output_path, payload)
+    promoted = False
     try:
         verify_evidence(
             evidence_path=temp_path,
@@ -699,9 +700,10 @@ def main(argv: list[str] | None = None) -> int:
             max_artifact_age_hours=4.0,
         )
         _promote_staged_file(temp_path, output_path)
-    except Exception:
-        temp_path.unlink(missing_ok=True)
-        raise
+        promoted = True
+    finally:
+        if not promoted:
+            temp_path.unlink(missing_ok=True)
     print(json.dumps(payload, indent=2, sort_keys=True))
     if not bool(payload.get("meets_targets")):
         return 1

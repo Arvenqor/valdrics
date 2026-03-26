@@ -1,18 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import type { Snippet } from 'svelte';
 import AppAuthenticatedShell from './AppAuthenticatedShell.svelte';
+import { AUTH_SESSION_SIGNAL_KEY } from '$lib/auth/authSessionSignal';
 import { uiState } from '$lib/stores/ui.svelte';
 
 const mocks = vi.hoisted(() => ({
 	invalidate: vi.fn(),
-	onAuthStateChange: vi.fn((_callback: (event: string) => void) => ({
-		data: {
-			subscription: {
-				unsubscribe: vi.fn()
-			}
-		}
-	})),
 	jobStore: {
 		activeJobsCount: 0,
 		init: vi.fn().mockResolvedValue(undefined),
@@ -28,19 +22,29 @@ vi.mock('$app/navigation', () => ({
 	invalidate: mocks.invalidate
 }));
 
-vi.mock('$lib/supabase.browser', () => ({
-	createSupabaseBrowserClient: () => ({
-		auth: {
-			onAuthStateChange: mocks.onAuthStateChange
-		}
-	})
-}));
-
 vi.mock('$lib/stores/jobs.svelte', () => ({
 	jobStore: mocks.jobStore
 }));
 
 const emptySnippet = (() => '') as unknown as Snippet;
+
+function renderShell() {
+	render(AppAuthenticatedShell, {
+		props: {
+			user: { email: 'operator@example.com' },
+			role: 'owner',
+			platformOperator: false,
+			subscription: { tier: 'growth' },
+			primaryNavItems: [{ href: '/dashboard', label: 'Dashboard', icon: '📊' }],
+			secondaryNavItems: [{ href: '/llm', label: 'LLM Usage', icon: '🤖' }],
+			activeSecondaryNavItems: [],
+			persona: 'finops',
+			toAppPath: (path: string) => path,
+			isActive: (href: string) => href === '/dashboard',
+			children: emptySnippet
+		}
+	});
+}
 
 describe('AppAuthenticatedShell', () => {
 	beforeEach(() => {
@@ -54,7 +58,6 @@ describe('AppAuthenticatedShell', () => {
 		});
 		window.localStorage.clear();
 		mocks.invalidate.mockClear();
-		mocks.onAuthStateChange.mockClear();
 		mocks.jobStore.init.mockClear();
 		mocks.jobStore.disconnect.mockClear();
 	});
@@ -67,21 +70,7 @@ describe('AppAuthenticatedShell', () => {
 	});
 
 	it('lazy-loads and opens the command palette on demand', async () => {
-		render(AppAuthenticatedShell, {
-			props: {
-				user: { email: 'operator@example.com' },
-				role: 'owner',
-				platformOperator: false,
-				subscription: { tier: 'growth' },
-				primaryNavItems: [{ href: '/dashboard', label: 'Dashboard', icon: '📊' }],
-				secondaryNavItems: [{ href: '/llm', label: 'LLM Usage', icon: '🤖' }],
-				activeSecondaryNavItems: [],
-				persona: 'finops',
-				toAppPath: (path: string) => path,
-				isActive: (href: string) => href === '/dashboard',
-				children: emptySnippet
-			}
-		});
+		renderShell();
 
 		await fireEvent.click(screen.getByRole('button', { name: /open command palette/i }));
 
@@ -91,5 +80,21 @@ describe('AppAuthenticatedShell', () => {
 			})
 		).toBeTruthy();
 		expect(screen.getByPlaceholderText(/search actions, routes, or documentation/i)).toBeTruthy();
+	});
+
+	it('revalidates auth state on focus and storage signals without loading the browser auth client', async () => {
+		renderShell();
+
+		window.dispatchEvent(new Event('focus'));
+		window.dispatchEvent(
+			new StorageEvent('storage', {
+				key: AUTH_SESSION_SIGNAL_KEY,
+				newValue: String(Date.now())
+			})
+		);
+
+		await waitFor(() => {
+			expect(mocks.invalidate).toHaveBeenCalledWith('supabase:auth');
+		});
 	});
 });

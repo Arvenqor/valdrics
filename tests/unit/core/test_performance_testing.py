@@ -402,6 +402,18 @@ def test_load_baselines_file_not_found(tmp_path):
     assert detector.baselines == {}
 
 
+def test_performance_regression_detector_defaults_to_runtime_data_dir(monkeypatch, tmp_path):
+    with patch(
+        "app.shared.core.performance_testing.get_settings",
+        return_value=MagicMock(APP_RUNTIME_DATA_DIR=str(tmp_path / "runtime-data")),
+    ):
+        detector = PerformanceRegressionDetector()
+
+    assert detector.baseline_file == str(
+        (tmp_path / "runtime-data" / "performance_baseline.json").resolve()
+    )
+
+
 def test_save_baselines_error():
     detector = PerformanceRegressionDetector(baseline_file="/nonexistent/path.json")
     with (
@@ -431,6 +443,15 @@ def test_save_baselines_does_not_clobber_existing_file_when_replace_fails(
     assert baseline_file.read_text(encoding="utf-8") == '{"original": true}\n'
     assert [path.name for path in tmp_path.iterdir()] == ["baseline.json"]
     mock_logger.error.assert_called_once()
+
+
+def test_save_baselines_creates_missing_parent_directory(tmp_path):
+    baseline_file = tmp_path / "nested" / "baseline.json"
+    detector = PerformanceRegressionDetector(baseline_file=str(baseline_file))
+
+    detector.save_baselines({"results": []})
+
+    assert baseline_file.exists()
 
 
 def test_generate_k6_script_includes_endpoints():

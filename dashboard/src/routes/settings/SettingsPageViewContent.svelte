@@ -6,14 +6,7 @@
 	import { edgeApiPath } from '$lib/edgeProxy';
 	import { TimeoutError } from '$lib/fetchWithTimeout';
 	import { clientLogger } from '$lib/logging/client';
-	import {
-		ActiveOpsSettingsSchema,
-		CarbonSettingsSchema,
-		LLMSettingsSchema,
-		NotificationSettingsSchema,
-		type PolicyDiagnostics,
-		type SafetyStatus
-	} from './settingsPageSchemas';
+	import type { PolicyDiagnostics, SafetyStatus } from './settingsPageModels';
 	import {
 		INITIAL_ACTIVEOPS_SETTINGS,
 		INITIAL_CARBON_SETTINGS,
@@ -21,6 +14,7 @@
 		INITIAL_NOTIFICATION_SETTINGS,
 		INITIAL_PROVIDER_MODELS
 	} from './settingsPageInitialState';
+	import { formatValidationIssues } from '$lib/validation/formatValidationIssues';
 	import {
 		applyPostSaveNotificationSettings,
 		buildNotificationSavePayload,
@@ -28,7 +22,6 @@
 	} from './settingsNotificationState';
 	import SettingsPageViewBody from './SettingsPageViewBody.svelte';
 	import './SettingsPageViewContent.css';
-	import { z } from 'zod';
 
 	let { data } = $props();
 	const SETTINGS_REQUEST_TIMEOUT_MS = 8000;
@@ -64,8 +57,16 @@
 
 	let persona = $derived(String(data.profile?.persona ?? 'engineering'));
 	let savingPersona = $state(false);
+	let settingsSchemasPromise: Promise<typeof import('./settingsPageSchemas')> | null = null;
 
 	const getHeaders = () => ({ Authorization: `Bearer ${data.session?.access_token}` });
+
+	function loadSettingsSchemas() {
+		if (!settingsSchemasPromise) {
+			settingsSchemasPromise = import('./settingsPageSchemas');
+		}
+		return settingsSchemasPromise;
+	}
 
 	async function getWithTimeout(url: string, headers?: Record<string, string>) {
 		return api.get(url, {
@@ -77,15 +78,6 @@
 	async function getApiErrorMessage(res: Response, fallback: string): Promise<string> {
 		const payload = await res.json().catch(() => ({}));
 		return payload.detail || payload.message || fallback;
-	}
-
-	function formatZodIssues(error: z.ZodError, includePath: boolean): string {
-		if (!includePath) {
-			return error.issues.map((issue: z.ZodIssue) => issue.message).join(', ');
-		}
-		return error.issues
-			.map((issue: z.ZodIssue) => `${issue.path.join('.')}: ${issue.message}`)
-			.join(', ');
 	}
 
 	async function loadSettings() {
@@ -131,6 +123,7 @@
 		error = '';
 		success = '';
 		try {
+			const { NotificationSettingsSchema } = await loadSettingsSchemas();
 			const payload = buildNotificationSavePayload(settings);
 			const validated = NotificationSettingsSchema.parse(payload);
 			const headers = await getHeaders();
@@ -142,7 +135,7 @@
 			success = 'General settings saved!';
 			setTimeout(() => (success = ''), 3000);
 		} catch (e) {
-			error = e instanceof z.ZodError ? formatZodIssues(e, false) : (e as Error).message;
+			error = formatValidationIssues(e, false);
 		} finally {
 			saving = false;
 		}
@@ -242,6 +235,7 @@
 		error = '';
 		success = '';
 		try {
+			const { CarbonSettingsSchema } = await loadSettingsSchemas();
 			CarbonSettingsSchema.parse(carbonSettings);
 			const headers = await getHeaders();
 			const res = await api.put(edgeApiPath('/settings/carbon'), carbonSettings, { headers });
@@ -251,7 +245,7 @@
 			success = 'Carbon settings saved successfully!';
 			setTimeout(() => (success = ''), 3000);
 		} catch (e) {
-			error = e instanceof z.ZodError ? formatZodIssues(e, true) : (e as Error).message;
+			error = formatValidationIssues(e, true);
 		} finally {
 			savingCarbon = false;
 		}
@@ -288,6 +282,7 @@
 		error = '';
 		success = '';
 		try {
+			const { LLMSettingsSchema } = await loadSettingsSchemas();
 			LLMSettingsSchema.parse(llmSettings);
 			const headers = await getHeaders();
 			const res = await api.put(edgeApiPath('/settings/llm'), llmSettings, { headers });
@@ -306,7 +301,7 @@
 			success = 'AI strategy settings saved!';
 			setTimeout(() => (success = ''), 3000);
 		} catch (e) {
-			error = e instanceof z.ZodError ? formatZodIssues(e, true) : (e as Error).message;
+			error = formatValidationIssues(e, true);
 		} finally {
 			savingLLM = false;
 		}
@@ -331,6 +326,7 @@
 		error = '';
 		success = '';
 		try {
+			const { ActiveOpsSettingsSchema } = await loadSettingsSchemas();
 			ActiveOpsSettingsSchema.parse(activeOpsSettings);
 			const headers = await getHeaders();
 			const res = await api.put(edgeApiPath('/settings/activeops'), activeOpsSettings, { headers });
@@ -340,7 +336,7 @@
 			success = 'ActiveOps / Auto-Pilot settings saved!';
 			setTimeout(() => (success = ''), 3000);
 		} catch (e) {
-			error = e instanceof z.ZodError ? formatZodIssues(e, true) : (e as Error).message;
+			error = formatValidationIssues(e, true);
 		} finally {
 			savingActiveOps = false;
 		}

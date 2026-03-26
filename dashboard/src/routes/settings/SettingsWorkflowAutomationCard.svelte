@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { base } from '$app/paths';
 	import { getUpgradePrompt } from '$lib/pricing/upgradePrompt';
-	import { type PolicyDiagnostics } from './settingsPageSchemas';
+	import type { PolicyDiagnostics } from './settingsPageModels';
 	import { INITIAL_NOTIFICATION_SETTINGS } from './settingsPageInitialState';
 
 	type AsyncAction = () => void | Promise<void>;

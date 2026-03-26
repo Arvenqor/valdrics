@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from '$lib/validation/clientZod';
 
 export const ENFORCEMENT_REQUEST_TIMEOUT_MS = 8000;
 
@@ -36,9 +36,9 @@ export const PolicySchema = z.object({
 	k8s_admission_mode: z.enum(['shadow', 'soft', 'hard']),
 	require_approval_for_prod: z.boolean(),
 	require_approval_for_nonprod: z.boolean(),
-	auto_approve_below_monthly_usd: z.number().min(0),
-	hard_deny_above_monthly_usd: z.number().gt(0),
-	default_ttl_seconds: z.number().int().min(60).max(86400)
+	auto_approve_below_monthly_usd: z.number().check(z.minimum(0)),
+	hard_deny_above_monthly_usd: z.number().check(z.gt(0)),
+	default_ttl_seconds: z.number().check(z.int(), z.minimum(60), z.maximum(86400))
 });
 
 export function isProPlus(currentTier: string | null | undefined): boolean {
