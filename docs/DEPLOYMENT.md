@@ -39,6 +39,7 @@ Machine-readable source of truth:
 - `.runtime/<environment>.report.json` is the authoritative runtime env blocker inventory.
 - `.runtime/<environment>.migrate.report.json` is the authoritative migration env blocker inventory.
 - `.runtime/deploy/<environment>/deployment.report.json` is the authoritative deployment artifact blocker inventory.
+- `.runtime/deploy/<environment>/operator-handoff.md` is the derived human handoff rendered from those verified reports.
 - `docs/runbooks/production_env_checklist.md` is the operator runbook; the generated reports remain the canonical key-level contract.
 
 ## Profile A: Koyeb Managed Services
@@ -57,6 +58,7 @@ Repository evidence:
   - `.runtime/deploy/<environment>/koyeb-worker.yaml`
   - `.runtime/deploy/<environment>/koyeb-dashboard-env.json`
   - `.runtime/deploy/<environment>/koyeb-release.json`
+  - `.runtime/deploy/<environment>/operator-handoff.md`
 
 Expected posture:
 
@@ -100,15 +102,6 @@ Future-scale operator steps:
 2. Publish immutable application images.
 3. Deploy with Helm values that preserve the production defaults.
 4. Validate `/health/live`, `/health`, and cluster-internal `/_internal/metrics`.
-
-## Legacy Checked-In Manifests
-
-- `koyeb.yaml`
-- `koyeb-worker.yaml`
-
-These remain checked in as compatibility helpers for local/manual evaluation, but
-the authoritative Koyeb production handoff is the generated managed bundle under
-`.runtime/deploy/<environment>/`.
 
 ## Verification Checklist
 

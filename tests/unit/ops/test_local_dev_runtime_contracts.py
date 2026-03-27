@@ -19,7 +19,6 @@ def test_makefile_local_dev_targets_use_env_dev_bootstrap_and_smoke() -> None:
 
 def test_local_docs_point_sqlite_users_to_bootstrap_not_alembic_history() -> None:
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
-    deployment = (REPO_ROOT / "DEPLOYMENT.md").read_text(encoding="utf-8")
     db_overview = (
         REPO_ROOT / "docs/architecture/database_schema_overview.md"
     ).read_text(encoding="utf-8")
@@ -29,9 +28,6 @@ def test_local_docs_point_sqlite_users_to_bootstrap_not_alembic_history() -> Non
     assert "`TESTING=false`" in readme
     assert "cp .env.dev .env" not in readme
     assert "historical Alembic chain" in readme
-
-    assert "make bootstrap-local-db" in deployment
-    assert "Do not replay the historical Alembic graph against local sqlite" in deployment
 
     assert "make bootstrap-local-db" in db_overview
     assert "Do not replay the historical Alembic graph" in db_overview

@@ -58,8 +58,14 @@ ALLOWED_ORPHANED_DATED_DOCS = {
     "docs/security/ssdf_traceability_matrix_2026-02-25.json",
     "docs/security/ssdf_traceability_matrix_2026-02-25.md",
 }
+WEAK_REFERENCE_PREFIXES = (
+    "docs/ops/evidence/all_changes_inventory",
+)
 PROHIBITED_ACTIVE_DOCS = {
     "docs/incident_response_plan.md": "Use docs/runbooks/incident_response.md instead.",
+    "docs/DEPRECATION_POLICY.md": (
+        "Inactive policy narrative belongs under docs/archive/reference/."
+    ),
     "docs/ZOMBIE_DETECTION_REFERENCE.md": (
         "The historical reference belongs under docs/archive/reference/."
     ),
@@ -148,6 +154,10 @@ def _repo_references(
     return sorted(matches)
 
 
+def _is_weak_reference(relative_path: str) -> bool:
+    return relative_path.startswith(WEAK_REFERENCE_PREFIXES)
+
+
 def verify_docs_archive_hygiene(*, root: Path) -> list[str]:
     _validate_root(root)
     errors: list[str] = []
@@ -159,14 +169,62 @@ def verify_docs_archive_hygiene(*, root: Path) -> list[str]:
             )
 
     search_index = _build_search_index(root)
+    dated_candidates: list[Path] = []
+    dated_set: set[str] = set()
     for candidate in _dated_docs(root):
         rel = candidate.relative_to(root).as_posix()
         if rel in ALLOWED_ORPHANED_DATED_DOCS:
             continue
         if rel.startswith(ALLOWED_ORPHANED_DATED_DOC_PREFIXES):
             continue
-        references = _repo_references(root, candidate, search_index=search_index)
-        if not references:
+        dated_candidates.append(candidate)
+        dated_set.add(rel)
+
+    strong_references_by_doc: dict[str, list[str]] = {}
+    dated_neighbors: dict[str, set[str]] = {rel: set() for rel in dated_set}
+    for candidate in dated_candidates:
+        rel = candidate.relative_to(root).as_posix()
+        references = [
+            ref
+            for ref in _repo_references(root, candidate, search_index=search_index)
+            if not _is_weak_reference(ref)
+        ]
+        strong_references_by_doc[rel] = references
+        for ref in references:
+            if ref in dated_set:
+                dated_neighbors[rel].add(ref)
+                dated_neighbors[ref].add(rel)
+
+    component_by_doc: dict[str, frozenset[str]] = {}
+    remaining = set(dated_set)
+    while remaining:
+        start = remaining.pop()
+        stack = [start]
+        component = {start}
+        while stack:
+            current = stack.pop()
+            for neighbor in dated_neighbors[current]:
+                if neighbor in component:
+                    continue
+                component.add(neighbor)
+                remaining.discard(neighbor)
+                stack.append(neighbor)
+        frozen_component = frozenset(component)
+        for member in component:
+            component_by_doc[member] = frozen_component
+
+    component_supported: dict[frozenset[str], bool] = {}
+    for component in set(component_by_doc.values()):
+        component_supported[component] = any(
+            ref not in component
+            for member in component
+            for ref in strong_references_by_doc[member]
+        )
+
+    for rel in strong_references_by_doc:
+        component = component_by_doc[rel]
+        supported = component_supported[component]
+        if not supported:
             errors.append(
                 f"{rel}: orphaned dated doc should be archived or referenced explicitly."
             )

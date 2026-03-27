@@ -40,6 +40,63 @@ def test_verify_docs_archive_hygiene_flags_orphaned_dated_doc(tmp_path: Path) ->
     ]
 
 
+def test_verify_docs_archive_hygiene_flags_mutually_referenced_dated_doc_cluster(
+    tmp_path: Path,
+) -> None:
+    _write(
+        tmp_path / "docs/ops/competitive_parity_evidence_2026-02-19.md",
+        "See docs/ops/gap_tracks_roadmap_2026-02-19.md.\n",
+    )
+    _write(
+        tmp_path / "docs/ops/gap_tracks_roadmap_2026-02-19.md",
+        "See docs/ops/competitive_parity_evidence_2026-02-19.md.\n",
+    )
+
+    errors = verify_docs_archive_hygiene(root=tmp_path)
+    assert errors == [
+        "docs/ops/competitive_parity_evidence_2026-02-19.md: orphaned dated doc should be archived or referenced explicitly.",
+        "docs/ops/gap_tracks_roadmap_2026-02-19.md: orphaned dated doc should be archived or referenced explicitly.",
+    ]
+
+
+def test_verify_docs_archive_hygiene_ignores_weak_inventory_reference(
+    tmp_path: Path,
+) -> None:
+    _write(
+        tmp_path / "docs/ops/workstream_categorization_all_changes_2026-03-02.md",
+        "historical workstream register\n",
+    )
+    _write(
+        tmp_path / "docs/ops/evidence/all_changes_inventory_2026-03-02.txt",
+        "See docs/ops/workstream_categorization_all_changes_2026-03-02.md.\n",
+    )
+
+    errors = verify_docs_archive_hygiene(root=tmp_path)
+    assert errors == [
+        "docs/ops/workstream_categorization_all_changes_2026-03-02.md: orphaned dated doc should be archived or referenced explicitly."
+    ]
+
+
+def test_verify_docs_archive_hygiene_accepts_supported_dated_doc_component(
+    tmp_path: Path,
+) -> None:
+    _write(
+        tmp_path / "docs/ops/enforcement_control_plane_gap_register_2026-02-23.md",
+        "See docs/ops/drills/enforcement_incident_drill_2026-02-23.md.\n",
+    )
+    _write(
+        tmp_path / "docs/ops/drills/enforcement_incident_drill_2026-02-23.md",
+        "drill record\n",
+    )
+    _write(
+        tmp_path / "scripts/verify_enforcement_post_closure_sanity.py",
+        "See docs/ops/enforcement_control_plane_gap_register_2026-02-23.md.\n",
+    )
+
+    errors = verify_docs_archive_hygiene(root=tmp_path)
+    assert errors == []
+
+
 def test_verify_docs_archive_hygiene_flags_prohibited_active_duplicate_doc(
     tmp_path: Path,
 ) -> None:

@@ -164,7 +164,6 @@ def test_incident_and_production_runbooks_match_strict_saas_observability_contra
     production = (
         REPO_ROOT / "docs/runbooks/production_env_checklist.md"
     ).read_text(encoding="utf-8")
-    deployment = (REPO_ROOT / "DEPLOYMENT.md").read_text(encoding="utf-8")
     workflow = (REPO_ROOT / "docs/integrations/workflow_automation.md").read_text(
         encoding="utf-8"
     )
@@ -201,8 +200,6 @@ def test_incident_and_production_runbooks_match_strict_saas_observability_contra
     assert "`app/core/logging.py`" not in soc2
     assert "`docs/DR_RUNBOOK.md`" not in soc2
     assert "`technical_due_diligence.md`" not in soc2
-    assert "Python 3.12.x" in deployment
-    assert "uv sync --python 3.12" in deployment
 
 
 def test_partition_archival_helpers_match_runtime_maintenance_path() -> None:
@@ -229,7 +226,5 @@ def test_runbooks_with_high_operational_risk_are_covered_by_contract_guard() -> 
     assert "docs/policies/data_retention.md" in script_text
     assert "docs/runbooks/enforcement_preprovision_integrations.md" in script_text
     assert "docs/runbooks/partition_maintenance.md" in script_text
-    assert "docs/ops/cloudflare_go_live_checklist_2026-03-02.md" in script_text
     assert "docs/roadmap.md" in script_text
     assert "docs/architecture/tiering-2026.md" in script_text
-    assert 'path="DEPLOYMENT.md"' in script_text

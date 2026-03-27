@@ -226,24 +226,6 @@ DOCUMENTATION_CONTRACTS: tuple[DocumentationContract, ...] = (
         ),
         forbidden_phrases=("pg_cron", "no auth"),
     ),
-    DocumentationContract(
-        path="docs/ops/cloudflare_go_live_checklist_2026-03-02.md",
-        required_phrases=(
-            "historical preview/reference artifact",
-            "not part of the supported production deployment contract today",
-            "docs/DEPLOYMENT.md",
-        ),
-    ),
-    DocumentationContract(
-        path="DEPLOYMENT.md",
-        required_phrases=(
-            "Python 3.12.x",
-            "uv sync --python 3.12",
-            "/health/live",
-            "/_internal/metrics",
-            "--from-literal=DATABASE_URL=",
-        ),
-    ),
 )
 
 

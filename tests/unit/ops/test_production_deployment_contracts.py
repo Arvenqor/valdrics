@@ -75,11 +75,9 @@ def test_helm_helpers_support_explicit_host_overrides() -> None:
 def test_runtime_healthchecks_use_liveness_only() -> None:
     compose = _load_yaml(REPO_ROOT / "docker-compose.yml")
     prod_compose = _load_yaml(REPO_ROOT / "docker-compose.prod.yml")
-    koyeb = _load_yaml(REPO_ROOT / "koyeb.yaml")
 
     assert isinstance(compose, dict)
     assert isinstance(prod_compose, dict)
-    assert isinstance(koyeb, dict)
 
     compose_healthcheck = str(compose["services"]["api"]["healthcheck"]["test"]).lower()
     prod_healthcheck = str(prod_compose["services"]["api"]["healthcheck"]["test"]).lower()
@@ -90,7 +88,6 @@ def test_runtime_healthchecks_use_liveness_only() -> None:
     assert "curl" in prod_healthcheck
     assert "urllib" not in compose_healthcheck
     assert "urllib" not in prod_healthcheck
-    assert koyeb["definition"]["health_checks"][0]["path"] == "/health/live"
 
 
 def test_release_images_are_immutable_and_observability_images_are_pinned() -> None:
@@ -153,80 +150,12 @@ def test_backend_dockerfile_healthcheck_uses_curl_liveness_probe() -> None:
     assert "uvicorn app.main:app" in entrypoint_text
 
 
-def test_koyeb_and_prometheus_contracts_match_internal_metrics_and_ha_defaults() -> None:
-    koyeb = _load_yaml(REPO_ROOT / "koyeb.yaml")
-    koyeb_worker = _load_yaml(REPO_ROOT / "koyeb-worker.yaml")
+def test_prometheus_contracts_match_internal_metrics_defaults() -> None:
     prometheus_text = (REPO_ROOT / "prometheus/prometheus.yml").read_text(
         encoding="utf-8"
     )
 
-    assert isinstance(koyeb, dict)
-    assert isinstance(koyeb_worker, dict)
-
-    env_values = {
-        item["name"]: item.get("value")
-        for item in koyeb["definition"]["env"]
-        if isinstance(item, dict) and "name" in item
-    }
-    assert int(koyeb["definition"]["scaling"]["min"]) >= 2
-    assert koyeb["definition"]["git"]["repository"] == "github.com/Valdrics/valdrics"
-    assert koyeb_worker["definition"]["git"]["repository"] == "github.com/Valdrics/valdrics"
-    assert env_values["WEB_CONCURRENCY"] == "2"
-    assert env_values["ENABLE_SCHEDULER"] == "true"
-    assert env_values["API_URL"] == "https://api.valdrics.ai"
-    assert env_values["FRONTEND_URL"] == "https://dashboard.valdrics.ai"
-    assert env_values["TRUST_PROXY_HEADERS"] == "true"
-    assert env_values["APP_RUNTIME_DATA_DIR"] == "/tmp/valdrics"
     assert "metrics_path: /_internal/metrics" in prometheus_text
-    assert env_values["FORECASTER_ALLOW_HOLT_WINTERS_FALLBACK"] is None
-    assert "OTEL_EXPORTER_OTLP_ENDPOINT" in {
-        item["name"] for item in koyeb["definition"]["env"] if "name" in item
-    }
-    assert "ENFORCEMENT_APPROVAL_TOKEN_SECRET" in {
-        item["name"] for item in koyeb["definition"]["env"] if "name" in item
-    }
-    assert "ENFORCEMENT_EXPORT_SIGNING_SECRET" in {
-        item["name"] for item in koyeb["definition"]["env"] if "name" in item
-    }
-    assert "INTERNAL_METRICS_AUTH_TOKEN" in {
-        item["name"] for item in koyeb["definition"]["env"] if "name" in item
-    }
-    assert "INTERNAL_JOB_SECRET" in {
-        item["name"] for item in koyeb["definition"]["env"] if "name" in item
-    }
-    assert "TRUSTED_PROXY_CIDRS" in {
-        item["name"] for item in koyeb["definition"]["env"] if "name" in item
-    }
-    break_glass_reason = next(
-        item
-        for item in koyeb["definition"]["env"]
-        if item.get("name") == "FORECASTER_BREAK_GLASS_REASON"
-    )
-    break_glass_expiry = next(
-        item
-        for item in koyeb["definition"]["env"]
-        if item.get("name") == "FORECASTER_BREAK_GLASS_EXPIRES_AT"
-    )
-    assert break_glass_reason["secret"] == "valdrics-forecaster-break-glass-reason"
-    assert (
-        break_glass_expiry["secret"] == "valdrics-forecaster-break-glass-expires-at"
-    )
-    assert koyeb_worker["type"] == "WORKER"
-    worker_env_names = {
-        item["name"] for item in koyeb_worker["definition"]["env"] if "name" in item
-    }
-    assert "API_URL" in worker_env_names
-    assert "FRONTEND_URL" in worker_env_names
-    assert "OTEL_EXPORTER_OTLP_ENDPOINT" in worker_env_names
-    assert "ENFORCEMENT_APPROVAL_TOKEN_SECRET" in worker_env_names
-    assert "ENFORCEMENT_EXPORT_SIGNING_SECRET" in worker_env_names
-    assert "SENTRY_DSN" in worker_env_names
-    assert "REDIS_URL" in worker_env_names
-    assert koyeb_worker["definition"]["command"][0:3] == [
-        "celery",
-        "-A",
-        "app.shared.core.celery_app:celery_app",
-    ]
 
 
 def test_regional_failover_workflow_uses_repo_managed_oidc_aws_auth() -> None:
@@ -241,18 +170,11 @@ def test_regional_failover_workflow_uses_repo_managed_oidc_aws_auth() -> None:
 
 
 def test_deployment_docs_match_runtime_contracts() -> None:
-    root_doc = (REPO_ROOT / "DEPLOYMENT.md").read_text(encoding="utf-8")
     ops_doc = (REPO_ROOT / "docs/DEPLOYMENT.md").read_text(encoding="utf-8")
     release_runbook = (
         REPO_ROOT / "docs/runbooks/koyeb_release_promotion.md"
     ).read_text(encoding="utf-8")
 
-    assert "/health/live" in root_doc
-    assert "/_internal/metrics" in root_doc
-    assert "503" in root_doc
-    assert "--from-literal=DATABASE_URL=" in root_doc
-    assert "--from-literal=ENCRYPTION_KEY=" in root_doc
-    assert "--from-literal=OPENAI_API_KEY=" in root_doc
     assert "/health/live" in ops_doc
     assert "configured max break-glass window" in ops_doc
     assert "Current supported production deployment profile" in ops_doc
@@ -262,6 +184,13 @@ def test_deployment_docs_match_runtime_contracts() -> None:
     assert "koyeb-release.json" in ops_doc
     assert "promotion_ref" in release_runbook
     assert "ghcr-release.env" in release_runbook
+
+
+def test_root_legacy_deployment_files_are_removed() -> None:
+    assert not (REPO_ROOT / "DEPLOYMENT.md").exists()
+    assert not (REPO_ROOT / "koyeb.yaml").exists()
+    assert not (REPO_ROOT / "koyeb-worker.yaml").exists()
+    assert not (REPO_ROOT / "prod.env.template").exists()
 
 
 def test_frontend_ci_node_version_matches_dashboard_container() -> None:

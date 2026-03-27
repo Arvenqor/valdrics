@@ -84,15 +84,6 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
         tmp_path / "docs/runbooks/partition_maintenance.md",
         "internal scheduler\nX-Internal-Job-Secret\nadvisory lock\n",
     )
-    _write(
-        tmp_path / "docs/ops/cloudflare_go_live_checklist_2026-03-02.md",
-        "historical preview/reference artifact\nnot part of the supported production deployment contract today\ndocs/DEPLOYMENT.md\n",
-    )
-    _write(
-        tmp_path / "DEPLOYMENT.md",
-        "Python 3.12.x\nuv sync --python 3.12\n/health/live\n/_internal/metrics\n--from-literal=DATABASE_URL=\n",
-    )
-
     errors = verify_contracts(root=tmp_path)
     assert errors == []
 
@@ -187,14 +178,6 @@ def test_verify_contracts_reports_missing_and_forbidden_phrases(tmp_path: Path) 
             path="docs/runbooks/partition_maintenance.md",
             required_phrases=("internal scheduler",),
             forbidden_phrases=("pg_cron",),
-        ),
-        DocumentationContract(
-            path="docs/ops/cloudflare_go_live_checklist_2026-03-02.md",
-            required_phrases=("historical preview/reference artifact",),
-        ),
-        DocumentationContract(
-            path="DEPLOYMENT.md",
-            required_phrases=("Python 3.12.x", "/health/live"),
         ),
     ):
         _write(tmp_path / contract.path, "placeholder\n")

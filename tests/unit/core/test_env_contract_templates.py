@@ -18,15 +18,6 @@ def _extract_assignment_keys(path: Path) -> set[str]:
     return keys
 
 
-def _extract_koyeb_env_names(path: Path) -> set[str]:
-    keys: set[str] = set()
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if line.startswith("- name:"):
-            keys.add(line.split(":", 1)[1].strip())
-    return keys
-
-
 def test_env_example_contains_required_runtime_contract_keys() -> None:
     keys = _extract_assignment_keys(REPO_ROOT / ".env.example")
 
@@ -48,76 +39,3 @@ def test_env_example_contains_required_runtime_contract_keys() -> None:
 
     missing = required - keys
     assert not missing, f".env.example missing keys: {sorted(missing)}"
-
-
-def test_prod_env_template_contains_required_runtime_contract_keys() -> None:
-    keys = _extract_assignment_keys(REPO_ROOT / "prod.env.template")
-
-    required = {
-        "ENVIRONMENT",
-        "API_URL",
-        "FRONTEND_URL",
-        "DATABASE_URL",
-        "REDIS_URL",
-        "SUPABASE_URL",
-        "SUPABASE_ANON_KEY",
-        "SUPABASE_JWT_SECRET",
-        "ENCRYPTION_KEY",
-        "KDF_SALT",
-        "CSRF_SECRET_KEY",
-        "ADMIN_API_KEY",
-        "INTERNAL_JOB_SECRET",
-        "INTERNAL_METRICS_AUTH_TOKEN",
-        "ENFORCEMENT_APPROVAL_TOKEN_SECRET",
-        "ENFORCEMENT_EXPORT_SIGNING_SECRET",
-        "CORS_ORIGINS",
-        "LLM_PROVIDER",
-        "GROQ_API_KEY",
-        "PAYSTACK_SECRET_KEY",
-        "PAYSTACK_PUBLIC_KEY",
-        "SAAS_STRICT_INTEGRATIONS",
-        "SENTRY_DSN",
-        "OTEL_EXPORTER_OTLP_ENDPOINT",
-        "EXPOSE_API_DOCUMENTATION_PUBLICLY",
-        "TRUST_PROXY_HEADERS",
-        "TRUSTED_PROXY_CIDRS",
-        "APP_RUNTIME_DATA_DIR",
-        "CIRCUIT_BREAKER_DISTRIBUTED_STATE",
-    }
-
-    missing = required - keys
-    assert not missing, f"prod.env.template missing keys: {sorted(missing)}"
-
-
-def test_prod_env_template_does_not_use_legacy_paystack_plan_key() -> None:
-    keys = _extract_assignment_keys(REPO_ROOT / "prod.env.template")
-    assert "PAYSTACK_PLAN_PROFESSIONAL" not in keys
-    assert "PAYSTACK_PLAN_PRO" in keys
-
-
-def test_koyeb_manifest_declares_required_env_entries() -> None:
-    keys = _extract_koyeb_env_names(REPO_ROOT / "koyeb.yaml")
-
-    required = {
-        "ENVIRONMENT",
-        "ENABLE_SCHEDULER",
-        "WEB_CONCURRENCY",
-        "DATABASE_URL",
-        "REDIS_URL",
-        "SUPABASE_JWT_SECRET",
-        "OTEL_EXPORTER_OTLP_ENDPOINT",
-        "ENCRYPTION_KEY",
-        "KDF_SALT",
-        "CSRF_SECRET_KEY",
-        "ADMIN_API_KEY",
-        "PAYSTACK_SECRET_KEY",
-        "PAYSTACK_PUBLIC_KEY",
-        "SENTRY_DSN",
-        "TRUST_PROXY_HEADERS",
-        "TRUSTED_PROXY_CIDRS",
-        "APP_RUNTIME_DATA_DIR",
-    }
-
-    missing = required - keys
-    assert not missing, f"koyeb.yaml missing env entries: {sorted(missing)}"
-    assert "WORKERS" not in keys

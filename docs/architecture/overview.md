@@ -56,13 +56,11 @@ path. It defines:
 - ingress and internal metrics protections
 - production defaults for security context and anti-affinity
 
-### Legacy Single-File Koyeb Manifests
+### Managed Koyeb Bundle
 
-The repository also includes `koyeb.yaml` and `koyeb-worker.yaml` as legacy
-single-file helpers. They are not the authoritative production handoff; the
-generated managed bundle under `.runtime/deploy/` is the supported Koyeb
-release surface because it captures environment-specific secrets, dashboard
-public env, and immutable release metadata together.
+The supported Koyeb release surface is the generated managed bundle under
+`.runtime/deploy/<environment>/`. That path captures environment-specific
+secrets, dashboard public env, and immutable release metadata together.
 
 ## Security and Tenancy
 
