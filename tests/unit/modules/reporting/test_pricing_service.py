@@ -91,6 +91,66 @@ def test_get_hourly_rate_quote_includes_source_provenance():
     assert quote.pricing_metadata["pricing_confidence"] == "catalog_exact"
 
 
+def test_get_hourly_rate_quote_rejects_non_finite_hourly_rate():
+    with patch(
+        "app.modules.reporting.domain.pricing.service.get_cloud_pricing_quote",
+        return_value={
+            "provider": "aws",
+            "resource_type": "instance",
+            "resource_size": "t3.micro",
+            "requested_region": "us-east-1",
+            "effective_region": "us-east-1",
+            "hourly_rate_usd": "NaN",
+            "source": "aws_pricing_api",
+            "pricing_metadata": {"billing_period_hours": 730},
+        },
+    ):
+        with pytest.raises(ValueError, match="hourly_rate_usd must be finite"):
+            PricingService.get_hourly_rate_quote(
+                "aws", "instance", "t3.micro", region="us-east-1", quantity=2
+            )
+
+
+def test_get_hourly_rate_quote_rejects_non_finite_billing_period_hours():
+    with patch(
+        "app.modules.reporting.domain.pricing.service.get_cloud_pricing_quote",
+        return_value={
+            "provider": "aws",
+            "resource_type": "instance",
+            "resource_size": "t3.micro",
+            "requested_region": "us-east-1",
+            "effective_region": "us-east-1",
+            "hourly_rate_usd": 0.011,
+            "source": "aws_pricing_api",
+            "pricing_metadata": {"billing_period_hours": "Infinity"},
+        },
+    ):
+        with pytest.raises(ValueError, match="billing_period_hours must be finite"):
+            PricingService.get_hourly_rate_quote(
+                "aws", "instance", "t3.micro", region="us-east-1", quantity=2
+            )
+
+
+def test_get_hourly_rate_quote_rejects_non_finite_quantity():
+    with patch(
+        "app.modules.reporting.domain.pricing.service.get_cloud_pricing_quote",
+        return_value={
+            "provider": "aws",
+            "resource_type": "instance",
+            "resource_size": "t3.micro",
+            "requested_region": "us-east-1",
+            "effective_region": "us-east-1",
+            "hourly_rate_usd": 0.011,
+            "source": "aws_pricing_api",
+            "pricing_metadata": {"billing_period_hours": 730},
+        },
+    ):
+        with pytest.raises(ValueError, match="quantity must be finite"):
+            PricingService.get_hourly_rate_quote(
+                "aws", "instance", "t3.micro", region="us-east-1", quantity=float("nan")
+            )
+
+
 @pytest.mark.asyncio
 async def test_sync_with_aws_delegates_to_supported_catalog_sync():
     with patch(

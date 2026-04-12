@@ -1,7 +1,7 @@
 # Valdrics Makefile
 # Developer convenience commands using uv
 
-.PHONY: help install dev test lint format security clean docker-build docker-up docker-down observability observability-down helm-install env-dev env-compose bootstrap-local-db clean-local-db smoke-local-db verify-managed-bundle public-quality docs-hygiene
+.PHONY: help install dev test lint format security clean docker-build docker-up docker-up-redis docker-down observability observability-down env-dev env-compose bootstrap-local-db clean-local-db smoke-local-db verify-managed-bundle public-quality docs-hygiene
 
 # Default target
 help:
@@ -9,7 +9,7 @@ help:
 	@echo ""
 	@echo "  make install     - Install dependencies with uv"
 	@echo "  make env-dev     - Generate deterministic .env.dev for local sqlite development"
-	@echo "  make env-compose - Generate deterministic .env.compose.dev for local docker compose development"
+	@echo "  make env-compose - Generate deterministic .env.compose.dev for cacheless local docker compose development"
 	@echo "  make bootstrap-local-db - Bootstrap current ORM schema into local sqlite without replaying legacy migrations"
 	@echo "  make clean-local-db - Remove local sqlite bootstrap artifacts from the repo root"
 	@echo "  make smoke-local-db - Prove the local sqlite bootstrap path reaches a healthy app state"
@@ -25,13 +25,13 @@ help:
 	@echo ""
 	@echo "Docker Commands:"
 	@echo "  make docker-build  - Build Docker image"
-	@echo "  make docker-up     - Start the local docker compose stack"
+	@echo "  make docker-up     - Start the default local docker compose stack (Postgres + API + dashboard)"
+	@echo "  make docker-up-redis - Start the local docker compose stack with the isolated Redis drill overlay"
 	@echo "  make observability - Start Prometheus/Grafana stack for local compose"
 	@echo ""
 	@echo "Deployment:"
-	@echo "  make helm-install  - Install to Kubernetes with Helm"
 	@echo "  make migrate       - Run database migrations"
-	@echo "  make deploy ENVIRONMENT=<staging|production> VERSION=<immutable-release-tag> API_IMAGE_DIGEST=<sha256:...> DASHBOARD_IMAGE_DIGEST=<sha256:...> - Generate and verify the Koyeb release bundle"
+	@echo "  make deploy ENVIRONMENT=<staging|production> VERSION=<immutable-release-tag> API_PROMOTION_REF=<repo@sha256:...> [BATCH_PROMOTION_REF=<repo@sha256:...>] - Generate and verify the unified-platform release bundle"
 
 # Development
 install:
@@ -112,8 +112,11 @@ docker-build:
 docker-up:
 	@/bin/bash -lc 'if [ ! -f .env.compose.dev ]; then echo "Missing .env.compose.dev. Run '\''make env-compose'\'' first."; exit 1; fi; docker compose --env-file .env.compose.dev up -d'
 
+docker-up-redis:
+	@/bin/bash -lc 'if [ ! -f .env.compose.dev ]; then echo "Missing .env.compose.dev. Run '\''make env-compose'\'' first."; exit 1; fi; docker compose -f docker-compose.yml -f docker-compose.redis.yml --env-file .env.compose.dev up -d'
+
 docker-down:
-	@/bin/bash -lc 'if [ ! -f .env.compose.dev ]; then echo "Missing .env.compose.dev. Run '\''make env-compose'\'' first."; exit 1; fi; docker compose --env-file .env.compose.dev down'
+	@/bin/bash -lc 'if [ ! -f .env.compose.dev ]; then echo "Missing .env.compose.dev. Run '\''make env-compose'\'' first."; exit 1; fi; docker compose -f docker-compose.yml -f docker-compose.redis.yml --env-file .env.compose.dev down'
 
 observability:
 	@/bin/bash -lc 'if [ ! -f .env.compose.dev ]; then echo "Missing .env.compose.dev. Run '\''make env-compose'\'' first."; exit 1; fi; docker compose --env-file .env.compose.dev -f docker-compose.observability.yml up -d'
@@ -132,23 +135,6 @@ migrate-create:
 	@read -p "Migration name: " name; \
 	uv run alembic revision --autogenerate -m "$$name"
 
-# Kubernetes/Helm
-helm-lint:
-	helm lint helm/valdrics/
-
-helm-template:
-	helm template valdrics helm/valdrics/ --debug
-
-helm-install:
-	helm install valdrics helm/valdrics/ \
-		--set existingSecrets.name=valdrics-secrets
-
-helm-upgrade:
-	helm upgrade valdrics helm/valdrics/
-
-helm-uninstall:
-	helm uninstall valdrics
-
 # Pre-commit
 hooks-install:
 	uv run pre-commit install
@@ -162,21 +148,21 @@ generate-client:
 	./scripts/generate-api-client.sh
 
 # ============================================================================
-# Deployment (Koyeb)
+# Deployment (Unified Platform)
 # ============================================================================
 
 deploy:
 	@test -n "$(ENVIRONMENT)" || (echo "ENVIRONMENT must be set to staging or production" && exit 1)
 	@test -n "$(VERSION)" || (echo "VERSION must be set to an immutable release tag" && exit 1)
-	@test -n "$(API_IMAGE_DIGEST)" || (echo "API_IMAGE_DIGEST must be set to a sha256:<64-hex> digest from the GHCR publish workflow" && exit 1)
-	@test -n "$(DASHBOARD_IMAGE_DIGEST)" || (echo "DASHBOARD_IMAGE_DIGEST must be set to a sha256:<64-hex> digest from the GHCR publish workflow" && exit 1)
+	@test -n "$(API_PROMOTION_REF)" || (echo "API_PROMOTION_REF must be set to a digest-pinned Artifact Registry ref (<repo>@sha256:...)" && exit 1)
 	@test -f ".runtime/$(ENVIRONMENT).env" || (echo "Missing .runtime/$(ENVIRONMENT).env. Generate the managed runtime env first." && exit 1)
-	@echo "📦 Generating Koyeb release bundle for $(ENVIRONMENT) with immutable tag $(VERSION) and digest-pinned promotion refs..."
-	uv run python3 scripts/generate_managed_deployment_artifacts.py --environment $(ENVIRONMENT) --runtime-env-file .runtime/$(ENVIRONMENT).env --release-tag $(VERSION) --api-image-digest $(API_IMAGE_DIGEST) --dashboard-image-digest $(DASHBOARD_IMAGE_DIGEST)
+	@echo "📦 Generating unified-platform release bundle for $(ENVIRONMENT) with immutable tag $(VERSION) and digest-pinned Artifact Registry refs..."
+	uv run python3 scripts/generate_managed_deployment_artifacts.py --environment $(ENVIRONMENT) --runtime-env-file .runtime/$(ENVIRONMENT).env --release-tag $(VERSION) --api-promotion-ref $(API_PROMOTION_REF) --batch-promotion-ref $(or $(BATCH_PROMOTION_REF),$(API_PROMOTION_REF))
 	uv run python3 scripts/verify_managed_deployment_bundle.py --environment $(ENVIRONMENT)
-	@echo "✅ Release bundle ready: .runtime/deploy/$(ENVIRONMENT)/koyeb-release.json"
-	@echo "Next step: follow docs/runbooks/koyeb_release_promotion.md"
+	@echo "✅ Release bundle ready: .runtime/deploy/$(ENVIRONMENT)/artifact-registry-release.json"
+	@echo "Next step: follow docs/runbooks/unified_platform_release.md"
 
 deploy-status:
-	@echo "Koyeb status:"
-	koyeb service list --app valdrics
+	@echo "Unified platform deploy status:"
+	@echo "  - GitHub Actions: .github/workflows/deploy-unified-platform.yml"
+	@echo "  - Runtime services: Google Cloud Run / Cloud Run Jobs / Cloud Tasks / Cloud Scheduler"

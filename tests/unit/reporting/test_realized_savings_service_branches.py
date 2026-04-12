@@ -48,7 +48,10 @@ def _request(
 def test_decimal_and_build_window_validation() -> None:
     assert _decimal(None) == Decimal("0")
     assert _decimal(Decimal("1.2")) == Decimal("1.2")
-    assert _decimal("bad") == Decimal("0")
+    with pytest.raises(ValueError, match="value must be numeric"):
+        _decimal("bad")
+    with pytest.raises(ValueError, match="value must be finite"):
+        _decimal("NaN")
 
     executed_day = date(2026, 1, 10)
     window = RealizedSavingsService._build_windows(
@@ -307,10 +310,46 @@ async def test_window_cost_coerces_values() -> None:
     bad_result = MagicMock()
     bad_result.one.return_value = ("bad", None)
     db.execute = AsyncMock(return_value=bad_result)
-    total, days = await service._window_cost(
-        filters=[],
-        start_day=date(2026, 1, 1),
-        end_day=date(2026, 1, 7),
+    with pytest.raises(ValueError, match="value must be numeric"):
+        await service._window_cost(
+            filters=[],
+            start_day=date(2026, 1, 1),
+            end_day=date(2026, 1, 7),
+        )
+
+
+@pytest.mark.asyncio
+async def test_window_cost_rejects_non_finite_totals() -> None:
+    db = MagicMock()
+    bad_result = MagicMock()
+    bad_result.one.return_value = (Decimal("NaN"), 7)
+    db.execute = AsyncMock(return_value=bad_result)
+    service = RealizedSavingsService(db)
+
+    with pytest.raises(ValueError, match="value must be finite"):
+        await service._window_cost(
+            filters=[],
+            start_day=date(2026, 1, 1),
+            end_day=date(2026, 1, 7),
+        )
+
+
+@pytest.mark.asyncio
+async def test_compute_for_request_rejects_invalid_monthly_multiplier() -> None:
+    tenant_id = uuid4()
+    db = MagicMock()
+    db.scalar = AsyncMock()
+    db.flush = AsyncMock()
+    service = RealizedSavingsService(db)
+    request = _request(
+        tenant_id=tenant_id,
+        executed_at=datetime.now(timezone.utc) - timedelta(days=40),
+        connection_id=uuid4(),
     )
-    assert total == Decimal("0")
-    assert days == 0
+
+    with pytest.raises(ValueError, match="monthly_multiplier_days must be an integer"):
+        await service.compute_for_request(
+            tenant_id=tenant_id,
+            request=request,
+            monthly_multiplier_days=None,
+        )

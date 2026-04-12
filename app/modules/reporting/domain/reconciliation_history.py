@@ -63,8 +63,8 @@ async def get_restatement_history_impl(
     net_delta = Decimal("0")
     abs_delta = Decimal("0")
     for row in rows:
-        old_cost = Decimal(str(getattr(row, "old_cost", 0) or 0))
-        new_cost = Decimal(str(getattr(row, "new_cost", 0) or 0))
+        old_cost = service._to_decimal(getattr(row, "old_cost", 0))
+        new_cost = service._to_decimal(getattr(row, "new_cost", 0))
         delta = new_cost - old_cost
         net_delta += delta
         abs_delta += abs(delta)

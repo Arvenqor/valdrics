@@ -222,6 +222,23 @@ async def test_get_allocation_summary(mock_db, engine, tenant_id):
 
 
 @pytest.mark.asyncio
+async def test_get_allocation_summary_rejects_non_finite_totals(
+    mock_db, engine, tenant_id
+):
+    row = MagicMock()
+    row.allocated_to = "Team-A"
+    row.total_amount = Decimal("NaN")
+    row.record_count = 10
+
+    mock_result = MagicMock()
+    mock_result.all.return_value = [row]
+    mock_db.execute.return_value = mock_result
+
+    with pytest.raises(ValueError, match="total_amount must be finite"):
+        await engine.get_allocation_summary(tenant_id)
+
+
+@pytest.mark.asyncio
 async def test_get_unallocated_analysis(mock_db, engine, tenant_id):
     row = MagicMock()
     row.service = "EC2"
@@ -238,6 +255,25 @@ async def test_get_unallocated_analysis(mock_db, engine, tenant_id):
     assert len(res) == 1
     assert res[0]["service"] == "EC2"
     assert "recommendation" in res[0]
+
+
+@pytest.mark.asyncio
+async def test_get_unallocated_analysis_rejects_non_finite_totals(
+    mock_db, engine, tenant_id
+):
+    row = MagicMock()
+    row.service = "EC2"
+    row.total_unallocated = Decimal("NaN")
+    row.record_count = 5
+
+    mock_result = MagicMock()
+    mock_result.all.return_value = [row]
+    mock_db.execute.return_value = mock_result
+
+    with pytest.raises(ValueError, match="total_unallocated must be finite"):
+        await engine.get_unallocated_analysis(
+            tenant_id, date(2026, 1, 1), date(2026, 1, 31)
+        )
 
 
 def test_validate_rule_payload_invalid_types(engine):

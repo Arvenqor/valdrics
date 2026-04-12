@@ -89,6 +89,54 @@ async def test_license_governance_autopilot_completed_notifies() -> None:
 
 
 @pytest.mark.asyncio
+async def test_license_governance_autopilot_completed_preserves_never_active_state() -> None:
+    tenant_id = uuid4()
+    db = MagicMock()
+    conn = _connection()
+    db.execute = AsyncMock(return_value=_connection_result(conn))
+
+    service = LicenseGovernanceService(db)
+    service.get_governance_settings = AsyncMock(return_value=_settings(True))
+    service._has_pending_request = AsyncMock(return_value=False)
+    request = SimpleNamespace(id=uuid4())
+    service.remediation_service.create_request = AsyncMock(return_value=request)
+    service.remediation_service.execute = AsyncMock(
+        return_value=SimpleNamespace(
+            id=request.id,
+            status=RemediationStatus.COMPLETED,
+            execution_error=None,
+        )
+    )
+
+    never_active_user = {
+        "user_id": "user-123",
+        "email": "user@example.com",
+        "last_active_at": None,
+        "suspended": False,
+        "is_admin": False,
+    }
+
+    with (
+        patch(
+            "app.modules.optimization.domain.license_governance.LicenseAdapter"
+        ) as adapter_cls,
+        patch(
+            "app.shared.core.notifications.NotificationDispatcher.notify_license_reclamation",
+            new_callable=AsyncMock,
+        ) as notify_mock,
+    ):
+        adapter_cls.return_value.list_users_activity = AsyncMock(
+            return_value=[never_active_user]
+        )
+
+        result = await service.run_tenant_governance(tenant_id)
+
+    assert result["status"] == "completed"
+    notify_mock.assert_awaited_once()
+    assert notify_mock.await_args.kwargs["last_active_at"] is None
+
+
+@pytest.mark.asyncio
 async def test_license_governance_autopilot_failed_does_not_notify() -> None:
     tenant_id = uuid4()
     db = MagicMock()

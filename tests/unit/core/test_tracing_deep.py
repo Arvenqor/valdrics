@@ -23,6 +23,7 @@ class TestTracingDeep:
     def test_setup_tracing_console_in_development(self):
         with patch("app.shared.core.tracing.get_settings") as mock_settings:
             mock_settings.return_value.TESTING = False
+            mock_settings.return_value.OBSERVABILITY_BACKEND = "otlp"
             mock_settings.return_value.OTEL_EXPORTER_OTLP_ENDPOINT = None
             mock_settings.return_value.ENVIRONMENT = "development"
 
@@ -43,6 +44,7 @@ class TestTracingDeep:
     def test_setup_tracing_fails_closed_in_production_without_sink(self):
         with patch("app.shared.core.tracing.get_settings") as mock_settings:
             mock_settings.return_value.TESTING = False
+            mock_settings.return_value.OBSERVABILITY_BACKEND = "otlp"
             mock_settings.return_value.OTEL_EXPORTER_OTLP_ENDPOINT = None
             mock_settings.return_value.ENVIRONMENT = "production"
 
@@ -63,6 +65,7 @@ class TestTracingDeep:
     def test_setup_tracing_otlp(self):
         with patch("app.shared.core.tracing.get_settings") as mock_settings:
             mock_settings.return_value.TESTING = False
+            mock_settings.return_value.OBSERVABILITY_BACKEND = "otlp"
             mock_settings.return_value.OTEL_EXPORTER_OTLP_ENDPOINT = (
                 "http://jaeger:4317"
             )
@@ -81,6 +84,7 @@ class TestTracingDeep:
         mock_app.state = SimpleNamespace()
         with patch("app.shared.core.tracing.get_settings") as mock_settings:
             mock_settings.return_value.TESTING = False
+            mock_settings.return_value.OBSERVABILITY_BACKEND = "otlp"
             mock_settings.return_value.OTEL_EXPORTER_OTLP_ENDPOINT = None
             mock_settings.return_value.ENVIRONMENT = "development"
 

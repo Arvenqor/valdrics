@@ -313,20 +313,13 @@ class TestHealthServiceIntegration:
         with (
             patch.object(health_service, "_testing_mode", return_value=False),
             patch("app.shared.core.health.get_cache_service", return_value=mock_cache),
-            patch("app.shared.core.http.get_http_client") as mock_get_client,
         ):
-            mock_response = MagicMock()
-            mock_response.status_code = 500
-            mock_client = AsyncMock()
-            mock_client.get.return_value = mock_response
-            mock_get_client.return_value = mock_client
-
             result = await health_service.check_all()
 
         assert result["status"] == "unhealthy"
         assert result["database"]["status"] == "down"
-        assert result["redis"]["status"] == "unhealthy"
-        assert result["aws"]["status"] == "unhealthy"
+        assert result["cache"]["status"] == "degraded"
+        assert result["external_services"]["status"] == "disabled"
 
     @pytest.mark.asyncio
     async def test_health_check_timeout_handling(self, health_service, mock_db):
@@ -358,18 +351,11 @@ class TestHealthServiceIntegration:
         with (
             patch.object(health_service, "_testing_mode", return_value=False),
             patch("app.shared.core.health.get_cache_service", return_value=mock_cache),
-            patch("app.shared.core.http.get_http_client") as mock_get_client,
         ):
-            mock_response = MagicMock()
-            mock_response.status_code = 200
-            mock_client = AsyncMock()
-            mock_client.get.return_value = mock_response
-            mock_get_client.return_value = mock_client
-
             result = await health_service.check_all()
 
-        assert result["redis"]["status"] == "disabled"
-        assert result["aws"]["status"] == "healthy"
+        assert result["cache"]["status"] == "disabled"
+        assert result["external_services"]["status"] == "disabled"
 
 
 class TestNotificationDispatcherIntegration:

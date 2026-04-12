@@ -8,7 +8,7 @@ Ensures financial trust by flagging deltas >1%.
 import hashlib
 import json
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any, Dict
 from uuid import UUID
 
@@ -128,8 +128,20 @@ class CostReconciliationService:
         return round(min(1.0, 0.6 * coverage_ratio + 0.4 * volume_factor), 2)
 
     @staticmethod
+    def _to_decimal(value: Any) -> Decimal:
+        if value is None or value == "":
+            return Decimal("0")
+        try:
+            amount = Decimal(str(value))
+        except (InvalidOperation, TypeError, ValueError) as exc:
+            raise ValueError("value must be numeric") from exc
+        if not amount.is_finite():
+            raise ValueError("value must be finite")
+        return amount
+
+    @staticmethod
     def _to_float(value: Any) -> float:
-        return float(value or 0)
+        return float(CostReconciliationService._to_decimal(value))
 
     @staticmethod
     def _to_int(value: Any) -> int:

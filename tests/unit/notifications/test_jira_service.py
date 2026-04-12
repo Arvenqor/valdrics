@@ -115,6 +115,38 @@ async def test_create_issue_does_not_swallow_fatal_exceptions() -> None:
 
 
 @pytest.mark.asyncio
+async def test_create_issue_does_not_swallow_broken_client_contracts() -> None:
+    service = JiraService(
+        base_url="https://example.atlassian.net",
+        email="jira@example.com",
+        api_token="token",
+        project_key="FINOPS",
+    )
+
+    client = AsyncMock()
+    client.post = AsyncMock(side_effect=AttributeError("broken post contract"))
+    with patch("app.shared.core.http.get_http_client", return_value=client):
+        with pytest.raises(AttributeError, match="broken post contract"):
+            await service.create_issue("s", "d")
+
+
+@pytest.mark.asyncio
+async def test_create_issue_type_error_bubbles() -> None:
+    service = JiraService(
+        base_url="https://example.atlassian.net",
+        email="jira@example.com",
+        api_token="token",
+        project_key="FINOPS",
+    )
+
+    client = AsyncMock()
+    client.post = AsyncMock(side_effect=TypeError("broken post signature"))
+    with patch("app.shared.core.http.get_http_client", return_value=client):
+        with pytest.raises(TypeError, match="broken post signature"):
+            await service.create_issue("s", "d")
+
+
+@pytest.mark.asyncio
 async def test_health_check_does_not_swallow_fatal_exceptions() -> None:
     service = JiraService(
         base_url="https://example.atlassian.net",
@@ -127,6 +159,38 @@ async def test_health_check_does_not_swallow_fatal_exceptions() -> None:
 
     with patch("app.shared.core.http.get_http_client", return_value=client):
         with pytest.raises(KeyboardInterrupt):
+            await service.health_check()
+
+
+@pytest.mark.asyncio
+async def test_health_check_does_not_swallow_broken_client_contracts() -> None:
+    service = JiraService(
+        base_url="https://example.atlassian.net",
+        email="jira@example.com",
+        api_token="token",
+        project_key="FINOPS",
+    )
+    client = AsyncMock()
+    client.get = AsyncMock(side_effect=AttributeError("broken get contract"))
+
+    with patch("app.shared.core.http.get_http_client", return_value=client):
+        with pytest.raises(AttributeError, match="broken get contract"):
+            await service.health_check()
+
+
+@pytest.mark.asyncio
+async def test_health_check_value_error_bubbles() -> None:
+    service = JiraService(
+        base_url="https://example.atlassian.net",
+        email="jira@example.com",
+        api_token="token",
+        project_key="FINOPS",
+    )
+    client = AsyncMock()
+    client.get = AsyncMock(side_effect=ValueError("broken response contract"))
+
+    with patch("app.shared.core.http.get_http_client", return_value=client):
+        with pytest.raises(ValueError, match="broken response contract"):
             await service.health_check()
 
 

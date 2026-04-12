@@ -12,8 +12,10 @@ def _settings(
     insecure: bool = False,
     environment: str = "development",
     testing: bool = False,
+    backend: str = "otlp",
 ) -> SimpleNamespace:
     return SimpleNamespace(
+        OBSERVABILITY_BACKEND=backend,
         TESTING=testing,
         OTEL_EXPORTER_OTLP_ENDPOINT=endpoint,
         OTEL_EXPORTER_OTLP_INSECURE=insecure,
@@ -72,6 +74,7 @@ def test_setup_tracing_reconfigures_existing_provider_when_otlp_changes() -> Non
     }
     assert batch_processor.call_count == 2
     assert tracing_module._configured_tracing_signature == (
+        "otlp",
         "http://otel-b:4317",
         True,
         "production",

@@ -7,7 +7,7 @@ configuration, or runbooks are marked as implemented here.
 ## Scope
 
 - Application: FastAPI API, SvelteKit dashboard, background workers
-- Infrastructure: Helm chart, Terraform modules, GitHub Actions workflows
+- Infrastructure: unified-platform Terraform root, GitHub Actions workflows, and explicitly labeled archived future-scale references
 - Operations evidence: runbooks, audit/export paths, observability config
 
 ## Control Map
@@ -27,7 +27,7 @@ configuration, or runbooks are marked as implemented here.
 | CC7.2 | Security monitoring and traceability | `app/shared/core/tracing.py`, `app/shared/core/security_metrics.py`, `app/shared/core/ops_metrics.py` | Implemented |
 | CC7.4 | Incident response and recovery | `docs/runbooks/disaster_recovery.md`, `docs/ROLLBACK_PLAN.md` | Implemented |
 | CC8.1 | Change management | Git history, `CODEOWNERS`, GitHub Actions checks, `scripts/run_enterprise_tdd_gate.py` | Implemented |
-| CC9.2 | Business continuity and backups | `terraform/modules/db/main.tf`, `docs/runbooks/disaster_recovery.md` | Implemented |
+| CC9.2 | Business continuity and backups | `docs/runbooks/disaster_recovery.md`, `docs/architecture/failover.md`, `docs/ROLLBACK_PLAN.md` | Implemented |
 
 ## Implemented Control Evidence
 
@@ -55,7 +55,7 @@ configuration, or runbooks are marked as implemented here.
 - Rollback guidance: `docs/ROLLBACK_PLAN.md`
 - Disaster recovery runbook: `docs/runbooks/disaster_recovery.md`
 - Tenant data lifecycle and erasure operations: `docs/runbooks/tenant_data_lifecycle.md`
-- AWS RDS backup retention and HA posture: `terraform/modules/db/main.tf`
+- Supabase backup/restore and point-in-time recovery posture: `docs/runbooks/disaster_recovery.md`, `docs/architecture/failover.md`
 
 ## Known Gaps
 

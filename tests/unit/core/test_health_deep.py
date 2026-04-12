@@ -33,21 +33,26 @@ async def test_check_cache_set_get_failed():
     with patch("app.shared.core.health.get_cache_service", return_value=cache):
         result = await service._check_cache()
 
-    assert result["status"] == "unhealthy"
+    assert result["status"] == "degraded"
     assert "Cache set/get failed" in result["message"]
 
 
 @pytest.mark.asyncio
 async def test_check_external_services_exception():
     service = HealthService()
-    mock_client = MagicMock()
-    mock_client.__aenter__ = AsyncMock(side_effect=RuntimeError("boom"))
-
-    with patch("app.shared.core.http.get_http_client", return_value=mock_client):
+    with (
+        patch.object(
+            service,
+            "_external_service_probes",
+            return_value={"status_page": "https://status.example.com/health"},
+        ),
+        patch("app.shared.core.http.get_http_client") as mock_get_client,
+    ):
+        mock_get_client.return_value.get = AsyncMock(side_effect=RuntimeError("boom"))
         result = await service._check_external_services()
 
     assert result["status"] == "degraded"
-    assert result["services"]["aws_sts"]["status"] == "unhealthy"
+    assert result["services"]["status_page"]["status"] == "unhealthy"
 
 
 @pytest.mark.asyncio
@@ -342,7 +347,7 @@ async def test_run_health_check_rejects_non_mapping_payload():
         component="cache",
     )
 
-    assert result["status"] == "unhealthy"
+    assert result["status"] == "degraded"
     assert result["component"] == "cache"
     assert result["error"] == "Health check returned non-dict payload"
 
@@ -410,10 +415,7 @@ async def test_comprehensive_health_check_disables_networked_checks_in_testing()
     assert result["status"] == "healthy"
     assert result["checks"]["cache"]["status"] == "disabled"
     assert result["checks"]["external_services"]["status"] == "disabled"
-    assert (
-        result["checks"]["external_services"]["services"]["aws_sts"]["status"]
-        == "disabled"
-    )
+    assert result["checks"]["external_services"]["services"] == {}
 
 
 @pytest.mark.asyncio
@@ -450,7 +452,7 @@ async def test_comprehensive_health_check_sequences_db_backed_checks():
     async def _external() -> dict[str, object]:
         return await _record(
             "external_services",
-            {"status": "healthy", "services": {"aws_sts": {"status": "healthy"}}},
+            {"status": "healthy", "services": {"status_page": {"status": "healthy"}}},
         )
 
     async def _circuit() -> dict[str, object]:

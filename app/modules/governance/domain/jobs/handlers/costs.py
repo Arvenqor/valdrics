@@ -5,10 +5,11 @@ Cost Management Job Handlers
 import structlog
 from typing import Any, AsyncGenerator, AsyncIterator, Dict
 from datetime import datetime, timezone, timedelta, date, time
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.background_job import BackgroundJob
+from app.modules.governance.domain.jobs.errors import PermanentJobError
 from app.modules.governance.domain.jobs.handlers.base import BaseJobHandler
 from app.shared.core.async_utils import maybe_await
 from app.shared.core.connection_queries import list_tenant_connections
@@ -17,32 +18,59 @@ from app.shared.core.connection_state import resolve_connection_profile
 logger = structlog.get_logger()
 COST_INGESTION_CONNECTION_RECOVERABLE_EXCEPTIONS = (
     RuntimeError,
-    ValueError,
-    TypeError,
     ConnectionError,
     TimeoutError,
     OSError,
 )
 ATTRIBUTION_TRIGGER_RECOVERABLE_EXCEPTIONS = (
     RuntimeError,
-    ValueError,
-    TypeError,
     ImportError,
     OSError,
 )
 
 
+def _normalize_record_timestamp(value: Any) -> datetime:
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
+    if isinstance(value, str):
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("timestamp must not be empty")
+        if normalized.endswith("Z"):
+            normalized = normalized[:-1] + "+00:00"
+        try:
+            parsed = datetime.fromisoformat(normalized)
+        except ValueError as exc:
+            raise ValueError("timestamp must be an ISO 8601 datetime string") from exc
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+    raise ValueError("timestamp must be a datetime or ISO 8601 string")
+
+
+def _normalize_cost_amount(value: Any) -> Decimal:
+    try:
+        return Decimal(str(value or 0))
+    except (InvalidOperation, ValueError) as exc:
+        raise ValueError("cost_usd must be numeric") from exc
+
+
 def _require_tenant_id(job: BackgroundJob) -> UUID:
     if job.tenant_id is None:
-        raise ValueError("tenant_id required")
+        raise PermanentJobError("tenant_id required")
     return job.tenant_id
 
 
 def _require_iso_date(payload: dict[str, Any], key: str) -> date:
     raw_value = payload.get(key)
     if not isinstance(raw_value, str):
-        raise ValueError(f"{key} must be an ISO date string")
-    return date.fromisoformat(raw_value)
+        raise PermanentJobError(f"{key} must be an ISO date string")
+    try:
+        return date.fromisoformat(raw_value)
+    except ValueError as exc:
+        raise PermanentJobError(f"{key} must be an ISO date string") from exc
 
 
 def _normalize_checkpoint(payload: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
@@ -90,7 +118,7 @@ class CostIngestionHandler(BaseJobHandler):
         payload_start = payload.get("start_date")
         payload_end = payload.get("end_date")
         if (payload_start is None) ^ (payload_end is None):
-            raise ValueError(
+            raise PermanentJobError(
                 "Both start_date and end_date must be provided for backfill windows"
             )
         custom_window = payload_start is not None and payload_end is not None
@@ -103,7 +131,7 @@ class CostIngestionHandler(BaseJobHandler):
             end_date = datetime.now(timezone.utc)
             start_date = end_date - timedelta(days=7)
         if start_date > end_date:
-            raise ValueError("start_date must be <= end_date")
+            raise PermanentJobError("start_date must be <= end_date")
 
         # 1. Load active connections across all providers (provider-neutral path).
         connections: list[Any] = await list_tenant_connections(
@@ -207,12 +235,12 @@ class CostIngestionHandler(BaseJobHandler):
                         )
                         if not isinstance(r.get("tags"), dict):
                             r["tags"] = {}
-                        ts = r.get("timestamp")
-                        if isinstance(ts, datetime) and ts.tzinfo is None:
-                            r["timestamp"] = ts.replace(tzinfo=timezone.utc)
+                        r["timestamp"] = _normalize_record_timestamp(r.get("timestamp"))
+                        normalized_cost = _normalize_cost_amount(r.get("cost_usd", 0))
+                        r["cost_usd"] = normalized_cost
 
                         records_ingested += 1
-                        total_cost_acc += float(r.get("cost_usd", 0) or 0)
+                        total_cost_acc += float(normalized_cost)
                         yield r
 
                 save_result = await persistence.save_records_stream(

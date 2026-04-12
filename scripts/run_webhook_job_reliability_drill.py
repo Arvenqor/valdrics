@@ -78,11 +78,11 @@ DRILL_SCENARIOS: tuple[DrillScenario, ...] = (
         ),
     ),
     DrillScenario(
-        name="scheduler_inline_fallback",
-        description="Verify broker/Celery dispatch failures fall back inline and emit the scheduler fallback signal.",
+        name="managed_scheduler_dispatch",
+        description="Verify internal scheduler dispatch fails closed without Google identity credentials and uses the managed dispatcher when authorized.",
         pytest_targets=(
-            "tests/unit/governance/scheduler/test_orchestrator.py::test_background_job_processing_falls_back_inline_when_celery_unavailable",
-            "tests/unit/governance/scheduler/test_orchestrator_branches.py::test_dispatch_task_returns_false_when_inline_fallback_also_fails",
+            "tests/unit/governance/test_internal_orchestration_api.py::test_scheduler_dispatch_route_requires_gcp_identity_token",
+            "tests/unit/governance/test_internal_orchestration_api.py::test_scheduler_dispatch_route_uses_managed_dispatcher_when_authorized",
         ),
     ),
 )

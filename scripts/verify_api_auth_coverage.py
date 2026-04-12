@@ -32,7 +32,7 @@ AUTH_DEPENDENCY_CALL_NAMES = {
     "get_current_user_with_db_context",
     "get_scim_context",
     "validate_admin_key",
-    "require_internal_job_secret",
+    "require_internal_platform_invocation",
 }
 
 # Intentionally unauthenticated endpoints.

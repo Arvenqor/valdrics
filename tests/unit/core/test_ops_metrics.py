@@ -169,9 +169,10 @@ def test_background_job_reliability_metrics_record_expected_values() -> None:
     )
     ops_metrics.set_background_jobs_overdue_pending(4)
     ops_metrics.record_audit_log_retention_failure("audit_logs_retention")
-    ops_metrics.record_scheduler_inline_fallback(
+    ops_metrics.record_scheduler_dispatch_fail_closed(
         "background_job_processing",
-        outcome="succeeded",
+        work_item="background_jobs.process",
+        runtime_profile="gcp",
     )
 
     recovered = REGISTRY.get_sample_value(
@@ -192,11 +193,12 @@ def test_background_job_reliability_metrics_record_expected_values() -> None:
         "valdrics_ops_audit_log_retention_failures_total",
         labels={"operation": "audit_logs_retention"},
     )
-    inline_fallbacks = REGISTRY.get_sample_value(
-        "valdrics_scheduler_inline_fallback_total",
+    dispatch_fail_closed = REGISTRY.get_sample_value(
+        "valdrics_scheduler_dispatch_fail_closed_total",
         labels={
             "job_name": "background_job_processing",
-            "outcome": "succeeded",
+            "work_item": "background_jobs.process",
+            "runtime_profile": "gcp",
         },
     )
 
@@ -204,7 +206,7 @@ def test_background_job_reliability_metrics_record_expected_values() -> None:
     assert dead_lettered == 1.0
     assert overdue == 4.0
     assert audit_failures == 1.0
-    assert inline_fallbacks == 1.0
+    assert dispatch_fail_closed == 1.0
 
 
 def test_record_landing_funnel_health_snapshot_updates_gauges() -> None:

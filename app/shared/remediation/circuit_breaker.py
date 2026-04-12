@@ -48,7 +48,12 @@ class CircuitBreakerConfig:
 
 
 class CircuitBreakerState:
-    """Handles state persistence for Circuit Breaker, with Redis fallback to Memory."""
+    """
+    Handles circuit-breaker state with process-local memory by default.
+
+    Redis-backed shared state is used only when it is explicitly configured for
+    distributed execution.
+    """
 
     def __init__(self, tenant_id: str, redis_client: Any = None) -> None:
         self.tenant_id = tenant_id
@@ -101,8 +106,10 @@ class CircuitBreakerState:
 
 class CircuitBreaker:
     """
-    Advanced Circuit Breaker with tenant isolation and optional Redis persistence.
-    Protects remediation actions from cascading failures.
+    Advanced circuit breaker with tenant isolation and optional distributed state.
+
+    Shared Redis state is used only when distributed mode is explicitly enabled
+    and a Redis backend is configured. Otherwise the breaker stays process-local.
     """
 
     def __init__(
@@ -262,10 +269,11 @@ _tenant_breakers_lock = asyncio.Lock()
 
 def _resolve_distributed_redis_client() -> Any | None:
     """
-    Resolve a shared Redis client for circuit-breaker state when configured.
+    Resolve a shared Redis client only when distributed state is explicitly enabled.
 
-    Falls back to process-local memory state if distributed mode is disabled or Redis
-    is unavailable, preserving runtime availability.
+    Falls back to process-local memory if distributed mode is disabled or no
+    healthy Redis client can be resolved. Production and staging callers may
+    still fail closed if distributed state was requested but is unavailable.
     """
     runtime_settings = get_settings()
     distributed_enabled = bool(

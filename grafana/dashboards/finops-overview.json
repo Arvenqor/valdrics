@@ -302,9 +302,9 @@
       "gridPos": {"h": 8, "w": 24, "x": 0, "y": 42},
       "id": 13,
       "targets": [
-        {"expr": "sum(increase(valdrics_scheduler_inline_fallback_total[$__interval])) by (job_name, outcome)", "legendFormat": "{{job_name}} {{outcome}}"}
+        {"expr": "sum(increase(valdrics_scheduler_dispatch_fail_closed_total[$__interval])) by (job_name, work_item, runtime_profile)", "legendFormat": "{{job_name}} {{work_item}} {{runtime_profile}}"}
       ],
-      "title": "Scheduler Inline Fallback Frequency",
+      "title": "Scheduler Dispatch Fail-Closed Events",
       "type": "timeseries"
     }
   ],

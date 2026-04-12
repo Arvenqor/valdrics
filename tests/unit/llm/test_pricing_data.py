@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -22,4 +22,13 @@ async def test_refresh_llm_pricing_does_not_swallow_fatal_errors() -> None:
     db.execute.side_effect = KeyboardInterrupt()
 
     with pytest.raises(KeyboardInterrupt):
+        await refresh_llm_pricing(db)
+
+
+@pytest.mark.asyncio
+async def test_refresh_llm_pricing_broken_result_contract_bubbles() -> None:
+    db = AsyncMock()
+    db.execute.return_value = AsyncMock(scalars=MagicMock(return_value=object()))
+
+    with pytest.raises(AttributeError):
         await refresh_llm_pricing(db)

@@ -13,6 +13,9 @@ from app.modules.billing.domain.billing.paystack_billing import (
     PaystackClient,
     WebhookHandler,
 )
+from app.modules.billing.domain.billing.paystack_service_impl import (
+    RenewalOperationalError,
+)
 from app.modules.billing.domain.billing.webhook_retry import (
     WebhookPermanentError,
     WebhookRetryableError,
@@ -325,7 +328,10 @@ async def test_charge_renewal_invalid_tier_value_returns_false(
         "app.modules.billing.domain.billing.paystack_shared.decrypt_string",
         return_value="AUTH",
     ):
-        assert await service.charge_renewal(sub) is False
+        with pytest.raises(
+            RenewalOperationalError, match="Invalid subscription tier for renewal"
+        ):
+            await service.charge_renewal(sub)
 
 
 @pytest.mark.asyncio
@@ -345,7 +351,11 @@ async def test_charge_renewal_missing_tier_config_returns_false(
         ),
         patch("app.shared.core.pricing.TIER_CONFIG", {}),
     ):
-        assert await service.charge_renewal(sub) is False
+        with pytest.raises(
+            RenewalOperationalError,
+            match="Subscription pricing unavailable for renewal",
+        ):
+            await service.charge_renewal(sub)
 
 
 @pytest.mark.asyncio
@@ -376,7 +386,10 @@ async def test_charge_renewal_missing_user_returns_false(
             return_value=150000,
         ),
     ):
-        assert await service.charge_renewal(sub) is False
+        with pytest.raises(
+            RenewalOperationalError, match="No billing contact found for renewal"
+        ):
+            await service.charge_renewal(sub)
 
 
 @pytest.mark.asyncio
@@ -409,7 +422,11 @@ async def test_charge_renewal_email_decrypt_failure_returns_false(
         ),
         patch("app.shared.core.security.decrypt_string", return_value=None),
     ):
-        assert await service.charge_renewal(sub) is False
+        with pytest.raises(
+            RenewalOperationalError,
+            match="Billing contact email unavailable for renewal",
+        ):
+            await service.charge_renewal(sub)
 
 
 @pytest.mark.asyncio
@@ -449,7 +466,10 @@ async def test_charge_renewal_charge_exception_returns_false(
             new=AsyncMock(side_effect=RuntimeError("paystack down")),
         ),
     ):
-        assert await service.charge_renewal(sub) is False
+        with pytest.raises(
+            RenewalOperationalError, match="Paystack renewal request failed"
+        ):
+            await service.charge_renewal(sub)
 
 
 @pytest.mark.asyncio

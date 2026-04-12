@@ -13,6 +13,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.background_job import BackgroundJob, JobStatus
 from app.shared.core.async_utils import maybe_await
 from app.shared.core.config import get_settings
+from app.shared.orchestration.contracts import (
+    platform_runtime_profile,
+    PlatformRuntimeProfile,
+)
 
 
 def evaluate_system_resources(
@@ -62,72 +66,52 @@ def evaluate_system_resources(
         return {"status": "unknown", "error": str(exc)}
 
 
-def _resolve_worker_broker_url() -> str | None:
-    from app.shared.core.config import get_settings
-
-    settings = get_settings()
-    configured_url = str(getattr(settings, "REDIS_URL", "") or "").strip()
-    if configured_url:
-        return configured_url
-
-    host = str(getattr(settings, "REDIS_HOST", "") or "").strip()
-    port = str(getattr(settings, "REDIS_PORT", "") or "").strip()
-    if host and port:
-        return f"redis://{host}:{port}/0"
-
-    return None
-
-
 def _default_worker_probe() -> dict[str, Any]:
-    from app.shared.core.config import get_settings
-
     settings = get_settings()
-    broker_url = _resolve_worker_broker_url()
-    if settings.TESTING or not broker_url or broker_url.startswith("memory://"):
+    if platform_runtime_profile(settings) is PlatformRuntimeProfile.GCP:
+        queue_name = str(getattr(settings, "GCP_CLOUD_TASKS_QUEUE", "") or "").strip()
+        batch_job_name = str(
+            getattr(settings, "GCP_CLOUD_RUN_BATCH_JOB_NAME", "") or ""
+        ).strip()
+        service_name = str(
+            getattr(settings, "GCP_CLOUD_RUN_SERVICE_NAME", "") or ""
+        ).strip()
+        return {
+            "status": "healthy",
+            "message": (
+                "Managed background execution is handled by Cloud Tasks, "
+                "Cloud Scheduler, and Cloud Run Jobs."
+            ),
+            "runtime": "gcp_managed",
+            "scheduler_owner": "cloud_scheduler",
+            "task_queue": queue_name,
+            "batch_job": batch_job_name,
+            "service_name": service_name,
+            "worker_count": 0,
+            "workers": [],
+        }
+    if settings.TESTING:
         return {
             "status": "skipped",
-            "message": "Worker heartbeat probe skipped because no runtime broker is configured",
-            "worker_count": 0,
-            "workers": [],
-        }
-
-    from app.shared.core.celery_app import celery_app
-
-    inspector = celery_app.control.inspect(timeout=1.0)
-    ping_response = inspector.ping()
-    if not isinstance(ping_response, dict) or not ping_response:
-        return {
-            "status": "degraded",
-            "message": "No Celery workers responded to the heartbeat probe",
-            "worker_count": 0,
-            "workers": [],
-        }
-
-    workers = sorted(str(name) for name, payload in ping_response.items() if payload)
-    if not workers:
-        return {
-            "status": "degraded",
-            "message": "Celery worker heartbeat responses were empty",
+            "message": "Worker health probe skipped during tests",
             "worker_count": 0,
             "workers": [],
         }
 
     return {
-        "status": "healthy",
-        "message": "Celery workers responded to the heartbeat probe",
-        "worker_count": len(workers),
-        "workers": workers,
+        "status": "unknown",
+        "message": (
+            "Legacy broker-backed worker probing is no longer supported. "
+            "Use the managed GCP background execution contract."
+        ),
+        "runtime": "legacy_unsupported",
+        "worker_count": 0,
+        "workers": [],
     }
 
 
 def _default_worker_probe_requires_thread() -> bool:
-    settings = get_settings()
-    broker_url = _resolve_worker_broker_url()
-    return bool(
-        not settings.TESTING
-        and broker_url
-        and not broker_url.startswith("memory://")
-    )
+    return False
 
 
 async def _probe_worker_health(

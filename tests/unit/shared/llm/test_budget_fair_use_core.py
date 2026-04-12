@@ -144,6 +144,23 @@ async def test_acquire_inflight_slot_redis_failure_falls_back_to_local() -> None
 
 
 @pytest.mark.asyncio
+async def test_acquire_inflight_slot_unexpected_cache_error_bubbles() -> None:
+    tenant_id = uuid4()
+    redis_client = SimpleNamespace(
+        incr=AsyncMock(side_effect=Exception("unexpected cache defect")),
+        decr=AsyncMock(),
+        expire=AsyncMock(),
+    )
+    cache = SimpleNamespace(enabled=True, client=redis_client)
+
+    with patch("app.shared.llm.budget_manager.get_cache_service", return_value=cache):
+        with pytest.raises(Exception, match="unexpected cache defect"):
+            await budget_fair_use.acquire_fair_use_inflight_slot(
+                DummyManager, tenant_id, max_inflight=2, ttl_seconds=60
+            )
+
+
+@pytest.mark.asyncio
 async def test_release_slot_respects_guards_disabled_and_clears_local() -> None:
     tenant_id = uuid4()
     key = budget_fair_use.fair_use_inflight_key(tenant_id)

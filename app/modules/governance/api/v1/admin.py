@@ -35,9 +35,15 @@ from app.shared.core.auth import (
     require_platform_operator,
     requires_platform_role,
 )
+from app.shared.orchestration.contracts import (
+    DispatchUnavailableError,
+    ManagedWorkItem,
+    ManagedWorkRequest,
+)
 
 router = APIRouter(tags=["Admin Utilities"])
 logger = structlog.get_logger()
+_MANUAL_ANALYSIS_COHORTS: tuple[str, ...] = ("high_value", "active", "dormant")
 
 
 def _resolve_admin_audit_tenant_id(request: Request) -> str | None:
@@ -108,10 +114,73 @@ async def trigger_analysis(
 ) -> dict[str, str]:
     """Manually trigger a scheduled analysis job."""
 
+    del request
+    from app.shared.orchestration.runtime import get_scheduled_trigger_dispatcher
+
     logger.info("manual_trigger_requested")
-    # Access scheduler from app state (passed via request.app)
-    await request.app.state.scheduler.daily_analysis_job()
-    return {"status": "triggered", "message": "Daily analysis job executed."}
+    dispatcher = get_scheduled_trigger_dispatcher()
+    results: list[dict[str, Any]] = []
+    for cohort in _MANUAL_ANALYSIS_COHORTS:
+        try:
+            result = await dispatcher.dispatch(
+                ManagedWorkRequest(
+                    work_item=ManagedWorkItem.SCHEDULER_COHORT_ANALYSIS,
+                    payload={"cohort": cohort},
+                )
+            )
+            results.append(
+                {
+                    "cohort": cohort,
+                    "dispatched": bool(result.accepted),
+                    "transport": result.transport,
+                    "reference": result.reference,
+                }
+            )
+        except (
+            DispatchUnavailableError,
+            ImportError,
+            AttributeError,
+            RuntimeError,
+            OSError,
+            TimeoutError,
+            ValueError,
+            TypeError,
+        ) as exc:
+            logger.warning(
+                "manual_trigger_dispatch_failed",
+                cohort=cohort,
+                error=str(exc),
+            )
+            results.append(
+                {
+                    "cohort": cohort,
+                    "dispatched": False,
+                    "error": str(exc),
+                }
+            )
+
+    attempted = len(results)
+    dispatched = sum(1 for item in results if item["dispatched"])
+    summary = {
+        "attempted": attempted,
+        "dispatched": dispatched,
+        "all_dispatched": dispatched == attempted,
+        "results": results,
+    }
+    if not bool(summary.get("all_dispatched")):
+        attempted = int(summary.get("attempted", 0) or 0)
+        dispatched = int(summary.get("dispatched", 0) or 0)
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Daily analysis dispatch did not complete successfully. "
+                f"Dispatched {dispatched} of {attempted} cohorts."
+            ),
+        )
+    return {
+        "status": "triggered",
+        "message": "Daily analysis job dispatched for all cohorts.",
+    }
 
 
 @router.get("/reconcile/{tenant_id}")

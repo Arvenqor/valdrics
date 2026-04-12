@@ -8,6 +8,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
+from app.modules.governance.domain.jobs.errors import JobExecutionError, PermanentJobError
 from app.modules.governance.domain.jobs.handlers.dunning import DunningHandler
 
 
@@ -75,7 +76,7 @@ class TestDunningHandler:
         job = MagicMock()
         job.payload = {"attempt": 1}  # Missing subscription_id
 
-        with pytest.raises(ValueError, match="subscription_id required"):
+        with pytest.raises(PermanentJobError, match="subscription_id required"):
             await handler.execute(job, mock_db)
 
     @pytest.mark.asyncio
@@ -84,7 +85,7 @@ class TestDunningHandler:
         job = MagicMock()
         job.payload = {}
 
-        with pytest.raises(ValueError, match="subscription_id required"):
+        with pytest.raises(PermanentJobError, match="subscription_id required"):
             await handler.execute(job, mock_db)
 
     @pytest.mark.asyncio
@@ -93,7 +94,16 @@ class TestDunningHandler:
         job = MagicMock()
         job.payload = None
 
-        with pytest.raises(ValueError, match="subscription_id required"):
+        with pytest.raises(PermanentJobError, match="subscription_id required"):
+            await handler.execute(job, mock_db)
+
+    @pytest.mark.asyncio
+    async def test_execute_invalid_subscription_id(self, handler, mock_db):
+        """Test error when subscription_id is malformed."""
+        job = MagicMock()
+        job.payload = {"subscription_id": "not-a-uuid"}
+
+        with pytest.raises(PermanentJobError, match="valid UUID"):
             await handler.execute(job, mock_db)
 
     @pytest.mark.asyncio
@@ -132,3 +142,17 @@ class TestDunningHandler:
             result = await handler.execute(job, mock_db)
 
             assert result["attempt"] == 1
+
+    @pytest.mark.asyncio
+    async def test_execute_operational_retry_failure_bubbles_as_retryable_error(
+        self, handler, mock_job, mock_db
+    ):
+        with patch(
+            "app.modules.billing.domain.billing.dunning_service.DunningService"
+        ) as MockDunning:
+            mock_service = AsyncMock()
+            mock_service.retry_payment.side_effect = JobExecutionError("temporary failure")
+            MockDunning.return_value = mock_service
+
+            with pytest.raises(JobExecutionError, match="temporary failure"):
+                await handler.execute(mock_job, mock_db)

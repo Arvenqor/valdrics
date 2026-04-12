@@ -152,8 +152,6 @@ affinity:
 env:
   ENVIRONMENT: production
   LOG_LEVEL: INFO
-  WEB_CONCURRENCY: "2"
-  ENABLE_SCHEDULER: "true"
 
 # -- Secrets to inject (must exist in cluster)
 existingSecrets:
@@ -178,22 +176,6 @@ externalSecrets:
     name: valdrics-secrets
     creationPolicy: Owner
     deletionPolicy: Retain
-
-# -- Worker configuration
-worker:
-  # -- Enable background worker
-  enabled: true
-  # -- Worker replicas
-  replicaCount: 2
-  # -- Worker pods do not expose HTTP metrics by default.
-  podAnnotations: {}
-  resources:
-    limits:
-      cpu: 2000m
-      memory: 4Gi
-    requests:
-      cpu: 500m
-      memory: 1Gi
 
 # -- Redis configuration (external)
 redis:

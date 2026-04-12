@@ -56,13 +56,6 @@ def _default_deployment_report(environment: str) -> Path:
     return Path(".runtime/deploy") / environment / "deployment.report.json"
 
 
-def _normalize_koyeb_secret_family(name: str) -> str:
-    normalized = str(name or "").strip()
-    if normalized.endswith("-staging"):
-        return normalized[: -len("-staging")]
-    return normalized
-
-
 def _ordered_normalized_items(
     items: list[str], normalize: Callable[[str], str]
 ) -> list[str]:
@@ -119,29 +112,19 @@ BLOCKER_CATEGORIES: tuple[BlockerCategory, ...] = (
         key="migration_validation_blockers",
     ),
     BlockerCategory(
-        title="Dashboard public env blockers",
+        title="Cloudflare Pages public env blockers",
         report_kind="deployment",
-        key="koyeb_dashboard_public_env_blockers",
+        key="cloudflare_pages_public_env_blockers",
     ),
     BlockerCategory(
-        title="Immutable release blockers",
+        title="Artifact Registry release blockers",
         report_kind="deployment",
-        key="koyeb_release_value_blockers",
+        key="artifact_registry_release_value_blockers",
     ),
     BlockerCategory(
-        title="Koyeb secret payload blockers",
+        title="Secret Manager runtime payload blockers",
         report_kind="deployment",
-        key="koyeb_secret_value_blockers",
-        normalize=_normalize_koyeb_secret_family,
-        note=(
-            "Comparison normalizes staging secret names by stripping the "
-            "`-staging` suffix."
-        ),
-    ),
-    BlockerCategory(
-        title="Helm runtime secret blockers",
-        report_kind="deployment",
-        key="helm_runtime_secret_value_blockers",
+        key="secret_manager_secret_value_blockers",
     ),
     BlockerCategory(
         title="Terraform inputs outside generated env",
@@ -290,14 +273,14 @@ def _render_summary_markdown(
         "",
         f"- `{staging.environment}`: runtime env {_status(bool(staging.runtime_report.get('validation_ready')))}, "
         f"migration env {_status(bool(staging.migration_report.get('migration_ready')))}, "
-        f"Koyeb deploy {_status(bool(staging.deployment_report.get('ready_for_koyeb')))}, "
-        f"Koyeb immutable release {_status(bool(staging.deployment_report.get('ready_for_koyeb_release')))}, "
-        f"Helm {_status(bool(staging.deployment_report.get('ready_for_helm')))}",
+        f"unified runtime {_status(bool(staging.deployment_report.get('ready_for_unified_platform')))}, "
+        f"artifact promotion {_status(bool(staging.deployment_report.get('ready_for_release_promotion')))}, "
+        f"terraform {_status(bool(staging.deployment_report.get('ready_for_terraform')))}",
         f"- `{production.environment}`: runtime env {_status(bool(production.runtime_report.get('validation_ready')))}, "
         f"migration env {_status(bool(production.migration_report.get('migration_ready')))}, "
-        f"Koyeb deploy {_status(bool(production.deployment_report.get('ready_for_koyeb')))}, "
-        f"Koyeb immutable release {_status(bool(production.deployment_report.get('ready_for_koyeb_release')))}, "
-        f"Helm {_status(bool(production.deployment_report.get('ready_for_helm')))}",
+        f"unified runtime {_status(bool(production.deployment_report.get('ready_for_unified_platform')))}, "
+        f"artifact promotion {_status(bool(production.deployment_report.get('ready_for_release_promotion')))}, "
+        f"terraform {_status(bool(production.deployment_report.get('ready_for_terraform')))}",
         "",
         *_render_category_section(
             "## Shared Blockers",

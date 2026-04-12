@@ -74,7 +74,7 @@ async def test_cost_ingestion_with_connection(mock_job, mock_db):
 
         # Mock async generator for stream
         async def mock_stream(*args, **kwargs):
-            yield {"cost_usd": 10.0}
+            yield {"cost_usd": 10.0, "timestamp": "2026-01-01T00:00:00Z"}
 
         adapter.stream_cost_and_usage = mock_stream
 
@@ -159,7 +159,7 @@ async def test_cost_ingestion_honors_backfill_window(mock_db):
         adapter = mock_get_adapter.return_value
 
         async def mock_stream(*args, **kwargs):
-            yield {"cost_usd": 5.0}
+            yield {"cost_usd": 5.0, "timestamp": "2026-01-01T00:00:00Z"}
 
         adapter.stream_cost_and_usage = AsyncMock(side_effect=mock_stream)
         persistence = MockPersistence.return_value

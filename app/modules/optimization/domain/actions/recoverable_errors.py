@@ -7,7 +7,6 @@ def remediation_action_recoverable_exceptions() -> tuple[type[Exception], ...]:
         RuntimeError,
         TypeError,
         ValueError,
-        LookupError,
     ]
     try:
         from botocore.exceptions import ClientError

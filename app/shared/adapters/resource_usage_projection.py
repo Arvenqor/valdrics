@@ -42,6 +42,9 @@ def discover_resources_from_cost_rows(
     for row in cost_rows:
         if not isinstance(row, dict):
             continue
+        observed_at = _resolve_optional_timestamp(row)
+        if row.get("timestamp") is not None and observed_at is None:
+            continue
 
         resolved_region = _normalize_optional_str(row.get("region")) or "global"
         if (
@@ -62,14 +65,9 @@ def discover_resources_from_cost_rows(
             or f"{default_provider}_cost_feed"
         )
         tags = row.get("tags") if isinstance(row.get("tags"), dict) else {}
-        cost_usd = _coerce_optional_float(row.get("cost_usd"))
+        cost_usd = _resolve_optional_cost(row)
         if cost_usd is None:
-            cost_usd = _coerce_optional_float(row.get("amount_usd"))
-        if cost_usd is None:
-            cost_usd = _coerce_optional_float(row.get("amount_raw"))
-        if cost_usd is None:
-            cost_usd = 0.0
-        observed_at = _coerce_optional_datetime(row.get("timestamp"))
+            continue
 
         existing = aggregated.get(key)
         if existing is None:
@@ -159,13 +157,13 @@ def project_cost_rows_to_resource_usage(
         if usage_amount is not None and usage_unit is None:
             usage_unit = "unit"
 
-        cost_usd = _coerce_optional_float(row.get("cost_usd"))
+        cost_usd = _resolve_optional_cost(row)
         if cost_usd is None:
-            cost_usd = _coerce_optional_float(row.get("amount_usd"))
-        if cost_usd is None:
-            cost_usd = _coerce_optional_float(row.get("amount_raw"))
-        if cost_usd is None:
-            cost_usd = 0.0
+            continue
+
+        timestamp = _resolve_optional_timestamp(row)
+        if timestamp is None:
+            continue
 
         amount_raw = _coerce_optional_float(row.get("amount_raw"))
         if amount_raw is None:
@@ -187,7 +185,7 @@ def project_cost_rows_to_resource_usage(
                     _normalize_optional_str(row.get("currency")) or "USD"
                 ).upper(),
                 "region": _normalize_optional_str(row.get("region")) or "global",
-                "timestamp": parse_timestamp(row.get("timestamp")),
+                "timestamp": timestamp,
                 "source_adapter": _normalize_optional_str(row.get("source_adapter"))
                 or default_source_adapter,
                 "tags": row.get("tags") if isinstance(row.get("tags"), dict) else {},
@@ -240,6 +238,17 @@ def _coerce_optional_float(value: Any) -> float | None:
     return as_float(value, default=0.0)
 
 
+def _resolve_optional_cost(row: dict[str, Any]) -> float | None:
+    for field in ("cost_usd", "amount_usd", "amount_raw"):
+        value = row.get(field)
+        if value is None:
+            continue
+        if not is_number(value):
+            raise ValueError(f"{field} must be numeric")
+        return as_float(value, default=0.0)
+    return None
+
+
 def _normalize_optional_str(value: Any) -> str | None:
     if value is None:
         return None
@@ -262,3 +271,13 @@ def _coerce_optional_datetime(value: Any) -> datetime | None:
         except (TypeError, ValueError):
             return None
     return None
+
+
+def _resolve_optional_timestamp(row: dict[str, Any]) -> datetime | None:
+    value = row.get("timestamp")
+    if value is None:
+        return None
+    parsed = _coerce_optional_datetime(value)
+    if parsed is None:
+        raise ValueError("timestamp must be a valid datetime")
+    return parsed

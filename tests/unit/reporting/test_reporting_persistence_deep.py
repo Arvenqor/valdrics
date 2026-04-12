@@ -309,6 +309,45 @@ async def test_check_for_significant_adjustments_significant(
 
 
 @pytest.mark.asyncio
+async def test_check_for_significant_adjustments_rejects_non_finite_new_cost(
+    persistence_service, mock_db
+):
+    tenant_id = str(uuid4())
+    account_id = str(uuid4())
+    now = datetime.now(timezone.utc)
+
+    new_records = [
+        {
+            "timestamp": now,
+            "service": "EC2",
+            "region": "us-east-1",
+            "usage_type": "",
+            "resource_id": "",
+            "cost_usd": float("nan"),
+        }
+    ]
+
+    mock_res = MagicMock()
+    mock_res.all.return_value = [
+        MagicMock(
+            timestamp=now,
+            service="EC2",
+            region="us-east-1",
+            usage_type="",
+            resource_id="",
+            cost_usd=Decimal("10.00"),
+            id=uuid4(),
+        )
+    ]
+    mock_db.execute.return_value = mock_res
+
+    with pytest.raises(ValueError, match="finite"):
+        await persistence_service._check_for_significant_adjustments(
+            tenant_id, account_id, new_records
+        )
+
+
+@pytest.mark.asyncio
 async def test_clear_range_basic(persistence_service, mock_db):
     await persistence_service.clear_range(
         "tenant-1", "acc-123", date(2026, 1, 1), date(2026, 1, 31)

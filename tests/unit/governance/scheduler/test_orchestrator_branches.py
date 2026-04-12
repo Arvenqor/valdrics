@@ -7,9 +7,10 @@ import httpx
 import pytest
 
 from app.modules.governance.domain.scheduler.cohorts import TenantCohort
-from app.modules.governance.domain.scheduler.orchestrator import (
-    SchedulerOrchestrator,
-    SchedulerService,
+from app.modules.governance.domain.scheduler.orchestrator import SchedulerOrchestrator
+from app.shared.orchestration.contracts import (
+    DispatchUnavailableError,
+    ManagedWorkItem,
 )
 
 
@@ -18,12 +19,19 @@ def orchestrator() -> SchedulerOrchestrator:
     session_maker = MagicMock()
     return SchedulerOrchestrator(session_maker)
 
-
 @pytest.mark.asyncio
 async def test_acquire_dispatch_lock_paths(
     orchestrator: SchedulerOrchestrator,
 ) -> None:
     import app.modules.governance.domain.scheduler.orchestrator as orchestrator_module
+
+    db = MagicMock()
+    db.scalar = AsyncMock()
+    bind = MagicMock()
+    bind.dialect.name = "postgresql"
+    db.get_bind.return_value = bind
+    orchestrator.session_maker.return_value.__aenter__.return_value = db
+    orchestrator.session_maker.return_value.__aexit__.return_value = None
 
     settings_obj = SimpleNamespace(
         TESTING=False,
@@ -32,33 +40,19 @@ async def test_acquire_dispatch_lock_paths(
     )
 
     with patch.object(orchestrator_module, "get_settings", return_value=settings_obj):
-        with patch(
-            "app.modules.governance.domain.scheduler.orchestrator.get_redis_client",
-            return_value=None,
-        ):
-            assert await orchestrator._acquire_dispatch_lock("demo") is False
+        db.scalar = AsyncMock(return_value=False)
+        assert await orchestrator._acquire_dispatch_lock("demo-locked") is False
 
-        redis = MagicMock()
-        redis.set = AsyncMock(return_value=False)
-        with patch(
-            "app.modules.governance.domain.scheduler.orchestrator.get_redis_client",
-            return_value=redis,
-        ):
-            assert await orchestrator._acquire_dispatch_lock("demo") is False
-
-        redis.set = AsyncMock(side_effect=RuntimeError("redis down"))
-        with patch(
-            "app.modules.governance.domain.scheduler.orchestrator.get_redis_client",
-            return_value=redis,
-        ):
-            assert await orchestrator._acquire_dispatch_lock("demo") is False
+        db.scalar = AsyncMock(side_effect=RuntimeError("db down"))
+        assert await orchestrator._acquire_dispatch_lock("demo-error") is False
 
         settings_obj.SCHEDULER_LOCK_FAIL_OPEN = True
-        with patch(
-            "app.modules.governance.domain.scheduler.orchestrator.get_redis_client",
-            return_value=redis,
-        ):
-            assert await orchestrator._acquire_dispatch_lock("demo") is True
+        assert await orchestrator._acquire_dispatch_lock("demo-fail-open") is True
+
+        settings_obj.SCHEDULER_LOCK_FAIL_OPEN = False
+        db.scalar = AsyncMock(return_value=True)
+        assert await orchestrator._acquire_dispatch_lock("demo-acquired") is True
+        await orchestrator._release_dispatch_lock("demo-acquired")
 
 
 @pytest.mark.asyncio
@@ -67,8 +61,14 @@ async def test_acquire_dispatch_lock_uses_live_settings_after_construction(
 ) -> None:
     import app.modules.governance.domain.scheduler.orchestrator as orchestrator_module
 
-    redis = MagicMock()
-    redis.set = AsyncMock(side_effect=RuntimeError("redis down"))
+    db = MagicMock()
+    db.scalar = AsyncMock()
+    bind = MagicMock()
+    bind.dialect.name = "postgresql"
+    db.get_bind.return_value = bind
+    db.scalar.side_effect = RuntimeError("db down")
+    orchestrator.session_maker.return_value.__aenter__.return_value = db
+    orchestrator.session_maker.return_value.__aexit__.return_value = None
     stale_settings = SimpleNamespace(
         TESTING=False,
         PYTEST_CURRENT_TEST="",
@@ -86,10 +86,6 @@ async def test_acquire_dispatch_lock_uses_live_settings_after_construction(
             "get_settings",
             side_effect=[stale_settings, live_settings],
         ),
-        patch(
-            "app.modules.governance.domain.scheduler.orchestrator.get_redis_client",
-            return_value=redis,
-        ),
     ):
         assert await orchestrator._acquire_dispatch_lock("demo") is False
         assert await orchestrator._acquire_dispatch_lock("demo") is True
@@ -100,30 +96,46 @@ async def test_cohort_analysis_job_lock_held_skips_dispatch(
     orchestrator: SchedulerOrchestrator,
 ) -> None:
     orchestrator._acquire_dispatch_lock = AsyncMock(return_value=False)  # type: ignore[method-assign]
-    with patch("app.shared.core.celery_app.celery_app.send_task") as mock_send:
+    with patch.object(
+        orchestrator.scheduled_trigger_dispatcher,
+        "dispatch",
+        new=AsyncMock(),
+    ) as dispatch:
         await orchestrator.cohort_analysis_job(TenantCohort.ACTIVE)
-    mock_send.assert_not_called()
+    dispatch.assert_not_awaited()
     assert orchestrator._last_run_success is None
 
 
 @pytest.mark.asyncio
-async def test_cohort_analysis_job_celery_error_still_updates_last_run(
+async def test_cohort_analysis_job_dispatch_error_fails_closed(
     orchestrator: SchedulerOrchestrator,
 ) -> None:
     orchestrator._acquire_dispatch_lock = AsyncMock(return_value=True)  # type: ignore[method-assign]
     with (
-        patch(
-            "app.shared.core.celery_app.celery_app.send_task",
-            side_effect=RuntimeError("down"),
+        patch.object(
+            orchestrator.scheduled_trigger_dispatcher,
+            "dispatch",
+            new=AsyncMock(side_effect=DispatchUnavailableError("down")),
         ),
         patch.object(
-            orchestrator, "_run_cohort_analysis_inline", new_callable=AsyncMock
-        ) as mock_inline,
+            orchestrator,
+            "_settings",
+            return_value=SimpleNamespace(PLATFORM_RUNTIME_PROFILE="gcp"),
+        ),
+        patch(
+            "app.modules.governance.domain.scheduler.orchestrator.record_scheduler_dispatch_fail_closed"
+        ) as record_fail_closed,
     ):
-        await orchestrator.cohort_analysis_job(TenantCohort.HIGH_VALUE)
-    mock_inline.assert_awaited_once_with(TenantCohort.HIGH_VALUE)
-    assert orchestrator._last_run_success is True
-    assert orchestrator._last_run_time is not None
+        dispatched = await orchestrator.cohort_analysis_job(TenantCohort.HIGH_VALUE)
+
+    assert dispatched is False
+    assert orchestrator._last_run_success is None
+    assert orchestrator._last_run_time is None
+    record_fail_closed.assert_called_once_with(
+        "cohort:high_value",
+        work_item=ManagedWorkItem.SCHEDULER_COHORT_ANALYSIS.value,
+        runtime_profile="gcp",
+    )
 
 
 @pytest.mark.asyncio
@@ -261,74 +273,54 @@ async def test_is_low_carbon_window_uses_live_intensity_threshold(
 
 
 @pytest.mark.asyncio
-async def test_process_background_jobs_inline_uses_live_batch_settings(
-    orchestrator: SchedulerOrchestrator,
-) -> None:
-    import app.modules.governance.domain.scheduler.orchestrator as orchestrator_module
-
-    db = AsyncMock()
-    orchestrator.session_maker.return_value.__aenter__.return_value = db
-    orchestrator.session_maker.return_value.__aexit__.return_value = None
-    settings_obj = SimpleNamespace(
-        BACKGROUND_JOB_PROCESS_BATCH_SIZE=3,
-        BACKGROUND_JOB_PROCESS_MAX_BATCHES_PER_TICK=2,
-    )
-
-    with (
-        patch.object(orchestrator_module, "get_settings", return_value=settings_obj),
-        patch(
-            "app.modules.governance.domain.scheduler.orchestrator.mark_session_system_context",
-            new=AsyncMock(),
-        ),
-        patch(
-            "app.modules.governance.domain.jobs.processor.JobProcessor",
-        ) as processor_cls,
-    ):
-        processor = processor_cls.return_value
-        processor.process_pending_jobs = AsyncMock(
-            return_value={"processed": 0, "succeeded": 0, "failed": 0}
-        )
-        await orchestrator._process_background_jobs_inline()
-
-    processor.process_pending_jobs.assert_awaited_once_with(limit=3)
-
-
-@pytest.mark.asyncio
 async def test_sweep_jobs_skip_when_lock_not_acquired(
     orchestrator: SchedulerOrchestrator,
 ) -> None:
     orchestrator._acquire_dispatch_lock = AsyncMock(return_value=False)  # type: ignore[method-assign]
-    with patch("app.shared.core.celery_app.celery_app.send_task") as mock_send:
+    with patch.object(
+        orchestrator.scheduled_trigger_dispatcher,
+        "dispatch",
+        new=AsyncMock(),
+    ) as dispatch:
         await orchestrator.auto_remediation_job()
         await orchestrator.billing_sweep_job()
         await orchestrator.license_governance_sweep_job()
         await orchestrator.enforcement_reconciliation_sweep_job()
         await orchestrator.landing_funnel_health_refresh_job()
         await orchestrator.maintenance_sweep_job()
-    mock_send.assert_not_called()
+    dispatch.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-async def test_dispatch_task_returns_false_when_inline_fallback_also_fails(
+async def test_dispatch_work_records_fail_closed_metric(
     orchestrator: SchedulerOrchestrator,
 ) -> None:
     with (
-        patch(
-            "app.shared.core.celery_app.celery_app.send_task",
-            side_effect=RuntimeError("broker unavailable"),
+        patch.object(
+            orchestrator.scheduled_trigger_dispatcher,
+            "dispatch",
+            new=AsyncMock(side_effect=DispatchUnavailableError("dispatcher unavailable")),
         ),
         patch(
-            "app.modules.governance.domain.scheduler.orchestrator.record_scheduler_inline_fallback"
-        ) as record_fallback,
+            "app.modules.governance.domain.scheduler.orchestrator.record_scheduler_dispatch_fail_closed"
+        ) as record_fail_closed,
+        patch.object(
+            orchestrator,
+            "_settings",
+            return_value=SimpleNamespace(PLATFORM_RUNTIME_PROFILE="gcp"),
+        ),
     ):
-        dispatched = await orchestrator._dispatch_task(
-            task_name="scheduler.maintenance_sweep",
+        dispatched = await orchestrator._dispatch_work(
+            work_item=ManagedWorkItem.SCHEDULER_MAINTENANCE_SWEEP,
             job_name="maintenance",
-            inline_fallback=AsyncMock(side_effect=TimeoutError("db timeout")),
         )
 
     assert dispatched is False
-    record_fallback.assert_called_once_with("maintenance", outcome="failed")
+    record_fail_closed.assert_called_once_with(
+        "maintenance",
+        work_item=ManagedWorkItem.SCHEDULER_MAINTENANCE_SWEEP.value,
+        runtime_profile="gcp",
+    )
 
 
 @pytest.mark.asyncio
@@ -353,46 +345,36 @@ async def test_detect_stuck_jobs_no_results_no_commit(
     set_overdue.assert_called_once_with(0)
     db.commit.assert_not_awaited()
 
+@pytest.mark.asyncio
+async def test_scheduler_daily_analysis_job_runs_all_cohorts() -> None:
+    orchestrator = SchedulerOrchestrator(MagicMock())
+    orchestrator.cohort_analysis_job = AsyncMock(return_value=True)  # type: ignore[method-assign]
 
-def test_start_stop_and_status(orchestrator: SchedulerOrchestrator) -> None:
-    scheduler = MagicMock()
-    scheduler.running = True
-    scheduler.get_jobs.return_value = [
-        SimpleNamespace(id="job-1"),
-        SimpleNamespace(id="job-2"),
-    ]
-    orchestrator.scheduler = scheduler
+    summary = await orchestrator.daily_analysis_job()
 
-    orchestrator.start()
-    assert scheduler.add_job.call_count == 12
-    scheduler.start.assert_called_once()
-
-    status = orchestrator.get_status()
-    assert status["running"] is True
-    assert status["jobs"] == ["job-1", "job-2"]
-
-    orchestrator.stop()
-    scheduler.shutdown.assert_called_once_with(wait=True)
-
-
-def test_stop_skips_when_not_running(orchestrator: SchedulerOrchestrator) -> None:
-    scheduler = MagicMock()
-    scheduler.running = False
-    orchestrator.scheduler = scheduler
-    orchestrator.stop()
-    scheduler.shutdown.assert_not_called()
+    assert orchestrator.cohort_analysis_job.await_count == 3
+    orchestrator.cohort_analysis_job.assert_any_await(TenantCohort.HIGH_VALUE)
+    orchestrator.cohort_analysis_job.assert_any_await(TenantCohort.ACTIVE)
+    orchestrator.cohort_analysis_job.assert_any_await(TenantCohort.DORMANT)
+    assert orchestrator._last_run_success is True
+    assert orchestrator._last_run_time is not None
+    assert summary["all_dispatched"] is True
+    assert summary["dispatched"] == 3
 
 
 @pytest.mark.asyncio
-async def test_scheduler_service_daily_analysis_job_runs_all_cohorts() -> None:
-    service = SchedulerService(MagicMock())
-    service.cohort_analysis_job = AsyncMock()  # type: ignore[method-assign]
+async def test_scheduler_daily_analysis_job_reports_incomplete_dispatch() -> None:
+    orchestrator = SchedulerOrchestrator(MagicMock())
+    orchestrator.cohort_analysis_job = AsyncMock(  # type: ignore[method-assign]
+        side_effect=[True, False, True]
+    )
 
-    await service.daily_analysis_job()
+    summary = await orchestrator.daily_analysis_job()
 
-    assert service.cohort_analysis_job.await_count == 3
-    service.cohort_analysis_job.assert_any_await(TenantCohort.HIGH_VALUE)
-    service.cohort_analysis_job.assert_any_await(TenantCohort.ACTIVE)
-    service.cohort_analysis_job.assert_any_await(TenantCohort.DORMANT)
-    assert service._last_run_success is True
-    assert service._last_run_time is not None
+    assert orchestrator._last_run_success is False
+    assert summary["all_dispatched"] is False
+    assert summary["attempted"] == 3
+    assert summary["dispatched"] == 2
+    assert [item["cohort"] for item in summary["results"] if not item["dispatched"]] == [
+        TenantCohort.ACTIVE.value
+    ]

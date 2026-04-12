@@ -32,8 +32,8 @@ async def test_health_service_all_ok():
     assert health["status"] in ["healthy", "degraded"]
     assert health["database"]["status"] == "up"
     assert "latency_ms" in health["database"]
-    assert "status" in health["redis"]
-    assert "status" in health["aws"]
+    assert "status" in health["cache"]
+    assert "status" in health["external_services"]
 
 
 @pytest.mark.asyncio
@@ -42,9 +42,9 @@ async def test_health_endpoint(ac_no_db):
         "status": "healthy",
         "timestamp": "2026-03-18T00:00:00Z",
         "database": {"status": "up", "latency_ms": 1.0},
-        "redis": {"status": "disabled"},
-        "aws": {"status": "disabled"},
-        "system": {"status": "healthy"},
+        "cache": {"status": "disabled"},
+        "external_services": {"status": "disabled", "services": {}},
+        "system_resources": {"status": "healthy"},
         "checks": {},
     }
 
@@ -62,9 +62,9 @@ async def test_health_db_failure(ac_no_db):
         "status": "unhealthy",
         "timestamp": "2026-03-18T00:00:00Z",
         "database": {"status": "down", "error": "DB Down"},
-        "redis": {"status": "disabled"},
-        "aws": {"status": "disabled"},
-        "system": {"status": "healthy"},
+        "cache": {"status": "disabled"},
+        "external_services": {"status": "disabled", "services": {}},
+        "system_resources": {"status": "healthy"},
         "checks": {},
     }
 

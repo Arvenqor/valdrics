@@ -10,8 +10,10 @@ from scripts.verify_enforcement_post_closure_sanity import (
     ARTIFACT_TEMPLATE_TOKENS,
     DIMENSION_TOKENS,
     EvidenceToken,
+    GAP_REGISTER_FORBIDDEN_TOKENS,
     GAP_REGISTER_REQUIRED_TOKENS,
     main,
+    validate_gap_register_contract,
     validate_tokens,
     verify_post_closure_sanity,
 )
@@ -80,6 +82,25 @@ def test_dimension_tokens_include_lock_contention_and_snapshot_export_evidence()
     ) in export_integrity
 
 
+def test_operational_misconfiguration_tokens_use_active_admission_review_evidence() -> None:
+    operational = {
+        (t.path, t.token) for t in DIMENSION_TOKENS["operational_misconfiguration"]
+    }
+
+    assert (
+        "tests/unit/enforcement/enforcement_api_cases_part01.py",
+        "test_gate_k8s_admission_review_contract_allow",
+    ) in operational
+    assert (
+        "tests/unit/enforcement/enforcement_api_cases_part02.py",
+        "test_gate_k8s_admission_review_rejects_invalid_cost_annotation",
+    ) in operational
+    assert (
+        "docs/runbooks/enforcement_preprovision_integrations.md",
+        "`failurePolicy: Fail` requires API HA",
+    ) in operational
+
+
 def test_artifact_template_contract_tokens_cover_release_packet_templates() -> None:
     artifact_tokens = {(entry.path, entry.token) for entry in ARTIFACT_TEMPLATE_TOKENS}
     assert (
@@ -101,6 +122,51 @@ def test_gap_register_required_tokens_include_canonical_open_items_header() -> N
     assert "Current Open Items (Canonical, 2026-02-27)" in required
     assert "CI-EVID-001" in required
     assert "BENCH-DOC-001" in required
+
+
+def test_gap_register_forbidden_tokens_reject_removed_active_helm_contract_refs(
+    tmp_path: Path,
+) -> None:
+    payload = tmp_path / "gap.md"
+    payload.write_text(
+        "\n".join(
+            (
+                *GAP_REGISTER_REQUIRED_TOKENS,
+                GAP_REGISTER_FORBIDDEN_TOKENS[0],
+            )
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="forbidden token"):
+        validate_gap_register_contract(gap_register_path=payload)
+
+
+def test_live_gap_register_scopes_remaining_helm_evidence_as_archived_reference() -> None:
+    raw = (
+        REPO_ROOT / "docs/ops/enforcement_control_plane_gap_register_2026-02-23.md"
+    ).read_text(encoding="utf-8")
+
+    assert "Kubernetes webhook production guidance profile" not in raw
+    assert (
+        "deployable webhook template + explicit failure-policy profiles via chart values and runbook contract"
+        not in raw
+    )
+    assert (
+        "Validation recorded for the archived self-managed reference and active operator path:"
+        in raw
+    )
+    assert (
+        "Archived self-managed reference file: `helm/valdrics/values.schema.json`"
+        in raw
+    )
+    assert "active operator-path evidence:" in raw
+    assert "deployment template still open" not in raw
+    assert (
+        "repo lacks deployment manifests/templates for cluster operators"
+        not in raw
+    )
 
 
 def test_main_resolves_relative_paths_from_repo_root_when_run_outside_repo(

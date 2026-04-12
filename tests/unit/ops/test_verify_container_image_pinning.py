@@ -41,7 +41,7 @@ def test_verify_container_image_pinning_accepts_tag_digest_and_build_images(
         repo_root=tmp_path,
         compose_paths=(Path("docker-compose.test.yml"),),
         environment={
-            "REGISTRY": "ghcr.io/valdrics",
+            "REGISTRY": "us-central1-docker.pkg.dev/valdrics-prod/valdrics-runtime",
             "VERSION": "1.2.3",
         },
     )
@@ -76,7 +76,7 @@ def test_verify_container_image_pinning_flags_latest_from_interpolation(
             [
                 "services:",
                 "  api:",
-                '    image: "${REGISTRY:-ghcr.io/valdrics}/valdrics-backend:${VERSION:?Set VERSION}"',
+                '    image: "${REGISTRY:-us-central1-docker.pkg.dev/valdrics-prod/valdrics-runtime}/valdrics-backend:${VERSION:?Set VERSION}"',
             ]
         ),
     )
@@ -85,7 +85,7 @@ def test_verify_container_image_pinning_flags_latest_from_interpolation(
         repo_root=tmp_path,
         compose_paths=(Path("docker-compose.test.yml"),),
         environment={
-            "REGISTRY": "ghcr.io/valdrics",
+            "REGISTRY": "us-central1-docker.pkg.dev/valdrics-prod/valdrics-runtime",
             "VERSION": "latest",
         },
     )
@@ -141,7 +141,7 @@ def test_verify_container_image_pinning_flags_unresolved_required_variable(
             [
                 "services:",
                 "  api:",
-                '    image: "${REGISTRY:-ghcr.io/valdrics}/valdrics-backend:${VERSION:?Set VERSION to an immutable release tag}"',
+                '    image: "${REGISTRY:-us-central1-docker.pkg.dev/valdrics-prod/valdrics-runtime}/valdrics-backend:${VERSION:?Set VERSION to an immutable release tag}"',
             ]
         ),
     )
@@ -149,7 +149,7 @@ def test_verify_container_image_pinning_flags_unresolved_required_variable(
     errors = verify_container_image_pinning(
         repo_root=tmp_path,
         compose_paths=(Path("docker-compose.test.yml"),),
-        environment={"REGISTRY": "ghcr.io/valdrics"},
+        environment={"REGISTRY": "us-central1-docker.pkg.dev/valdrics-prod/valdrics-runtime"},
     )
     assert any("Set VERSION to an immutable release tag" in item for item in errors)
 
@@ -157,6 +157,10 @@ def test_verify_container_image_pinning_flags_unresolved_required_variable(
 def test_main_returns_failure_for_missing_default_compose_files(tmp_path: Path) -> None:
     exit_code = main(["--repo-root", str(tmp_path)])
     assert exit_code == 1
+
+
+def test_default_compose_paths_include_local_redis_overlay() -> None:
+    assert Path("docker-compose.redis.yml") in image_pinning.DEFAULT_COMPOSE_PATHS
 
 
 def test_verify_container_image_pinning_rejects_non_directory_repo_root(tmp_path: Path) -> None:

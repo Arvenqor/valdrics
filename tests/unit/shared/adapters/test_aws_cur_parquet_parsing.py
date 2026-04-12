@@ -228,6 +228,40 @@ class TestAWSCURAdapterParquetParsing:
         )
 
 
+    async def test_process_parquet_streamingly_reraises_broken_parse_contract(
+        self, mock_creds: AWSCredentials
+    ) -> None:
+        adapter = AWSCURAdapter(mock_creds)
+        df = pd.DataFrame(
+            {
+                "lineItem/UsageStartDate": ["2026-02-01T00:00:00Z"],
+                "lineItem/UnblendedCost": ["5.0"],
+            }
+        )
+
+        class _FakeTable:
+            def to_pandas(self) -> pd.DataFrame:
+                return df
+
+        class _FakeParquetFile:
+            num_row_groups = 1
+
+            def read_row_group(self, idx: int):
+                assert idx == 0
+                return _FakeTable()
+
+        with patch(
+            "app.shared.adapters.aws_cur.pq.ParquetFile",
+            return_value=_FakeParquetFile(),
+        ), patch.object(
+            adapter,
+            "_parse_row",
+            side_effect=AttributeError("broken parser contract"),
+        ):
+            with pytest.raises(AttributeError, match="broken parser contract"):
+                adapter._process_parquet_streamingly("/tmp/cur.parquet")
+
+
     async def test_process_parquet_streamingly_skips_chunks_without_required_columns(
         self, mock_creds: AWSCredentials
     ) -> None:
@@ -258,12 +292,60 @@ class TestAWSCURAdapterParquetParsing:
         assert summary.records == []
 
 
-    async def test_parse_row_handles_invalid_values(self, mock_creds: AWSCredentials) -> None:
+    async def test_process_parquet_streamingly_reraises_broken_row_group_contract(
+        self, mock_creds: AWSCredentials
+    ) -> None:
+        adapter = AWSCURAdapter(mock_creds)
+
+        class _BrokenTable:
+            pass
+
+        class _FakeParquetFile:
+            num_row_groups = 1
+
+            def read_row_group(self, _idx: int):
+                return _BrokenTable()
+
+        with patch(
+            "app.shared.adapters.aws_cur.pq.ParquetFile",
+            return_value=_FakeParquetFile(),
+        ):
+            with pytest.raises(AttributeError, match="to_pandas"):
+                adapter._process_parquet_streamingly("/tmp/cur.parquet")
+
+
+    async def test_parse_row_rejects_invalid_cost_value(self, mock_creds: AWSCredentials) -> None:
         adapter = AWSCURAdapter(mock_creds)
         row = pd.Series(
             {
                 "lineItem/UsageStartDate": "2026-02-01T12:00:00",
                 "lineItem/UnblendedCost": "not-a-number",
+                "lineItem/CurrencyCode": "",
+                "lineItem/ProductCode": "",
+                "product/region": "",
+                "lineItem/UsageType": "",
+            }
+        )
+        col_map = {
+            "date": "lineItem/UsageStartDate",
+            "cost": "lineItem/UnblendedCost",
+            "currency": "lineItem/CurrencyCode",
+            "service": "lineItem/ProductCode",
+            "region": "product/region",
+            "usage_type": "lineItem/UsageType",
+        }
+
+        with pytest.raises(ValueError, match="CUR cost value must be numeric"):
+            adapter._parse_row(row, col_map)
+
+    async def test_parse_row_preserves_default_fields_for_blank_optional_values(
+        self, mock_creds: AWSCredentials
+    ) -> None:
+        adapter = AWSCURAdapter(mock_creds)
+        row = pd.Series(
+            {
+                "lineItem/UsageStartDate": "2026-02-01T12:00:00",
+                "lineItem/UnblendedCost": "",
                 "lineItem/CurrencyCode": "",
                 "lineItem/ProductCode": "",
                 "product/region": "",

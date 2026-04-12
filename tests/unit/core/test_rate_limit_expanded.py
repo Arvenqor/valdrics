@@ -118,7 +118,17 @@ async def test_check_remediation_rate_limit_redis_error_fallback():
     mock_redis = AsyncMock()
     mock_redis.incr.side_effect = RuntimeError("Redis connection lost")
 
-    with patch("app.shared.core.rate_limit.get_redis_client", return_value=mock_redis):
+    with (
+        patch("app.shared.core.rate_limit.get_redis_client", return_value=mock_redis),
+        patch(
+            "app.shared.core.rate_limit.get_settings",
+            return_value=SimpleNamespace(
+                ENVIRONMENT="production",
+                PLATFORM_RUNTIME_PROFILE="gcp",
+                PUBLIC_API_RATE_LIMITING_BACKEND="cloudflare",
+            ),
+        ),
+    ):
         # Should NOT raise, but fallback to memory
         allowed = await check_remediation_rate_limit(
             tenant_id, "stop_instance", limit=10
@@ -188,12 +198,15 @@ def test_get_limiter_rejects_in_memory_in_production() -> None:
     mock_settings = SimpleNamespace(
         REDIS_URL=None,
         ENVIRONMENT="production",
+        PLATFORM_RUNTIME_PROFILE="gcp",
         ALLOW_IN_MEMORY_RATE_LIMITS=False,
         RATELIMIT_ENABLED=True,
+        PUBLIC_API_RATE_LIMITING_BACKEND="redis",
+        TESTING=False,
     )
     with patch("app.shared.core.rate_limit.get_settings", return_value=mock_settings):
         with patch("app.shared.core.rate_limit._limiter", None):
-            with pytest.raises(RuntimeError):
+            with pytest.raises(RuntimeError, match="REDIS_URL is required only when"):
                 get_limiter()
 
 
@@ -201,8 +214,26 @@ def test_get_limiter_allows_break_glass_in_production() -> None:
     mock_settings = SimpleNamespace(
         REDIS_URL=None,
         ENVIRONMENT="production",
+        PLATFORM_RUNTIME_PROFILE="gcp",
         ALLOW_IN_MEMORY_RATE_LIMITS=True,
         RATELIMIT_ENABLED=True,
+        PUBLIC_API_RATE_LIMITING_BACKEND="redis",
+        TESTING=False,
+    )
+    with patch("app.shared.core.rate_limit.get_settings", return_value=mock_settings):
+        with patch("app.shared.core.rate_limit._limiter", None):
+            limiter = get_limiter()
+            assert limiter is not None
+
+
+def test_get_limiter_allows_disabled_cloudflare_edge_profile() -> None:
+    mock_settings = SimpleNamespace(
+        REDIS_URL=None,
+        ENVIRONMENT="production",
+        ALLOW_IN_MEMORY_RATE_LIMITS=False,
+        RATELIMIT_ENABLED=False,
+        PUBLIC_API_RATE_LIMITING_BACKEND="cloudflare",
+        TESTING=False,
     )
     with patch("app.shared.core.rate_limit.get_settings", return_value=mock_settings):
         with patch("app.shared.core.rate_limit._limiter", None):

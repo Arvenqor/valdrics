@@ -30,6 +30,14 @@ def test_license_manual_feed_validation_error_branches() -> None:
 
     assert (
         adapter._validate_manual_feed(
+            [{"timestamp": "bad-ts", "cost_usd": 1.0}]
+        )
+        is False
+    )
+    assert "invalid timestamp/date" in (adapter.last_error or "")
+
+    assert (
+        adapter._validate_manual_feed(
             [{"timestamp": "2026-01-01T00:00:00Z", "cost_usd": "bad"}]
         )
         is False

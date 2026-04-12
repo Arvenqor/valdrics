@@ -3,7 +3,7 @@ FinOps Analysis Job Handler
 """
 
 from datetime import date, datetime, time, timedelta, timezone
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, List
 from uuid import UUID
 
@@ -11,6 +11,7 @@ import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.background_job import BackgroundJob
+from app.modules.governance.domain.jobs.errors import PermanentJobError
 from app.modules.governance.domain.jobs.handlers.base import BaseJobHandler
 from app.schemas.costs import CloudUsageSummary, CostRecord
 from app.shared.core.adapter_resolver import get_adapter_for_connection
@@ -24,8 +25,6 @@ from app.shared.llm.factory import LLMFactory
 
 FINOPS_PROVIDER_ANALYSIS_RECOVERABLE_EXCEPTIONS = (
     RuntimeError,
-    ValueError,
-    TypeError,
     ConnectionError,
     TimeoutError,
     OSError,
@@ -40,21 +39,41 @@ def _as_datetime(value: Any) -> datetime:
         return value
     if isinstance(value, date):
         return datetime.combine(value, time.min, tzinfo=timezone.utc)
-    return datetime.now(timezone.utc)
+    if isinstance(value, str):
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("timestamp string is empty")
+        if normalized.endswith("Z"):
+            normalized = normalized[:-1] + "+00:00"
+        try:
+            parsed = datetime.fromisoformat(normalized)
+        except ValueError as exc:
+            raise ValueError("timestamp must be an ISO 8601 datetime string") from exc
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+    raise ValueError("timestamp must be a date, datetime, or ISO 8601 string")
 
 
 def _normalize_rows(rows: list[dict[str, Any]]) -> list[CostRecord]:
     records: list[CostRecord] = []
     for row in rows:
         raw_amount = row.get("cost_usd", 0) or 0
-        amount = Decimal(str(raw_amount))
+        try:
+            amount = Decimal(str(raw_amount))
+        except (InvalidOperation, ValueError) as exc:
+            raise ValueError("cost_usd must be numeric") from exc
         if amount <= 0:
             continue
 
         amount_raw = row.get("amount_raw")
-        amount_raw_decimal = (
-            Decimal(str(amount_raw)) if amount_raw is not None else None
-        )
+        if amount_raw is not None:
+            try:
+                amount_raw_decimal = Decimal(str(amount_raw))
+            except (InvalidOperation, ValueError) as exc:
+                raise ValueError("amount_raw must be numeric") from exc
+        else:
+            amount_raw_decimal = None
         tags = row.get("tags")
         records.append(
             CostRecord(
@@ -78,7 +97,7 @@ class FinOpsAnalysisHandler(BaseJobHandler):
     async def execute(self, job: BackgroundJob, db: AsyncSession) -> Dict[str, Any]:
         tenant_id = job.tenant_id
         if not tenant_id:
-            raise ValueError("tenant_id required for finops_analysis")
+            raise PermanentJobError("tenant_id required for finops_analysis")
 
         tenant_uuid = UUID(str(tenant_id))
         payload = job.payload or {}

@@ -1,0 +1,100 @@
+name: Release Unified Platform
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Immutable release tag to build and promote."
+        required: true
+        type: string
+      git_ref:
+        description: "Git ref to release. Defaults to the triggering SHA."
+        required: false
+        type: string
+      promote_production:
+        description: "Promote the exact staging artifact to production after staging succeeds."
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  validate:
+    name: Validate Release Contract
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.git_ref || github.sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version-file: .python-version
+
+      - name: Install uv
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip uv
+
+      - name: Install backend dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv sync --locked --dev
+
+      - name: Validate release contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv run ruff check scripts/generate_managed_deployment_artifacts.py scripts/managed_deployment_contract.py
+          uv run pytest -q --tb=short --no-cov \
+            tests/unit/ops/test_unified_platform_release_contract.py \
+            tests/unit/ops/test_production_deployment_contracts.py \
+            tests/unit/ops/test_managed_deployment_contract.py \
+            tests/unit/ops/test_generate_managed_deployment_artifacts.py
+
+  publish:
+    name: Publish Backend Artifact
+    needs: validate
+    uses: ./.github/workflows/publish-artifact-registry-images.yml
+    with:
+      release_tag: ${{ inputs.release_tag }}
+      git_ref: ${{ inputs.git_ref || github.sha }}
+      gcp_project_id: ${{ vars.ARTIFACT_REGISTRY_PROJECT_ID }}
+      artifact_registry_region: ${{ vars.ARTIFACT_REGISTRY_REGION }}
+      artifact_registry_repository: ${{ vars.ARTIFACT_REGISTRY_REPOSITORY }}
+    secrets: inherit
+
+  deploy-staging:
+    name: Deploy Staging
+    needs: publish
+    uses: ./.github/workflows/deploy-unified-platform.yml
+    with:
+      environment: staging
+      git_ref: ${{ inputs.git_ref || github.sha }}
+      release_tag: ${{ inputs.release_tag }}
+      api_promotion_ref: ${{ needs.publish.outputs.api_promotion_ref }}
+      batch_promotion_ref: ${{ needs.publish.outputs.batch_promotion_ref }}
+    secrets: inherit
+
+  deploy-production:
+    name: Promote Production
+    if: ${{ inputs.promote_production }}
+    needs:
+      - publish
+      - deploy-staging
+    uses: ./.github/workflows/deploy-unified-platform.yml
+    with:
+      environment: production
+      git_ref: ${{ inputs.git_ref || github.sha }}
+      release_tag: ${{ inputs.release_tag }}
+      api_promotion_ref: ${{ needs.publish.outputs.api_promotion_ref }}
+      batch_promotion_ref: ${{ needs.publish.outputs.batch_promotion_ref }}
+    secrets: inherit

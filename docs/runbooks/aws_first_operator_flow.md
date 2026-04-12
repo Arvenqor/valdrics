@@ -1,8 +1,12 @@
-# AWS-First Operator Flow Runbook
+# AWS Tenant Smoke Runbook
 
-This runbook is the release-critical staging smoke path for the AWS-first Valdrics operator journey:
+This runbook covers the provider-specific AWS tenant journey:
 
 `connect AWS -> scan -> create remediation from finding -> approve -> execute -> confirm resolved finding -> confirm savings proof`
+
+It is not the release-critical managed deployment contract for the unified
+GCP + Cloudflare + Supabase platform. Use it only when validating the AWS
+tenant integration surface itself.
 
 ## Preconditions
 
@@ -13,18 +17,24 @@ This runbook is the release-critical staging smoke path for the AWS-first Valdri
    - policy preview
    - savings proof
 4. Use an AWS staging account with disposable low-risk resources only.
+5. If you serve AWS onboarding templates from the product, set
+   `AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN` in the runtime explicitly for this
+   provider flow. That value is provider-specific and not part of the unified
+   managed deployment contract.
 
 ## Apply Database State
 
-Run the staging migration sequence before the smoke test:
+Run the staging release workflow first and confirm the reusable deploy job applies the generated migration env before the smoke test:
 
 ```bash
+uv run python scripts/generate_managed_runtime_env.py --environment staging
 uv run python scripts/generate_managed_migration_env.py --environment staging
 uv run python scripts/validate_migration_env.py --env-file .runtime/staging.migrate.env
-set -a && source .runtime/staging.migrate.env && uv run alembic upgrade head
+uv run python scripts/generate_managed_deployment_artifacts.py --environment staging --runtime-env-file .runtime/staging.env --release-tag <release-tag> --api-promotion-ref <repo@sha256:...> --batch-promotion-ref <repo@sha256:...>
+uv run python scripts/verify_managed_deployment_bundle.py --environment staging
 ```
 
-Verify the new head is applied before proceeding.
+Verify the staging deploy workflow migration step succeeded before proceeding.
 
 ## Prepare AWS Test Account
 

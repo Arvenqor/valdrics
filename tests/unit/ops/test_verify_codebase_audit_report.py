@@ -100,12 +100,12 @@ def _valid_report_payload() -> dict[str, object]:
         ],
         "partial_or_overstated_claims": [
             {
-                "claim": "Docker Compose for development, Koyeb for production",
+                "claim": "Docker Compose for development, unified platform for production",
                 "status": "partial",
-                "correction": "The dashboard is also configured for Cloudflare Pages/Workers.",
+                "correction": "Production now targets Cloud Run, Cloudflare Pages, Supabase, and Artifact Registry.",
                 "evidence": [
                     {
-                        "path": "dashboard/svelte.config.js",
+                        "path": ".github/workflows/deploy-unified-platform.yml",
                         "line": 1,
                     }
                 ],

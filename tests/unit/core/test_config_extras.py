@@ -9,7 +9,7 @@ from app.shared.core.config_sections_security import SecuritySettings
 FAKE_KDF_SALT = "S0RGX1NBTFRfRk9SX1RFU1RJTkdfMzJfQllURVNfT0s="
 
 
-def test_settings_redis_url_fallback_from_host_port():
+def test_settings_only_uses_explicit_redis_url():
     with patch.dict("os.environ", {}, clear=True):
         settings = Settings(
             DATABASE_URL="sqlite+aiosqlite:///:memory:",
@@ -17,14 +17,14 @@ def test_settings_redis_url_fallback_from_host_port():
             ENCRYPTION_KEY="k" * 32,
             CSRF_SECRET_KEY="c" * 32,
             KDF_SALT=FAKE_KDF_SALT,
-            REDIS_URL=None,
-            REDIS_HOST="localhost",
-            REDIS_PORT="6380",
+            REDIS_URL="redis://localhost:6380",
             TESTING=False,
             _env_file=None,
         )
 
         assert settings.REDIS_URL == "redis://localhost:6380"
+        assert "REDIS_HOST" not in Settings.model_fields
+        assert "REDIS_PORT" not in Settings.model_fields
 
 
 def test_get_settings_does_not_mutate_csrf_key():

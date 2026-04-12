@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any
 from uuid import UUID
 
@@ -11,6 +11,18 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.cloud import CostRecord
+
+
+def _to_finite_float(value: Any) -> float:
+    if value is None or value == "":
+        return 0.0
+    try:
+        amount = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError) as exc:
+        raise ValueError("cost must be numeric") from exc
+    if not amount.is_finite():
+        raise ValueError("cost must be finite")
+    return float(amount)
 
 
 async def check_for_significant_adjustments(
@@ -68,7 +80,7 @@ async def check_for_significant_adjustments(
         key = (ts, service, region, usage_type, resource_id)
         existing[key] = (
             getattr(row, "id"),
-            float(getattr(row, "cost_usd", 0) or 0),
+            _to_finite_float(getattr(row, "cost_usd", 0)),
         )
 
     audit_logs = []
@@ -91,7 +103,7 @@ async def check_for_significant_adjustments(
             continue
 
         record_id, old_cost = existing_data
-        new_cost = float(nr.get("cost_usd") or 0)
+        new_cost = _to_finite_float(nr.get("cost_usd"))
         if new_cost == old_cost:
             continue
 

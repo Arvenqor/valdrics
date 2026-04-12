@@ -68,7 +68,7 @@ async def compare_explorer_vs_cur_impl(
             )
         else:
             source_name = service._normalize_source(getattr(row, "source_adapter", None))
-        row_cost = float(getattr(row, "total_cost", 0) or 0)
+        row_cost = service._to_float(getattr(row, "total_cost", 0))
         row_records = int(getattr(row, "record_count", 0) or 0)
 
         total_records += row_records
@@ -95,8 +95,8 @@ async def compare_explorer_vs_cur_impl(
         ):
             continue
 
-        primary_cost = float(sources[expected_primary_source])
-        secondary_cost = float(sources[expected_secondary_source])
+        primary_cost = service._to_float(sources[expected_primary_source])
+        secondary_cost = service._to_float(sources[expected_secondary_source])
         delta_usd = secondary_cost - primary_cost
         denominator = abs(primary_cost) if abs(primary_cost) > 0 else max(abs(secondary_cost), 1.0)
         discrepancy_pct = abs(delta_usd) / denominator * 100

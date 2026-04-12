@@ -51,15 +51,19 @@ async def test_verify_connection_failure():
     assert "Azure credential verification failed" in adapter.last_error
 
 
-def test_parse_row_invalid_date_falls_back():
+def test_parse_row_invalid_date_raises():
     adapter = AzureAdapter(_connection())
     row = [1.0, "Compute", "eastus", "Usage", "bad-date"]
 
-    with patch("dateutil.parser.parse", side_effect=ValueError("bad-date")):
-        result = adapter._parse_row(row, "ActualCost")
+    with pytest.raises(ValueError, match="Azure usage date must be a valid datetime string"):
+        adapter._parse_row(row, "ActualCost")
 
-    assert result["timestamp"].tzinfo is not None
-    assert result["cost_usd"] == 1.0
+
+def test_parse_row_rejects_non_finite_amount():
+    adapter = AzureAdapter(_connection())
+
+    with pytest.raises(ValueError, match="Azure cost row amount must be finite"):
+        adapter._parse_row([float("nan"), "Compute", "eastus", "Usage", "20240101"], "ActualCost")
 
 
 @pytest.mark.asyncio
@@ -87,6 +91,21 @@ async def test_get_cost_and_usage_error_raises_adapter_error():
 
     with patch.object(adapter, "_get_cost_client", AsyncMock(return_value=mock_client)):
         with pytest.raises(AdapterError):
+            await adapter.get_cost_and_usage(
+                datetime(2024, 1, 1, tzinfo=timezone.utc),
+                datetime(2024, 1, 2, tzinfo=timezone.utc),
+            )
+
+
+@pytest.mark.asyncio
+async def test_get_cost_and_usage_invalid_row_date_bubbles():
+    adapter = AzureAdapter(_connection())
+    row = [2.5, "Compute", "eastus", "Usage", "bad-date"]
+    mock_client = MagicMock()
+    mock_client.query.usage = AsyncMock(return_value=SimpleNamespace(rows=[row]))
+
+    with patch.object(adapter, "_get_cost_client", AsyncMock(return_value=mock_client)):
+        with pytest.raises(ValueError, match="Azure usage date must be a valid datetime string"):
             await adapter.get_cost_and_usage(
                 datetime(2024, 1, 1, tzinfo=timezone.utc),
                 datetime(2024, 1, 2, tzinfo=timezone.utc),
@@ -135,12 +154,36 @@ async def test_discover_resources_exception_returns_empty():
     adapter = AzureAdapter(_connection())
     adapter.last_error = "stale"
     with patch.object(
-        adapter, "_get_resource_client", AsyncMock(side_effect=RuntimeError("boom"))
+        adapter, "_get_compute_client", AsyncMock(side_effect=RuntimeError("boom"))
     ):
         results = await adapter.discover_resources(resource_type="compute")
     assert results == []
     assert adapter.last_error is not None
     assert "Azure resource discovery failed" in adapter.last_error
+
+
+@pytest.mark.asyncio
+async def test_discover_resources_broken_contract_bubbles():
+    adapter = AzureAdapter(_connection())
+    mock_client = MagicMock()
+    broken_vm = SimpleNamespace(
+        id="1",
+        name="vm-1",
+        location=None,
+        tags={},
+        hardware_profile=SimpleNamespace(vm_size="Standard_B2s"),
+    )
+
+    async def list_vms():
+        yield broken_vm
+
+    mock_client.virtual_machines.list_all = list_vms
+
+    with patch.object(
+        adapter, "_get_compute_client", AsyncMock(return_value=mock_client)
+    ):
+        with pytest.raises(AttributeError):
+            await adapter.discover_resources(resource_type="compute", region="eastus")
 
 
 @pytest.mark.asyncio
@@ -197,3 +240,15 @@ async def test_get_resource_usage_clears_last_error_on_success():
 
     assert len(usage) == 1
     assert adapter.last_error is None
+
+
+@pytest.mark.asyncio
+async def test_get_resource_usage_invalid_cost_row_bubbles():
+    adapter = AzureAdapter(_connection())
+    with patch.object(
+        adapter,
+        "get_cost_and_usage",
+        AsyncMock(side_effect=ValueError("Azure usage date must be a valid datetime string")),
+    ):
+        with pytest.raises(ValueError, match="Azure usage date must be a valid datetime string"):
+            await adapter.get_resource_usage("virtual machines")

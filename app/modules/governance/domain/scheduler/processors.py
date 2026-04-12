@@ -36,9 +36,14 @@ PROCESSOR_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     OSError,
     TimeoutError,
     ImportError,
-    AttributeError,
     TypeError,
     ValueError,
+)
+PROCESSOR_PROGRAMMER_ERRORS: tuple[type[BaseException], ...] = (
+    AssertionError,
+    AttributeError,
+    LookupError,
+    NotImplementedError,
 )
 
 
@@ -193,6 +198,8 @@ class AnalysisProcessor:
                                     provider=provider,
                                     connection_id=getattr(conn, "id", None),
                                 )
+                            except PROCESSOR_PROGRAMMER_ERRORS:
+                                raise
                             except PROCESSOR_RECOVERABLE_ERRORS as savings_exc:
                                 logger.error(
                                     "savings_autopilot_failed",
@@ -236,6 +243,8 @@ class AnalysisProcessor:
                                     db=db,
                                 )
                                 zombie_result = await detector.scan_all()
+                            except PROCESSOR_PROGRAMMER_ERRORS:
+                                raise
                             except PROCESSOR_RECOVERABLE_ERRORS as zombie_exc:
                                 logger.warning(
                                     "tenant_zombie_scan_skipped",
@@ -296,6 +305,8 @@ class AnalysisProcessor:
                         tenant_id=str(tenant.id),
                         connection_id=str(conn.id),
                     )
+                except PROCESSOR_PROGRAMMER_ERRORS:
+                    raise
                 except PROCESSOR_RECOVERABLE_ERRORS as e:
                     logger.error(
                         "tenant_connection_failed",
@@ -304,6 +315,8 @@ class AnalysisProcessor:
                         error=str(e),
                     )
 
+        except PROCESSOR_PROGRAMMER_ERRORS:
+            raise
         except PROCESSOR_RECOVERABLE_ERRORS as e:
             logger.error(
                 "tenant_processing_failed", tenant_id=str(tenant.id), error=str(e)
@@ -448,6 +461,8 @@ class SavingsProcessor:
                         tenant_id=str(tenant_id),
                         request_id=str(request.id),
                     )
+                except PROCESSOR_PROGRAMMER_ERRORS:
+                    raise
                 except PROCESSOR_RECOVERABLE_ERRORS as e:
                     logger.error(
                         "autonomous_savings_execution_failed",

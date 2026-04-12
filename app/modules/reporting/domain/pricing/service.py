@@ -1,6 +1,7 @@
 """DB-backed cloud pricing service."""
 
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 import structlog
 from typing import Any
 
@@ -12,6 +13,16 @@ from app.shared.core.cloud_pricing_data import (
 from app.shared.core.pricing_defaults import AVERAGE_BILLING_MONTH_HOURS
 
 logger = structlog.get_logger()
+
+
+def _coerce_finite_float(value: Any, *, field_name: str) -> float:
+    try:
+        amount = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError) as exc:
+        raise ValueError(f"{field_name} must be numeric") from exc
+    if not amount.is_finite():
+        raise ValueError(f"{field_name} must be finite")
+    return float(amount)
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,14 +85,21 @@ class PricingService:
             resource_size=resource_size,
             region=region,
         )
-        hourly_rate = float(quote.get("hourly_rate_usd", 0.0) or 0.0)
-        normalized_quantity = float(quantity or 0.0)
-        billing_period_hours = float(
+        hourly_rate = _coerce_finite_float(
+            quote.get("hourly_rate_usd", 0.0),
+            field_name="hourly_rate_usd",
+        )
+        normalized_quantity = _coerce_finite_float(
+            quantity or 0.0,
+            field_name="quantity",
+        )
+        billing_period_hours = _coerce_finite_float(
             (quote.get("pricing_metadata") or {}).get(
                 "billing_period_hours",
                 AVERAGE_BILLING_MONTH_HOURS,
             )
-            or AVERAGE_BILLING_MONTH_HOURS
+            or AVERAGE_BILLING_MONTH_HOURS,
+            field_name="billing_period_hours",
         )
         monthly_cost = hourly_rate * billing_period_hours * normalized_quantity
         return PricingQuote(

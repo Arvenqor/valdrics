@@ -1,13 +1,15 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from datetime import date
 from decimal import Decimal
+from types import SimpleNamespace
 from uuid import uuid4
 
 from app.modules.reporting.domain.anomaly_detection import (
     DailyServiceCostRow,
     CostAnomaly,
+    CostAnomalyDetectionService,
     detect_daily_cost_anomalies,
     dispatch_cost_anomaly_alerts,
     severity_gte,
@@ -150,6 +152,52 @@ def test_sparse_drop_not_flagged() -> None:
     )
 
     assert anomalies == []
+
+
+def test_detect_daily_cost_anomalies_rejects_non_finite_cost_inputs() -> None:
+    rows = [
+        DailyServiceCostRow(
+            day=date(2026, 1, 29),
+            provider="aws",
+            account_id=uuid4(),
+            account_name="Prod AWS",
+            service="AmazonEC2",
+            cost_usd=Decimal("NaN"),
+        )
+    ]
+
+    with pytest.raises(ValueError, match="cost_usd must be finite"):
+        detect_daily_cost_anomalies(
+            rows,
+            target_date=date(2026, 1, 29),
+            lookback_days=28,
+            min_abs_usd=Decimal("25"),
+            min_percent=30.0,
+        )
+
+
+@pytest.mark.asyncio
+async def test_fetch_daily_service_costs_rejects_non_finite_aggregates() -> None:
+    db = AsyncMock()
+    row = SimpleNamespace(
+        day=date(2026, 1, 29),
+        provider="aws",
+        account_id=uuid4(),
+        account_name="Prod AWS",
+        service="AmazonEC2",
+        cost_usd=Decimal("NaN"),
+    )
+    result = MagicMock()
+    result.all.return_value = [row]
+    db.execute.return_value = result
+
+    service = CostAnomalyDetectionService(db)
+    with pytest.raises(ValueError, match="cost_usd must be finite"):
+        await service.fetch_daily_service_costs(
+            tenant_id=uuid4(),
+            start_date=date(2026, 1, 1),
+            end_date=date(2026, 1, 31),
+        )
 
 
 @pytest.mark.asyncio
@@ -348,3 +396,43 @@ async def test_dispatch_cost_anomaly_alerts_handles_jira_bootstrap_runtime_error
 
     assert alerted == 1
     assert send_alert.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_dispatch_cost_anomaly_alerts_rejects_non_finite_amounts() -> None:
+    tenant_id = uuid4()
+    anomaly = CostAnomaly(
+        day=date(2026, 1, 29),
+        provider="aws",
+        account_id=uuid4(),
+        account_name="Prod AWS",
+        service="AmazonEC2",
+        actual_cost_usd=Decimal("NaN"),
+        expected_cost_usd=Decimal("100.00"),
+        delta_cost_usd=Decimal("250.00"),
+        percent_change=250.0,
+        kind="spike",
+        probable_cause="spend_spike",
+        confidence=0.9,
+        severity="high",
+    )
+
+    with patch("app.modules.reporting.domain.anomaly_detection.CacheService") as cache_cls:
+        cache = cache_cls.return_value
+        cache.get = AsyncMock(return_value=None)
+        cache.set = AsyncMock(return_value=True)
+
+        with patch(
+            "app.modules.reporting.domain.anomaly_detection.NotificationDispatcher.send_alert",
+            new_callable=AsyncMock,
+        ) as send_alert:
+            with pytest.raises(ValueError, match="actual_cost_usd must be finite"):
+                await dispatch_cost_anomaly_alerts(
+                    tenant_id=tenant_id,
+                    anomalies=[anomaly],
+                    suppression_hours=24,
+                    db=None,
+                )
+
+    send_alert.assert_not_called()
+    cache.set.assert_not_called()

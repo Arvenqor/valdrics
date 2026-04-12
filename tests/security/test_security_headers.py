@@ -1,5 +1,7 @@
 import pytest
 from httpx import AsyncClient, ASGITransport
+
+
 from app.main import app
 
 # Use ASGITransport for direct app testing without a running server
@@ -9,9 +11,6 @@ transport = ASGITransport(app=app)
 @pytest.mark.asyncio
 async def test_security_headers_presence():
     """Verify that all required security headers are present in responses."""
-    # Mock scheduler state to prevent health check crash
-    app.state.scheduler = type("MockScheduler", (), {"get_status": lambda: "active"})
-
     async with AsyncClient(transport=transport, base_url="https://test") as ac:
         response = await ac.get("/health")
 

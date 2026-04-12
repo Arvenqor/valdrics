@@ -120,6 +120,8 @@ env:
   DB_SSL_MODE: "disable"
   API_URL: "https://api.staging.valdrics.example"
   FRONTEND_URL: "https://dashboard.staging.valdrics.example"
+  PLATFORM_RUNTIME_PROFILE: "gcp"
+  OBSERVABILITY_BACKEND: "gcp"
   CSRF_SECRET_KEY: "ci-csrf-secret-key-32-chars-min-000000"
   ENCRYPTION_KEY: "ci-encryption-key-32-chars-min-00000000"
   KDF_SALT: "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
@@ -130,14 +132,20 @@ env:
   GROQ_API_KEY: "testing"
   PAYSTACK_SECRET_KEY: "example_paystack_secret_ci_validation_only"
   PAYSTACK_PUBLIC_KEY: "example_paystack_public_ci_validation_only"
-  REDIS_URL: "redis://localhost:6379/0"
-  SENTRY_DSN: "https://example@sentry.io/1"
-  OTEL_EXPORTER_OTLP_ENDPOINT: "http://127.0.0.1:4317"
+  PUBLIC_API_RATE_LIMITING_BACKEND: "cloudflare"
+  RATELIMIT_ENABLED: "false"
+  CIRCUIT_BREAKER_DISTRIBUTED_STATE: "false"
   OTEL_LOGS_EXPORT_ENABLED: "true"
   APP_RUNTIME_DATA_DIR: "/tmp/valdrics"
-  ENABLE_SCHEDULER: "true"
   TRUST_PROXY_HEADERS: "true"
   TRUSTED_PROXY_CIDRS: '["127.0.0.1/32"]'
+  GCP_PROJECT_ID: "valdrics-staging"
+  GCP_REGION: "us-central1"
+  GCP_CLOUD_TASKS_QUEUE: "valdrics-default"
+  GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL: "tasks@valdrics-staging.iam.gserviceaccount.com"
+  GCP_CLOUD_RUN_SERVICE_NAME: "valdrics-api"
+  GCP_CLOUD_RUN_BATCH_JOB_NAME: "valdrics-scheduler-batch"
+  GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS: '["tasks@valdrics-staging.iam.gserviceaccount.com","scheduler@valdrics-staging.iam.gserviceaccount.com"]'
 
 jobs:
   gate:
@@ -160,19 +168,6 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
-      redis:
-        image: redis:7.2.13-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd="redis-cli ping"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
-      otel-collector:
-        image: otel/opentelemetry-collector:0.147.0
-        ports:
-          - 4317:4317
     steps:
       - name: Checkout Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -204,22 +199,6 @@ jobs:
               handle.write(f"FORECASTER_BREAK_GLASS_EXPIRES_AT={expires_at}\n")
           PY
 
-      - name: Wait for OTEL Collector
-        run: |
-          python3 - <<'PY'
-          import socket
-          import time
-
-          deadline = time.time() + 30
-          while time.time() < deadline:
-              try:
-                  with socket.create_connection(("127.0.0.1", 4317), timeout=2):
-                      raise SystemExit(0)
-              except OSError:
-                  time.sleep(1)
-          raise SystemExit("otel collector failed to become ready on 127.0.0.1:4317")
-          PY
-
       - name: Runtime Env Preflight
         run: uv run python scripts/validate_runtime_env.py --environment staging
 
@@ -234,11 +213,11 @@ jobs:
           uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 > /tmp/valdrics-perf.log 2>&1 &
           echo $! > /tmp/valdrics-perf.pid
 
-      - name: Launch Local Worker
+      - name: Launch Managed Worker Loop
         if: ${{ inputs.start_local_api }}
         run: |
           set -euo pipefail
-          uv run celery -A app.shared.core.celery_app:celery_app worker -l info > /tmp/valdrics-perf-worker.log 2>&1 &
+          uv run python -u scripts/run_local_managed_worker.py --interval-seconds 1 > /tmp/valdrics-perf-worker.log 2>&1 &
           echo $! > /tmp/valdrics-perf-worker.pid
 
       - name: Wait for Local API
@@ -324,7 +303,7 @@ jobs:
             kill "$(cat /tmp/valdrics-perf.pid)" || true
           fi
 
-      - name: Stop Local Worker
+      - name: Stop Managed Worker Loop
         if: ${{ always() && inputs.start_local_api }}
         run: |
           if [ -f /tmp/valdrics-perf-worker.pid ]; then

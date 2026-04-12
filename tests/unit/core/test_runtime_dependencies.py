@@ -28,6 +28,7 @@ def _settings(
     break_glass_max_duration_hours: int = 168,
     sentry_dsn: str | None = "https://example@sentry.io/1",
     otlp_endpoint: str | None = "http://otel-collector:4317",
+    observability_backend: str = "otlp",
 ) -> SimpleNamespace:
     if break_glass_expires_at is None:
         break_glass_expires_at = (
@@ -36,6 +37,7 @@ def _settings(
     return SimpleNamespace(
         ENVIRONMENT=environment,
         TESTING=testing,
+        OBSERVABILITY_BACKEND=observability_backend,
         FORECASTER_ALLOW_HOLT_WINTERS_FALLBACK=allow_prophet_fallback,
         FORECASTER_BREAK_GLASS_REASON=break_glass_reason,
         FORECASTER_BREAK_GLASS_EXPIRES_AT=break_glass_expires_at,

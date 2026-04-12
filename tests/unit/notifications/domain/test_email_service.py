@@ -56,6 +56,17 @@ async def test_send_carbon_alert_failure(email_service):
 
 
 @pytest.mark.asyncio
+async def test_send_carbon_alert_type_error_bubbles(email_service):
+    with patch.object(
+        email_service,
+        "_send_message",
+        side_effect=TypeError("broken email contract"),
+    ):
+        with pytest.raises(TypeError, match="broken email contract"):
+            await email_service.send_carbon_alert(["test@example.com"], {})
+
+
+@pytest.mark.asyncio
 async def test_send_dunning_notification_success(email_service):
     from datetime import datetime
 
@@ -148,3 +159,32 @@ async def test_send_sales_inquiry_notification_rejects_header_injection(email_se
     )
 
     assert result is False
+
+
+@pytest.mark.asyncio
+async def test_send_sales_inquiry_notification_type_error_bubbles(email_service):
+    with patch.object(
+        email_service,
+        "_send_message",
+        side_effect=TypeError("broken sendmail contract"),
+    ):
+        with pytest.raises(TypeError, match="broken sendmail contract"):
+            await email_service.send_sales_inquiry_notification(
+                inquiry_id="inq-1",
+                submitted_at=datetime(2026, 3, 9, 12, 0, 0),
+                name="Buyer One",
+                email="buyer@example.com",
+                company="Example Inc",
+                role="FinOps",
+                buyer_region="United States",
+                team_size="21-50",
+                deployment_scope="AWS + Datadog",
+                timeline="this_quarter",
+                interest_area="security_review",
+                message="Need security review support.",
+                source="pricing_page",
+                referrer="https://valdrics.com/pricing",
+                utm_source="linkedin",
+                utm_medium="paid_social",
+                utm_campaign="q1",
+            )

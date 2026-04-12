@@ -9,6 +9,7 @@ import structlog
 from collections.abc import AsyncIterator, Callable
 from typing import Dict, Any, List, cast
 from datetime import datetime, timezone, timedelta
+from decimal import Decimal, InvalidOperation
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -38,10 +39,6 @@ REPORTING_INGEST_RECOVERABLE_EXCEPTIONS: tuple[type[Exception], ...] = (
     RuntimeError,
     OSError,
     TimeoutError,
-    TypeError,
-    ValueError,
-    KeyError,
-    AttributeError,
 )
 REPORTING_ATTRIBUTION_RECOVERABLE_EXCEPTIONS: tuple[type[Exception], ...] = (
     ValdricsException,
@@ -49,10 +46,6 @@ REPORTING_ATTRIBUTION_RECOVERABLE_EXCEPTIONS: tuple[type[Exception], ...] = (
     RuntimeError,
     OSError,
     TimeoutError,
-    TypeError,
-    ValueError,
-    KeyError,
-    AttributeError,
 )
 
 
@@ -90,6 +83,18 @@ class ReportingService(BaseService):
             result = await self.db.execute(stmt)
             connections.extend(result.scalars().all())
         return connections
+
+    @staticmethod
+    def _coerce_finite_cost(value: Any) -> float:
+        if value is None or value == "":
+            return 0.0
+        try:
+            amount = Decimal(str(value))
+        except (InvalidOperation, TypeError, ValueError) as exc:
+            raise ValueError("cost_usd must be numeric") from exc
+        if not amount.is_finite():
+            raise ValueError("cost_usd must be finite")
+        return float(amount)
 
     async def ingest_costs_for_tenant(
         self, tenant_id: Any, days: int = 7
@@ -184,7 +189,7 @@ class ReportingService(BaseService):
                     nonlocal records_ingested, total_cost_acc
                     async for r in stream:
                         records_ingested += 1
-                        total_cost_acc += float(r.get("cost_usd", 0) or 0)
+                        total_cost_acc += self._coerce_finite_cost(r.get("cost_usd", 0))
                         yield r
 
                 save_result = await persistence.save_records_stream(

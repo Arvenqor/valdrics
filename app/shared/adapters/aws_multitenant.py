@@ -39,8 +39,6 @@ AWS_VERIFICATION_RECOVERABLE_EXCEPTIONS = (
     EndpointConnectionError,
     OSError,
     RuntimeError,
-    TypeError,
-    ValueError,
 )
 AWS_DISCOVERY_RECOVERABLE_EXCEPTIONS = (
     AdapterError,
@@ -50,8 +48,6 @@ AWS_DISCOVERY_RECOVERABLE_EXCEPTIONS = (
     EndpointConnectionError,
     OSError,
     RuntimeError,
-    TypeError,
-    ValueError,
 )
 
 _RESOURCE_USAGE_SERVICE_ALIASES: Dict[str, str] = {

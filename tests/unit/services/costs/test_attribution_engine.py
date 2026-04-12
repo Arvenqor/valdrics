@@ -259,3 +259,27 @@ class TestAttributionEngine:
         assert coverage["meets_target"] is True
         assert coverage["status"] == "ok"
         assert coverage["unallocated_cost"] == 80.0
+
+    @pytest.mark.asyncio
+    async def test_get_allocation_coverage_rejects_non_finite_aggregates(self):
+        db = AsyncMock()
+
+        total_row = MagicMock(total_cost=Decimal("NaN"), total_records=20)
+        allocated_row = MagicMock(
+            allocated_cost=Decimal("920.00"), allocation_rows=20, allocated_records=18
+        )
+
+        total_result = MagicMock()
+        total_result.one.return_value = total_row
+        allocated_result = MagicMock()
+        allocated_result.one.return_value = allocated_row
+        db.execute.side_effect = [total_result, allocated_result]
+
+        engine = AttributionEngine(db)
+        with pytest.raises(ValueError, match="total_cost must be finite"):
+            await engine.get_allocation_coverage(
+                tenant_id=uuid4(),
+                start_date=date(2026, 1, 1),
+                end_date=date(2026, 1, 31),
+                target_percentage=90.0,
+            )

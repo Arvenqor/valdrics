@@ -2,7 +2,7 @@
 Background Jobs API - Job Queue Management
 
 Provides endpoints for:
-- Processing pending jobs (called by the authenticated internal scheduler or manually)
+- Processing pending jobs manually
 - Viewing job status
 - Enqueueing new jobs
 """
@@ -12,7 +12,7 @@ from collections.abc import AsyncIterator
 from typing import Annotated, Literal, Dict, Any, List
 from datetime import datetime, timezone
 import sqlalchemy as sa
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Header, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import select, func, desc, asc
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,7 +25,6 @@ from app.models.background_job import BackgroundJob, JobStatus, JobType
 from app.modules.governance.domain.jobs.processor import JobProcessor, enqueue_job
 from app.shared.core.rate_limit import standard_limit
 import structlog
-import secrets
 import asyncio
 import json
 from sse_starlette.sse import EventSourceResponse
@@ -47,32 +46,6 @@ def _require_tenant_id(user: CurrentUser) -> uuid.UUID:
     if user.tenant_id is None:
         raise HTTPException(status_code=403, detail="Tenant context required")
     return user.tenant_id
-
-
-async def require_internal_job_secret(
-    secret: str = Header(
-        ...,
-        alias="X-Internal-Job-Secret",
-        description="Internal scheduler secret for /jobs/internal/process",
-    ),
-) -> None:
-    """
-    Enforce internal scheduler authentication for /jobs/internal/process.
-
-    Defined as a dependency so auth-coverage audits can assert this endpoint is
-    intentionally protected without user-token RBAC.
-    """
-    from app.shared.core.config import get_settings
-
-    settings = get_settings()
-    expected_secret = settings.INTERNAL_JOB_SECRET
-    if not expected_secret or len(expected_secret) < 32:
-        raise HTTPException(
-            status_code=503,
-            detail="INTERNAL_JOB_SECRET is not configured securely. Set a 32+ character secret.",
-        )
-    if not secrets.compare_digest(secret, expected_secret):
-        raise HTTPException(status_code=403, detail="Invalid secret")
 
 
 class JobStatusResponse(BaseModel):
@@ -419,43 +392,3 @@ async def stream_job_updates(
                     _active_sse_connections.pop(tenant_key, None)
 
     return EventSourceResponse(event_generator())
-
-
-# Internal endpoint for the authenticated scheduler runner.
-@router.post("/internal/process")
-async def internal_process_jobs(
-    background_tasks: BackgroundTasks,
-    _db: AsyncSession = Depends(get_db),
-    _auth: None = Depends(require_internal_job_secret),
-) -> Dict[str, str]:
-    """
-    Internal endpoint called by the authenticated scheduler runner.
-    """
-    async def run_processor() -> None:
-        async with async_session_maker() as session:
-            await mark_session_system_context(session)
-            processor = JobProcessor(session)
-            await processor.process_pending_jobs()
-
-    try:
-        from app.shared.core.celery_app import celery_app
-
-        if getattr(getattr(celery_app, "conf", None), "task_always_eager", False) is True:
-            await run_processor()
-            return {
-                "status": "completed",
-                "message": "Background job processing completed inline",
-            }
-
-        celery_app.send_task("scheduler.process_background_jobs")
-        return {
-            "status": "accepted",
-            "message": "Background job processing dispatched to Celery",
-        }
-    except (ImportError, AttributeError, RuntimeError, OSError, ValueError, TypeError):
-        del background_tasks
-        await run_processor()
-        return {
-            "status": "completed",
-            "message": "Background job processing completed inline",
-        }

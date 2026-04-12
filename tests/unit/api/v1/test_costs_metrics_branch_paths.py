@@ -60,6 +60,19 @@ def test_settings_to_response_and_connection_active_delegate() -> None:
     mocked.assert_called_once_with(connection)
 
 
+def test_settings_to_response_rejects_non_finite_numeric_fields() -> None:
+    settings = SimpleNamespace(
+        id=uuid4(),
+        default_request_volume=Decimal("NaN"),
+        default_workload_volume=Decimal("20"),
+        default_customer_volume=Decimal("5"),
+        anomaly_threshold_percent=Decimal("35"),
+    )
+
+    with pytest.raises(ValueError, match="default_request_volume must be finite"):
+        costs_metrics.settings_to_response(settings)
+
+
 @pytest.mark.asyncio
 async def test_get_or_create_unit_settings_returns_existing() -> None:
     existing = SimpleNamespace(id=uuid4())

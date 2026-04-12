@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from statistics import median
 from uuid import UUID
 
@@ -37,7 +37,6 @@ ANOMALY_JIRA_BOOTSTRAP_RECOVERABLE_EXCEPTIONS = (
 ANOMALY_DISPATCH_RECOVERABLE_EXCEPTIONS = (
     RuntimeError,
     TypeError,
-    ValueError,
     OSError,
     SQLAlchemyError,
 )
@@ -71,6 +70,20 @@ class CostAnomaly:
 
 
 _SEVERITY_RANK: dict[str, int] = {"low": 0, "medium": 1, "high": 2, "critical": 3}
+
+
+def _coerce_finite_decimal(value: object, *, field_name: str) -> Decimal:
+    try:
+        amount = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError) as exc:
+        raise ValueError(f"{field_name} must be numeric") from exc
+    if not amount.is_finite():
+        raise ValueError(f"{field_name} must be finite")
+    return amount
+
+
+def _coerce_finite_float(value: object, *, field_name: str) -> float:
+    return float(_coerce_finite_decimal(value, field_name=field_name))
 
 
 def severity_gte(severity: str, minimum: str) -> bool:
@@ -116,7 +129,10 @@ def detect_daily_cost_anomalies(
             continue
         provider = (r.provider or "").strip().lower() or "unknown"
         key = (provider, r.account_id, (r.service or "Unknown").strip() or "Unknown")
-        series.setdefault(key, {})[r.day] = Decimal(r.cost_usd or 0)
+        series.setdefault(key, {})[r.day] = _coerce_finite_decimal(
+            r.cost_usd or 0,
+            field_name="cost_usd",
+        )
         # Store name for output (single value per account)
         meta.setdefault(key, (r.account_name,))
 
@@ -314,7 +330,10 @@ class CostAnomalyDetectionService:
                     if r.account_name is not None
                     else None,
                     service=str(r.service or "Unknown"),
-                    cost_usd=Decimal(r.cost_usd or 0),
+                    cost_usd=_coerce_finite_decimal(
+                        r.cost_usd or 0,
+                        field_name="cost_usd",
+                    ),
                 )
             )
         return rows
@@ -389,6 +408,18 @@ async def dispatch_cost_anomaly_alerts(
         if await cache.get(fingerprint):
             continue
         try:
+            actual_cost_usd = _coerce_finite_float(
+                item.actual_cost_usd,
+                field_name="actual_cost_usd",
+            )
+            expected_cost_usd = _coerce_finite_float(
+                item.expected_cost_usd,
+                field_name="expected_cost_usd",
+            )
+            delta_cost_usd = _coerce_finite_float(
+                item.delta_cost_usd,
+                field_name="delta_cost_usd",
+            )
             await NotificationDispatcher.send_alert(
                 title=f"Cost anomaly ({item.severity}) - {item.service}",
                 message=(
@@ -398,9 +429,9 @@ async def dispatch_cost_anomaly_alerts(
                     f"Account: {item.account_name or item.account_id}\n"
                     f"Service: {item.service}\n"
                     f"Type: {item.kind}\n"
-                    f"Actual: ${float(item.actual_cost_usd):,.2f}\n"
-                    f"Expected: ${float(item.expected_cost_usd):,.2f}\n"
-                    f"Delta: ${float(item.delta_cost_usd):,.2f}\n"
+                    f"Actual: ${actual_cost_usd:,.2f}\n"
+                    f"Expected: ${expected_cost_usd:,.2f}\n"
+                    f"Delta: ${delta_cost_usd:,.2f}\n"
                     f"Confidence: {item.confidence:.2f}\n"
                     f"Cause: {item.probable_cause}"
                 ),
@@ -425,9 +456,9 @@ async def dispatch_cost_anomaly_alerts(
                         "service": item.service,
                         "kind": item.kind,
                         "severity": item.severity,
-                        "actual_cost_usd": float(item.actual_cost_usd),
-                        "expected_cost_usd": float(item.expected_cost_usd),
-                        "delta_cost_usd": float(item.delta_cost_usd),
+                        "actual_cost_usd": actual_cost_usd,
+                        "expected_cost_usd": expected_cost_usd,
+                        "delta_cost_usd": delta_cost_usd,
                         "percent_change": item.percent_change,
                         "confidence": item.confidence,
                         "probable_cause": item.probable_cause,
@@ -456,9 +487,9 @@ async def dispatch_cost_anomaly_alerts(
                         service=item.service,
                         kind=item.kind,
                         severity=item.severity,
-                        actual_cost_usd=float(item.actual_cost_usd),
-                        expected_cost_usd=float(item.expected_cost_usd),
-                        delta_cost_usd=float(item.delta_cost_usd),
+                        actual_cost_usd=actual_cost_usd,
+                        expected_cost_usd=expected_cost_usd,
+                        delta_cost_usd=delta_cost_usd,
                         percent_change=item.percent_change,
                         confidence=float(item.confidence),
                         probable_cause=item.probable_cause,

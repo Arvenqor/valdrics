@@ -326,6 +326,41 @@ async def test_platform_ledger_resolution_and_stream_fields() -> None:
 
 
 @pytest.mark.asyncio
+async def test_platform_ledger_stream_skips_invalid_timestamp_and_amount_rows() -> None:
+    adapter = PlatformAdapter(
+        _conn(
+            vendor="ledger",
+            auth_method="api_key",
+            connector_config={"base_url": "https://ledger.example.com"},
+        )
+    )
+
+    with patch.object(
+        adapter,
+        "_get_json",
+        new=AsyncMock(
+            return_value={
+                "records": [
+                    {"timestamp": "bad-ts", "cost_usd": 1.0},
+                    {"timestamp": "2026-01-10T00:00:00Z", "amount_raw": "bad"},
+                    {"timestamp": "2026-01-11T00:00:00Z", "cost_usd": 4.5},
+                ]
+            }
+        ),
+    ):
+        rows = [
+            row
+            async for row in adapter._stream_ledger_http_cost_and_usage(
+                datetime(2026, 1, 1, tzinfo=timezone.utc),
+                datetime(2026, 1, 31, tzinfo=timezone.utc),
+            )
+        ]
+
+    assert len(rows) == 1
+    assert rows[0]["cost_usd"] == 4.5
+
+
+@pytest.mark.asyncio
 async def test_platform_newrelic_verify_success_and_stream_skip_branches() -> None:
     adapter = PlatformAdapter(
         _conn(
@@ -409,4 +444,3 @@ async def test_platform_ledger_path_and_currency_branches() -> None:
         ]
     assert len(rows) == 1
     assert rows[0]["cost_usd"] == 5.0
-

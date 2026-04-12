@@ -102,6 +102,10 @@ async def test_saas_manual_feed_validation_error_branches() -> None:
     assert await adapter.verify_connection() is False
     assert "missing timestamp/date" in (adapter.last_error or "").lower()
 
+    conn.spend_feed = [{"timestamp": "bad-ts", "cost_usd": 1}]
+    assert await adapter.verify_connection() is False
+    assert "invalid timestamp/date" in (adapter.last_error or "").lower()
+
     conn.spend_feed = [{"timestamp": "2026-01-01", "cost_usd": "x"}]
     assert await adapter.verify_connection() is False
     assert "numeric cost_usd" in (adapter.last_error or "").lower()

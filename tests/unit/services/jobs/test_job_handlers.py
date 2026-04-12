@@ -27,6 +27,7 @@ from app.modules.governance.domain.jobs.handlers.license_governance import (
 from app.modules.governance.domain.jobs.handlers.enforcement_reconciliation import (
     EnforcementReconciliationHandler,
 )
+from app.modules.governance.domain.jobs.errors import PermanentJobError
 
 
 class _FatalTestSignal(BaseException):
@@ -208,8 +209,9 @@ async def test_notification_handler_no_message(mock_db, sample_job):
     handler = NotificationHandler()
     sample_job.payload = {"title": "No Message Here"}
 
-    with pytest.raises(ValueError, match="message required"):
+    with pytest.raises(RuntimeError, match="message required") as exc_info:
         await handler.execute(sample_job, mock_db)
+    assert exc_info.value.__class__.__name__ == "PermanentJobError"
 
 
 @pytest.mark.asyncio
@@ -283,8 +285,9 @@ async def test_webhook_retry_handler_rejects_non_allowlisted_domain(
             WEBHOOK_BLOCK_PRIVATE_IPS=True,
         ),
     ):
-        with pytest.raises(ValueError, match="allowlist"):
+        with pytest.raises(RuntimeError, match="allowlist") as exc_info:
             await handler.execute(sample_job, mock_db)
+    assert exc_info.value.__class__.__name__ == "PermanentJobError"
 
 
 @pytest.mark.asyncio
@@ -632,8 +635,9 @@ async def test_license_governance_handler_requires_tenant_id(mock_db):
     sample_job.tenant_id = None
     sample_job.payload = {}
 
-    with pytest.raises(ValueError, match="tenant_id required"):
+    with pytest.raises(RuntimeError, match="tenant_id required") as exc_info:
         await handler.execute(sample_job, mock_db)
+    assert exc_info.value.__class__.__name__ == "PermanentJobError"
 
 
 @pytest.mark.asyncio
@@ -670,8 +674,9 @@ async def test_enforcement_reconciliation_handler_requires_tenant_id(mock_db):
     sample_job.tenant_id = None
     sample_job.payload = {}
 
-    with pytest.raises(ValueError, match="tenant_id required"):
+    with pytest.raises(RuntimeError, match="tenant_id required") as exc_info:
         await handler.execute(sample_job, mock_db)
+    assert exc_info.value.__class__.__name__ == "PermanentJobError"
 
 
 @pytest.mark.asyncio
@@ -723,8 +728,9 @@ async def test_zombie_analysis_handler_missing_payload(mock_db, sample_job):
     handler = ZombieAnalysisHandler()
     sample_job.payload = {}
 
-    with pytest.raises(ValueError, match="zombies payload required"):
+    with pytest.raises(RuntimeError, match="zombies payload required") as exc_info:
         await handler.execute(sample_job, mock_db)
+    assert exc_info.value.__class__.__name__ == "PermanentJobError"
 
 
 @pytest.mark.asyncio
@@ -734,8 +740,11 @@ async def test_zombie_analysis_handler_requires_tenant_id(mock_db):
     sample_job.tenant_id = None
     sample_job.payload = {"zombies": {}}
 
-    with pytest.raises(ValueError, match="tenant_id required for zombie_analysis"):
+    with pytest.raises(
+        RuntimeError, match="tenant_id required for zombie_analysis"
+    ) as exc_info:
         await handler.execute(sample_job, mock_db)
+    assert exc_info.value.__class__.__name__ == "PermanentJobError"
 
 
 @pytest.mark.asyncio
@@ -927,7 +936,9 @@ async def test_report_generation_handler_requires_tenant_id(mock_db):
     sample_job.tenant_id = None
     sample_job.payload = {}
 
-    with pytest.raises(ValueError, match="tenant_id required for report_generation"):
+    with pytest.raises(
+        PermanentJobError, match="tenant_id required for report_generation"
+    ):
         await handler.execute(sample_job, mock_db)
 
 
@@ -936,7 +947,7 @@ async def test_report_generation_handler_unsupported_type(mock_db, sample_job):
     handler = ReportGenerationHandler()
     sample_job.payload = {"report_type": "random_thing"}
 
-    with pytest.raises(ValueError, match="Unsupported report_type"):
+    with pytest.raises(PermanentJobError, match="Unsupported report_type"):
         await handler.execute(sample_job, mock_db)
 
 
@@ -946,5 +957,5 @@ def test_parse_iso_date_accepts_date_and_iso_string():
 
 
 def test_parse_iso_date_rejects_non_string_non_date():
-    with pytest.raises(ValueError, match="Expected ISO date string"):
+    with pytest.raises(PermanentJobError, match="Expected ISO date string"):
         _parse_iso_date(1234)

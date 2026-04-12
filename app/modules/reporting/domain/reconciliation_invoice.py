@@ -65,7 +65,7 @@ async def upsert_invoice_impl(
         raise ValueError("start_date must be <= end_date")
 
     currency_key = (currency or "USD").strip().upper() or "USD"
-    total_amount_dec = Decimal(str(total_amount or 0))
+    total_amount_dec = service._to_decimal(total_amount)
     total_amount_usd = await service._invoice_total_to_usd(
         total_amount_dec, currency_key
     )
@@ -223,17 +223,18 @@ async def get_invoice_reconciliation_summary_impl(
                 "start_date": start_date.isoformat(),
                 "end_date": end_date.isoformat(),
             },
-            "ledger_final_cost_usd": float(ledger_final_cost_usd or 0.0),
+            "ledger_final_cost_usd": service._to_float(ledger_final_cost_usd),
             "threshold_percent": threshold_percent,
         }
 
-    invoice_usd = float(invoice.total_amount_usd or 0)
-    ledger_usd = float(ledger_final_cost_usd or 0.0)
+    invoice_usd = service._to_float(invoice.total_amount_usd)
+    ledger_usd = service._to_float(ledger_final_cost_usd)
     delta_usd = ledger_usd - invoice_usd
     abs_delta_usd = abs(delta_usd)
     denominator = invoice_usd if invoice_usd > 0 else max(ledger_usd, 1e-9)
     delta_percent = (abs_delta_usd / denominator) * 100.0 if denominator > 0 else 0.0
-    matches = delta_percent <= float(threshold_percent or 0.0)
+    threshold_value = service._to_float(threshold_percent)
+    matches = delta_percent <= threshold_value
 
     payload = {
         "status": "match" if matches else "mismatch",
@@ -242,13 +243,13 @@ async def get_invoice_reconciliation_summary_impl(
             "start_date": start_date.isoformat(),
             "end_date": end_date.isoformat(),
         },
-        "threshold_percent": float(threshold_percent),
+        "threshold_percent": threshold_value,
         "invoice": {
             "id": str(invoice.id),
             "invoice_number": invoice.invoice_number,
             "currency": invoice.currency,
-            "total_amount": float(invoice.total_amount or 0),
-            "total_amount_usd": float(invoice.total_amount_usd or 0),
+            "total_amount": service._to_float(invoice.total_amount),
+            "total_amount_usd": invoice_usd,
             "status": invoice.status,
             "notes": invoice.notes,
             "updated_at": invoice.updated_at.isoformat()

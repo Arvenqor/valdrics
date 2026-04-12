@@ -6,8 +6,8 @@ This document provides step-by-step procedures for handling common operational s
 **Symptom**: `/health` returns 503, logs show `asyncpg.exceptions`.
 
 1. **Verify Connection String**: Check `DATABASE_URL` in environment variables.
-2. **Check Database Provider Status**: Verify if the managed PostgreSQL or AWS RDS backend is having an outage.
-3. **Connection Pooling**: If `Too many connections` is seen, review `WEB_CONCURRENCY`, `DB_POOL_SIZE`, and `DB_MAX_OVERFLOW` against the active database connection budget.
+2. **Check Database Provider Status**: Verify if the managed PostgreSQL / Supabase backend is having an outage.
+3. **Connection Pooling**: If `Too many connections` is seen, review Cloud Run request concurrency, max instance count, `DB_POOL_SIZE`, and `DB_MAX_OVERFLOW` against the active database connection budget.
 4. **Restart Service**: Restart the backend service to clear stale connection pools.
 
 ## 2. Slow API Responses
@@ -16,7 +16,7 @@ This document provides step-by-step procedures for handling common operational s
 1. **Identify the Query**: Check the log entry for the SQL statement.
 2. **Analyze Execution Plan**: Run `EXPLAIN ANALYZE` on the query in the DB console.
 3. **Add Indexes**: If a sequential scan is detected on a large table (e.g., `audit_logs`), add a missing index.
-4. **Cache Check**: Verify if Redis is hit properly for rate limiting and frequent metadata lookups.
+4. **Cache Check**: In the supported Cloud Run profile, verify Cloudflare edge rate limiting is healthy. If a local drill or explicit break-glass shared-state cache backend is enabled, confirm it is healthy or bypassed cleanly.
 
 ## 3. Slack Notification Failure
 **Symptom**: Alerts are not appearing in Slack, logs show `Slack API error`.

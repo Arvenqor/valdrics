@@ -27,8 +27,7 @@ from scripts.verify_managed_deployment_bundle import (
 )
 
 
-CURRENT_PROFILE_NAME = "Koyeb managed services with immutable image promotion"
-FUTURE_SCALE_PROFILE_NAME = "Helm + Terraform (AWS/EKS)"
+CURRENT_PROFILE_NAME = "Google Cloud Run + Cloudflare Pages + Supabase"
 
 
 def _repo_root() -> Path:
@@ -79,20 +78,17 @@ def _render_handoff_markdown(
     migration_blockers = _normalize_strings(
         migration_report.get("migration_validation_blockers")
     )
-    dashboard_blockers = _normalize_strings(
-        deployment_report.get("koyeb_dashboard_public_env_blockers")
+    cloudflare_pages_blockers = _normalize_strings(
+        deployment_report.get("cloudflare_pages_public_env_blockers")
     )
     release_blockers = _normalize_strings(
-        deployment_report.get("koyeb_release_value_blockers")
+        deployment_report.get("artifact_registry_release_value_blockers")
     )
     terraform_inputs = _normalize_strings(
         deployment_report.get("terraform_remaining_inputs")
     )
-    koyeb_secret_blockers = _normalize_strings(
-        deployment_report.get("koyeb_secret_value_blockers")
-    )
-    helm_secret_blockers = _normalize_strings(
-        deployment_report.get("helm_runtime_secret_value_blockers")
+    secret_manager_blockers = _normalize_strings(
+        deployment_report.get("secret_manager_secret_value_blockers")
     )
     nonblocking_placeholders = _normalize_strings(
         runtime_report.get("declared_but_not_runtime_required")
@@ -100,10 +96,9 @@ def _render_handoff_markdown(
 
     runtime_ready = bool(runtime_report.get("validation_ready"))
     migration_ready = bool(migration_report.get("migration_ready"))
-    koyeb_ready = bool(deployment_report.get("ready_for_koyeb"))
-    koyeb_release_ready = bool(deployment_report.get("ready_for_koyeb_release"))
-    helm_ready = bool(deployment_report.get("ready_for_helm"))
-    future_scale_ready = migration_ready and helm_ready and not terraform_inputs
+    unified_platform_ready = bool(deployment_report.get("ready_for_unified_platform"))
+    release_ready = bool(deployment_report.get("ready_for_release_promotion"))
+    terraform_ready = bool(deployment_report.get("ready_for_terraform"))
 
     lines = [
         f"# Managed Deployment Handoff: {environment}",
@@ -115,10 +110,10 @@ def _render_handoff_markdown(
         "",
         f"- Runtime env validation: {_status(runtime_ready)}",
         f"- Migration env validation: {_status(migration_ready)}",
-        f"- Current supported profile (`{CURRENT_PROFILE_NAME}`): {_status(koyeb_release_ready and migration_ready)}",
-        f"- Koyeb service deploy contract: {_status(koyeb_ready)}",
-        f"- Koyeb immutable release contract: {_status(koyeb_release_ready)}",
-        f"- Future scale profile (`{FUTURE_SCALE_PROFILE_NAME}`): {_status(future_scale_ready)}",
+        f"- Current supported profile (`{CURRENT_PROFILE_NAME}`): {_status(unified_platform_ready and migration_ready)}",
+        f"- Unified runtime deploy contract: {_status(unified_platform_ready)}",
+        f"- Artifact Registry promotion contract: {_status(release_ready)}",
+        f"- Terraform infrastructure contract: {_status(terraform_ready)}",
         "",
         "## Source Reports",
         "",
@@ -136,12 +131,12 @@ def _render_handoff_markdown(
         f"### Migration env blockers in `{migration_report.get('output_path', '')}`",
         *_render_items(migration_blockers),
         "",
-        "### Dashboard public env blockers in "
-        f"`{deployment_report.get('artifacts', {}).get('koyeb_dashboard_env_json', '')}`",
-        *_render_items(dashboard_blockers),
+        "### Cloudflare Pages public env blockers in "
+        f"`{deployment_report.get('artifacts', {}).get('cloudflare_pages_env_json', '')}`",
+        *_render_items(cloudflare_pages_blockers),
         "",
-        "### Immutable release blockers in "
-        f"`{deployment_report.get('artifacts', {}).get('koyeb_release_metadata', '')}`",
+        "### Artifact Registry release blockers in "
+        f"`{deployment_report.get('artifacts', {}).get('artifact_registry_release_metadata', '')}`",
         *_render_items(release_blockers),
         "",
         "### Terraform inputs still required outside generated env",
@@ -149,13 +144,9 @@ def _render_handoff_markdown(
         "",
         "## Derived Deployment Gaps",
         "",
-        "### Koyeb secret payload blockers in "
-        f"`{deployment_report.get('artifacts', {}).get('koyeb_secret_payload', '')}`",
-        *_render_items(koyeb_secret_blockers),
-        "",
-        "### Helm runtime secret blockers in "
-        f"`{deployment_report.get('artifacts', {}).get('helm_runtime_secret_json', '')}`",
-        *_render_items(helm_secret_blockers),
+        "### Secret Manager runtime payload blockers in "
+        f"`{deployment_report.get('artifacts', {}).get('secret_manager_runtime_secrets', '')}`",
+        *_render_items(secret_manager_blockers),
         "",
         "## Declared Non-Blocking External Placeholders",
         "",
@@ -183,6 +174,14 @@ def _render_handoff_markdown(
         f"`uv run python scripts/verify_managed_deployment_bundle.py --environment {environment}`",
         "- Cross-environment blocker rollup: "
         "`uv run python scripts/render_managed_release_blocker_summary.py`",
+        "- Unified release runbook: "
+        "`docs/runbooks/unified_platform_release.md`",
+        "- Operator release workflow: "
+        "`.github/workflows/release-unified-platform.yml`",
+        "- Reusable release image publish workflow: "
+        "`.github/workflows/publish-artifact-registry-images.yml`",
+        "- Reusable unified deployment workflow: "
+        "`.github/workflows/deploy-unified-platform.yml`",
         "- Public browser gate: "
         "`uv run python scripts/run_public_frontend_quality_gate.py --dashboard-url https://REPLACE_WITH_FRONTEND_DOMAIN --skip-webserver`",
         "",

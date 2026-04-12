@@ -12,7 +12,6 @@ LLM_PRICING_REFRESH_RECOVERABLE_EXCEPTIONS = (
     RuntimeError,
     TypeError,
     ValueError,
-    AttributeError,
     OSError,
     ImportError,
 )

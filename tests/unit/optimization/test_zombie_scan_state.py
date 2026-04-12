@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from app.modules.optimization.domain.zombie_scan_state import ZombieScanState
 
 
@@ -115,3 +117,32 @@ def test_merge_scan_results_preserves_inventory_discovery_partial_state() -> Non
     assert finding["automated_action_allowed"] is False
     assert finding["inventory_discovery_status"] == "partial"
     assert finding["decision_gate"] == "manual_review_required"
+
+
+@pytest.mark.parametrize("bad_cost", ["bad-cost", float("nan"), float("inf")])
+def test_merge_scan_results_skips_invalid_monthly_cost_values(bad_cost: float | str) -> None:
+    state = ZombieScanState.create(
+        scanned_connections=1,
+        has_precision=True,
+        has_attribution=True,
+    )
+
+    state.merge_scan_results(
+        provider_name="aws",
+        connection_id="conn-invalid",
+        connection_name="invalid-account",
+        scan_results={
+            "idle_instances": [
+                {
+                    "resource_id": "i-bad",
+                    "monthly_cost": bad_cost,
+                }
+            ],
+        },
+    )
+
+    assert state.payload["idle_instances"] == []
+    assert state.total_waste == 0.0
+    assert state.payload["partial_results"] is True
+    assert state.payload["errors"][0]["error_type"] == "InvalidMonthlyCost"
+    assert state.payload["errors"][0]["category"] == "idle_instances"

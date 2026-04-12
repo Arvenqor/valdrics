@@ -19,27 +19,37 @@ def _write(path: Path, text: str) -> None:
 
 def _required_doc_text(path: str) -> str:
     if path == "scheduler_orchestration_sequence.md":
-        return """# Scheduler Orchestration Sequence
+        return """# Managed Scheduler Orchestration Sequence
 ```mermaid
 sequenceDiagram
-participant A as scheduler_tasks.py
-participant B as orchestrator.py
-A->>B: run
+participant A as Cloud Scheduler
+participant B as internal_orchestration.py
+participant C as managed_work_runners.py
+A->>B: dispatch
+B->>C: run managed work
 ```
+## Repository-Managed Local Loop
+local worker loop
 ## Concurrency and Deterministic Replay
 deterministic replay controls
 ## Observability and Snapshot Stability
 trace and snapshot controls
 ## Failure Modes and Operational Misconfiguration Guards
-failure guard controls
+Cloud Tasks
+Cloud Run Jobs
+fail-closed
 """
 
     token_map: dict[str, str] = {
         "ADR-0005-paystack-over-stripe.md": "Paystack and Stripe evaluation",
         "ADR-0006-supabase-managed-auth-platform.md": "Supabase over self-hosted auth",
-        "ADR-0007-redis-backed-circuit-breakers.md": "Redis versus in-memory breakers",
+        "ADR-0007-redis-backed-circuit-breakers.md": (
+            "Superseded Redis breakers in Cloud Run managed runtime"
+        ),
         "ADR-0008-codecarbon-emissions-observability.md": "CodeCarbon emissions telemetry",
-        "ADR-0009-celery-redis-job-orchestration.md": "Celery with BackgroundTasks comparison",
+        "ADR-0009-celery-redis-job-orchestration.md": (
+            "Superseded Celery with Cloud Tasks Cloud Scheduler Cloud Run Jobs"
+        ),
     }
     payload = token_map[path]
     return (
@@ -84,6 +94,19 @@ def test_verify_architecture_docs_rejects_placeholder_token(tmp_path: Path) -> N
     )
     errors = verify_architecture_docs(docs_root)
     assert any("placeholder token present" in error for error in errors)
+
+
+def test_verify_architecture_docs_rejects_forbidden_legacy_scheduler_terms(
+    tmp_path: Path,
+) -> None:
+    docs_root = tmp_path / "docs" / "architecture"
+    _write_all_required_docs(docs_root)
+    _write(
+        docs_root / "scheduler_orchestration_sequence.md",
+        "# Managed Scheduler Orchestration Sequence\nCelery\n",
+    )
+    errors = verify_architecture_docs(docs_root)
+    assert any("forbidden token present" in error for error in errors)
 
 
 def test_main_returns_nonzero_when_requirements_fail(tmp_path: Path) -> None:

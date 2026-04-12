@@ -14,8 +14,10 @@ def _settings(
     enabled: bool = True,
     testing: bool = False,
     environment: str = "staging",
+    backend: str = "otlp",
 ) -> SimpleNamespace:
     return SimpleNamespace(
+        OBSERVABILITY_BACKEND=backend,
         OTEL_EXPORTER_OTLP_ENDPOINT=endpoint,
         OTEL_EXPORTER_OTLP_INSECURE=insecure,
         OTEL_LOGS_EXPORT_ENABLED=enabled,
@@ -70,6 +72,7 @@ def test_configure_otlp_log_export_rebuilds_when_runtime_config_changes() -> Non
     assert provider_a.shutdown.call_count == 1
     assert logger.handlers == [handler_b]
     assert log_exporter._otlp_logger_config == (
+        "otlp",
         "http://otel-b:4317",
         True,
         "staging",

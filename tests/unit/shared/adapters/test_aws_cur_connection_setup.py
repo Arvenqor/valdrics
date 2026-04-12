@@ -92,6 +92,20 @@ class TestAWSCURAdapterConnectionSetup:
         mock_error.assert_called_once()
 
 
+    async def test_verify_connection_broken_credentials_contract_bubbles(
+        self, mock_creds: AWSCredentials
+    ) -> None:
+        with patch.object(
+            AWSCURAdapter,
+            "_get_credentials",
+            new=AsyncMock(side_effect=TypeError("broken credential contract")),
+        ):
+            adapter = AWSCURAdapter(mock_creds)
+
+            with pytest.raises(TypeError, match="broken credential contract"):
+                await adapter.verify_connection()
+
+
     async def test_setup_cur_automation_creates_bucket_and_report(
         self, mock_creds: AWSCredentials
     ) -> None:

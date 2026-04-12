@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from app.tasks.scheduler_funnel_ops import refresh_landing_funnel_health_logic
-from app.tasks import scheduler_tasks as st
+from app.shared.orchestration import managed_work_runners as runners
 
 
 @asynccontextmanager
@@ -72,17 +72,17 @@ async def test_refresh_landing_funnel_health_logic_records_metrics_and_logs() ->
 async def test_refresh_landing_funnel_health_task_records_success_metrics() -> None:
     with (
         patch(
-            "app.tasks.scheduler_tasks._refresh_landing_funnel_health_logic_impl",
+            "app.shared.orchestration.managed_work_runners._refresh_landing_funnel_health_logic_impl",
             new=AsyncMock(),
         ) as mock_impl,
-        patch("app.tasks.scheduler_tasks.SCHEDULER_JOB_RUNS") as mock_runs,
-        patch("app.tasks.scheduler_tasks.SCHEDULER_JOB_DURATION") as mock_duration,
+        patch("app.shared.orchestration.managed_work_runners.SCHEDULER_JOB_RUNS") as mock_runs,
+        patch("app.shared.orchestration.managed_work_runners.SCHEDULER_JOB_DURATION") as mock_duration,
         patch(
-            "app.tasks.scheduler_tasks._perf_counter",
+            "app.shared.orchestration.managed_work_runners._perf_counter",
             side_effect=[50.0, 50.25],
         ),
     ):
-        await st._refresh_landing_funnel_health_logic()
+        await runners.run_landing_funnel_health_refresh({})
 
     mock_impl.assert_awaited_once()
     mock_runs.labels.assert_any_call(
@@ -99,15 +99,15 @@ async def test_refresh_landing_funnel_health_task_records_success_metrics() -> N
 async def test_refresh_landing_funnel_health_task_records_failure_and_raises() -> None:
     with (
         patch(
-            "app.tasks.scheduler_tasks._refresh_landing_funnel_health_logic_impl",
+            "app.shared.orchestration.managed_work_runners._refresh_landing_funnel_health_logic_impl",
             new=AsyncMock(side_effect=RuntimeError("db unavailable")),
         ),
-        patch("app.tasks.scheduler_tasks.SCHEDULER_JOB_RUNS") as mock_runs,
-        patch("app.tasks.scheduler_tasks.SCHEDULER_JOB_DURATION") as mock_duration,
-        patch("app.tasks.scheduler_tasks.logger") as mock_logger,
+        patch("app.shared.orchestration.managed_work_runners.SCHEDULER_JOB_RUNS") as mock_runs,
+        patch("app.shared.orchestration.managed_work_runners.SCHEDULER_JOB_DURATION") as mock_duration,
+        patch("app.shared.orchestration.managed_work_runners.logger") as mock_logger,
     ):
         with pytest.raises(RuntimeError, match="db unavailable"):
-            await st._refresh_landing_funnel_health_logic()
+            await runners.run_landing_funnel_health_refresh({})
 
     mock_runs.labels.assert_any_call(
         job_name="landing_funnel_health_refresh",

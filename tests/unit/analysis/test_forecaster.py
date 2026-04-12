@@ -279,6 +279,30 @@ class TestSymbolicForecasterForecasting:
                 assert call_kwargs["holidays"] is not None
 
     @pytest.mark.asyncio
+    async def test_forecast_marker_loader_attribute_error_bubbles(self):
+        """Malformed marker loader results should surface instead of being ignored."""
+
+        class MockHistoryItem:
+            def __init__(self, date_val, amount):
+                self.date = date_val
+                self.amount = amount
+
+        history = [
+            MockHistoryItem(date(2024, 1, i), 100.0 + (i * 2))
+            for i in range(1, 16)
+        ]
+
+        mock_db = MagicMock()
+        mock_db.execute = AsyncMock(return_value=object())
+
+        with patch("app.shared.analysis.forecaster.PROPHET_AVAILABLE", True):
+            with patch("app.shared.analysis.forecaster.Prophet", create=True):
+                with pytest.raises(AttributeError):
+                    await SymbolicForecaster.forecast(
+                        history, days=5, db=mock_db, tenant_id="test-tenant"
+                    )
+
+    @pytest.mark.asyncio
     async def test_forecast_prophet_unavailable(self):
         """Test forecasting when Prophet is unavailable."""
 
@@ -322,6 +346,15 @@ class TestSymbolicForecasterForecasting:
             assert "Forecasting engine error" in result["reason"]
             assert result["forecast"] == []
             assert result["total_forecasted_cost"] == Decimal("0")
+
+    @pytest.mark.asyncio
+    async def test_forecast_attribute_error_bubbles(self):
+        """Malformed history items should surface instead of degrading silently."""
+
+        history = [type("BrokenHistoryItem", (), {"amount": 100.0})() for _ in range(9)]
+
+        with pytest.raises(AttributeError):
+            await SymbolicForecaster.forecast(history, days=7)
 
     @pytest.mark.asyncio
     async def test_forecast_carbon_emissions(self):
@@ -692,6 +725,35 @@ class TestSymbolicForecasterProductionQuality:
                 # Should fall back gracefully
                 assert result["confidence"] == "error"
                 assert "Forecasting engine error" in result["reason"]
+
+    @pytest.mark.asyncio
+    async def test_prophet_output_shape_key_error_bubbles(self):
+        """Malformed Prophet output should not be normalized into a forecast error."""
+
+        class MockHistoryItem:
+            def __init__(self, date_val, amount):
+                self.date = date_val
+                self.amount = amount
+
+        history = [MockHistoryItem(date(2024, 1, i), 100.0 + i) for i in range(1, 16)]
+
+        with patch("app.shared.analysis.forecaster.PROPHET_AVAILABLE", True):
+            with patch(
+                "app.shared.analysis.forecaster.Prophet", create=True
+            ) as mock_prophet:
+                mock_instance = MagicMock()
+                mock_prophet.return_value = mock_instance
+                mock_instance.make_future_dataframe.return_value = pd.DataFrame()
+                mock_instance.predict.return_value = pd.DataFrame(
+                    {
+                        "ds": pd.date_range("2024-01-16", periods=7, freq="D"),
+                        "yhat_lower": [105] * 7,
+                        "yhat_upper": [115] * 7,
+                    }
+                )
+
+                with pytest.raises(KeyError):
+                    await SymbolicForecaster.forecast(history, days=7)
 
     @pytest.mark.asyncio
     async def test_holt_winters_fallback_comprehensive(self):

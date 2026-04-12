@@ -38,6 +38,12 @@ def test_validate_manual_feed_contract() -> None:
     assert "at least one record" in str(
         validate_manual_feed([], is_number_fn=lambda _: True)
     )
+    assert "invalid timestamp/date" in str(
+        validate_manual_feed(
+            [{"timestamp": "bad-ts", "cost_usd": 1.0}],
+            is_number_fn=lambda value: isinstance(value, (int, float)),
+        )
+    )
 
 
 def test_iter_manual_cost_rows_filters_by_window_and_shapes() -> None:
@@ -57,6 +63,44 @@ def test_iter_manual_cost_rows_filters_by_window_and_shapes() -> None:
     assert len(rows) == 1
     assert rows[0]["service"] == "A"
     assert rows[0]["cost_usd"] == 2.5
+
+
+def test_iter_manual_cost_rows_rejects_invalid_timestamp_and_cost() -> None:
+    try:
+        list(
+            iter_manual_cost_rows(
+                feed=[{"timestamp": "bad-ts", "cost_usd": 2.5, "service": "A"}],
+                start_date=datetime(2026, 1, 1, tzinfo=timezone.utc),
+                end_date=datetime(2026, 1, 31, tzinfo=timezone.utc),
+                parse_timestamp_fn=_parse_timestamp,
+                as_float_fn=lambda value, default=0.0: float(value)
+                if value is not None
+                else default,
+                is_number_fn=lambda value: isinstance(value, (int, float)),
+            )
+        )
+    except ValueError as exc:
+        assert "invalid timestamp/date" in str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("expected invalid timestamp to raise ValueError")
+
+    try:
+        list(
+            iter_manual_cost_rows(
+                feed=[{"timestamp": "2026-01-01T00:00:00Z", "cost_usd": "bad", "service": "A"}],
+                start_date=datetime(2026, 1, 1, tzinfo=timezone.utc),
+                end_date=datetime(2026, 1, 31, tzinfo=timezone.utc),
+                parse_timestamp_fn=_parse_timestamp,
+                as_float_fn=lambda value, default=0.0: float(value)
+                if value is not None
+                else default,
+                is_number_fn=lambda value: isinstance(value, (int, float)),
+            )
+        )
+    except ValueError as exc:
+        assert "numeric cost_usd or amount_usd" in str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("expected invalid cost to raise ValueError")
 
 
 def test_list_manual_feed_activity_consolidates_records() -> None:

@@ -28,16 +28,13 @@ def _runtime_template() -> str:
             "FRONTEND_URL=",
             "CORS_ORIGINS=[]",
             "DATABASE_URL=",
-            "REDIS_URL=",
             "SUPABASE_URL=",
             "SUPABASE_ANON_KEY=",
             "SUPABASE_JWT_SECRET=",
-            "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN=",
             "CSRF_SECRET_KEY=",
             "ENCRYPTION_KEY=",
             "KDF_SALT=",
             "ADMIN_API_KEY=",
-            "INTERNAL_JOB_SECRET=",
             "INTERNAL_METRICS_AUTH_TOKEN=",
             "ENFORCEMENT_APPROVAL_TOKEN_SECRET=",
             "ENFORCEMENT_EXPORT_SIGNING_SECRET=",
@@ -45,8 +42,6 @@ def _runtime_template() -> str:
             "GROQ_API_KEY=",
             "PAYSTACK_SECRET_KEY=",
             "PAYSTACK_PUBLIC_KEY=",
-            "SENTRY_DSN=",
-            "OTEL_EXPORTER_OTLP_ENDPOINT=",
             "TRUSTED_PROXY_CIDRS=[]",
             "",
         ]
@@ -110,10 +105,10 @@ def test_render_managed_release_blocker_summary_renders_shared_and_env_specific_
     assert "## Shared Blockers" in content
     assert "## Staging-Only Blockers" in content
     assert "## Production-Only Blockers" in content
-    assert "`AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN`" in content
-    assert "`valdrics-aws-trust-principal-arn`" in content
-    assert "`secret_rotation_lambda_arn`" in content
-    assert "Comparison normalizes staging secret names" in content
+    assert "`DATABASE_URL`" in content
+    assert "`PUBLIC_SUPABASE_URL`" in content
+    assert "`release_tag`" in content
+    assert "`gcp_project_id`" in content
 
 
 def test_render_managed_release_blocker_summary_rejects_incoherent_bundle(
@@ -147,7 +142,9 @@ def test_render_managed_release_blocker_summary_rejects_incoherent_bundle(
         )
 
 
-def test_main_resolves_default_paths_from_repo_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_main_resolves_default_paths_from_repo_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     repo_root = tmp_path / "repo"
     _build_bundle(repo_root, environment="staging")
     _build_bundle(repo_root, environment="production")

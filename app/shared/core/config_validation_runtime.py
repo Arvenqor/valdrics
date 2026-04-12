@@ -8,6 +8,10 @@ from urllib.parse import urlparse
 
 from app.shared.core.config_validation_placeholders import require_no_managed_placeholder
 from app.shared.core.cors_policy import validate_strict_cors_allowed_origins
+from app.shared.orchestration.contracts import (
+    platform_runtime_profile,
+    PlatformRuntimeProfile,
+)
 
 
 def _is_truthy(value: object) -> bool:
@@ -27,6 +31,12 @@ def _strict_environment(settings_obj: object, *, env_production: str, env_stagin
         env_production,
         env_staging,
     }
+
+
+def _public_api_rate_limiting_backend(settings_obj: object) -> str:
+    return str(
+        getattr(settings_obj, "PUBLIC_API_RATE_LIMITING_BACKEND", "redis") or "redis"
+    ).strip().lower()
 
 
 def _parse_break_glass_expiry(raw_value: object) -> datetime:
@@ -253,6 +263,87 @@ def validate_environment_safety(
     strict_env = environment in {env_production, env_staging}
 
     if strict_env:
+        runtime_profile = platform_runtime_profile(settings_obj)
+        public_rate_limit_backend = _public_api_rate_limiting_backend(settings_obj)
+
+        if runtime_profile is PlatformRuntimeProfile.GCP:
+            required_gcp_values = {
+                "GCP_PROJECT_ID": getattr(settings_obj, "GCP_PROJECT_ID", None),
+                "GCP_REGION": getattr(settings_obj, "GCP_REGION", None),
+                "GCP_CLOUD_TASKS_QUEUE": getattr(
+                    settings_obj, "GCP_CLOUD_TASKS_QUEUE", None
+                ),
+                "GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL": getattr(
+                    settings_obj, "GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL", None
+                ),
+                "GCP_CLOUD_RUN_SERVICE_NAME": getattr(
+                    settings_obj, "GCP_CLOUD_RUN_SERVICE_NAME", None
+                ),
+                "GCP_CLOUD_RUN_BATCH_JOB_NAME": getattr(
+                    settings_obj, "GCP_CLOUD_RUN_BATCH_JOB_NAME", None
+                ),
+            }
+            for field_name, raw_value in required_gcp_values.items():
+                value = str(raw_value or "").strip()
+                if not value:
+                    raise ValueError(
+                        f"{field_name} must be configured when PLATFORM_RUNTIME_PROFILE=gcp in staging/production."
+                    )
+                require_no_managed_placeholder(value, name=field_name)
+
+            internal_base_url_value = str(
+                getattr(settings_obj, "GCP_INTERNAL_BASE_URL", "") or ""
+            ).strip()
+            if internal_base_url_value:
+                _validate_strict_public_url(
+                    internal_base_url_value,
+                    name="GCP_INTERNAL_BASE_URL",
+                )
+
+            internal_auth_audience_value = str(
+                getattr(settings_obj, "GCP_INTERNAL_AUTH_AUDIENCE", "") or ""
+            ).strip()
+            if internal_auth_audience_value:
+                _validate_strict_public_url(
+                    internal_auth_audience_value,
+                    name="GCP_INTERNAL_AUTH_AUDIENCE",
+                )
+                api_url_value = str(getattr(settings_obj, "API_URL", "") or "").strip()
+                if internal_auth_audience_value.rstrip("/") != api_url_value.rstrip("/"):
+                    raise ValueError(
+                        "GCP_INTERNAL_AUTH_AUDIENCE must match API_URL in the supported "
+                        "Cloudflare-fronted GCP runtime profile because Cloud Run custom "
+                        "audiences are provisioned for the public API URL."
+                    )
+
+            allowed_service_accounts = [
+                str(email or "").strip().lower()
+                for email in getattr(
+                    settings_obj, "GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS", []
+                )
+                if str(email or "").strip()
+            ]
+            if not allowed_service_accounts:
+                raise ValueError(
+                    "GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS must be configured when PLATFORM_RUNTIME_PROFILE=gcp in staging/production."
+                )
+
+        if public_rate_limit_backend == "cloudflare":
+            if bool(getattr(settings_obj, "RATELIMIT_ENABLED", False)):
+                raise ValueError(
+                    "RATELIMIT_ENABLED must be false when PUBLIC_API_RATE_LIMITING_BACKEND=cloudflare in staging/production."
+                )
+            api_url = str(getattr(settings_obj, "API_URL", "") or "").strip().lower()
+            if api_url.endswith(".run.app") or ".run.app/" in api_url:
+                raise ValueError(
+                    "API_URL must use the Cloudflare-proxied custom hostname when PUBLIC_API_RATE_LIMITING_BACKEND=cloudflare."
+                )
+            internal_base_url = internal_base_url_value.lower().rstrip("/")
+            if internal_base_url and internal_base_url == api_url.rstrip("/"):
+                raise ValueError(
+                    "GCP_INTERNAL_BASE_URL must target the direct Cloud Run service URL, not API_URL, when PUBLIC_API_RATE_LIMITING_BACKEND=cloudflare."
+                )
+
         admin_api_key = getattr(settings_obj, "ADMIN_API_KEY", None)
         if not admin_api_key or len(str(admin_api_key)) < 32:
             raise ValueError("ADMIN_API_KEY must be >= 32 chars in staging/production.")
@@ -265,32 +356,31 @@ def validate_environment_safety(
                 "INTERNAL_METRICS_AUTH_TOKEN must be >= 32 chars when configured."
             )
 
-        web_concurrency_raw = str(
-            getattr(settings_obj, "WEB_CONCURRENCY", 1) or 1
-        ).strip()
-        try:
-            web_concurrency = int(web_concurrency_raw)
-        except (TypeError, ValueError):
-            web_concurrency = 1
+        distributed_breaker_enabled = bool(
+            getattr(settings_obj, "CIRCUIT_BREAKER_DISTRIBUTED_STATE", False)
+        )
+        redis_url = str(getattr(settings_obj, "REDIS_URL", "") or "").strip()
 
-        if web_concurrency > 1 and (
-            not bool(getattr(settings_obj, "CIRCUIT_BREAKER_DISTRIBUTED_STATE", False))
-            or not getattr(settings_obj, "REDIS_URL", None)
+        if (
+            runtime_profile is PlatformRuntimeProfile.GCP
+            and distributed_breaker_enabled
         ):
             raise ValueError(
-                "WEB_CONCURRENCY > 1 requires CIRCUIT_BREAKER_DISTRIBUTED_STATE=true "
-                "and REDIS_URL configured in staging/production."
+                "CIRCUIT_BREAKER_DISTRIBUTED_STATE must be false for the supported managed GCP profile."
             )
 
         if (
             bool(getattr(settings_obj, "RATELIMIT_ENABLED", False))
-            and not getattr(settings_obj, "REDIS_URL", None)
+            and not redis_url
             and not bool(getattr(settings_obj, "ALLOW_IN_MEMORY_RATE_LIMITS", False))
         ):
             raise ValueError(
-                "REDIS_URL is required for distributed rate limiting in "
-                "staging/production. Set ALLOW_IN_MEMORY_RATE_LIMITS=true only "
-                "for temporary break-glass usage."
+                "REDIS_URL is required only when RATELIMIT_ENABLED=true in "
+                "staging/production for the shared application limiter. "
+                "The supported managed GCP profile uses "
+                "PUBLIC_API_RATE_LIMITING_BACKEND=cloudflare with "
+                "RATELIMIT_ENABLED=false. Set ALLOW_IN_MEMORY_RATE_LIMITS=true "
+                "only for temporary break-glass usage."
             )
 
         _validate_strict_public_url(

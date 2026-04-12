@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, AsyncMock, patch
 from datetime import date
+from types import SimpleNamespace
 from uuid import uuid4
 from app.modules.governance.domain.scheduler.processors import (
     AnalysisProcessor,
@@ -242,6 +243,67 @@ async def test_process_tenant_platform_path_runs_zombie_detection(mock_db, mock_
         call_kwargs = process_recommendations.await_args.kwargs
         assert call_kwargs["provider"] == "platform"
         assert call_kwargs["connection_id"] == platform_conn.id
+
+
+@pytest.mark.asyncio
+async def test_process_tenant_does_not_swallow_programmer_errors(
+    mock_db, mock_tenant
+):
+    processor = AnalysisProcessor()
+    aws_conn = MagicMock()
+    aws_conn.id = uuid4()
+    aws_conn.provider = "aws"
+    aws_conn.region = "us-east-1"
+    mock_tenant.aws_connections = [aws_conn]
+    mock_tenant.azure_connections = []
+    mock_tenant.gcp_connections = []
+    mock_tenant.saas_connections = []
+    mock_tenant.license_connections = []
+    mock_tenant.platform_connections = []
+    mock_tenant.hybrid_connections = []
+    mock_tenant.notification_settings = MagicMock(slack_enabled=False)
+
+    with (
+        patch(
+            "app.modules.governance.domain.scheduler.processors.AdapterFactory"
+        ) as mock_factory,
+        patch("app.modules.governance.domain.scheduler.processors.LLMFactory"),
+        patch(
+            "app.modules.governance.domain.scheduler.processors.FinOpsAnalyzer"
+        ) as MockAnalyzer,
+        patch(
+            "app.modules.governance.domain.scheduler.processors.ZombieDetectorFactory"
+        ) as mock_detector_factory,
+        patch("app.modules.governance.domain.scheduler.processors.CarbonCalculator"),
+        patch(
+            "app.modules.governance.domain.scheduler.processors.SavingsProcessor.process_recommendations",
+            new_callable=AsyncMock,
+        ),
+    ):
+        adapter = MagicMock()
+        adapter.get_cost_and_usage = AsyncMock(
+            return_value=[
+                {
+                    "timestamp": "2026-02-01T00:00:00+00:00",
+                    "service": "EC2",
+                    "cost_usd": 41.0,
+                    "provider": "aws",
+                }
+            ]
+        )
+        mock_factory.get_adapter.return_value = adapter
+
+        analyzer = MockAnalyzer.return_value
+        analyzer.analyze = AsyncMock(
+            return_value={"insights": [], "recommendations": []}
+        )
+
+        mock_detector_factory.get_detector.return_value = SimpleNamespace()
+
+        with pytest.raises(AttributeError, match="scan_all"):
+            await processor.process_tenant(
+                mock_db, mock_tenant, date.today(), date.today()
+            )
 
 
 @pytest.mark.asyncio

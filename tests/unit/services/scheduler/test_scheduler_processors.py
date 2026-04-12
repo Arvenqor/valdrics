@@ -210,3 +210,31 @@ class TestSavingsProcessor:
             await processor.process_recommendations(
                 mock_db, tenant_id, mock_result, provider="aws"
             )
+
+    @pytest.mark.asyncio
+    async def test_process_recommendations_does_not_swallow_programmer_errors(
+        self, mock_db
+    ) -> None:
+        processor = SavingsProcessor()
+        tenant_id = uuid4()
+        rec = SimpleNamespace(
+            autonomous_ready=True,
+            confidence="high",
+            action="Stop Instance",
+            resource="i-123",
+            estimated_savings="$10.00/month",
+        )
+        analysis_result = SimpleNamespace(recommendations=[rec])
+
+        with patch(
+            "app.modules.optimization.domain.remediation.RemediationService"
+        ) as remediation_cls:
+            remediation = remediation_cls.return_value
+            remediation.create_request = AsyncMock()
+            remediation.approve = AsyncMock()
+            remediation.execute = AsyncMock()
+
+            with pytest.raises(AttributeError, match="resource_type"):
+                await processor.process_recommendations(
+                    mock_db, tenant_id, analysis_result, provider="aws"
+                )

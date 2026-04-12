@@ -92,7 +92,7 @@ class AWSCURAdapter(BaseAdapter):
             ) as s3:
                 await s3.head_bucket(Bucket=self.bucket_name)
             return True
-        except (BotoCoreError, ClientError, RuntimeError, ValueError, TypeError) as e:
+        except (BotoCoreError, ClientError, RuntimeError) as e:
             self._set_last_error_from_exception(
                 e, prefix="AWS CUR bucket verification failed"
             )
@@ -276,8 +276,6 @@ class AWSCURAdapter(BaseAdapter):
             BotoCoreError,
             ClientError,
             RuntimeError,
-            ValueError,
-            TypeError,
             KeyError,
             OSError,
         ) as exc:
@@ -459,8 +457,6 @@ class AWSCURAdapter(BaseAdapter):
             BotoCoreError,
             ClientError,
             RuntimeError,
-            ValueError,
-            TypeError,
             KeyError,
             OSError,
         ) as exc:

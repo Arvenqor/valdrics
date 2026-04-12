@@ -66,7 +66,6 @@ def test_generate_local_dev_env_derives_required_key_shapes(tmp_path: Path) -> N
                 "SUPABASE_JWT_SECRET=",
                 "KDF_SALT=",
                 "ADMIN_API_KEY=",
-                "INTERNAL_JOB_SECRET=",
                 "ENFORCEMENT_APPROVAL_TOKEN_SECRET=",
                 "ENFORCEMENT_EXPORT_SIGNING_SECRET=",
             ]
@@ -79,17 +78,12 @@ def test_generate_local_dev_env_derives_required_key_shapes(tmp_path: Path) -> N
     assert values["TESTING"] == "false"
     assert values["ENVIRONMENT"] == "local"
     assert values["LOCAL_SQLITE_BOOTSTRAP"] == "true"
-    assert values["ENABLE_SCHEDULER"] == "false"
     assert values["DB_SSL_MODE"] == "disable"
     assert values["REDIS_URL"] == ""
-    assert (
-        values["AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN"]
-        == "arn:aws:iam::000000000000:role/ValdricsLocalDevControlPlane"
-    )
+    assert "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN" not in values
     assert len(values["CSRF_SECRET_KEY"]) >= 32
     assert len(values["SUPABASE_JWT_SECRET"]) >= 32
     assert len(values["ADMIN_API_KEY"]) >= 32
-    assert len(values["INTERNAL_JOB_SECRET"]) >= 32
     assert len(values["ENFORCEMENT_APPROVAL_TOKEN_SECRET"]) >= 32
     assert len(values["ENFORCEMENT_EXPORT_SIGNING_SECRET"]) >= 32
     assert len(values["ENCRYPTION_KEY"]) >= 32

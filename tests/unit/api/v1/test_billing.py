@@ -9,6 +9,7 @@ from app.modules.billing.api.v1.billing import (
     create_checkout,
     handle_webhook,
     get_subscription,
+    get_billing_usage,
     get_features,
     cancel_subscription,
     update_exchange_rate,
@@ -224,6 +225,19 @@ async def test_get_subscription_success(
 
 
 @pytest.mark.asyncio
+async def test_get_subscription_requires_tenant_context(
+    mock_db: AsyncMock, mock_user: MagicMock
+) -> None:
+    mock_user.tenant_id = None
+
+    with pytest.raises(HTTPException) as exc:
+        await get_subscription(MagicMock(), mock_user, mock_db)
+
+    assert exc.value.status_code == 403
+    assert exc.value.detail == "Tenant context required."
+
+
+@pytest.mark.asyncio
 async def test_get_features(mock_user: MagicMock) -> None:
     with patch("app.shared.core.pricing.get_tier_config") as mock_get_config:
         mock_get_config.return_value = {"features": ["f1"], "limits": {}}
@@ -250,6 +264,32 @@ async def test_cancel_subscription_success(
     mock_billing.cancel_subscription = AsyncMock()
     response = await cancel_subscription(MagicMock(), mock_user, mock_db)
     assert response == {"status": "cancelled"}
+
+
+@pytest.mark.asyncio
+async def test_get_billing_usage_requires_tenant_context(
+    mock_db: AsyncMock, mock_user: MagicMock
+) -> None:
+    mock_user.tenant_id = None
+
+    with pytest.raises(HTTPException) as exc:
+        await get_billing_usage(MagicMock(), mock_user, mock_db)
+
+    assert exc.value.status_code == 403
+    assert exc.value.detail == "Tenant context required."
+
+
+@pytest.mark.asyncio
+async def test_cancel_subscription_requires_tenant_context(
+    mock_db: AsyncMock, mock_user: MagicMock
+) -> None:
+    mock_user.tenant_id = None
+
+    with pytest.raises(HTTPException) as exc:
+        await cancel_subscription(MagicMock(), mock_user, mock_db)
+
+    assert exc.value.status_code == 403
+    assert exc.value.detail == "Tenant context required."
 
 
 @pytest.mark.asyncio

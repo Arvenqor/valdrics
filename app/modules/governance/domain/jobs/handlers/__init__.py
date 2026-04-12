@@ -4,6 +4,7 @@ Job Handlers Registry
 
 from typing import Dict, Type
 from app.models.background_job import JobType
+from app.modules.governance.domain.jobs.errors import PermanentJobError
 from app.modules.governance.domain.jobs.handlers.base import BaseJobHandler
 from app.modules.governance.domain.jobs.handlers.finops import FinOpsAnalysisHandler
 from app.modules.governance.domain.jobs.handlers.zombie import ZombieScanHandler
@@ -65,5 +66,5 @@ def get_handler_factory(job_type: str) -> Type[BaseJobHandler]:
     """
     handler_cls = HANDLER_REGISTRY.get(job_type)
     if not handler_cls:
-        raise ValueError(f"No handler registered for job type: {job_type}")
+        raise PermanentJobError(f"No handler registered for job type: {job_type}")
     return handler_cls

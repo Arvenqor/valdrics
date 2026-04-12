@@ -2,6 +2,8 @@ import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
 from types import SimpleNamespace
 from uuid import uuid4
+import httpx
+from app.modules.governance.domain.jobs.errors import JobExecutionError, PermanentJobError
 from app.modules.governance.domain.jobs.handlers.notifications import (
     NotificationHandler,
     WebhookRetryHandler,
@@ -15,7 +17,7 @@ async def test_notification_execute_message_required(db):
     handler = NotificationHandler()
     job = BackgroundJob(payload={})
 
-    with pytest.raises(ValueError, match="message required"):
+    with pytest.raises(PermanentJobError, match="message required"):
         await handler.execute(job, db)
 
 
@@ -175,13 +177,47 @@ async def test_notification_execute_sales_inquiry_email_failure_marks_inquiry(db
             "app.modules.notifications.domain.email_service.get_operational_email_service",
             return_value=mock_service,
         ),
-        pytest.raises(RuntimeError, match="sales_inquiry_email_delivery_failed"),
+        pytest.raises(JobExecutionError, match="sales_inquiry_email_delivery_failed"),
     ):
         await handler.execute(job, db)
 
     await db.refresh(inquiry)
     assert inquiry.delivery_status == "delivery_failed"
     assert inquiry.delivery_attempts == 1
+
+
+@pytest.mark.asyncio
+async def test_notification_execute_sales_inquiry_email_type_error_bubbles(db):
+    handler = NotificationHandler()
+    inquiry = PublicSalesInquiry(
+        name="Buyer One",
+        email="buyer@example.com",
+        company="Example Inc",
+        email_hash="a" * 64,
+        inquiry_fingerprint="b" * 64,
+        delivery_status="pending",
+    )
+    db.add(inquiry)
+    await db.commit()
+    await db.refresh(inquiry)
+    job = BackgroundJob(
+        payload={"provider": "sales_intake_email", "inquiry_id": str(inquiry.id)}
+    )
+
+    mock_service = AsyncMock()
+    mock_service.send_sales_inquiry_notification.side_effect = TypeError(
+        "broken notification contract"
+    )
+
+    with patch(
+        "app.modules.notifications.domain.email_service.get_operational_email_service",
+        return_value=mock_service,
+    ):
+        with pytest.raises(TypeError, match="broken notification contract"):
+            await handler.execute(job, db)
+
+    await db.refresh(inquiry)
+    assert inquiry.delivery_status == "pending"
 
 
 @pytest.mark.asyncio
@@ -215,6 +251,95 @@ async def test_webhook_retry_execute_generic_success(db):
             headers={"Content-Type": "application/json"},
             timeout=30,
         )
+
+
+@pytest.mark.asyncio
+async def test_webhook_retry_execute_requires_allowlist_configuration(db):
+    handler = WebhookRetryHandler()
+    job = BackgroundJob(
+        payload={"url": "https://example.com/webhook", "data": {"foo": "bar"}}
+    )
+
+    with patch(
+        "app.modules.governance.domain.jobs.handlers.notifications.get_settings",
+        return_value=SimpleNamespace(
+            WEBHOOK_ALLOWED_DOMAINS=[],
+            WEBHOOK_REQUIRE_HTTPS=True,
+            WEBHOOK_BLOCK_PRIVATE_IPS=True,
+        ),
+    ):
+        with pytest.raises(JobExecutionError, match="WEBHOOK_ALLOWED_DOMAINS"):
+            await handler.execute(job, db)
+
+
+@pytest.mark.asyncio
+async def test_webhook_retry_execute_generic_http_failure_is_retryable(db):
+    handler = WebhookRetryHandler()
+    job = BackgroundJob(
+        payload={"url": "https://example.com/webhook", "data": {"foo": "bar"}}
+    )
+
+    with (
+        patch("app.shared.core.http.get_http_client") as mock_get_client,
+        patch(
+            "app.modules.governance.domain.jobs.handlers.notifications.get_settings",
+            return_value=SimpleNamespace(
+                WEBHOOK_ALLOWED_DOMAINS=["example.com"],
+                WEBHOOK_REQUIRE_HTTPS=True,
+                WEBHOOK_BLOCK_PRIVATE_IPS=True,
+            ),
+        ),
+    ):
+        mock_client = mock_get_client.return_value
+        mock_client.post = AsyncMock(side_effect=httpx.ConnectError("webhook down"))
+
+        with pytest.raises(JobExecutionError, match="webhook down"):
+            await handler.execute(job, db)
+
+
+@pytest.mark.asyncio
+async def test_webhook_retry_execute_generic_type_error_bubbles(db):
+    handler = WebhookRetryHandler()
+    job = BackgroundJob(
+        payload={"url": "https://example.com/webhook", "data": {"foo": "bar"}}
+    )
+
+    with (
+        patch("app.shared.core.http.get_http_client") as mock_get_client,
+        patch(
+            "app.modules.governance.domain.jobs.handlers.notifications.get_settings",
+            return_value=SimpleNamespace(
+                WEBHOOK_ALLOWED_DOMAINS=["example.com"],
+                WEBHOOK_REQUIRE_HTTPS=True,
+                WEBHOOK_BLOCK_PRIVATE_IPS=True,
+            ),
+        ),
+    ):
+        mock_client = mock_get_client.return_value
+        mock_client.post = AsyncMock(side_effect=TypeError("broken webhook client"))
+
+        with pytest.raises(TypeError, match="broken webhook client"):
+            await handler.execute(job, db)
+
+
+@pytest.mark.asyncio
+async def test_notification_execute_sales_inquiry_email_requires_inquiry_id(db):
+    handler = NotificationHandler()
+    job = BackgroundJob(payload={"provider": "sales_intake_email"})
+
+    with pytest.raises(PermanentJobError, match="inquiry_id required"):
+        await handler.execute(job, db)
+
+
+@pytest.mark.asyncio
+async def test_notification_execute_sales_inquiry_email_rejects_invalid_inquiry_id(db):
+    handler = NotificationHandler()
+    job = BackgroundJob(
+        payload={"provider": "sales_intake_email", "inquiry_id": "not-a-uuid"}
+    )
+
+    with pytest.raises(PermanentJobError, match="valid UUID"):
+        await handler.execute(job, db)
 
 
 @pytest.mark.asyncio
@@ -270,7 +395,7 @@ async def test_webhook_retry_execute_generic_rejects_private_ip(db):
             WEBHOOK_BLOCK_PRIVATE_IPS=True,
         ),
     ):
-        with pytest.raises(ValueError, match="private or link-local"):
+        with pytest.raises(PermanentJobError, match="private or link-local"):
             await handler.execute(job, db)
 
 
@@ -293,7 +418,7 @@ async def test_webhook_retry_execute_generic_rejects_non_json_content_type(db):
             WEBHOOK_BLOCK_PRIVATE_IPS=True,
         ),
     ):
-        with pytest.raises(ValueError, match="content-type"):
+        with pytest.raises(PermanentJobError, match="content-type"):
             await handler.execute(job, db)
 
 
@@ -312,7 +437,7 @@ async def test_webhook_retry_execute_generic_rejects_private_ip(db):
             WEBHOOK_BLOCK_PRIVATE_IPS=True,
         ),
     ):
-        with pytest.raises(ValueError, match="private or link-local"):
+        with pytest.raises(PermanentJobError, match="private or link-local"):
             await handler.execute(job, db)
 
 
@@ -335,7 +460,7 @@ async def test_webhook_retry_execute_generic_rejects_non_json_content_type(db):
             WEBHOOK_BLOCK_PRIVATE_IPS=True,
         ),
     ):
-        with pytest.raises(ValueError, match="content-type"):
+        with pytest.raises(PermanentJobError, match="content-type"):
             await handler.execute(job, db)
 
 
@@ -354,3 +479,12 @@ async def test_webhook_retry_execute_paystack(db):
 
         assert result == {"status": "processed"}
         mock_process.assert_awaited_with(job, db)
+
+
+@pytest.mark.asyncio
+async def test_webhook_retry_execute_generic_requires_url(db):
+    handler = WebhookRetryHandler()
+    job = BackgroundJob(payload={"data": {"foo": "bar"}})
+
+    with pytest.raises(PermanentJobError, match="url required"):
+        await handler.execute(job, db)

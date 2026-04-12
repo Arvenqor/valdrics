@@ -121,11 +121,31 @@ async def test_send_with_retry_handles_runtime_error(slack_service):
 
 
 @pytest.mark.asyncio
+async def test_send_with_retry_attribute_error_bubbles(slack_service):
+    slack_service.client.chat_postMessage = AsyncMock(
+        side_effect=AttributeError("broken slack client contract")
+    )
+
+    with pytest.raises(AttributeError, match="broken slack client contract"):
+        await slack_service.send_alert("Test", "Msg")
+
+
+@pytest.mark.asyncio
 async def test_send_with_retry_does_not_swallow_fatal_errors(slack_service):
     slack_service.client.chat_postMessage = AsyncMock(side_effect=KeyboardInterrupt())
 
     with pytest.raises(KeyboardInterrupt):
         await slack_service.send_alert("Test", "Msg")
+
+
+@pytest.mark.asyncio
+async def test_send_alert_dedup_attribute_error_bubbles(slack_service):
+    slack_service.client.chat_postMessage = AsyncMock()
+    cache_client = SimpleNamespace()
+
+    with patch("app.shared.core.rate_limit.get_redis_client", return_value=cache_client):
+        with pytest.raises(AttributeError):
+            await slack_service.send_alert("Test", "Msg")
 
 
 @pytest.mark.asyncio

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from typing import Any
 
 CATEGORY_MAPPING: dict[str, str] = {
@@ -26,6 +27,21 @@ CATEGORY_MAPPING: dict[str, str] = {
     "orphan_azure_nics": "orphan_network_components",
     "orphan_azure_nsgs": "orphan_network_components",
 }
+
+
+def _coerce_monthly_cost(item: dict[str, Any]) -> float | None:
+    raw_value = item.get("monthly_cost")
+    if raw_value in (None, ""):
+        raw_value = item.get("monthly_waste")
+    if raw_value in (None, ""):
+        return 0.0
+    try:
+        amount = float(raw_value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(amount):
+        return None
+    return amount
 
 
 def _initial_scan_payload(scanned_connections: int) -> dict[str, Any]:
@@ -98,7 +114,21 @@ class ZombieScanState:
                 if not isinstance(item, dict):
                     continue
                 res_id = item.get("resource_id") or item.get("id")
-                cost = float(item.get("monthly_cost") or item.get("monthly_waste") or 0)
+                cost = _coerce_monthly_cost(item)
+                if cost is None:
+                    self.payload["partial_results"] = True
+                    self.payload["errors"].append(
+                        {
+                            "provider": provider_name,
+                            "region": region_override or item.get("region") or item.get("zone") or "global",
+                            "error": "Zombie finding monthly cost must be numeric and finite",
+                            "error_type": "InvalidMonthlyCost",
+                            "connection_id": connection_id,
+                            "category": str(ui_key),
+                            "status": "invalid_finding",
+                        }
+                    )
+                    continue
                 normalized_region = region_override or item.get("region") or item.get("zone")
                 item.update(
                     {

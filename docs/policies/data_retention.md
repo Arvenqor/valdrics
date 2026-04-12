@@ -12,7 +12,7 @@ states that explicitly instead of implying automation.
 | Audit logs | Automated retention purge | Scheduler maintenance sweep and audit-log retention settings |
 | Tenant cost records | Automated plan-aware retention purge | Scheduler maintenance sweep and `CostPersistenceService.cleanup_expired_records_by_plan` |
 | Tenant-scoped operational data | Removed on approved tenant erasure request | `DELETE /api/v1/audit/data-erasure-request` and `docs/runbooks/tenant_data_lifecycle.md` |
-| AWS RDS backups (Terraform profile) | 30-day backup retention | `terraform/modules/db/main.tf` |
+| Supabase-managed backups and point-in-time recovery | Provider-managed retention outside repository automation | `docs/runbooks/disaster_recovery.md` and `docs/architecture/failover.md` |
 | Export/audit artifacts generated for operators | Retained according to artifact storage policy outside app runtime | Manual/operator managed |
 
 ## Automated Controls

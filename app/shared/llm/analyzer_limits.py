@@ -152,7 +152,7 @@ def bind_output_token_ceiling(llm: "BaseChatModel", max_output_tokens: int) -> A
             return bind_fn(**kwargs)
         except TypeError:
             continue
-        except (AttributeError, ValueError, RuntimeError):
+        except (ValueError, RuntimeError):
             return None
     return None
 

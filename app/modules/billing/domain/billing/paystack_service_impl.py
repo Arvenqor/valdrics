@@ -51,6 +51,10 @@ PAYSTACK_AUDIT_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
 )
 
 
+class RenewalOperationalError(RuntimeError):
+    """Raised when renewal processing fails for operational reasons."""
+
+
 class BillingService:
     """Paystack billing operations."""
 
@@ -355,13 +359,15 @@ class BillingService:
 
         try:
             subscription_tier = PricingTier(subscription.tier)
-        except ValueError:
+        except ValueError as exc:
             shared.logger.error(
                 "renewal_failed_invalid_tier",
                 tenant_id=str(subscription.tenant_id),
                 tier=subscription.tier,
             )
-            return False
+            raise RenewalOperationalError(
+                "Invalid subscription tier for renewal"
+            ) from exc
 
         raw_billing_cycle = getattr(subscription, "billing_cycle", None)
         if isinstance(raw_billing_cycle, str) and raw_billing_cycle.strip():
@@ -388,7 +394,9 @@ class BillingService:
                 tier=subscription.tier,
                 error=str(exc),
             )
-            return False
+            raise RenewalOperationalError(
+                "Subscription pricing unavailable for renewal"
+            ) from exc
         usd_price_float = float(usd_price_decimal)
 
         raw_currency = getattr(subscription, "billing_currency", None)
@@ -459,7 +467,7 @@ class BillingService:
             shared.logger.error(
                 "renewal_failed_no_user_found", tenant_id=str(subscription.tenant_id)
             )
-            return False
+            raise RenewalOperationalError("No billing contact found for renewal")
 
         from app.shared.core.security import decrypt_string as sec_decrypt
 
@@ -469,7 +477,9 @@ class BillingService:
                 "renewal_failed_email_decryption_error",
                 tenant_id=str(subscription.tenant_id),
             )
-            return False
+            raise RenewalOperationalError(
+                "Billing contact email unavailable for renewal"
+            )
 
         try:
             response = await self.client.charge_authorization(
@@ -557,7 +567,7 @@ class BillingService:
             shared.logger.error(
                 "renewal_failed", tenant_id=str(subscription.tenant_id), error=str(exc)
             )
-            return False
+            raise RenewalOperationalError("Paystack renewal request failed") from exc
 
     async def cancel_subscription(self, tenant_id: UUID) -> None:
         """Cancel Paystack subscription."""

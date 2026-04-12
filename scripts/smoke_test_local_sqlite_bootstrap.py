@@ -30,13 +30,11 @@ def _build_local_env(database_path: Path) -> dict[str, str]:
         "DATABASE_URL": f"sqlite+aiosqlite:///{database_path.as_posix()}",
         "DB_SSL_MODE": "disable",
         "LOCAL_SQLITE_BOOTSTRAP": "true",
-        "ENABLE_SCHEDULER": "false",
         "REDIS_URL": "",
         "CSRF_SECRET_KEY": "c" * 64,
         "SUPABASE_JWT_SECRET": "s" * 64,
         "ENCRYPTION_KEY": base64.urlsafe_b64encode(b"x" * 32).decode("utf-8"),
         "KDF_SALT": base64.b64encode(b"y" * 32).decode("utf-8"),
-        "INTERNAL_JOB_SECRET": "j" * 64,
         "ENFORCEMENT_APPROVAL_TOKEN_SECRET": "a" * 64,
         "ENFORCEMENT_EXPORT_SIGNING_SECRET": "e" * 64,
     }
@@ -101,8 +99,8 @@ def run_local_sqlite_bootstrap_smoke(
         "status": payload["status"],
         "database_status": payload["database"]["status"],
         "database_engine": payload["database"].get("engine"),
-        "cache_status": payload.get("redis", {}).get("status"),
-        "aws_status": payload.get("aws", {}).get("status"),
+        "cache_status": payload.get("cache", {}).get("status"),
+        "external_services_status": payload.get("external_services", {}).get("status"),
         "background_jobs_status": payload.get("checks", {})
         .get("background_jobs", {})
         .get("status"),

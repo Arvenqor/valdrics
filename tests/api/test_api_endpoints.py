@@ -13,9 +13,9 @@ class TestHealthEndpoint:
             "status": "healthy",
             "timestamp": "2026-03-18T00:00:00Z",
             "database": {"status": "up", "latency_ms": 1.0},
-            "redis": {"status": "disabled"},
-            "aws": {"status": "disabled"},
-            "system": {"status": "healthy"},
+            "cache": {"status": "disabled"},
+            "external_services": {"status": "disabled", "services": {}},
+            "system_resources": {"status": "healthy"},
             "checks": {},
         }
 

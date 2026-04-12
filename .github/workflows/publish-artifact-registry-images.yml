@@ -1,0 +1,200 @@
+name: Publish Artifact Registry Images
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Immutable release tag to publish."
+        required: true
+        type: string
+      git_ref:
+        description: "Git ref to build. Defaults to the triggering SHA."
+        required: false
+        type: string
+      gcp_project_id:
+        description: "Google Cloud project that owns Artifact Registry."
+        required: true
+        type: string
+      artifact_registry_region:
+        description: "Artifact Registry region, for example us-central1."
+        required: true
+        type: string
+      artifact_registry_repository:
+        description: "Artifact Registry Docker repository ID."
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      release_tag:
+        description: "Immutable release tag to publish."
+        required: true
+        type: string
+      git_ref:
+        description: "Git ref to build. Defaults to the triggering SHA."
+        required: false
+        type: string
+      gcp_project_id:
+        description: "Google Cloud project that owns Artifact Registry."
+        required: true
+        type: string
+      artifact_registry_region:
+        description: "Artifact Registry region, for example us-central1."
+        required: true
+        type: string
+      artifact_registry_repository:
+        description: "Artifact Registry Docker repository ID."
+        required: true
+        type: string
+    outputs:
+      api_promotion_ref:
+        description: "Digest-pinned Artifact Registry ref for the API service."
+        value: ${{ jobs.publish-backend-image.outputs.api_promotion_ref }}
+      batch_promotion_ref:
+        description: "Digest-pinned Artifact Registry ref for the batch job."
+        value: ${{ jobs.publish-backend-image.outputs.batch_promotion_ref }}
+      image_digest:
+        description: "Published backend image digest."
+        value: ${{ jobs.publish-backend-image.outputs.image_digest }}
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER:
+        required: true
+      GCP_ARTIFACT_PUBLISHER_SERVICE_ACCOUNT:
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish-backend-image:
+    name: Publish Digest-Pinned Backend Image
+    runs-on: ubuntu-24.04
+    outputs:
+      api_promotion_ref: ${{ steps.release_metadata.outputs.api_promotion_ref }}
+      batch_promotion_ref: ${{ steps.release_metadata.outputs.batch_promotion_ref }}
+      image_digest: ${{ steps.release_metadata.outputs.image_digest }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.git_ref || github.sha }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@7c6bc77d364ec2995949c0ea27054688c57f7ef7 # v3.0.0
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_ARTIFACT_PUBLISHER_SERVICE_ACCOUNT }}
+          project_id: ${{ inputs.gcp_project_id }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@aa5489c8a0d8b7f894b681febe64e5b7ddf32f20 # v3.0.1
+        with:
+          project_id: ${{ inputs.gcp_project_id }}
+          version: ">= 363.0.0"
+
+      - name: Configure Docker auth for Artifact Registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          gcloud auth configure-docker "${{ inputs.artifact_registry_region }}-docker.pkg.dev" --quiet
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Build and publish backend image
+        id: build_backend
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ inputs.artifact_registry_region }}-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.artifact_registry_repository }}/valdrics-api:${{ inputs.release_tag }}
+            ${{ inputs.artifact_registry_region }}-docker.pkg.dev/${{ inputs.gcp_project_id }}/${{ inputs.artifact_registry_repository }}/valdrics-api:sha-${{ github.sha }}
+          cache-from: type=gha,scope=artifact-registry-api
+          cache-to: type=gha,mode=max,scope=artifact-registry-api
+
+      - name: Record release metadata
+        id: release_metadata
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          GCP_PROJECT_ID: ${{ inputs.gcp_project_id }}
+          ARTIFACT_REGION: ${{ inputs.artifact_registry_region }}
+          ARTIFACT_REPOSITORY: ${{ inputs.artifact_registry_repository }}
+          API_DIGEST: ${{ steps.build_backend.outputs.digest }}
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          python3 - <<'PY'
+          from __future__ import annotations
+
+          import json
+          import os
+          from pathlib import Path
+
+          release_dir = Path("release")
+          base = (
+              f"{os.environ['ARTIFACT_REGION']}-docker.pkg.dev/"
+              f"{os.environ['GCP_PROJECT_ID']}/"
+              f"{os.environ['ARTIFACT_REPOSITORY']}/valdrics-api"
+          )
+          digest = os.environ["API_DIGEST"]
+          release_tag = os.environ["RELEASE_TAG"]
+          payload = {
+              "strategy": "immutable_artifact_registry_promotion",
+              "release_tag": release_tag,
+              "git_sha": os.environ["GITHUB_SHA"],
+              "project_id": os.environ["GCP_PROJECT_ID"],
+              "region": os.environ["ARTIFACT_REGION"],
+              "repository": os.environ["ARTIFACT_REPOSITORY"],
+              "services": {
+                  "api": {
+                      "repository": base,
+                      "tag_ref": f"{base}:{release_tag}",
+                      "sha_ref": f"{base}:sha-{os.environ['GITHUB_SHA']}",
+                      "digest": digest,
+                      "promotion_ref": f"{base}@{digest}",
+                  },
+                  "batch": {
+                      "repository": base,
+                      "tag_ref": f"{base}:{release_tag}",
+                      "sha_ref": f"{base}:sha-{os.environ['GITHUB_SHA']}",
+                      "digest": digest,
+                      "promotion_ref": f"{base}@{digest}",
+                  },
+              },
+          }
+
+          (release_dir / "artifact-registry-release.json").write_text(
+              json.dumps(payload, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          (release_dir / "artifact-registry-release.env").write_text(
+              "\n".join(
+                  [
+                      f"RELEASE_TAG={release_tag}",
+                      f"API_PROMOTION_REF={base}@{digest}",
+                      f"BATCH_PROMOTION_REF={base}@{digest}",
+                      f"API_IMAGE_DIGEST={digest}",
+                      f"GCP_PROJECT_ID={os.environ['GCP_PROJECT_ID']}",
+                      f"ARTIFACT_REGISTRY_REGION={os.environ['ARTIFACT_REGION']}",
+                      f"ARTIFACT_REGISTRY_REPOSITORY={os.environ['ARTIFACT_REPOSITORY']}",
+                  ]
+              )
+              + "\n",
+              encoding="utf-8",
+          )
+          PY
+          {
+            echo "api_promotion_ref=${ARTIFACT_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${ARTIFACT_REPOSITORY}/valdrics-api@${API_DIGEST}"
+            echo "batch_promotion_ref=${ARTIFACT_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${ARTIFACT_REPOSITORY}/valdrics-api@${API_DIGEST}"
+            echo "image_digest=${API_DIGEST}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload release metadata
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: artifact-registry-release-${{ inputs.release_tag }}
+          path: release/
+          retention-days: 30

@@ -25,7 +25,6 @@ FAIR_USE_CACHE_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     TypeError,
     ValueError,
     AttributeError,
-    Exception,
 )
 FAIR_USE_PARSE_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (TypeError, ValueError)
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate deployment-ready Koyeb and future-scale Helm/EKS artifacts."""
+"""Generate deployment artifacts for the unified GCP/Cloudflare/Supabase platform."""
 
 from __future__ import annotations
 
@@ -7,14 +7,11 @@ import argparse
 import ipaddress
 import json
 from pathlib import Path
-import re
 import shutil
 import sys
 import tempfile
-from typing import Any
+from typing import Any, Mapping
 from urllib.parse import urlparse
-
-import yaml
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -26,8 +23,7 @@ from scripts.env_generation_common import (
     resolve_default_path_from_root as _resolve_default_path_from_root,
 )
 from scripts.managed_deployment_contract import (
-    KOYEB_DASHBOARD_PUBLIC_ENV_KEYS,
-    LLM_PROVIDER_SECRET_NAME,
+    CLOUDFLARE_PAGES_PUBLIC_ENV_KEYS,
     RUNTIME_BLOCKER_KEYS,
     SUPPORTED_ENVIRONMENTS,
     TERRAFORM_BASE_REQUIRED_INPUTS,
@@ -37,73 +33,83 @@ from scripts.managed_deployment_contract import (
 )
 
 DEFAULT_OUTPUT_ROOT = Path(".runtime/deploy")
-DEFAULT_KOYEB_IMAGE_REGISTRY = "ghcr.io/valdrics"
 DEFAULT_RELEASE_TAG = "REPLACE_WITH_RELEASE_TAG"
-DEFAULT_API_IMAGE_DIGEST = "REPLACE_WITH_API_IMAGE_DIGEST"
-DEFAULT_DASHBOARD_IMAGE_DIGEST = "REPLACE_WITH_DASHBOARD_IMAGE_DIGEST"
-KOYEB_SHARED_SECRET_NAMES = {
-    "DATABASE_URL": "valdrics-database-url",
-    "REDIS_URL": "valdrics-redis-url",
-    "SUPABASE_JWT_SECRET": "valdrics-jwt-secret",
-    "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN": "valdrics-aws-trust-principal-arn",
-    "ENFORCEMENT_APPROVAL_TOKEN_SECRET": "valdrics-enforcement-approval-token-secret",
-    "ENFORCEMENT_EXPORT_SIGNING_SECRET": "valdrics-enforcement-export-signing-secret",
-    "OTEL_EXPORTER_OTLP_ENDPOINT": "valdrics-otlp-endpoint",
-    "ENCRYPTION_KEY": "valdrics-encryption-key",
-    "KDF_SALT": "valdrics-kdf-salt",
-    "CSRF_SECRET_KEY": "valdrics-csrf-secret",
-    "ADMIN_API_KEY": "valdrics-admin-api-key",
-    "PAYSTACK_SECRET_KEY": "valdrics-paystack-secret",
-    "PAYSTACK_PUBLIC_KEY": "valdrics-paystack-public",
-    "SENTRY_DSN": "valdrics-sentry-dsn",
-}
-KOYEB_API_ONLY_SECRET_NAMES = {
-    "TRUSTED_PROXY_CIDRS": "valdrics-trusted-proxy-cidrs",
-    "INTERNAL_METRICS_AUTH_TOKEN": "valdrics-internal-metrics-token",
-    "INTERNAL_JOB_SECRET": "valdrics-internal-job-secret",
-}
-KOYEB_OPTIONAL_SHARED_SECRET_NAMES = {
-    "FORECASTER_ALLOW_HOLT_WINTERS_FALLBACK": "valdrics-forecaster-break-glass-enabled",
-    "FORECASTER_BREAK_GLASS_REASON": "valdrics-forecaster-break-glass-reason",
-    "FORECASTER_BREAK_GLASS_EXPIRES_AT": "valdrics-forecaster-break-glass-expires-at",
-    "ALLOW_INSECURE_OUTBOUND_TLS": "valdrics-outbound-tls-break-glass-enabled",
-    "OUTBOUND_TLS_BREAK_GLASS_REASON": "valdrics-outbound-tls-break-glass-reason",
-    "OUTBOUND_TLS_BREAK_GLASS_EXPIRES_AT": "valdrics-outbound-tls-break-glass-expires-at",
-}
-HELM_INLINE_ENV_KEYS = (
+DEFAULT_API_PROMOTION_REF = "REPLACE_WITH_API_PROMOTION_REF"
+DEFAULT_BATCH_PROMOTION_REF = "REPLACE_WITH_BATCH_PROMOTION_REF"
+
+DEPLOYMENT_PLAIN_ENV_KEYS = (
     "ENVIRONMENT",
+    "API_URL",
+    "FRONTEND_URL",
     "LOG_LEVEL",
-    "WEB_CONCURRENCY",
-    "ENABLE_SCHEDULER",
+    "PLATFORM_RUNTIME_PROFILE",
+    "OBSERVABILITY_BACKEND",
+    "PUBLIC_API_RATE_LIMITING_BACKEND",
+    "RATELIMIT_ENABLED",
+    "CIRCUIT_BREAKER_DISTRIBUTED_STATE",
     "LLM_PROVIDER",
     "EXPOSE_API_DOCUMENTATION_PUBLICLY",
     "OTEL_LOGS_EXPORT_ENABLED",
     "SAAS_STRICT_INTEGRATIONS",
     "TRUST_PROXY_HEADERS",
-    "APP_RUNTIME_DATA_DIR",
     "CORS_ORIGINS",
+    "APP_RUNTIME_DATA_DIR",
+    "SUPABASE_URL",
+    "SUPABASE_ANON_KEY",
 )
-HELM_SECRET_EXCLUDED_KEYS = frozenset(HELM_INLINE_ENV_KEYS) | {
-    "API_URL",
-    "FRONTEND_URL",
+
+DEPLOYMENT_SECRET_EXCLUDED_KEYS = frozenset(DEPLOYMENT_PLAIN_ENV_KEYS) | {
     "ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION",
     "APP_NAME",
+    "APP_VERSION",
     "DEBUG",
+    "INTERNAL_JOB_SECRET",
+    "WEB_CONCURRENCY",
+    "GCP_CLOUD_RUN_BATCH_JOB_NAME",
+    "GCP_CLOUD_RUN_SERVICE_NAME",
+    "GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL",
+    "GCP_CLOUD_TASKS_QUEUE",
+    "GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS",
+    "GCP_INTERNAL_AUTH_AUDIENCE",
+    "GCP_INTERNAL_BASE_URL",
+    "GCP_PROJECT_ID",
+    "GCP_REGION",
+    "OBSERVABILITY_BACKEND",
+    "OTEL_EXPORTER_OTLP_ENDPOINT",
+    "OTEL_EXPORTER_OTLP_INSECURE",
+    "PLATFORM_RUNTIME_PROFILE",
     "POSTGRES_DB",
     "POSTGRES_PASSWORD",
     "POSTGRES_USER",
+    "SENTRY_DSN",
+    "SUPABASE_ANON_KEY",
     "SUPABASE_URL",
     "TESTING",
 }
-FORECASTER_BREAK_GLASS_KEYS = (
-    "FORECASTER_ALLOW_HOLT_WINTERS_FALLBACK",
-    "FORECASTER_BREAK_GLASS_REASON",
-    "FORECASTER_BREAK_GLASS_EXPIRES_AT",
+
+GITHUB_ENVIRONMENT_VARIABLE_REQUIREMENTS = (
+    "GCP_PROJECT_ID",
+    "GCP_REGION",
+    "API_URL",
+    "FRONTEND_URL",
+    "CLOUDFLARE_ACCOUNT_ID",
+    "CLOUDFLARE_ZONE_ID",
+    "CLOUDFLARE_PAGES_PROJECT_NAME",
+    "CLOUDFLARE_PAGES_PRODUCTION_BRANCH",
+    "SUPABASE_ORGANIZATION_ID",
+    "SUPABASE_PROJECT_NAME",
+    "SUPABASE_REGION",
+    "RUNTIME_PLAIN_ENV_JSON",
 )
-OUTBOUND_TLS_BREAK_GLASS_KEYS = (
-    "ALLOW_INSECURE_OUTBOUND_TLS",
-    "OUTBOUND_TLS_BREAK_GLASS_REASON",
-    "OUTBOUND_TLS_BREAK_GLASS_EXPIRES_AT",
+
+GITHUB_ENVIRONMENT_SECRET_REQUIREMENTS = (
+    "CLOUDFLARE_API_TOKEN",
+    "SUPABASE_ACCESS_TOKEN",
+    "SUPABASE_DATABASE_PASSWORD",
+    "RUNTIME_SECRET_ENV_JSON",
+    "GCP_WORKLOAD_IDENTITY_PROVIDER",
+    "GCP_DEPLOYER_SERVICE_ACCOUNT",
+    "GCP_ARTIFACT_PUBLISHER_SERVICE_ACCOUNT",
 )
 
 
@@ -135,32 +141,6 @@ def _protected_output_roots(repo_root: Path) -> tuple[Path, ...]:
 
 def _selected_llm_provider(values: dict[str, str]) -> str:
     return _selected_llm_provider_shared(values)
-
-
-def _is_truthy(value: str) -> bool:
-    return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
-
-
-def _include_forecaster_break_glass(values: dict[str, str]) -> bool:
-    return _is_truthy(
-        _string_value(values, "FORECASTER_ALLOW_HOLT_WINTERS_FALLBACK")
-    ) or any(
-        _string_value(values, key).strip()
-        for key in (
-            "FORECASTER_BREAK_GLASS_REASON",
-            "FORECASTER_BREAK_GLASS_EXPIRES_AT",
-        )
-    )
-
-
-def _include_outbound_tls_break_glass(values: dict[str, str]) -> bool:
-    return _is_truthy(_string_value(values, "ALLOW_INSECURE_OUTBOUND_TLS")) or any(
-        _string_value(values, key).strip()
-        for key in (
-            "OUTBOUND_TLS_BREAK_GLASS_REASON",
-            "OUTBOUND_TLS_BREAK_GLASS_EXPIRES_AT",
-        )
-    )
 
 
 def _is_valid_strict_public_url(value: str) -> bool:
@@ -221,16 +201,6 @@ def _has_valid_trusted_proxy_cidrs(value: str) -> bool:
     return True
 
 
-def _is_valid_aws_principal_arn(value: str) -> bool:
-    candidate = str(value or "").strip()
-    if not candidate or _contains_placeholder(candidate):
-        return False
-    arn_pattern = re.compile(
-        r"^arn:(aws|aws-us-gov|aws-cn):iam::\d{12}:(root|role\/[\w+=,.@\\-_/]+|user\/[\w+=,.@\\-_/]+)$"
-    )
-    return bool(arn_pattern.fullmatch(candidate))
-
-
 def _has_minimum_length(value: str, *, minimum: int) -> bool:
     candidate = str(value or "").strip()
     if not candidate or _contains_placeholder(candidate):
@@ -254,11 +224,6 @@ def _runtime_blockers(values: dict[str, str]) -> list[str]:
         ):
             blockers.append(key)
 
-    for key in ("OTEL_EXPORTER_OTLP_ENDPOINT", "SENTRY_DSN"):
-        value = _string_value(values, key).strip()
-        if value and not _contains_placeholder(value) and not _is_valid_http_url(value):
-            blockers.append(key)
-
     trusted_proxy_cidrs = _string_value(values, "TRUSTED_PROXY_CIDRS").strip()
     if (
         trusted_proxy_cidrs
@@ -267,44 +232,13 @@ def _runtime_blockers(values: dict[str, str]) -> list[str]:
     ):
         blockers.append("TRUSTED_PROXY_CIDRS")
 
-    aws_trust_principal_arn = _string_value(
-        values, "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN"
-    ).strip()
-    if (
-        aws_trust_principal_arn
-        and not _contains_placeholder(aws_trust_principal_arn)
-        and not _is_valid_aws_principal_arn(aws_trust_principal_arn)
-    ):
-        blockers.append("AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN")
-
     admin_api_key = _string_value(values, "ADMIN_API_KEY").strip()
     if (
         admin_api_key
         and not _contains_placeholder(admin_api_key)
-        and not _has_minimum_length(
-            admin_api_key,
-            minimum=32,
-        )
+        and not _has_minimum_length(admin_api_key, minimum=32)
     ):
         blockers.append("ADMIN_API_KEY")
-
-    environment = _string_value(values, "ENVIRONMENT").strip().lower()
-    if environment == "production":
-        paystack_secret_key = _string_value(values, "PAYSTACK_SECRET_KEY").strip()
-        if (
-            paystack_secret_key
-            and not _contains_placeholder(paystack_secret_key)
-            and not paystack_secret_key.startswith("sk_live_")
-        ):
-            blockers.append("PAYSTACK_SECRET_KEY")
-
-        paystack_public_key = _string_value(values, "PAYSTACK_PUBLIC_KEY").strip()
-        if (
-            paystack_public_key
-            and not _contains_placeholder(paystack_public_key)
-            and not paystack_public_key.startswith("pk_live_")
-        ):
-            blockers.append("PAYSTACK_PUBLIC_KEY")
 
     internal_metrics_auth_token = _string_value(
         values, "INTERNAL_METRICS_AUTH_TOKEN"
@@ -316,6 +250,22 @@ def _runtime_blockers(values: dict[str, str]) -> list[str]:
     ):
         blockers.append("INTERNAL_METRICS_AUTH_TOKEN")
 
+    paystack_secret_key = _string_value(values, "PAYSTACK_SECRET_KEY").strip()
+    if (
+        paystack_secret_key
+        and not _contains_placeholder(paystack_secret_key)
+        and not paystack_secret_key.startswith("sk_")
+    ):
+        blockers.append("PAYSTACK_SECRET_KEY")
+
+    paystack_public_key = _string_value(values, "PAYSTACK_PUBLIC_KEY").strip()
+    if (
+        paystack_public_key
+        and not _contains_placeholder(paystack_public_key)
+        and not paystack_public_key.startswith("pk_")
+    ):
+        blockers.append("PAYSTACK_PUBLIC_KEY")
+
     provider_key = _selected_llm_provider_env_key(values)
     provider_value = _string_value(values, provider_key).strip()
     if not provider_value or _contains_placeholder(provider_value):
@@ -326,13 +276,10 @@ def _runtime_blockers(values: dict[str, str]) -> list[str]:
 
 def _artifact_output_paths(output_dir: Path) -> tuple[Path, ...]:
     return (
-        output_dir / "koyeb-api.yaml",
-        output_dir / "koyeb-worker.yaml",
-        output_dir / "koyeb-secrets.json",
-        output_dir / "koyeb-dashboard-env.json",
-        output_dir / "koyeb-release.json",
-        output_dir / "helm-values.yaml",
-        output_dir / "aws-runtime-secret.json",
+        output_dir / "unified-platform-manifest.json",
+        output_dir / "secret-manager-runtime-secrets.json",
+        output_dir / "cloudflare-pages-env.json",
+        output_dir / "artifact-registry-release.json",
         output_dir / "terraform.runtime.auto.tfvars.json",
         output_dir / "deployment.report.json",
     )
@@ -352,168 +299,38 @@ def _ensure_output_dir_parent(output_dir: Path) -> None:
         current = current.parent
 
 
-def _koyeb_name(environment: str, component: str) -> str:
-    base = f"valdrics-{component}"
-    if environment == "production":
-        return base
-    return f"{base}-{environment}"
+def _cloud_run_runtime_plain_env(
+    values: dict[str, str], *, environment: str
+) -> dict[str, str]:
+    plain_env: dict[str, str] = {
+        "ENVIRONMENT": environment,
+        "PLATFORM_RUNTIME_PROFILE": "gcp",
+        "OBSERVABILITY_BACKEND": "gcp",
+    }
+    for key in DEPLOYMENT_PLAIN_ENV_KEYS:
+        if key in plain_env:
+            continue
+        value = _string_value(values, key).strip()
+        if value:
+            plain_env[key] = value
+    return plain_env
 
 
-def _koyeb_secret_name(environment: str, base_name: str) -> str:
-    if environment == "production":
-        return base_name
-    return f"{base_name}-{environment}"
-
-
-def _koyeb_secret_entries(
-    values: dict[str, str], *, environment: str, component: str
-) -> list[dict[str, str]]:
-    entries: list[dict[str, str]] = []
-
-    for key, base_name in KOYEB_SHARED_SECRET_NAMES.items():
+def _secret_manager_runtime_payload(values: dict[str, str]) -> dict[str, str]:
+    payload: dict[str, str] = {}
+    for key in sorted(values):
+        if key in DEPLOYMENT_SECRET_EXCLUDED_KEYS:
+            continue
         value = _string_value(values, key).strip()
         if not value:
             continue
-        entries.append(
-            {"name": key, "secret": _koyeb_secret_name(environment, base_name)}
-        )
-
-    provider_key = _selected_llm_provider_env_key(values)
-    provider_secret_name = _koyeb_secret_name(
-        environment,
-        LLM_PROVIDER_SECRET_NAME[_selected_llm_provider(values)],
-    )
-    entries.append({"name": provider_key, "secret": provider_secret_name})
-
-    if component == "api":
-        for key, base_name in KOYEB_API_ONLY_SECRET_NAMES.items():
-            value = _string_value(values, key).strip()
-            if not value:
-                continue
-            entries.append(
-                {"name": key, "secret": _koyeb_secret_name(environment, base_name)}
-            )
-
-    optional_groups = {
-        **{
-            key: _include_forecaster_break_glass(values)
-            for key in FORECASTER_BREAK_GLASS_KEYS
-        },
-        **{
-            key: _include_outbound_tls_break_glass(values)
-            for key in OUTBOUND_TLS_BREAK_GLASS_KEYS
-        },
-    }
-    for key, base_name in KOYEB_OPTIONAL_SHARED_SECRET_NAMES.items():
-        if not optional_groups.get(key, False):
-            continue
-        entries.append(
-            {"name": key, "secret": _koyeb_secret_name(environment, base_name)}
-        )
-
-    return entries
+        payload[key] = value
+    return payload
 
 
-def _koyeb_value_entries(
-    values: dict[str, str], *, component: str
-) -> list[dict[str, str]]:
-    ordered_keys = [
-        "ENVIRONMENT",
-        "ENABLE_SCHEDULER",
-        "WEB_CONCURRENCY",
-        "API_URL",
-        "FRONTEND_URL",
-        "LOG_LEVEL",
-        "LLM_PROVIDER",
-        "EXPOSE_API_DOCUMENTATION_PUBLICLY",
-        "OTEL_LOGS_EXPORT_ENABLED",
-        "SAAS_STRICT_INTEGRATIONS",
-        "TRUST_PROXY_HEADERS",
-        "CORS_ORIGINS",
-        "APP_RUNTIME_DATA_DIR",
-    ]
-    if component == "worker":
-        ordered_keys = [
-            key
-            for key in ordered_keys
-            if key
-            not in {
-                "WEB_CONCURRENCY",
-                "EXPOSE_API_DOCUMENTATION_PUBLICLY",
-                "SAAS_STRICT_INTEGRATIONS",
-                "TRUST_PROXY_HEADERS",
-            }
-        ]
-
-    entries: list[dict[str, str]] = []
-    for key in ordered_keys:
-        if component == "worker" and key == "ENABLE_SCHEDULER":
-            value = "false"
-        else:
-            value = _string_value(values, key).strip()
-        if not value:
-            continue
-        entries.append({"name": key, "value": value})
-    return entries
-
-
-def _koyeb_manifest(
-    values: dict[str, str], *, environment: str, component: str
-) -> dict[str, Any]:
-    is_api = component == "api"
-    manifest: dict[str, Any] = {
-        "name": _koyeb_name(environment, component),
-        "type": "WEB" if is_api else "WORKER",
-        "definition": {
-            "git": {
-                "repository": "github.com/Valdrics/valdrics",
-                "branch": "main",
-                "builder": "docker",
-                "dockerfile": "Dockerfile",
-            },
-            "scaling": {
-                "min": 2 if is_api else 1,
-                "max": 3 if is_api else 2,
-                "targets": {"cpu": {"value": 70}},
-            },
-            "instance_type": "micro",
-            "env": _koyeb_value_entries(values, component=component)
-            + _koyeb_secret_entries(
-                values, environment=environment, component=component
-            ),
-        },
-    }
-    if is_api:
-        manifest["definition"]["ports"] = [{"port": 8000, "protocol": "http"}]
-        manifest["definition"]["routes"] = [{"path": "/", "port": 8000}]
-        manifest["definition"]["health_checks"] = [
-            {
-                "type": "http",
-                "path": "/health/live",
-                "port": 8000,
-                "interval_seconds": 30,
-                "timeout_seconds": 10,
-                "healthy_threshold": 2,
-                "unhealthy_threshold": 3,
-            }
-        ]
-    else:
-        manifest["definition"]["command"] = [
-            "celery",
-            "-A",
-            "app.shared.core.celery_app:celery_app",
-            "worker",
-            "-l",
-            "info",
-        ]
-    return manifest
-
-
-def _koyeb_dashboard_public_env(values: dict[str, str]) -> dict[str, str]:
+def _cloudflare_pages_public_env(values: dict[str, str]) -> dict[str, str]:
     api_url = _string_value(values, "API_URL").rstrip("/")
-    frontend_url = _string_value(values, "FRONTEND_URL").rstrip("/")
     return {
-        "ORIGIN": frontend_url,
         "PUBLIC_API_URL": f"{api_url}/api/v1" if api_url else "",
         "PUBLIC_SUPABASE_URL": _string_value(values, "SUPABASE_URL").strip(),
         "PUBLIC_SUPABASE_ANON_KEY": _string_value(values, "SUPABASE_ANON_KEY").strip(),
@@ -539,228 +356,6 @@ def _json_placeholder_blockers(payload: Any, *, path: str = "") -> list[str]:
     return blockers
 
 
-def _normalize_image_digest(value: str, *, field_name: str, default: str) -> str:
-    normalized = str(value or "").strip()
-    if not normalized:
-        return default
-    if _contains_placeholder(normalized):
-        return normalized
-    if not normalized.startswith("sha256:"):
-        raise ValueError(f"{field_name} must be a sha256:<64-hex> digest.")
-    digest_body = normalized.split("sha256:", 1)[1].strip()
-    if len(digest_body) != 64 or any(
-        ch not in "0123456789abcdef" for ch in digest_body
-    ):
-        raise ValueError(f"{field_name} must be a sha256:<64-hex> digest.")
-    return f"sha256:{digest_body}"
-
-
-def _normalize_image_registry(value: str) -> str:
-    normalized = str(value or "").strip().rstrip("/")
-    if not normalized:
-        raise ValueError("registry must be a non-empty container registry prefix.")
-    if any(ch.isspace() for ch in normalized):
-        raise ValueError("registry must not contain whitespace.")
-    return normalized
-
-
-def _koyeb_release_metadata(
-    *,
-    environment: str,
-    registry: str,
-    release_tag: str,
-    api_image_digest: str,
-    dashboard_image_digest: str,
-) -> dict[str, Any]:
-    normalized_registry = _normalize_image_registry(registry)
-    normalized_release_tag = str(release_tag or "").strip() or DEFAULT_RELEASE_TAG
-    normalized_api_digest = _normalize_image_digest(
-        api_image_digest,
-        field_name="api_image_digest",
-        default=DEFAULT_API_IMAGE_DIGEST,
-    )
-    normalized_dashboard_digest = _normalize_image_digest(
-        dashboard_image_digest,
-        field_name="dashboard_image_digest",
-        default=DEFAULT_DASHBOARD_IMAGE_DIGEST,
-    )
-    api_repository = f"{normalized_registry}/valdrics-api"
-    dashboard_repository = f"{normalized_registry}/valdrics-dashboard"
-    api_image = f"{api_repository}:{normalized_release_tag}"
-    dashboard_image = f"{dashboard_repository}:{normalized_release_tag}"
-    return {
-        "strategy": "immutable_image_promotion",
-        "environment": environment,
-        "registry": normalized_registry,
-        "release_tag": normalized_release_tag,
-        "services": {
-            "api": {
-                "service_name": _koyeb_name(environment, "api"),
-                "repository": api_repository,
-                "image": api_image,
-                "image_digest": normalized_api_digest,
-                "promotion_ref": f"{api_repository}@{normalized_api_digest}",
-                "port": 8000,
-                "health_path": "/health/live",
-            },
-            "worker": {
-                "service_name": _koyeb_name(environment, "worker"),
-                "image": api_image,
-                "image_digest": normalized_api_digest,
-                "promotion_ref": f"{api_repository}@{normalized_api_digest}",
-                "command": [
-                    "celery",
-                    "-A",
-                    "app.shared.core.celery_app:celery_app",
-                    "worker",
-                    "-l",
-                    "info",
-                ],
-            },
-            "dashboard": {
-                "service_name": _koyeb_name(environment, "dashboard"),
-                "repository": dashboard_repository,
-                "image": dashboard_image,
-                "image_digest": normalized_dashboard_digest,
-                "promotion_ref": f"{dashboard_repository}@{normalized_dashboard_digest}",
-                "port": 3000,
-                "health_path": "/",
-            },
-        },
-    }
-
-
-def _host_from_url(url: str, *, field_name: str) -> str:
-    parsed = urlparse(url)
-    if not parsed.hostname:
-        raise ValueError(f"{field_name} must be a valid URL with a hostname.")
-    return str(parsed.hostname).strip().lower()
-
-
-def _helm_secret_name(environment: str) -> str:
-    if environment == "production":
-        return "valdrics-secrets"
-    return f"valdrics-{environment}-secrets"
-
-
-def _terraform_environment(environment: str) -> str:
-    return "prod" if environment == "production" else environment
-
-
-def _remote_secret_key(environment: str) -> str:
-    return f"/valdrics/{_terraform_environment(environment)}/app-runtime"
-
-
-def _helm_values(values: dict[str, str], *, environment: str) -> dict[str, Any]:
-    api_host = _host_from_url(_string_value(values, "API_URL"), field_name="API_URL")
-    frontend_host = _host_from_url(
-        _string_value(values, "FRONTEND_URL"),
-        field_name="FRONTEND_URL",
-    )
-
-    return {
-        "global": {
-            "apiHostOverride": api_host,
-            "frontendHostOverride": frontend_host,
-        },
-        "env": {
-            "ENVIRONMENT": _string_value(values, "ENVIRONMENT", environment),
-            "LOG_LEVEL": _string_value(values, "LOG_LEVEL", "INFO"),
-            "WEB_CONCURRENCY": _string_value(values, "WEB_CONCURRENCY", "2"),
-            "ENABLE_SCHEDULER": _string_value(values, "ENABLE_SCHEDULER", "true"),
-            "LLM_PROVIDER": _string_value(values, "LLM_PROVIDER", "groq"),
-            "EXPOSE_API_DOCUMENTATION_PUBLICLY": _string_value(
-                values,
-                "EXPOSE_API_DOCUMENTATION_PUBLICLY",
-                "false",
-            ),
-            "OTEL_LOGS_EXPORT_ENABLED": _string_value(
-                values,
-                "OTEL_LOGS_EXPORT_ENABLED",
-                "true",
-            ),
-            "SAAS_STRICT_INTEGRATIONS": _string_value(
-                values,
-                "SAAS_STRICT_INTEGRATIONS",
-                "true",
-            ),
-            "TRUST_PROXY_HEADERS": _string_value(
-                values,
-                "TRUST_PROXY_HEADERS",
-                "true",
-            ),
-            "APP_RUNTIME_DATA_DIR": _string_value(
-                values,
-                "APP_RUNTIME_DATA_DIR",
-                "/tmp/valdrics",
-            ),
-            "CORS_ORIGINS": _string_value(values, "CORS_ORIGINS"),
-        },
-        "externalSecrets": {
-            "enabled": True,
-            "remoteSecretKey": _remote_secret_key(environment),
-            "target": {
-                "name": _helm_secret_name(environment),
-                "creationPolicy": "Owner",
-                "deletionPolicy": "Retain",
-            },
-        },
-        "existingSecrets": {
-            "name": _helm_secret_name(environment),
-        },
-        "ingress": {
-            "hosts": [
-                {
-                    "host": api_host,
-                    "paths": [{"path": "/", "pathType": "Prefix"}],
-                }
-            ],
-            "tls": [
-                {
-                    "secretName": f"{_koyeb_name(environment, 'api')}-tls",
-                    "hosts": [api_host],
-                }
-            ],
-        },
-    }
-
-
-def _helm_runtime_secret_payload(values: dict[str, str]) -> dict[str, str]:
-    payload: dict[str, str] = {}
-    for key in sorted(values):
-        if key in HELM_SECRET_EXCLUDED_KEYS:
-            continue
-        if key in FORECASTER_BREAK_GLASS_KEYS and not _include_forecaster_break_glass(
-            values
-        ):
-            continue
-        if (
-            key in OUTBOUND_TLS_BREAK_GLASS_KEYS
-            and not _include_outbound_tls_break_glass(values)
-        ):
-            continue
-        value = _string_value(values, key)
-        if value == "":
-            continue
-        payload[key] = value
-    return payload
-
-
-def _koyeb_secret_payload(
-    values: dict[str, str], *, environment: str
-) -> dict[str, str]:
-    payload: dict[str, str] = {}
-    for entry in _koyeb_secret_entries(
-        values, environment=environment, component="api"
-    ):
-        payload[entry["secret"]] = _string_value(values, entry["name"])
-    for entry in _koyeb_secret_entries(
-        values, environment=environment, component="worker"
-    ):
-        payload.setdefault(entry["secret"], _string_value(values, entry["name"]))
-    return payload
-
-
 def _placeholder_keys(payload: dict[str, str]) -> list[str]:
     return sorted(
         key
@@ -769,15 +364,128 @@ def _placeholder_keys(payload: dict[str, str]) -> list[str]:
     )
 
 
+def _resolved_or_placeholder(value: str | None, *, placeholder_name: str) -> str:
+    normalized = str(value or "").strip()
+    if normalized:
+        return normalized
+    return f"REPLACE_WITH_{placeholder_name}"
+
+
+def _terraform_remaining_inputs(payload: Mapping[str, Any]) -> list[str]:
+    remaining: list[str] = []
+    for key in TERRAFORM_BASE_REQUIRED_INPUTS:
+        value = str(payload.get(key, "") or "").strip()
+        if not value or _contains_placeholder(value):
+            remaining.append(key)
+    return sorted(remaining)
+
+
+def _is_valid_promotion_ref(value: str) -> bool:
+    candidate = str(value or "").strip()
+    if not candidate or _contains_placeholder(candidate):
+        return False
+    if "@" not in candidate:
+        return False
+    repository, digest = candidate.rsplit("@", 1)
+    if not repository or "/" not in repository:
+        return False
+    if not digest.startswith("sha256:"):
+        return False
+    digest_body = digest.split("sha256:", 1)[1].strip()
+    return len(digest_body) == 64 and all(
+        ch in "0123456789abcdef" for ch in digest_body
+    )
+
+
+def _artifact_registry_release_metadata(
+    *,
+    environment: str,
+    release_tag: str,
+    api_promotion_ref: str,
+    batch_promotion_ref: str,
+) -> dict[str, Any]:
+    normalized_release_tag = str(release_tag or "").strip() or DEFAULT_RELEASE_TAG
+    normalized_api_ref = (
+        str(api_promotion_ref or "").strip() or DEFAULT_API_PROMOTION_REF
+    )
+    normalized_batch_ref = (
+        str(batch_promotion_ref or "").strip() or DEFAULT_BATCH_PROMOTION_REF
+    )
+    return {
+        "strategy": "immutable_artifact_registry_promotion",
+        "environment": environment,
+        "release_tag": normalized_release_tag,
+        "services": {
+            "api": {
+                "runtime": "google_cloud_run",
+                "promotion_ref": normalized_api_ref,
+            },
+            "batch": {
+                "runtime": "google_cloud_run_jobs",
+                "promotion_ref": normalized_batch_ref,
+            },
+        },
+    }
+
+
+def _unified_platform_manifest(
+    *,
+    environment: str,
+    release_tag: str,
+    api_promotion_ref: str,
+    batch_promotion_ref: str,
+    runtime_plain_env: dict[str, str],
+    cloudflare_pages_env: dict[str, str],
+) -> dict[str, Any]:
+    return {
+        "strategy": "unified_platform_managed_release",
+        "environment": environment,
+        "release_tag": release_tag,
+        "source_of_truth": {
+            "infrastructure": "terraform",
+            "schema": "alembic",
+            "deployment_pipeline": "github_actions",
+            "observability": "google_cloud_operations",
+        },
+        "backend": {
+            "runtime": "google_cloud_run",
+            "api_service_name": "valdrics-api",
+            "batch_job_name": "valdrics-batch",
+            "tasks_queue_name": "valdrics-managed-work",
+            "scheduler_owner": "cloud_scheduler",
+            "api_promotion_ref": api_promotion_ref,
+            "batch_promotion_ref": batch_promotion_ref,
+            "runtime_plain_env": runtime_plain_env,
+        },
+        "frontend": {
+            "runtime": "cloudflare_pages",
+            "public_env": cloudflare_pages_env,
+        },
+        "data_platform": {
+            "database": "supabase_postgres",
+            "auth": "supabase_auth",
+            "storage": "supabase_storage",
+        },
+    }
+
+
 def generate_managed_deployment_artifacts(
     *,
     environment: str,
     runtime_env_file: Path,
     output_dir: Path,
-    registry: str = DEFAULT_KOYEB_IMAGE_REGISTRY,
     release_tag: str = DEFAULT_RELEASE_TAG,
-    api_image_digest: str = DEFAULT_API_IMAGE_DIGEST,
-    dashboard_image_digest: str = DEFAULT_DASHBOARD_IMAGE_DIGEST,
+    api_promotion_ref: str = DEFAULT_API_PROMOTION_REF,
+    batch_promotion_ref: str = DEFAULT_BATCH_PROMOTION_REF,
+    gcp_project_id: str | None = None,
+    gcp_region: str | None = None,
+    cloudflare_account_id: str | None = None,
+    cloudflare_zone_id: str | None = None,
+    cloudflare_pages_project_name: str | None = None,
+    cloudflare_pages_production_branch: str | None = None,
+    supabase_organization_id: str | None = None,
+    supabase_project_name: str | None = None,
+    supabase_region: str | None = None,
 ) -> dict[str, Any]:
     normalized_environment = str(environment or "").strip().lower()
     if normalized_environment not in SUPPORTED_ENVIRONMENTS:
@@ -806,6 +514,7 @@ def generate_managed_deployment_artifacts(
         raise ValueError(
             "output_dir must not point inside source, test, workflow, or checked-in documentation roots"
         )
+
     runtime_env_resolved = runtime_env_file.resolve()
     for artifact_path in _artifact_output_paths(output_dir):
         if artifact_path.resolve() == runtime_env_resolved:
@@ -815,116 +524,167 @@ def generate_managed_deployment_artifacts(
 
     values = parse_env_file(runtime_env_file)
     runtime_blockers = _runtime_blockers(values)
-    helm_values = _helm_values(values, environment=normalized_environment)
-    helm_secret_payload = _helm_runtime_secret_payload(values)
-    koyeb_secret_payload = _koyeb_secret_payload(
+    runtime_plain_env = _cloud_run_runtime_plain_env(
         values, environment=normalized_environment
     )
-    koyeb_dashboard_env = _koyeb_dashboard_public_env(values)
-    koyeb_dashboard_env_blockers = _placeholder_keys(koyeb_dashboard_env)
-    koyeb_release_metadata = _koyeb_release_metadata(
+    secret_manager_runtime_payload = _secret_manager_runtime_payload(values)
+    cloudflare_pages_env = _cloudflare_pages_public_env(values)
+    cloudflare_pages_env_blockers = _placeholder_keys(cloudflare_pages_env)
+
+    effective_batch_ref = (
+        str(batch_promotion_ref or "").strip() or DEFAULT_BATCH_PROMOTION_REF
+    )
+    if effective_batch_ref == DEFAULT_BATCH_PROMOTION_REF and (
+        str(api_promotion_ref or "").strip()
+        and str(api_promotion_ref or "").strip() != DEFAULT_API_PROMOTION_REF
+    ):
+        effective_batch_ref = str(api_promotion_ref).strip()
+
+    artifact_registry_release = _artifact_registry_release_metadata(
         environment=normalized_environment,
-        registry=registry,
         release_tag=release_tag,
-        api_image_digest=api_image_digest,
-        dashboard_image_digest=dashboard_image_digest,
+        api_promotion_ref=api_promotion_ref,
+        batch_promotion_ref=effective_batch_ref,
     )
-    koyeb_release_value_blockers = sorted(
-        set(_json_placeholder_blockers(koyeb_release_metadata))
+    artifact_registry_release_blockers = sorted(
+        set(_json_placeholder_blockers(artifact_registry_release))
     )
-    terraform_runtime_json = json.dumps(helm_secret_payload, sort_keys=True)
+
+    unified_platform_manifest = _unified_platform_manifest(
+        environment=normalized_environment,
+        release_tag=str(release_tag or "").strip() or DEFAULT_RELEASE_TAG,
+        api_promotion_ref=artifact_registry_release["services"]["api"]["promotion_ref"],
+        batch_promotion_ref=artifact_registry_release["services"]["batch"][
+            "promotion_ref"
+        ],
+        runtime_plain_env=runtime_plain_env,
+        cloudflare_pages_env=cloudflare_pages_env,
+    )
+
+    terraform_tfvars_payload = {
+        "environment": normalized_environment,
+        "gcp_project_id": _resolved_or_placeholder(
+            gcp_project_id,
+            placeholder_name="GCP_PROJECT_ID",
+        ),
+        "gcp_region": _resolved_or_placeholder(
+            gcp_region,
+            placeholder_name="GCP_REGION",
+        ),
+        "cloudflare_account_id": _resolved_or_placeholder(
+            cloudflare_account_id,
+            placeholder_name="CLOUDFLARE_ACCOUNT_ID",
+        ),
+        "cloudflare_zone_id": _resolved_or_placeholder(
+            cloudflare_zone_id,
+            placeholder_name="CLOUDFLARE_ZONE_ID",
+        ),
+        "cloudflare_pages_project_name": _resolved_or_placeholder(
+            cloudflare_pages_project_name,
+            placeholder_name="CLOUDFLARE_PAGES_PROJECT_NAME",
+        ),
+        "cloudflare_pages_production_branch": _resolved_or_placeholder(
+            cloudflare_pages_production_branch,
+            placeholder_name="CLOUDFLARE_PAGES_PRODUCTION_BRANCH",
+        ),
+        "supabase_organization_id": _resolved_or_placeholder(
+            supabase_organization_id,
+            placeholder_name="SUPABASE_ORGANIZATION_ID",
+        ),
+        "supabase_project_name": _resolved_or_placeholder(
+            supabase_project_name,
+            placeholder_name="SUPABASE_PROJECT_NAME",
+        ),
+        "supabase_region": _resolved_or_placeholder(
+            supabase_region,
+            placeholder_name="SUPABASE_REGION",
+        ),
+        "api_url": _string_value(values, "API_URL").strip(),
+        "frontend_url": _string_value(values, "FRONTEND_URL").strip(),
+        "api_image": artifact_registry_release["services"]["api"]["promotion_ref"],
+        "batch_job_image": artifact_registry_release["services"]["batch"][
+            "promotion_ref"
+        ],
+        "runtime_plain_env": runtime_plain_env,
+        "runtime_secret_env": secret_manager_runtime_payload,
+    }
+    terraform_remaining_inputs = _terraform_remaining_inputs(terraform_tfvars_payload)
+    terraform_value_blockers = sorted(
+        set(_json_placeholder_blockers(terraform_tfvars_payload))
+    )
 
     (
-        koyeb_api_path,
-        koyeb_worker_path,
-        koyeb_secrets_path,
-        koyeb_dashboard_env_path,
-        koyeb_release_path,
-        helm_values_path,
-        helm_secret_path,
+        unified_platform_manifest_path,
+        secret_manager_runtime_path,
+        cloudflare_pages_env_path,
+        artifact_registry_release_path,
         terraform_tfvars_path,
         report_path,
     ) = _artifact_output_paths(output_dir)
-    terraform_tfvars_payload = {
-        "environment": _terraform_environment(normalized_environment),
-        "runtime_secret_name": _remote_secret_key(normalized_environment),
-        "runtime_secret_initial_json": terraform_runtime_json,
-        "enable_secret_rotation": normalized_environment == "production",
-        "secret_rotation_lambda_arn": (
-            "REPLACE_WITH_SECRET_ROTATION_LAMBDA_ARN"
-            if normalized_environment == "production"
-            else ""
-        ),
-    }
 
-    terraform_remaining_inputs = list(TERRAFORM_BASE_REQUIRED_INPUTS)
-    if normalized_environment == "production":
-        terraform_remaining_inputs.append("secret_rotation_lambda_arn")
+    secret_manager_secret_keys = sorted(secret_manager_runtime_payload)
+    secret_manager_secret_value_blockers = _placeholder_keys(
+        secret_manager_runtime_payload
+    )
 
     report = {
         "environment": normalized_environment,
         "runtime_env_file": runtime_env_file.as_posix(),
         "output_dir": output_dir.as_posix(),
         "runtime_validation_blockers": runtime_blockers,
-        "koyeb_secret_names": sorted(koyeb_secret_payload),
-        "koyeb_secret_value_blockers": _placeholder_keys(koyeb_secret_payload),
-        "koyeb_dashboard_public_env_keys": list(KOYEB_DASHBOARD_PUBLIC_ENV_KEYS),
-        "koyeb_dashboard_public_env_blockers": koyeb_dashboard_env_blockers,
-        "koyeb_release_value_blockers": koyeb_release_value_blockers,
-        "helm_runtime_secret_keys": sorted(helm_secret_payload),
-        "helm_runtime_secret_value_blockers": _placeholder_keys(helm_secret_payload),
-        "helm_external_secret_remote_key": _remote_secret_key(normalized_environment),
+        "secret_manager_secret_keys": secret_manager_secret_keys,
+        "secret_manager_secret_value_blockers": secret_manager_secret_value_blockers,
+        "cloudflare_pages_public_env_keys": list(CLOUDFLARE_PAGES_PUBLIC_ENV_KEYS),
+        "cloudflare_pages_public_env_blockers": cloudflare_pages_env_blockers,
+        "artifact_registry_release_value_blockers": artifact_registry_release_blockers,
         "terraform_runtime_tfvars_path": terraform_tfvars_path.as_posix(),
         "terraform_remaining_inputs": terraform_remaining_inputs,
+        "terraform_value_blockers": terraform_value_blockers,
+        "github_environment_variable_requirements": list(
+            GITHUB_ENVIRONMENT_VARIABLE_REQUIREMENTS
+        ),
+        "github_environment_secret_requirements": list(
+            GITHUB_ENVIRONMENT_SECRET_REQUIREMENTS
+        ),
         "artifacts": {
-            "koyeb_api_manifest": koyeb_api_path.as_posix(),
-            "koyeb_worker_manifest": koyeb_worker_path.as_posix(),
-            "koyeb_secret_payload": koyeb_secrets_path.as_posix(),
-            "koyeb_dashboard_env_json": koyeb_dashboard_env_path.as_posix(),
-            "koyeb_release_metadata": koyeb_release_path.as_posix(),
-            "helm_values": helm_values_path.as_posix(),
-            "helm_runtime_secret_json": helm_secret_path.as_posix(),
+            "unified_platform_manifest": unified_platform_manifest_path.as_posix(),
+            "secret_manager_runtime_secrets": secret_manager_runtime_path.as_posix(),
+            "cloudflare_pages_env_json": cloudflare_pages_env_path.as_posix(),
+            "artifact_registry_release_metadata": (
+                artifact_registry_release_path.as_posix()
+            ),
+            "terraform_runtime_tfvars": terraform_tfvars_path.as_posix(),
         },
-        "ready_for_koyeb": (
+        "ready_for_unified_platform": (
             not runtime_blockers
-            and not _placeholder_keys(koyeb_secret_payload)
-            and not koyeb_dashboard_env_blockers
+            and not secret_manager_secret_value_blockers
+            and not cloudflare_pages_env_blockers
+            and not artifact_registry_release_blockers
         ),
-        "ready_for_koyeb_release": (
-            not runtime_blockers
-            and not _placeholder_keys(koyeb_secret_payload)
-            and not koyeb_dashboard_env_blockers
-            and not koyeb_release_value_blockers
+        "ready_for_release_promotion": (
+            not artifact_registry_release_blockers
+            and _is_valid_promotion_ref(
+                artifact_registry_release["services"]["api"]["promotion_ref"]
+            )
+            and _is_valid_promotion_ref(
+                artifact_registry_release["services"]["batch"]["promotion_ref"]
+            )
         ),
-        "ready_for_helm": not runtime_blockers
-        and not _placeholder_keys(helm_secret_payload),
+        "ready_for_terraform": not terraform_value_blockers,
     }
 
     artifact_contents = {
-        koyeb_api_path.name: yaml.safe_dump(
-            _koyeb_manifest(
-                values, environment=normalized_environment, component="api"
-            ),
-            sort_keys=False,
+        unified_platform_manifest_path.name: json.dumps(
+            unified_platform_manifest, indent=2, sort_keys=True
         ),
-        koyeb_worker_path.name: yaml.safe_dump(
-            _koyeb_manifest(
-                values, environment=normalized_environment, component="worker"
-            ),
-            sort_keys=False,
+        secret_manager_runtime_path.name: json.dumps(
+            secret_manager_runtime_payload, indent=2, sort_keys=True
         ),
-        koyeb_secrets_path.name: json.dumps(
-            koyeb_secret_payload, indent=2, sort_keys=True
+        cloudflare_pages_env_path.name: json.dumps(
+            cloudflare_pages_env, indent=2, sort_keys=True
         ),
-        koyeb_dashboard_env_path.name: json.dumps(
-            koyeb_dashboard_env, indent=2, sort_keys=True
-        ),
-        koyeb_release_path.name: json.dumps(
-            koyeb_release_metadata, indent=2, sort_keys=True
-        ),
-        helm_values_path.name: yaml.safe_dump(helm_values, sort_keys=False),
-        helm_secret_path.name: json.dumps(
-            helm_secret_payload, indent=2, sort_keys=True
+        artifact_registry_release_path.name: json.dumps(
+            artifact_registry_release, indent=2, sort_keys=True
         ),
         terraform_tfvars_path.name: json.dumps(
             terraform_tfvars_payload, indent=2, sort_keys=True
@@ -958,13 +718,15 @@ def generate_managed_deployment_artifacts(
             for final_path in promoted_paths:
                 final_path.unlink(missing_ok=True)
         shutil.rmtree(staging_dir, ignore_errors=True)
+
     return report
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Generate deployment artifacts for the Koyeb release path and the future Helm/EKS scale path from a managed runtime env file."
+            "Generate deployment artifacts for the unified platform "
+            "(Cloud Run, Cloud Tasks, Cloud Scheduler, Cloudflare Pages, Supabase)."
         )
     )
     parser.add_argument(
@@ -985,31 +747,35 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Output directory (default: .runtime/deploy/<environment>).",
     )
     parser.add_argument(
-        "--registry",
-        default=DEFAULT_KOYEB_IMAGE_REGISTRY,
-        help="Container registry prefix for Koyeb immutable image promotion metadata.",
-    )
-    parser.add_argument(
         "--release-tag",
         default=DEFAULT_RELEASE_TAG,
-        help="Immutable release tag recorded in the generated Koyeb release metadata.",
+        help="Immutable release tag recorded in the generated Artifact Registry metadata.",
     )
     parser.add_argument(
-        "--api-image-digest",
-        default=DEFAULT_API_IMAGE_DIGEST,
+        "--api-promotion-ref",
+        default=DEFAULT_API_PROMOTION_REF,
         help=(
-            "Digest-pinned GHCR reference for the shared API/worker image "
-            "(format: sha256:<64-hex>)."
+            "Digest-pinned Artifact Registry ref for the API service "
+            "(format: <repo>@sha256:<64-hex>)."
         ),
     )
     parser.add_argument(
-        "--dashboard-image-digest",
-        default=DEFAULT_DASHBOARD_IMAGE_DIGEST,
+        "--batch-promotion-ref",
+        default=DEFAULT_BATCH_PROMOTION_REF,
         help=(
-            "Digest-pinned GHCR reference for the dashboard image "
-            "(format: sha256:<64-hex>)."
+            "Digest-pinned Artifact Registry ref for the Cloud Run batch job. "
+            "Defaults to the API promotion ref when omitted."
         ),
     )
+    parser.add_argument("--gcp-project-id", default=None)
+    parser.add_argument("--gcp-region", default=None)
+    parser.add_argument("--cloudflare-account-id", default=None)
+    parser.add_argument("--cloudflare-zone-id", default=None)
+    parser.add_argument("--cloudflare-pages-project-name", default=None)
+    parser.add_argument("--cloudflare-pages-production-branch", default=None)
+    parser.add_argument("--supabase-organization-id", default=None)
+    parser.add_argument("--supabase-project-name", default=None)
+    parser.add_argument("--supabase-region", default=None)
     return parser
 
 
@@ -1029,19 +795,27 @@ def main(argv: list[str] | None = None) -> int:
         environment=str(args.environment),
         runtime_env_file=runtime_env_file,
         output_dir=output_dir,
-        registry=str(args.registry),
         release_tag=str(args.release_tag),
-        api_image_digest=str(args.api_image_digest),
-        dashboard_image_digest=str(args.dashboard_image_digest),
+        api_promotion_ref=str(args.api_promotion_ref),
+        batch_promotion_ref=str(args.batch_promotion_ref),
+        gcp_project_id=args.gcp_project_id,
+        gcp_region=args.gcp_region,
+        cloudflare_account_id=args.cloudflare_account_id,
+        cloudflare_zone_id=args.cloudflare_zone_id,
+        cloudflare_pages_project_name=args.cloudflare_pages_project_name,
+        cloudflare_pages_production_branch=args.cloudflare_pages_production_branch,
+        supabase_organization_id=args.supabase_organization_id,
+        supabase_project_name=args.supabase_project_name,
+        supabase_region=args.supabase_region,
     )
     print(
         "[managed-deployment-artifacts] ok "
         f"environment={report['environment']} "
         f"output_dir={report['output_dir']} "
         f"runtime_blockers={len(report['runtime_validation_blockers'])} "
-        f"koyeb_ready={report['ready_for_koyeb']} "
-        f"koyeb_release_ready={report['ready_for_koyeb_release']} "
-        f"helm_ready={report['ready_for_helm']}"
+        f"unified_ready={report['ready_for_unified_platform']} "
+        f"release_ready={report['ready_for_release_promotion']} "
+        f"terraform_ready={report['ready_for_terraform']}"
     )
     return 0
 

@@ -9,7 +9,12 @@ from pydantic import SecretStr
 import structlog
 
 from app.shared.adapters.base import BaseAdapter
-from app.shared.adapters.feed_utils import as_float, is_number, parse_timestamp
+from app.shared.adapters.feed_utils import (
+    as_float,
+    is_number,
+    parse_required_timestamp,
+    parse_timestamp,
+)
 from app.shared.adapters.http_retry import execute_with_http_retry
 from app.shared.adapters.saas_native_stream_ops import (
     get_json as _get_json_impl,
@@ -237,6 +242,13 @@ class SaaSAdapter(BaseAdapter):
                     f"Spend feed entry #{idx + 1} is missing timestamp/date."
                 )
                 return False
+            try:
+                parse_required_timestamp(has_timestamp)
+            except (TypeError, ValueError):
+                self.last_error = (
+                    f"Spend feed entry #{idx + 1} has invalid timestamp/date."
+                )
+                return False
             amount = entry.get("cost_usd", entry.get("amount_usd"))
             if not is_number(amount):
                 self.last_error = f"Spend feed entry #{idx + 1} must include numeric cost_usd or amount_usd."
@@ -279,8 +291,15 @@ class SaaSAdapter(BaseAdapter):
         if not isinstance(feed, list):
             return
 
-        for entry in feed:
-            timestamp = parse_timestamp(entry.get("timestamp") or entry.get("date"))
+        for idx, entry in enumerate(feed, start=1):
+            try:
+                timestamp = parse_required_timestamp(
+                    entry.get("timestamp") or entry.get("date")
+                )
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"Spend feed entry #{idx} has invalid timestamp/date."
+                ) from exc
             if timestamp < start_date or timestamp > end_date:
                 continue
             resource_id_raw = entry.get("resource_id") or entry.get("id")
@@ -301,6 +320,11 @@ class SaaSAdapter(BaseAdapter):
                 if usage_unit_raw not in (None, "")
                 else None
             )
+            cost_value = entry.get("cost_usd", entry.get("amount_usd", 0.0))
+            if not is_number(cost_value):
+                raise ValueError(
+                    f"Spend feed entry #{idx} must include numeric cost_usd or amount_usd."
+                )
             yield {
                 "provider": "saas",
                 "service": str(entry.get("service") or entry.get("vendor") or "SaaS"),
@@ -309,9 +333,7 @@ class SaaSAdapter(BaseAdapter):
                 "resource_id": resource_id,
                 "usage_amount": usage_amount,
                 "usage_unit": usage_unit,
-                "cost_usd": float(
-                    entry.get("cost_usd") or entry.get("amount_usd") or 0.0
-                ),
+                "cost_usd": float(cost_value or 0.0),
                 "amount_raw": entry.get("amount_raw"),
                 "currency": str(entry.get("currency") or "USD"),
                 "timestamp": timestamp,

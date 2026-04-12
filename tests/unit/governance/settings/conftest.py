@@ -141,7 +141,7 @@ async def async_client(
         "app.modules.governance.api.v1.jobs.async_session_maker",
         "app.modules.governance.domain.jobs.cur_ingestion.async_session_maker",
         "app.modules.governance.domain.jobs.processor.async_session_maker",
-        "app.tasks.scheduler_tasks.async_session_maker",
+        "app.shared.orchestration.managed_work_runners.async_session_maker",
         "app.shared.llm.pricing_data.async_session_maker",
         "app.main.async_session_maker",
     ]

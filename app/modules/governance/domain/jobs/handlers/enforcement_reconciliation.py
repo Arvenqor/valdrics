@@ -9,6 +9,7 @@ from app.models.background_job import BackgroundJob
 from app.modules.enforcement.domain.reconciliation_worker import (
     EnforcementReconciliationWorker,
 )
+from app.modules.governance.domain.jobs.errors import PermanentJobError
 from app.modules.governance.domain.jobs.handlers.base import BaseJobHandler
 
 
@@ -20,9 +21,8 @@ class EnforcementReconciliationHandler(BaseJobHandler):
     async def execute(self, job: BackgroundJob, db: AsyncSession) -> Dict[str, Any]:
         tenant_id = job.tenant_id
         if tenant_id is None:
-            raise ValueError("tenant_id required for enforcement_reconciliation")
+            raise PermanentJobError("tenant_id required for enforcement_reconciliation")
 
         tenant_uuid = UUID(str(tenant_id))
         result = await EnforcementReconciliationWorker(db).run_for_tenant(tenant_uuid)
         return result.to_payload()
-

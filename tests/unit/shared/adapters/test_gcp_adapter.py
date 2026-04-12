@@ -114,6 +114,104 @@ async def test_get_cost_and_usage_query_error():
             )
 
 
+def test_parse_row_normalizes_timezone_and_numeric_fields():
+    adapter = GCPAdapter(_connection())
+    row = SimpleNamespace(
+        timestamp=datetime(2024, 1, 1, 3, 30),
+        service="Compute Engine",
+        cost_usd="10.5",
+        total_credits="-2.0",
+        currency="USD",
+    )
+
+    parsed = adapter._parse_row(row)
+
+    assert parsed["timestamp"].tzinfo is not None
+    assert parsed["timestamp"].utcoffset().total_seconds() == 0
+    assert parsed["cost_usd"] == 10.5
+    assert parsed["credits"] == -2.0
+    assert parsed["amortized_cost"] == 8.5
+    assert parsed["amount_raw"] == 10.5
+
+
+def test_parse_row_rejects_non_finite_numeric_fields():
+    adapter = GCPAdapter(_connection())
+
+    nan_cost_row = SimpleNamespace(
+        timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        service="Compute Engine",
+        cost_usd="NaN",
+        total_credits="0",
+        currency="USD",
+    )
+    with pytest.raises(ValueError, match="GCP billing row cost_usd must be finite"):
+        adapter._parse_row(nan_cost_row)
+
+    inf_credits_row = SimpleNamespace(
+        timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        service="Compute Engine",
+        cost_usd="10.5",
+        total_credits="Infinity",
+        currency="USD",
+    )
+    with pytest.raises(ValueError, match="GCP billing row total_credits must be finite"):
+        adapter._parse_row(inf_credits_row)
+
+
+@pytest.mark.asyncio
+async def test_get_cost_and_usage_invalid_row_cost_bubbles():
+    adapter = GCPAdapter(
+        _connection(
+            billing_project_id="proj-12345",
+            billing_dataset="dataset",
+            billing_table="table",
+        )
+    )
+    bad_row = SimpleNamespace(
+        timestamp=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        service="Compute Engine",
+        cost_usd="not-a-number",
+        total_credits=0,
+        currency="USD",
+    )
+    client = MagicMock()
+    client.query.return_value.result.return_value = [bad_row]
+
+    with patch.object(adapter, "_get_bq_client", return_value=client):
+        with pytest.raises(ValueError, match="GCP billing row cost_usd must be numeric"):
+            await adapter.get_cost_and_usage(
+                datetime(2024, 1, 1, tzinfo=timezone.utc),
+                datetime(2024, 1, 2, tzinfo=timezone.utc),
+            )
+
+
+@pytest.mark.asyncio
+async def test_get_cost_and_usage_invalid_row_timestamp_bubbles():
+    adapter = GCPAdapter(
+        _connection(
+            billing_project_id="proj-12345",
+            billing_dataset="dataset",
+            billing_table="table",
+        )
+    )
+    bad_row = SimpleNamespace(
+        timestamp="2024-01-01T00:00:00Z",
+        service="Compute Engine",
+        cost_usd=10.5,
+        total_credits=0,
+        currency="USD",
+    )
+    client = MagicMock()
+    client.query.return_value.result.return_value = [bad_row]
+
+    with patch.object(adapter, "_get_bq_client", return_value=client):
+        with pytest.raises(ValueError, match="GCP billing row timestamp must be a datetime"):
+            await adapter.get_cost_and_usage(
+                datetime(2024, 1, 1, tzinfo=timezone.utc),
+                datetime(2024, 1, 2, tzinfo=timezone.utc),
+            )
+
+
 @pytest.mark.asyncio
 async def test_discover_resources_success():
     adapter = GCPAdapter(_connection())
@@ -141,6 +239,21 @@ async def test_discover_resources_failure_returns_empty():
     assert results == []
     assert adapter.last_error is not None
     assert "GCP resource discovery failed" in adapter.last_error
+
+
+@pytest.mark.asyncio
+async def test_discover_resources_broken_asset_contract_bubbles():
+    adapter = GCPAdapter(_connection())
+    asset_client = MagicMock()
+    broken_asset = SimpleNamespace(
+        name="projects/proj-12345/assets/1",
+        asset_type="compute.googleapis.com/Instance",
+        resource=SimpleNamespace(data=None),
+    )
+    asset_client.list_assets.return_value = [broken_asset]
+    with patch.object(adapter, "_get_asset_client", return_value=asset_client):
+        with pytest.raises(AttributeError):
+            await adapter.discover_resources(resource_type="compute")
 
 
 @pytest.mark.asyncio
@@ -198,3 +311,15 @@ async def test_get_resource_usage_failure_returns_empty_and_sets_error():
 
     assert adapter.last_error is not None
     assert "GCP resource usage lookup failed" in adapter.last_error
+
+
+@pytest.mark.asyncio
+async def test_get_resource_usage_invalid_cost_rows_bubble():
+    adapter = GCPAdapter(_connection())
+    with patch.object(
+        adapter,
+        "get_cost_and_usage",
+        AsyncMock(side_effect=ValueError("GCP billing row timestamp must be a datetime")),
+    ):
+        with pytest.raises(ValueError, match="GCP billing row timestamp must be a datetime"):
+            await adapter.get_resource_usage("compute")

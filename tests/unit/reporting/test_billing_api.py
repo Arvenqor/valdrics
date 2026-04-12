@@ -112,6 +112,14 @@ async def test_get_subscription_trial(mock_db):
 
 
 @pytest.mark.asyncio
+async def test_get_subscription_requires_tenant_context(mock_user):
+    mock_user.tenant_id = None
+    async with AsyncClient(transport=transport, base_url="https://test") as ac:
+        response = await ac.get("/api/v1/billing/subscription")
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
 async def test_get_subscription_error(mock_db):
     mock_db.execute.side_effect = RuntimeError("General Fail")
     async with AsyncClient(transport=transport, base_url="https://test") as ac:
@@ -172,6 +180,14 @@ async def test_get_billing_usage_exposes_connection_counts_and_limits(
 
 
 @pytest.mark.asyncio
+async def test_get_billing_usage_requires_tenant_context(mock_user):
+    mock_user.tenant_id = None
+    async with AsyncClient(transport=transport, base_url="https://test") as ac:
+        response = await ac.get("/api/v1/billing/usage")
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
 async def test_load_billing_usage_returns_zeroes_without_tenant_context(mock_db):
     usage = await billing_ops.load_billing_usage(
         mock_db,
@@ -215,7 +231,7 @@ async def test_create_checkout_no_tenant(mock_user):
         mock_settings.PAYSTACK_SECRET_KEY = "sk_test"
         async with AsyncClient(transport=transport, base_url="https://test") as ac:
             response = await ac.post("/api/v1/billing/checkout", json={"tier": "pro"})
-    assert response.status_code == 400
+    assert response.status_code == 403
 
 
 @pytest.mark.asyncio
@@ -284,7 +300,7 @@ async def test_cancel_subscription_no_tenant(mock_user):
     mock_user.tenant_id = None
     async with AsyncClient(transport=transport, base_url="https://test") as ac:
         response = await ac.post("/api/v1/billing/cancel")
-    assert response.status_code == 400
+    assert response.status_code == 403
 
 
 # --- Exchange Rate Tests ---

@@ -1,48 +1,68 @@
-
-output "vpc_id" {
-  value = module.network.vpc_id
+output "artifact_registry_repository" {
+  value = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project_id}/${google_artifact_registry_repository.runtime.repository_id}"
 }
 
-output "eks_cluster_name" {
-  value = module.eks.cluster_name
+output "api_service_name" {
+  value = google_cloud_run_v2_service.api.name
 }
 
-output "db_endpoint" {
-  value = module.db.db_endpoint
+output "api_service_uri" {
+  value = google_cloud_run_v2_service.api.uri
 }
 
-output "db_arn" {
-  value = module.db.db_arn
+output "api_edge_public_ip" {
+  value = google_compute_global_address.api_edge.address
 }
 
-output "valdrics_role_arn" {
-  value = module.iam.role_arn
+output "api_public_hostname" {
+  value = cloudflare_dns_record.api.name
 }
 
-output "valdrics_active_enforcement_enabled" {
-  value = module.iam.active_enforcement_enabled
+output "batch_job_name" {
+  value = google_cloud_run_v2_job.batch.name
 }
 
-output "runtime_secret_name" {
-  value = module.secrets_rotation.runtime_secret_name
+output "cloud_tasks_queue_name" {
+  value = google_cloud_tasks_queue.runtime.name
 }
 
-output "runtime_secret_arn" {
-  value = module.secrets_rotation.runtime_secret_arn
+output "runtime_service_account_email" {
+  value = google_service_account.runtime.email
 }
 
-output "runtime_secret_kms_key_arn" {
-  value = module.secrets_rotation.runtime_kms_key_arn
+output "batch_service_account_email" {
+  value = google_service_account.batch.email
 }
 
-output "secondary_region_enabled" {
-  value = var.enable_multi_region_failover
+output "internal_invoker_service_account_email" {
+  value = google_service_account.internal_invoker.email
 }
 
-output "secondary_eks_cluster_name" {
-  value = try(module.secondary_eks[0].cluster_name, null)
+output "scheduler_invoker_service_account_email" {
+  value = google_service_account.scheduler_invoker.email
 }
 
-output "secondary_db_endpoint" {
-  value = try(module.secondary_db[0].db_endpoint, null)
+output "scheduler_job_names" {
+  value = sort([for job in google_cloud_scheduler_job.managed : job.name])
+}
+
+output "secret_manager_secret_ids" {
+  value     = { for key, secret in google_secret_manager_secret.runtime : key => secret.secret_id }
+  sensitive = true
+}
+
+output "cloudflare_pages_project_name" {
+  value = cloudflare_pages_project.dashboard.name
+}
+
+output "cloudflare_pages_subdomain" {
+  value = cloudflare_pages_project.dashboard.subdomain
+}
+
+output "cloudflare_api_dns_record_id" {
+  value = cloudflare_dns_record.api.id
+}
+
+output "supabase_project_ref" {
+  value = supabase_project.platform.id
 }

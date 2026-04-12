@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
+from fastapi import HTTPException
 
 from app.modules.reporting.api.v1 import usage as usage_api
 from app.modules.reporting.api.v1.usage import (
@@ -104,8 +105,33 @@ def _recent_usage() -> list[LLMUsageRecord]:
 @pytest.mark.asyncio
 async def test_usage_require_tenant_id_raises_without_tenant() -> None:
     user = _user(tenant_id=...)
-    with pytest.raises(ValueError, match="tenant_id is required for usage metrics"):
+    with pytest.raises(HTTPException) as exc_info:
         usage_api._require_tenant_id(user)
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail == "Tenant context required."
+
+
+@pytest.mark.asyncio
+async def test_get_usage_metrics_requires_tenant_context() -> None:
+    user = _user(tenant_id=...)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await usage_api.get_usage_metrics(user=user, db=MagicMock())
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail == "Tenant context required."
+
+
+@pytest.mark.asyncio
+async def test_record_growth_funnel_stage_requires_tenant_context() -> None:
+    user = _user(tenant_id=...)
+    payload = usage_api.GrowthFunnelStageRequest(stage="pricing_viewed")
+
+    with pytest.raises(HTTPException) as exc_info:
+        await usage_api.record_growth_funnel_stage(payload=payload, user=user, db=MagicMock())
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail == "Tenant context required."
 
 
 @pytest.mark.asyncio
@@ -218,6 +244,32 @@ async def test_get_recent_llm_activity_serializes_records() -> None:
 
 
 @pytest.mark.asyncio
+async def test_get_recent_llm_activity_rejects_non_finite_costs() -> None:
+    tenant_id = uuid4()
+    now = datetime(2026, 2, 26, 12, 0, tzinfo=timezone.utc)
+    db = MagicMock()
+    db.execute = AsyncMock(
+        return_value=_scalars_result(
+            [
+                SimpleNamespace(
+                    id=uuid4(),
+                    created_at=now,
+                    model="gpt-4.1",
+                    input_tokens=11,
+                    output_tokens=22,
+                    total_tokens=33,
+                    cost_usd=Decimal("NaN"),
+                    request_type="chat",
+                )
+            ]
+        )
+    )
+
+    with pytest.raises(ValueError, match="cost_usd must be finite"):
+        await usage_api._get_recent_llm_activity(db, tenant_id)
+
+
+@pytest.mark.asyncio
 async def test_get_llm_usage_computes_limits_from_budget_and_rounds() -> None:
     tenant_id = uuid4()
     now = datetime(2026, 2, 26, 12, 0, tzinfo=timezone.utc)
@@ -242,6 +294,46 @@ async def test_get_llm_usage_computes_limits_from_budget_and_rounds() -> None:
     assert metrics.period_start.startswith("2026-02-01T00:00:00")
     assert metrics.period_end.startswith("2026-03-01T00:00:00")
     assert metrics.utilization_percent == 0.6
+
+
+@pytest.mark.asyncio
+async def test_get_llm_usage_rejects_non_finite_costs() -> None:
+    tenant_id = uuid4()
+    now = datetime(2026, 2, 26, 12, 0, tzinfo=timezone.utc)
+    db = MagicMock()
+    db.execute = AsyncMock(
+        return_value=_one_result(
+            SimpleNamespace(
+                tokens_used=1500,
+                requests_count=3,
+                cost_usd=Decimal("NaN"),
+                budget_limit_usd=Decimal("2.5"),
+            )
+        )
+    )
+
+    with pytest.raises(ValueError, match="cost_usd must be finite"):
+        await usage_api._get_llm_usage(db, tenant_id, now)
+
+
+@pytest.mark.asyncio
+async def test_get_llm_usage_rejects_non_finite_budget_limit() -> None:
+    tenant_id = uuid4()
+    now = datetime(2026, 2, 26, 12, 0, tzinfo=timezone.utc)
+    db = MagicMock()
+    db.execute = AsyncMock(
+        return_value=_one_result(
+            SimpleNamespace(
+                tokens_used=1500,
+                requests_count=3,
+                cost_usd=Decimal("1.25"),
+                budget_limit_usd=Decimal("NaN"),
+            )
+        )
+    )
+
+    with pytest.raises(ValueError, match="budget_limit_usd must be finite"):
+        await usage_api._get_llm_usage(db, tenant_id, now)
 
 
 @pytest.mark.asyncio

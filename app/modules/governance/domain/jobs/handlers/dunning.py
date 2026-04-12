@@ -28,11 +28,17 @@ class DunningHandler(BaseJobHandler):
         charge_reference = payload.get("charge_reference")
 
         if not sub_id:
-            raise ValueError("subscription_id required for dunning")
+            raise PermanentJobError("subscription_id required for dunning")
+        try:
+            subscription_uuid = UUID(str(sub_id))
+        except (TypeError, ValueError) as exc:
+            raise PermanentJobError(
+                "subscription_id must be a valid UUID for dunning"
+            ) from exc
 
         dunning = DunningService(db)
         result = await dunning.retry_payment(
-            UUID(sub_id),
+            subscription_uuid,
             charge_reference=str(charge_reference) if charge_reference else None,
             commit=False,
         )

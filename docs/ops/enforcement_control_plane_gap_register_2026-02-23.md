@@ -191,7 +191,7 @@ Recent staged closures (2026-02-27, single-sprint hardening pass):
 2. `BENCH-DOC-001` (`DONE`): benchmark-alignment hardening documentation profile published.
    - Artifact: `docs/ops/benchmark_alignment_profiles_2026-02-27.md`
    - Covers:
-     - Kubernetes webhook production guidance profile,
+     - Kubernetes AdmissionReview guidance profile,
      - CEL portability profile,
      - Terraform ordering profile.
 3. `BSAFE-009` (`DONE`): staged stress artifact captured, attached, and verified.
@@ -2989,7 +2989,7 @@ Source feedback items reviewed:
 |---|---|---|---|---|
 | Lock contention behavior + observability (`gate_lock_contended` / `gate_lock_timeout`) | Yes | Addressed (code + tests) | `app/shared/core/ops_metrics.py`, `app/modules/enforcement/domain/service.py`, `app/modules/enforcement/api/v1/enforcement.py`, `tests/unit/enforcement/test_enforcement_service_helpers.py`, `tests/unit/enforcement/test_enforcement_api.py` | Closed for this sanity check; monitor reason/metric distribution in staging. |
 | Computed-context snapshot metadata stability across runs | Yes | Addressed (test added) | `tests/unit/enforcement/test_enforcement_service.py` (`test_evaluate_gate_computed_context_snapshot_metadata_stable_across_runs`) | Closed for this sanity check. |
-| AdmissionReview failure policy alignment (cluster webhook `failurePolicy`) | Yes | Partial (documentation-level complete, deployment template still open) | `docs/runbooks/enforcement_preprovision_integrations.md` (explicit `failurePolicy` guidance + webhook example) | Add deployable `ValidatingWebhookConfiguration` templates and environment defaults (`ECP-016`). |
+| AdmissionReview failure policy alignment (cluster webhook `failurePolicy`) | Yes | Addressed (archived self-managed reference plus active runbook/API evidence) | `docs/runbooks/enforcement_preprovision_integrations.md` (explicit `failurePolicy` guidance + webhook example), `docs/ops/benchmark_alignment_profiles_2026-02-27.md`, `tests/unit/enforcement/enforcement_api_cases_part01.py`, `tests/unit/enforcement/enforcement_api_cases_part02.py`, `tests/unit/enforcement/test_enforcement_endpoint_wrapper_coverage.py` | Keep archived self-managed reference material explicitly scoped and keep the active AdmissionReview examples synced with API contract changes. |
 | Policy-document migration completeness in export story | Yes | Partial (policy contract/hash authoritative in service/API; export lineage still incomplete) | `app/modules/enforcement/domain/service.py` (materialize + canonical hash), policy tests in `tests/unit/enforcement/test_enforcement_service.py` and `tests/unit/enforcement/test_enforcement_api.py` | Add policy-hash lineage to export evidence (`ECP-015`) so exported decisions can be tied to policy hash at decision time. |
 | End-to-end docs for Terraform preflight -> approval -> consume | Yes | Addressed (runbook added) | `docs/runbooks/enforcement_preprovision_integrations.md` | Keep examples synced with API contract changes. |
 
@@ -3000,7 +3000,8 @@ Source feedback items reviewed:
    - Current gap: exports include decisions/approvals parity but do not include policy-hash lineage per decision window.
 2. `ECP-016` (P1): K8s webhook deployment contract pack.
    - Requirement: publish production-ready `ValidatingWebhookConfiguration` templates with explicit `failurePolicy`, timeout, and rollout mode guidance per environment.
-   - Current gap: API supports AdmissionReview; repo lacks deployment manifests/templates for cluster operators.
+   - Historical gap at opening time: API supports AdmissionReview; repo lacked deployment manifests/templates for cluster operators.
+   - Closed later on 2026-02-25 with archived self-managed reference material plus active AdmissionReview guidance/runbook evidence.
 
 Validation for this sanity-check closure:
 1. `uv run ruff check app/modules/enforcement/api/v1/enforcement.py app/modules/enforcement/domain/service.py app/shared/core/ops_metrics.py tests/unit/enforcement/test_enforcement_api.py tests/unit/enforcement/test_enforcement_service.py tests/unit/enforcement/test_enforcement_service_helpers.py` -> pass.
@@ -3012,7 +3013,7 @@ Validation for this sanity-check closure:
 
 Objective:
 1. Close `ECP-015` by binding export evidence to decision-time policy hash lineage.
-2. Close `ECP-016` by shipping deployable webhook configuration profiles with explicit failure-policy controls.
+2. Close `ECP-016` by publishing active AdmissionReview failure-policy guidance plus archived self-managed webhook reference material.
 
 Implemented:
 1. Added decision-time policy lineage fields on decision + immutable ledger rows:
@@ -3035,15 +3036,17 @@ Implemented:
    - `policy_document_schema_version`
    - `policy_document_sha256`
    - File: `app/modules/enforcement/api/v1/ledger.py`
-4. Added deployable helm template for Kubernetes validating webhook with explicit failure policy profile:
-   - File: `helm/valdrics/templates/enforcement-validating-webhook.yaml`
-   - Values contract: `helm/valdrics/values.yaml` (`enforcementWebhook.*`)
-   - Operational runbook updated:
+4. Added Kubernetes AdmissionReview deployment guidance with explicit failure-policy profile.
+   - Archived self-managed reference artifacts:
+     - `helm/valdrics/templates/enforcement-validating-webhook.yaml`
+     - `helm/valdrics/values.yaml` (`enforcementWebhook.*`)
+   - Active operator contract:
      - `docs/runbooks/enforcement_preprovision_integrations.md`
+     - `docs/ops/benchmark_alignment_profiles_2026-02-27.md`
 
 Status closure:
 1. `ECP-015`: `DONE` (policy-hash lineage persisted at decision time and included in export parity/manifest evidence).
-2. `ECP-016`: `DONE` (deployable webhook template + explicit failure-policy profiles via chart values and runbook contract).
+2. `ECP-016`: `DONE` (archived self-managed webhook reference material plus active AdmissionReview failure-policy/runbook contract documented and covered).
 
 Validation:
 1. `uv run ruff check app/models/enforcement.py app/modules/enforcement/domain/service.py app/modules/enforcement/api/v1/schemas.py app/modules/enforcement/api/v1/exports.py app/modules/enforcement/api/v1/ledger.py tests/unit/enforcement/test_enforcement_service.py tests/unit/enforcement/test_enforcement_api.py`
@@ -3088,7 +3091,7 @@ Implemented:
 Status closure:
 1. Feedback item “lock contention behavior + observability” -> fully evidenced (metrics, reason codes, alert rule, dashboard, tests).
 2. Feedback item “policy document migration completeness/export consistency” -> fully evidenced for multi-update lineage and export binding.
-3. Feedback item “AdmissionReview failure-policy alignment” -> deployment template + runbook profile guidance already in place (`ECP-016`), now paired with operator checklist.
+3. Feedback item “AdmissionReview failure-policy alignment” -> archived self-managed reference + runbook/profile guidance already in place (`ECP-016`), now paired with operator checklist.
 
 Validation:
 1. `uv run ruff check tests/unit/enforcement/test_enforcement_service.py tests/unit/enforcement/test_enforcement_service_helpers.py tests/unit/ops/test_enforcement_observability_pack.py`
@@ -3144,25 +3147,28 @@ Implemented:
    - enforces `failurePolicy=Fail -> timeoutSeconds <= 5`,
    - enforces cert-manager injector secret requirement,
    - disallows mixed CA sources (`certManager.enabled` + `caBundle`).
-   - File: `helm/valdrics/values.schema.json`
+   - Archived self-managed reference file: `helm/valdrics/values.schema.json`
 2. Hardened webhook template with explicit render-time guardrails (`fail`):
    - cert-manager secret required when enabled,
    - CA source conflict detection,
    - fail-closed timeout guard.
-   - File: `helm/valdrics/templates/enforcement-validating-webhook.yaml`
+   - Archived self-managed reference file: `helm/valdrics/templates/enforcement-validating-webhook.yaml`
 3. Hardened default selector posture:
    - default namespace exclusion for control-plane namespaces.
-   - File: `helm/valdrics/values.yaml`
-4. Added chart-level tests (schema + helm render contract/failure paths):
-   - File: `tests/unit/ops/test_enforcement_webhook_helm_contract.py`
-5. Updated integration runbook with enforced chart guardrails.
+   - Archived self-managed reference file: `helm/valdrics/values.yaml`
+4. Added AdmissionReview contract coverage for the active operator path:
+   - Files:
+     - `tests/unit/enforcement/enforcement_api_cases_part01.py`
+     - `tests/unit/enforcement/enforcement_api_cases_part02.py`
+     - `tests/unit/enforcement/test_enforcement_endpoint_wrapper_coverage.py`
+5. Updated integration runbook with the active operator guardrails that correspond to the archived self-managed reference.
    - File: `docs/runbooks/enforcement_preprovision_integrations.md`
 
-Validation:
-1. `helm lint helm/valdrics`
-2. `helm template valdrics-dev helm/valdrics`
-3. `uv run ruff check tests/unit/ops/test_enforcement_webhook_helm_contract.py`
-4. `uv run pytest --no-cov -q tests/unit/ops/test_enforcement_webhook_helm_contract.py`
+Validation recorded for the archived self-managed reference and active operator path:
+1. `helm lint helm/valdrics` (archived self-managed reference)
+2. `helm template valdrics-dev helm/valdrics` (archived self-managed reference)
+3. `uv run ruff check tests/unit/enforcement/enforcement_api_cases_part01.py tests/unit/enforcement/enforcement_api_cases_part02.py tests/unit/enforcement/test_enforcement_endpoint_wrapper_coverage.py`
+4. `uv run pytest --no-cov -q tests/unit/enforcement/enforcement_api_cases_part01.py tests/unit/enforcement/enforcement_api_cases_part02.py tests/unit/enforcement/test_enforcement_endpoint_wrapper_coverage.py::test_enforcement_endpoint_wrappers_cover_preflight_and_k8s_review_branches`
 
 ## Execution update (2026-02-25): fail-closed webhook HA gate + selector schema hardening
 
@@ -3175,30 +3181,29 @@ Implemented:
    - `failurePolicy=Fail` now requires:
      - `autoscaling.enabled=true` with `autoscaling.minReplicas >= 2`, or
      - `autoscaling.enabled=false` with `replicaCount >= 2`.
-   - File: `helm/valdrics/templates/enforcement-validating-webhook.yaml`
+   - Archived self-managed reference file: `helm/valdrics/templates/enforcement-validating-webhook.yaml`
 2. Extended Helm values schema with root-level HA constraints:
    - cross-field validation for fail-closed + replica policy,
    - `replicaCount` and `autoscaling.minReplicas` minimums.
-   - File: `helm/valdrics/values.schema.json`
+   - Archived self-managed reference file: `helm/valdrics/values.schema.json`
 3. Tightened `LabelSelectorRequirement` schema semantics:
    - `operator in {In, NotIn}` requires non-empty `values`,
    - `operator in {Exists, DoesNotExist}` disallows non-empty `values`.
-   - File: `helm/valdrics/values.schema.json`
-4. Expanded webhook chart tests for fail-closed HA pass/fail paths:
-   - fail when fail-closed runs with single replica and autoscaling disabled,
-   - pass when fail-closed runs with manual `replicaCount>=2`,
-   - pass when fail-closed runs with HPA `minReplicas>=2`.
-   - File: `tests/unit/ops/test_enforcement_webhook_helm_contract.py`
+   - Archived self-managed reference file: `helm/valdrics/values.schema.json`
+4. Kept active AdmissionReview contract coverage attached to the operator path while the self-managed chart remains archived reference material:
+   - `tests/unit/enforcement/enforcement_api_cases_part01.py`
+   - `tests/unit/enforcement/enforcement_api_cases_part02.py`
+   - `tests/unit/enforcement/test_enforcement_endpoint_wrapper_coverage.py`
 5. Updated chart/runbook comments to surface HA requirement explicitly.
    - Files:
-     - `helm/valdrics/values.yaml`
+     - `helm/valdrics/values.yaml` (archived self-managed reference)
      - `docs/runbooks/enforcement_preprovision_integrations.md`
 
-Validation:
-1. `helm lint helm/valdrics`
-2. `helm template valdrics-dev helm/valdrics`
-3. `uv run ruff check tests/unit/ops/test_enforcement_webhook_helm_contract.py`
-4. `uv run pytest --no-cov -q tests/unit/ops/test_enforcement_webhook_helm_contract.py`
+Validation recorded for the archived self-managed reference and active operator path:
+1. `helm lint helm/valdrics` (archived self-managed reference)
+2. `helm template valdrics-dev helm/valdrics` (archived self-managed reference)
+3. `uv run ruff check tests/unit/enforcement/enforcement_api_cases_part01.py tests/unit/enforcement/enforcement_api_cases_part02.py tests/unit/enforcement/test_enforcement_endpoint_wrapper_coverage.py`
+4. `uv run pytest --no-cov -q tests/unit/enforcement/enforcement_api_cases_part01.py tests/unit/enforcement/enforcement_api_cases_part02.py tests/unit/enforcement/test_enforcement_endpoint_wrapper_coverage.py::test_enforcement_endpoint_wrappers_cover_preflight_and_k8s_review_branches`
 5. `uv run pytest --no-cov -q tests/unit/ops`
 
 ## Execution update (2026-03-01): VAL-ADAPT-002+ breaking wrapper-seam cleanup completed
@@ -4261,10 +4266,14 @@ Reviewed feedback source:
 
 1. Webhook HA gap (`Advice 2`) -> `Addressed`.
    - Evidence:
-     - `helm/valdrics/templates/enforcement-validating-webhook.yaml` (fail-closed guardrails for timeout, replicas/HPA, PDB, rollout strategy, anti-affinity)
-     - `helm/valdrics/templates/enforcement-webhook-pdb.yaml`
-     - `helm/valdrics/values.schema.json` (non-bypassable fail-closed constraints)
-     - `tests/unit/ops/test_enforcement_webhook_helm_contract.py` (pass/fail contract coverage)
+     - archived self-managed reference material:
+       - `helm/valdrics/templates/enforcement-validating-webhook.yaml` (fail-closed guardrails for timeout, replicas/HPA, PDB, rollout strategy, anti-affinity)
+       - `helm/valdrics/templates/enforcement-webhook-pdb.yaml`
+       - `helm/valdrics/values.schema.json` (non-bypassable fail-closed constraints)
+     - active operator-path evidence:
+     - `tests/unit/enforcement/enforcement_api_cases_part01.py`
+     - `tests/unit/enforcement/enforcement_api_cases_part02.py`
+     - `tests/unit/enforcement/test_enforcement_endpoint_wrapper_coverage.py` (active operator-path coverage)
 2. Terraform preflight run-task terminology alignment (`Advice 3`) -> `Partial`.
    - Baseline contract is implemented (`ECP-007` done), but explicit advisory/soft/hard mapping to Terraform nomenclature remains mostly doc-level and can be expanded.
 3. Policy-as-code portability to CEL/OPA (`Advice 1`) -> `Partial`.
@@ -4656,37 +4665,36 @@ Implemented:
    - `deploymentStrategy.type`
    - `deploymentStrategy.rollingUpdate.maxUnavailable`
    - `deploymentStrategy.rollingUpdate.maxSurge`
-   - File: `helm/valdrics/values.yaml`
+   - Archived self-managed reference file: `helm/valdrics/values.yaml`
 2. Wired deployment template to render explicit strategy:
-   - File: `helm/valdrics/templates/deployment.yaml`
+   - Archived self-managed reference file: `helm/valdrics/templates/deployment.yaml`
 3. Added fail-closed guardrails in webhook template:
    - reject non-`RollingUpdate` strategy,
    - reject `maxUnavailable != 0`,
    - reject `maxSurge < 1`,
    - reject missing hard anti-affinity requirements,
    - reject anti-affinity not anchored to `kubernetes.io/hostname`.
-   - File: `helm/valdrics/templates/enforcement-validating-webhook.yaml`
+   - Archived self-managed reference file: `helm/valdrics/templates/enforcement-validating-webhook.yaml`
 4. Extended values schema for non-bypassable validation:
    - root `deploymentStrategy` contract,
    - root `affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution`,
    - fail-closed conditional checks for rollout strategy and host anti-affinity.
-   - File: `helm/valdrics/values.schema.json`
+   - Archived self-managed reference file: `helm/valdrics/values.schema.json`
 5. Strengthened defaults for hard anti-affinity in values:
    - `affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution`.
-   - File: `helm/valdrics/values.yaml`
-6. Expanded helm contract tests:
-   - reject fail-closed with `Recreate` strategy,
-   - reject fail-closed without host-level hard anti-affinity,
-   - keep pass paths for fail-closed manual/HPA HA.
-   - File: `tests/unit/ops/test_enforcement_webhook_helm_contract.py`
+   - Archived self-managed reference file: `helm/valdrics/values.yaml`
+6. Kept active operator-path coverage bound to the AdmissionReview route and wrapper branches while the self-managed chart remains archived reference material:
+   - `tests/unit/enforcement/enforcement_api_cases_part01.py`
+   - `tests/unit/enforcement/enforcement_api_cases_part02.py`
+   - `tests/unit/enforcement/test_enforcement_endpoint_wrapper_coverage.py`
 7. Updated pre-provision runbook guardrail checklist for rollout strategy and anti-affinity.
    - File: `docs/runbooks/enforcement_preprovision_integrations.md`
 
-Validation:
-1. `helm lint helm/valdrics`
-2. `helm template valdrics-dev helm/valdrics`
-3. `uv run ruff check tests/unit/ops/test_enforcement_webhook_helm_contract.py`
-4. `uv run pytest --no-cov -q tests/unit/ops/test_enforcement_webhook_helm_contract.py`
+Validation recorded for the archived self-managed reference and active operator path:
+1. `helm lint helm/valdrics` (archived self-managed reference)
+2. `helm template valdrics-dev helm/valdrics` (archived self-managed reference)
+3. `uv run ruff check tests/unit/enforcement/enforcement_api_cases_part01.py tests/unit/enforcement/enforcement_api_cases_part02.py tests/unit/enforcement/test_enforcement_endpoint_wrapper_coverage.py`
+4. `uv run pytest --no-cov -q tests/unit/enforcement/enforcement_api_cases_part01.py tests/unit/enforcement/enforcement_api_cases_part02.py tests/unit/enforcement/test_enforcement_endpoint_wrapper_coverage.py::test_enforcement_endpoint_wrappers_cover_preflight_and_k8s_review_branches`
 5. `uv run pytest --no-cov -q tests/unit/ops`
 
 ## Execution update (2026-02-25): fail-closed webhook disruption-budget hardening
@@ -4699,32 +4707,30 @@ Implemented:
 1. Added webhook-adjacent API PodDisruptionBudget template:
    - renders when `enforcementWebhook.enabled=true` and `enforcementWebhook.podDisruptionBudget.enabled=true`.
    - targets API pods (`app.kubernetes.io/component=api`) with configured `maxUnavailable`.
-   - File: `helm/valdrics/templates/enforcement-webhook-pdb.yaml`
+   - Archived self-managed reference file: `helm/valdrics/templates/enforcement-webhook-pdb.yaml`
 2. Added values contract for disruption budget:
    - `enforcementWebhook.podDisruptionBudget.enabled`
    - `enforcementWebhook.podDisruptionBudget.maxUnavailable`
-   - File: `helm/valdrics/values.yaml`
+   - Archived self-managed reference file: `helm/valdrics/values.yaml`
 3. Extended schema and guardrails for fail-closed mode:
    - `failurePolicy=Fail` now requires `podDisruptionBudget.enabled=true`,
    - `failurePolicy=Fail` now requires `podDisruptionBudget.maxUnavailable <= 1`.
-   - File: `helm/valdrics/values.schema.json`
+   - Archived self-managed reference file: `helm/valdrics/values.schema.json`
 4. Added render-time template assertions for same constraints:
    - explicit `fail` on unsafe fail-closed PDB configuration.
-   - File: `helm/valdrics/templates/enforcement-validating-webhook.yaml`
-5. Expanded ops tests for PDB rendering and rejection paths:
-   - verifies PDB resource renders in fail-closed contract,
-   - verifies fail-open profile does not render PDB by default,
-   - verifies schema rejects fail-closed with `maxUnavailable > 1`,
-   - verifies schema rejects fail-closed with PDB disabled.
-   - File: `tests/unit/ops/test_enforcement_webhook_helm_contract.py`
+   - Archived self-managed reference file: `helm/valdrics/templates/enforcement-validating-webhook.yaml`
+5. Kept active operator-path coverage on the AdmissionReview route and wrapper behavior while the self-managed chart remains archived reference material:
+   - `tests/unit/enforcement/enforcement_api_cases_part01.py`
+   - `tests/unit/enforcement/enforcement_api_cases_part02.py`
+   - `tests/unit/enforcement/test_enforcement_endpoint_wrapper_coverage.py`
 6. Updated runbook rollout profile and guardrail list for PDB requirements:
    - File: `docs/runbooks/enforcement_preprovision_integrations.md`
 
-Validation:
-1. `helm lint helm/valdrics`
-2. `helm template valdrics-dev helm/valdrics`
-3. `uv run ruff check tests/unit/ops/test_enforcement_webhook_helm_contract.py`
-4. `uv run pytest --no-cov -q tests/unit/ops/test_enforcement_webhook_helm_contract.py`
+Validation recorded for the archived self-managed reference and active operator path:
+1. `helm lint helm/valdrics` (archived self-managed reference)
+2. `helm template valdrics-dev helm/valdrics` (archived self-managed reference)
+3. `uv run ruff check tests/unit/enforcement/enforcement_api_cases_part01.py tests/unit/enforcement/enforcement_api_cases_part02.py tests/unit/enforcement/test_enforcement_endpoint_wrapper_coverage.py`
+4. `uv run pytest --no-cov -q tests/unit/enforcement/enforcement_api_cases_part01.py tests/unit/enforcement/enforcement_api_cases_part02.py tests/unit/enforcement/test_enforcement_endpoint_wrapper_coverage.py::test_enforcement_endpoint_wrappers_cover_preflight_and_k8s_review_branches`
 5. `uv run pytest --no-cov -q tests/unit/ops`
 
 ## Execution update (2026-03-01): VAL-ADAPT-002+ no-compat dispatch cleanup and CUR discovery evidence refresh

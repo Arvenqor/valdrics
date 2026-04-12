@@ -46,7 +46,7 @@ def update_log_to_item(row: CarbonFactorUpdateLog) -> CarbonFactorUpdateLogItem:
 
 def require_tenant_id(user: CurrentUser) -> UUID:
     if user.tenant_id is None:
-        raise HTTPException(status_code=401, detail="Tenant context required")
+        raise HTTPException(status_code=403, detail="Tenant context required.")
     return user.tenant_id
 
 

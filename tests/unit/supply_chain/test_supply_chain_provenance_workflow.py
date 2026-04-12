@@ -9,7 +9,9 @@ PINNED_WORKFLOW_PATHS = (
     REPO_ROOT / ".github/workflows/ci.yml",
     REPO_ROOT / ".github/workflows/security-scan.yml",
     REPO_ROOT / ".github/workflows/sbom.yml",
-    REPO_ROOT / ".github/workflows/publish-release-images.yml",
+    REPO_ROOT / ".github/workflows/release-unified-platform.yml",
+    REPO_ROOT / ".github/workflows/publish-artifact-registry-images.yml",
+    REPO_ROOT / ".github/workflows/deploy-unified-platform.yml",
     REPO_ROOT / ".github/workflows/performance-gate.yml",
     REPO_ROOT / ".github/workflows/disaster-recovery-drill.yml",
     REPO_ROOT / ".github/workflows/cla.yml",
@@ -48,26 +50,21 @@ def test_sbom_workflow_verifies_attestations_before_promotion() -> None:
     assert "--artifact ./provenance/supply-chain-manifest.json" in text
 
 
-def test_publish_release_images_workflow_uses_ghcr_digest_promotion_contract() -> None:
+def test_publish_artifact_registry_workflow_uses_digest_promotion_contract() -> None:
     text = (
-        REPO_ROOT / ".github/workflows/publish-release-images.yml"
+        REPO_ROOT / ".github/workflows/publish-artifact-registry-images.yml"
     ).read_text(encoding="utf-8")
 
     assert "workflow_dispatch:" in text
-    assert "release:" in text
-    assert "types: [published]" in text
-    assert "packages: write" in text
-    assert "attestations: write" in text
     assert "id-token: write" in text
-    assert "docker login ghcr.io" in text
-    assert "ghcr-release.json" in text
-    assert "ghcr-release.env" in text
+    assert "google-github-actions/auth@" in text
+    assert "gcloud auth configure-docker" in text
+    assert "artifact-registry-release.json" in text
+    assert "artifact-registry-release.env" in text
     assert "valdrics-api" in text
-    assert "valdrics-dashboard" in text
     assert "promotion_ref" in text
     assert "API_IMAGE_DIGEST" in text
-    assert "DASHBOARD_IMAGE_DIGEST" in text
-    assert "actions/attest-build-provenance@" in text
+    assert "immutable_artifact_registry_promotion" in text
 
 
 def test_ci_workflow_enforces_enterprise_placeholder_guard() -> None:
@@ -145,18 +142,28 @@ def test_performance_gate_supports_reuse_and_ci_automation() -> None:
     assert "bootstrap_tenant:" in perf_text
     assert "scripts/bootstrap_performance_tenant.py" in perf_text
     assert "scripts/load_test_api.py" in perf_text
+    assert "scripts/run_local_managed_worker.py" in perf_text
     assert "uvicorn app.main:app" in perf_text
+    assert "Launch Managed Worker Loop" in perf_text
     assert 'ENVIRONMENT: "staging"' in perf_text
     assert 'TESTING: "false"' in perf_text
     assert 'API_URL: "https://api.staging.valdrics.example"' in perf_text
     assert 'FRONTEND_URL: "https://dashboard.staging.valdrics.example"' in perf_text
+    assert 'PLATFORM_RUNTIME_PROFILE: "gcp"' in perf_text
+    assert 'OBSERVABILITY_BACKEND: "gcp"' in perf_text
+    assert 'PUBLIC_API_RATE_LIMITING_BACKEND: "cloudflare"' in perf_text
+    assert 'RATELIMIT_ENABLED: "false"' in perf_text
+    assert 'CIRCUIT_BREAKER_DISTRIBUTED_STATE: "false"' in perf_text
+    assert 'GCP_PROJECT_ID: "valdrics-staging"' in perf_text
+    assert 'GCP_CLOUD_TASKS_QUEUE: "valdrics-default"' in perf_text
     assert "postgres:16.13-alpine" in perf_text
-    assert "redis:7.2.13-alpine" in perf_text
-    assert "otel/opentelemetry-collector:0.147.0" in perf_text
-    assert "Wait for OTEL Collector" in perf_text
+    assert 'SENTRY_DSN: "https://example@sentry.io/1"' not in perf_text
+    assert 'OTEL_EXPORTER_OTLP_ENDPOINT: "http://127.0.0.1:4317"' not in perf_text
+    assert "otel/opentelemetry-collector:0.147.0" not in perf_text
+    assert "Wait for OTEL Collector" not in perf_text
     assert "uv run python scripts/validate_runtime_env.py --environment staging" in perf_text
     assert "uv run alembic upgrade head" in perf_text
-    assert "uv run celery -A app.shared.core.celery_app:celery_app worker -l info" in perf_text
+    assert "uv run celery -A app.shared.core.celery_app:celery_app worker -l info" not in perf_text
     assert "performance-health-gate:" in ci_text
     assert "performance-dashboard-gate:" in ci_text
     assert "performance-ops-gate:" in ci_text
@@ -184,12 +191,25 @@ def test_strict_runtime_preflight_is_hermetic_and_explicit_in_workflows() -> Non
 
     assert 'API_URL: "https://api.validation.example.com"' in ci_text
     assert 'FRONTEND_URL: "https://app.validation.example.com"' in ci_text
-    assert 'OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"' in ci_text
+    assert 'OBSERVABILITY_BACKEND: "gcp"' in ci_text
+    assert 'OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"' not in ci_text
+    assert 'SENTRY_DSN: "https://example@sentry.io/1"' not in ci_text
     assert 'API_URL: "https://api.staging.valdrics.example"' in dr_text
     assert 'FRONTEND_URL: "https://dashboard.staging.valdrics.example"' in dr_text
-    assert "otel/opentelemetry-collector:0.147.0" in dr_text
-    assert "Wait for OTEL Collector" in dr_text
+    assert 'PLATFORM_RUNTIME_PROFILE: "gcp"' in dr_text
+    assert 'OBSERVABILITY_BACKEND: "gcp"' in dr_text
+    assert 'PUBLIC_API_RATE_LIMITING_BACKEND: "cloudflare"' in dr_text
+    assert 'RATELIMIT_ENABLED: "false"' in dr_text
+    assert 'CIRCUIT_BREAKER_DISTRIBUTED_STATE: "false"' in dr_text
+    assert 'GCP_PROJECT_ID: "valdrics-staging"' in dr_text
+    assert 'SENTRY_DSN: "https://example@sentry.io/1"' not in dr_text
+    assert 'OTEL_EXPORTER_OTLP_ENDPOINT: "http://127.0.0.1:4317"' not in dr_text
+    assert "otel/opentelemetry-collector:0.147.0" not in dr_text
+    assert "Wait for OTEL Collector" not in dr_text
     assert "uv run python scripts/validate_runtime_env.py --environment staging" in dr_text
+    assert "Launch Managed Worker Loop" in dr_text
+    assert "scripts/run_local_managed_worker.py" in dr_text
+    assert "uv run celery -A app.shared.core.celery_app:celery_app worker -l info" not in dr_text
 
 
 def test_local_postgres_service_workflows_disable_db_ssl() -> None:
@@ -202,8 +222,10 @@ def test_local_postgres_service_workflows_disable_db_ssl() -> None:
 
     assert 'DATABASE_URL: "postgresql+asyncpg://postgres:local-dev-change-me@127.0.0.1:5432/valdrics"' in perf_text
     assert 'DB_SSL_MODE: "disable"' in perf_text
+    assert 'REDIS_URL: "redis://localhost:6379/0"' not in perf_text
     assert 'DATABASE_URL: "postgresql+asyncpg://postgres:local-dev-change-me@127.0.0.1:5432/valdrics"' in dr_text
     assert 'DB_SSL_MODE: "disable"' in dr_text
+    assert 'REDIS_URL: "redis://localhost:6379/0"' not in dr_text
 
 
 def test_ci_and_security_workflows_fail_on_high_or_critical_infra_and_container_findings() -> None:
@@ -217,6 +239,23 @@ def test_ci_and_security_workflows_fail_on_high_or_critical_infra_and_container_
     assert "--minimum-severity HIGH" in ci_text
     assert "--severity CRITICAL,HIGH" in security_text
     assert "--exit-code 1" in security_text
+
+
+def test_security_scan_uses_hermetic_compose_env_for_dast() -> None:
+    text = (REPO_ROOT / ".github/workflows/security-scan.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "scripts/generate_local_compose_env.py --output-path .env.compose.dev" in text
+    assert "cp .env.example .env" not in text
+    assert '"PUBLIC_API_RATE_LIMITING_BACKEND": "cloudflare"' in text
+    assert '"RATELIMIT_ENABLED": "false"' in text
+    assert '"CIRCUIT_BREAKER_DISTRIBUTED_STATE": "false"' in text
+    assert '"CIRCUIT_BREAKER_DISTRIBUTED_STATE": "true"' not in text
+    assert '"REDIS_URL": ""' in text
+    assert 'docker compose --env-file .env.compose.dev up -d --build postgres api dashboard' in text
+    assert 'docker compose --env-file .env.compose.dev down -v' in text
+    assert "docker compose up -d --build postgres redis api dashboard" not in text
 
 
 def test_ci_workflow_pins_tflint_setup_version() -> None:

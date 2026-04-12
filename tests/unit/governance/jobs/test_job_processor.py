@@ -10,6 +10,7 @@ from app.modules.governance.domain.jobs.processor import (
     JobStatus,
     MAX_JOB_RESULT_BYTES,
 )
+from app.modules.governance.domain.jobs.errors import PermanentJobError
 from app.models.background_job import BackgroundJob
 
 
@@ -111,13 +112,13 @@ async def test_process_pending_jobs_counts_failed(job_processor):
 async def test_process_pending_jobs_config_error(job_processor):
     job = BackgroundJob(id=uuid4(), job_type="test_job", attempts=0, max_attempts=3)
     job_processor._fetch_and_lock_batch = AsyncMock(return_value=[job])
-    job_processor._process_single_job = AsyncMock(side_effect=KeyError("bad config"))
+    job_processor._process_single_job = AsyncMock(side_effect=RuntimeError("bad config"))
 
     results = await job_processor.process_pending_jobs(limit=1)
 
     assert results["processed"] == 1
     assert results["failed"] == 1
-    assert results["errors"][0]["type"] == "config"
+    assert results["errors"][0]["error"] == "bad config"
 
 
 @pytest.mark.asyncio
@@ -270,6 +271,85 @@ async def test_process_single_job_dead_letter(job_processor, mock_db_session):
         assert job.status == JobStatus.DEAD_LETTER.value
         assert job.attempts == 3
         mock_db_session.commit.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_process_single_job_permanent_handler_error_dead_letters_immediately(
+    job_processor, mock_db_session
+):
+    job = BackgroundJob(
+        id=uuid4(),
+        job_type="test_job",
+        attempts=0,
+        max_attempts=3,
+        status=JobStatus.PENDING.value,
+    )
+
+    with patch(
+        "app.modules.governance.domain.jobs.processor.get_handler_factory"
+    ) as mock_factory:
+        mock_handler = AsyncMock()
+        mock_handler.execute.side_effect = PermanentJobError("tenant_id required")
+        mock_factory.return_value.return_value = mock_handler
+
+        await job_processor._process_single_job(job)
+
+    assert job.status == JobStatus.DEAD_LETTER.value
+    assert job.attempts == 1
+    assert job.error_message == "tenant_id required"
+    mock_db_session.commit.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_process_single_job_attribute_error_is_classified_as_unexpected(
+    job_processor, mock_db_session
+):
+    job = BackgroundJob(
+        id=uuid4(),
+        job_type="test_job",
+        attempts=0,
+        max_attempts=3,
+        status=JobStatus.PENDING.value,
+    )
+
+    with patch(
+        "app.modules.governance.domain.jobs.processor.get_handler_factory"
+    ) as mock_factory:
+        mock_handler = AsyncMock()
+        mock_handler.execute.side_effect = AttributeError("missing execute dependency")
+        mock_factory.return_value.return_value = mock_handler
+
+        await job_processor._process_single_job(job)
+
+    assert job.status == JobStatus.PENDING.value
+    assert job.error_message == "AttributeError: missing execute dependency"
+    mock_db_session.commit.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_process_single_job_value_error_is_classified_as_unexpected(
+    job_processor, mock_db_session
+):
+    job = BackgroundJob(
+        id=uuid4(),
+        job_type="test_job",
+        attempts=0,
+        max_attempts=3,
+        status=JobStatus.PENDING.value,
+    )
+
+    with patch(
+        "app.modules.governance.domain.jobs.processor.get_handler_factory"
+    ) as mock_factory:
+        mock_handler = AsyncMock()
+        mock_handler.execute.side_effect = ValueError("bad internal state")
+        mock_factory.return_value.return_value = mock_handler
+
+        await job_processor._process_single_job(job)
+
+    assert job.status == JobStatus.PENDING.value
+    assert job.error_message == "ValueError: bad internal state"
+    mock_db_session.commit.assert_awaited()
 
 
 @pytest.mark.asyncio

@@ -1,0 +1,200 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from app.shared.orchestration.contracts import ManagedWorkItem
+from app.shared.orchestration.schedules import cloud_scheduler_jobs_payload
+
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+def test_terraform_root_targets_gcp_cloudflare_and_supabase() -> None:
+    providers = (REPO_ROOT / "terraform/providers.tf").read_text(encoding="utf-8")
+    main = (REPO_ROOT / "terraform/main.tf").read_text(encoding="utf-8")
+    variables = (REPO_ROOT / "terraform/variables.tf").read_text(encoding="utf-8")
+
+    assert 'source  = "hashicorp/google"' in providers
+    assert 'source  = "hashicorp/tls"' in providers
+    assert 'source  = "cloudflare/cloudflare"' in providers
+    assert 'source  = "supabase/supabase"' in providers
+
+    assert 'resource "google_cloud_run_v2_service" "api"' in main
+    assert 'ingress  = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"' in main
+    assert "custom_audiences = [var.api_url]" in main
+    assert 'resource "google_compute_global_address" "api_edge"' in main
+    assert 'resource "google_compute_region_network_endpoint_group" "api"' in main
+    assert 'resource "google_compute_security_policy" "api_edge_origin"' in main
+    assert 'resource "google_compute_backend_service" "api"' in main
+    assert (
+        "security_policy       = google_compute_security_policy.api_edge_origin.id"
+        in main
+    )
+    assert "Deny direct origin access that bypasses Cloudflare." in main
+    assert 'resource "google_compute_target_https_proxy" "api"' in main
+    assert 'resource "cloudflare_dns_record" "api"' in main
+    assert 'resource "cloudflare_ruleset" "api_rate_limit"' in main
+    assert 'characteristics     = ["cf.colo.id", "ip.src"]' in main
+    assert 'expression  = "(http.host eq \\"${local.api_hostname}\\")"' in main
+    assert 'resource "cloudflare_ruleset" "api_internal_block"' in main
+    assert 'resource "google_cloud_run_v2_job" "batch"' in main
+    assert 'resource "google_cloud_tasks_queue" "runtime"' in main
+    assert 'resource "google_cloud_scheduler_job" "managed"' in main
+    assert 'resource "google_secret_manager_secret" "runtime"' in main
+    assert 'resource "cloudflare_pages_project" "dashboard"' in main
+    assert 'resource "supabase_project" "platform"' in main
+    assert 'resource "supabase_settings" "platform"' in main
+
+    assert 'variable "runtime_plain_env"' in variables
+    assert 'variable "runtime_secret_env"' in variables
+    assert 'variable "cloudflare_zone_id"' in variables
+    assert 'variable "cloudflare_origin_allow_cidrs"' in variables
+    assert 'variable "cloudflare_pages_project_name"' in variables
+    assert 'variable "supabase_project_name"' in variables
+    assert (
+        'managed_scheduler_jobs              = jsondecode(file("${path.module}/managed_scheduler_jobs.json"))'
+        in main
+    )
+
+
+def test_terraform_root_excludes_archived_aws_failover_and_secret_rotation_inputs() -> (
+    None
+):
+    providers = (REPO_ROOT / "terraform/providers.tf").read_text(encoding="utf-8")
+    main = (REPO_ROOT / "terraform/main.tf").read_text(encoding="utf-8")
+    variables = (REPO_ROOT / "terraform/variables.tf").read_text(encoding="utf-8")
+
+    assert 'source  = "hashicorp/aws"' not in providers
+    assert 'module "secrets_rotation"' not in main
+    assert 'module "secondary_network"' not in main
+    assert 'module "secondary_eks"' not in main
+    assert 'module "secondary_db"' not in main
+    assert 'module "secondary_cache"' not in main
+    assert 'variable "enable_secret_rotation"' not in variables
+    assert 'variable "secret_rotation_lambda_arn"' not in variables
+    assert 'variable "enable_multi_region_failover"' not in variables
+    assert 'variable "secondary_aws_region"' not in variables
+
+
+def test_terraform_managed_scheduler_contract_matches_backend_contract() -> None:
+    main = (REPO_ROOT / "terraform/main.tf").read_text(encoding="utf-8")
+    scheduler_contract = json.loads(
+        (REPO_ROOT / "terraform/managed_scheduler_jobs.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    allowed_work_items = {item.value for item in ManagedWorkItem}
+
+    assert scheduler_contract == cloud_scheduler_jobs_payload()
+    assert set(item["work_item"] for item in scheduler_contract.values()).issubset(
+        allowed_work_items
+    )
+    assert "stuck_job_detector" in scheduler_contract
+    assert (
+        scheduler_contract["stuck_job_detector"]["work_item"]
+        == ManagedWorkItem.BACKGROUND_JOB_STUCK_DETECTION.value
+    )
+    assert "cohort_high_value_scan" in scheduler_contract
+    assert "cohort_active_scan" in scheduler_contract
+    assert "cohort_dormant_scan" in scheduler_contract
+    assert '"--work-item", "background_jobs.process", "--payload", "{}"' in main
+    assert "audience              = var.api_url" in main
+
+
+def test_publish_artifact_registry_workflow_uses_wif_and_digest_promotion() -> None:
+    workflow = (
+        REPO_ROOT / ".github/workflows/publish-artifact-registry-images.yml"
+    ).read_text(encoding="utf-8")
+
+    assert "workflow_call:" in workflow
+    assert "api_promotion_ref:" in workflow
+    assert "google-github-actions/auth@" in workflow
+    assert "google-github-actions/setup-gcloud@" in workflow
+    assert "gcloud auth configure-docker" in workflow
+    assert (
+        "docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3"
+        in workflow
+    )
+    assert (
+        "docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0"
+        in workflow
+    )
+    assert "artifact-registry-release.json" in workflow
+    assert "artifact-registry-release.env" in workflow
+    assert "immutable_artifact_registry_promotion" in workflow
+
+
+def test_deploy_unified_platform_workflow_applies_terraform_and_cloudflare_pages() -> (
+    None
+):
+    workflow = (REPO_ROOT / ".github/workflows/deploy-unified-platform.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "workflow_call:" in workflow
+    assert "release_tag:" in workflow
+    assert "batch_promotion_ref:" in workflow
+    assert "hashicorp/setup-terraform@" in workflow
+    assert "b9cd54a3c349d3f38e8881555d616ced269862dd # v3" in workflow
+    assert "RUNTIME_PLAIN_ENV_JSON" in workflow
+    assert "RUNTIME_SECRET_ENV_JSON" in workflow
+    assert "generate_managed_runtime_env.py" in workflow
+    assert "generate_managed_migration_env.py" in workflow
+    assert "generate_managed_deployment_artifacts.py" in workflow
+    assert "verify_managed_deployment_bundle.py" in workflow
+    assert "actions/upload-artifact@" in workflow
+    assert "terraform -chdir=terraform init" in workflow
+    assert "terraform.runtime.auto.tfvars.json" in workflow
+    assert "-var-file=" in workflow
+    assert "terraform -chdir=terraform apply -auto-approve tfplan" in workflow
+    assert "source \"${{ steps.managed_bundle.outputs.migration_env_path }}\"" in workflow
+    assert "uv run alembic upgrade head" in workflow
+    assert "wrangler pages deploy" in workflow
+    assert "/health/live" in workflow
+    assert "GCP_WORKLOAD_IDENTITY_PROVIDER" in workflow
+    assert "TF_VAR_runtime_plain_env" not in workflow
+    assert "TF_VAR_runtime_secret_env" not in workflow
+    assert "vars.PUBLIC_API_URL" not in workflow
+    assert "vars.PUBLIC_SUPABASE_URL" not in workflow
+    assert "secrets.DATABASE_URL" not in workflow
+    assert "secrets.SUPABASE_ANON_KEY" not in workflow
+
+
+def test_release_unified_platform_workflow_promotes_one_digest_through_environments() -> (
+    None
+):
+    workflow = (REPO_ROOT / ".github/workflows/release-unified-platform.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert (
+        "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5" in workflow
+    )
+    assert "Publish Backend Artifact" in workflow
+    assert "./.github/workflows/publish-artifact-registry-images.yml" in workflow
+    assert "./.github/workflows/deploy-unified-platform.yml" in workflow
+    assert "ARTIFACT_REGISTRY_PROJECT_ID" in workflow
+    assert "deploy-staging:" in workflow
+    assert "deploy-production:" in workflow
+    assert "inputs.release_tag" in workflow
+    assert "needs.publish.outputs.api_promotion_ref" in workflow
+    assert "needs.publish.outputs.batch_promotion_ref" in workflow
+    assert "promote_production" in workflow
+
+
+def test_unified_platform_release_runbook_matches_new_control_plane() -> None:
+    runbook = (REPO_ROOT / "docs/runbooks/unified_platform_release.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "release-unified-platform.yml" in runbook
+    assert "Google Cloud Run" in runbook
+    assert "Cloud Tasks" in runbook
+    assert "Cloud Scheduler" in runbook
+    assert "Cloud Run Jobs" in runbook
+    assert "Artifact Registry" in runbook
+    assert "Cloudflare Pages" in runbook
+    assert "Supabase" in runbook
+    assert "same `api_promotion_ref`" in runbook
+    assert "managed deployment bundle" in runbook

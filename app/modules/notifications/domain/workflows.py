@@ -25,8 +25,6 @@ from app.shared.core.config import get_settings
 logger = structlog.get_logger()
 WORKFLOW_DISPATCH_RECOVERABLE_EXCEPTIONS = (
     RuntimeError,
-    TypeError,
-    ValueError,
     httpx.HTTPError,
 )
 

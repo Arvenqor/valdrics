@@ -10,7 +10,12 @@ from pydantic import SecretStr
 import structlog
 
 from app.shared.adapters.base import BaseAdapter
-from app.shared.adapters.feed_utils import as_float, is_number, parse_timestamp
+from app.shared.adapters.feed_utils import (
+    as_float,
+    is_number,
+    parse_required_timestamp,
+    parse_timestamp,
+)
 from app.shared.adapters.http_retry import execute_with_http_retry
 from app.shared.adapters.platform_native_mixin import PlatformNativeConnectorMixin
 from app.shared.adapters.resource_usage_projection import (
@@ -279,6 +284,13 @@ class PlatformAdapter(PlatformNativeConnectorMixin, BaseAdapter):
                     f"Spend feed entry #{idx + 1} is missing timestamp/date."
                 )
                 return False
+            try:
+                parse_required_timestamp(has_timestamp)
+            except (TypeError, ValueError):
+                self.last_error = (
+                    f"Spend feed entry #{idx + 1} has invalid timestamp/date."
+                )
+                return False
             amount = entry.get("cost_usd", entry.get("amount_usd"))
             if not is_number(amount):
                 self.last_error = f"Spend feed entry #{idx + 1} must include numeric cost_usd or amount_usd."
@@ -321,8 +333,15 @@ class PlatformAdapter(PlatformNativeConnectorMixin, BaseAdapter):
         if not isinstance(feed, list):
             return
 
-        for entry in feed:
-            timestamp = parse_timestamp(entry.get("timestamp") or entry.get("date"))
+        for idx, entry in enumerate(feed, start=1):
+            try:
+                timestamp = parse_required_timestamp(
+                    entry.get("timestamp") or entry.get("date")
+                )
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"Spend feed entry #{idx} has invalid timestamp/date."
+                ) from exc
             if timestamp < start_date or timestamp > end_date:
                 continue
             service_name = str(
@@ -334,10 +353,11 @@ class PlatformAdapter(PlatformNativeConnectorMixin, BaseAdapter):
             usage_type = str(entry.get("usage_type") or "shared_service")
             region = str(entry.get("region") or entry.get("location") or "global")
             cost_value = entry.get("cost_usd", entry.get("amount_usd", 0.0))
-            try:
-                cost_usd = float(cost_value or 0.0)
-            except (TypeError, ValueError):
-                cost_usd = 0.0
+            if not is_number(cost_value):
+                raise ValueError(
+                    f"Spend feed entry #{idx} must include numeric cost_usd or amount_usd."
+                )
+            cost_usd = float(cost_value or 0.0)
             resource_id_raw = entry.get("resource_id") or entry.get("id")
             resource_id = (
                 str(resource_id_raw).strip()

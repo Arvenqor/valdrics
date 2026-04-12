@@ -144,18 +144,15 @@ async def test_platform_feed_stream_non_list_and_fallback_values() -> None:
             ],
         )
     )
-    rows = [
-        row
-        async for row in adapter.stream_cost_and_usage(
-            datetime(2026, 1, 1, tzinfo=timezone.utc),
-            datetime(2026, 1, 31, tzinfo=timezone.utc),
-        )
-    ]
-    assert len(rows) == 1
-    assert rows[0]["service"] == "Internal Platform"
-    assert rows[0]["cost_usd"] == 0.0
-    assert rows[0]["tags"] == {}
-    assert rows[0]["currency"] == "EUR"
+    with pytest.raises(ValueError, match="Spend feed entry #2 must include numeric cost_usd or amount_usd"):
+        rows = [
+            row
+            async for row in adapter.stream_cost_and_usage(
+                datetime(2026, 1, 1, tzinfo=timezone.utc),
+                datetime(2026, 1, 31, tzinfo=timezone.utc),
+            )
+        ]
+        assert rows == []
 
 
 @pytest.mark.asyncio
@@ -217,4 +214,3 @@ async def test_platform_stream_native_success_short_circuit(vendor: str, method_
             )
         ]
     assert rows == [expected_row]
-

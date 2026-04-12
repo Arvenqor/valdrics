@@ -349,6 +349,27 @@ async def test_usage_tracking_exception(zombie_analyzer):
 
 
 @pytest.mark.asyncio
+async def test_usage_tracking_attribute_error_bubbles() -> None:
+    analyzer = ZombieAnalyzer(MagicMock())
+    response = MagicMock()
+    response.response_metadata = {"token_usage": {"prompt_tokens": 1, "completion_tokens": 2}}
+
+    with patch(
+        "app.shared.llm.zombie_analyzer.LLMBudgetManager.record_usage",
+        new=AsyncMock(side_effect=AttributeError("missing usage recorder dependency")),
+    ):
+        with pytest.raises(AttributeError, match="missing usage recorder dependency"):
+            await analyzer._record_usage(
+                db=AsyncMock(),
+                tenant_id=uuid4(),
+                provider="groq",
+                model="llama-3.3-70b-versatile",
+                response=response,
+                is_byok=False,
+            )
+
+
+@pytest.mark.asyncio
 async def test_usage_tracking_fatal_exception_propagates() -> None:
     analyzer = ZombieAnalyzer(MagicMock())
     response = MagicMock()

@@ -1,10 +1,14 @@
 import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
 from datetime import datetime, timezone, timedelta
-from apscheduler.triggers.cron import CronTrigger
 from app.modules.governance.domain.scheduler.orchestrator import SchedulerOrchestrator
 from app.modules.governance.domain.scheduler.cohorts import TenantCohort
 from app.models.background_job import BackgroundJob, JobStatus
+from app.shared.orchestration.contracts import (
+    ManagedWorkItem,
+    ManagedWorkRequest,
+    ManagedWorkResult,
+)
 import uuid
 
 
@@ -23,25 +27,66 @@ def orchestrator(mock_session_maker):
 @pytest.mark.asyncio
 async def test_license_governance_sweep_job_dispatch(orchestrator) -> None:
     """Test license governance sweep dispatch."""
-    with patch("app.shared.core.celery_app.celery_app.send_task") as mock_send:
+    orchestrator._acquire_dispatch_lock = AsyncMock(return_value=True)  # type: ignore[method-assign]
+    with patch.object(
+        orchestrator.scheduled_trigger_dispatcher,
+        "dispatch",
+        new=AsyncMock(
+            return_value=ManagedWorkResult(
+                accepted=True,
+                transport="gcp_cloud_run_jobs",
+            )
+        ),
+    ) as dispatch:
         await orchestrator.license_governance_sweep_job()
-        mock_send.assert_called_with("license.governance_sweep")
+    dispatch.assert_awaited_once_with(
+        ManagedWorkRequest(work_item=ManagedWorkItem.LICENSE_GOVERNANCE_SWEEP)
+    )
 
 
 @pytest.mark.asyncio
 async def test_enforcement_reconciliation_sweep_job_dispatch(orchestrator) -> None:
-    with patch("app.shared.core.celery_app.celery_app.send_task") as mock_send:
+    orchestrator._acquire_dispatch_lock = AsyncMock(return_value=True)  # type: ignore[method-assign]
+    with patch.object(
+        orchestrator.scheduled_trigger_dispatcher,
+        "dispatch",
+        new=AsyncMock(
+            return_value=ManagedWorkResult(
+                accepted=True,
+                transport="gcp_cloud_run_jobs",
+            )
+        ),
+    ) as dispatch:
         await orchestrator.enforcement_reconciliation_sweep_job()
-        mock_send.assert_called_with("scheduler.enforcement_reconciliation_sweep")
+    dispatch.assert_awaited_once_with(
+        ManagedWorkRequest(
+            work_item=ManagedWorkItem.SCHEDULER_ENFORCEMENT_RECONCILIATION_SWEEP
+        )
+    )
 
 
 @pytest.mark.asyncio
 async def test_cohort_analysis_job_dispatch(orchestrator) -> None:
-    """Test dispatching cohort analysis to Celery."""
-    with patch("app.shared.core.celery_app.celery_app.send_task") as mock_send:
+    """Test dispatching cohort analysis through the orchestration dispatcher."""
+    orchestrator._acquire_dispatch_lock = AsyncMock(return_value=True)  # type: ignore[method-assign]
+    with patch.object(
+        orchestrator.scheduled_trigger_dispatcher,
+        "dispatch",
+        new=AsyncMock(
+            return_value=ManagedWorkResult(
+                accepted=True,
+                transport="gcp_cloud_run_jobs",
+            )
+        ),
+    ) as dispatch:
         await orchestrator.cohort_analysis_job(TenantCohort.HIGH_VALUE)
-        mock_send.assert_called_with("scheduler.cohort_analysis", args=["high_value"])
-        assert orchestrator._last_run_success is True
+    dispatch.assert_awaited_once_with(
+        ManagedWorkRequest(
+            work_item=ManagedWorkItem.SCHEDULER_COHORT_ANALYSIS,
+            payload={"cohort": "high_value"},
+        )
+    )
+    assert orchestrator._last_run_success is True
 
 
 @pytest.mark.asyncio
@@ -93,126 +138,102 @@ async def test_detect_stuck_jobs(orchestrator, mock_session_maker):
 @pytest.mark.asyncio
 async def test_billing_sweep_job(orchestrator: SchedulerOrchestrator) -> None:
     """Test billing sweep dispatch."""
-    with patch("app.shared.core.celery_app.celery_app.send_task") as mock_send:
+    orchestrator._acquire_dispatch_lock = AsyncMock(return_value=True)  # type: ignore[method-assign]
+    with patch.object(
+        orchestrator.scheduled_trigger_dispatcher,
+        "dispatch",
+        new=AsyncMock(
+            return_value=ManagedWorkResult(
+                accepted=True,
+                transport="gcp_cloud_run_jobs",
+            )
+        ),
+    ) as dispatch:
         await orchestrator.billing_sweep_job()
-        mock_send.assert_called_with("scheduler.billing_sweep")
+    dispatch.assert_awaited_once_with(
+        ManagedWorkRequest(work_item=ManagedWorkItem.SCHEDULER_BILLING_SWEEP)
+    )
 
 
 @pytest.mark.asyncio
-async def test_background_job_processing_dispatch(orchestrator: SchedulerOrchestrator) -> None:
-    with patch("app.shared.core.celery_app.celery_app.send_task") as mock_send:
+async def test_background_job_processing_dispatch(
+    orchestrator: SchedulerOrchestrator,
+) -> None:
+    orchestrator._acquire_dispatch_lock = AsyncMock(return_value=True)  # type: ignore[method-assign]
+    with patch.object(
+        orchestrator.scheduled_trigger_dispatcher,
+        "dispatch",
+        new=AsyncMock(
+            return_value=ManagedWorkResult(
+                accepted=True,
+                transport="gcp_cloud_tasks",
+            )
+        ),
+    ) as dispatch:
         await orchestrator.background_job_processing_job()
-        mock_send.assert_called_with("scheduler.process_background_jobs")
+    dispatch.assert_awaited_once_with(
+        ManagedWorkRequest(work_item=ManagedWorkItem.BACKGROUND_JOB_PROCESSING)
+    )
+
+
+@pytest.mark.asyncio
+async def test_background_job_stuck_detection_dispatch(
+    orchestrator: SchedulerOrchestrator,
+) -> None:
+    orchestrator._acquire_dispatch_lock = AsyncMock(return_value=True)  # type: ignore[method-assign]
+    with patch.object(
+        orchestrator.scheduled_trigger_dispatcher,
+        "dispatch",
+        new=AsyncMock(
+            return_value=ManagedWorkResult(
+                accepted=True,
+                transport="gcp_cloud_tasks",
+            )
+        ),
+    ) as dispatch:
+        await orchestrator.background_job_stuck_detection_job()
+    dispatch.assert_awaited_once_with(
+        ManagedWorkRequest(work_item=ManagedWorkItem.BACKGROUND_JOB_STUCK_DETECTION)
+    )
 
 
 @pytest.mark.asyncio
 async def test_landing_funnel_health_refresh_dispatch(
     orchestrator: SchedulerOrchestrator,
 ) -> None:
-    with patch("app.shared.core.celery_app.celery_app.send_task") as mock_send:
-        await orchestrator.landing_funnel_health_refresh_job()
-        mock_send.assert_called_with("scheduler.refresh_landing_funnel_health")
-
-
-@pytest.mark.asyncio
-async def test_background_job_processing_falls_back_inline_when_celery_unavailable(
-    orchestrator: SchedulerOrchestrator,
-) -> None:
-    with (
-        patch(
-            "app.shared.core.celery_app.celery_app.send_task",
-            side_effect=RuntimeError("broker unavailable"),
+    orchestrator._acquire_dispatch_lock = AsyncMock(return_value=True)  # type: ignore[method-assign]
+    with patch.object(
+        orchestrator.scheduled_trigger_dispatcher,
+        "dispatch",
+        new=AsyncMock(
+            return_value=ManagedWorkResult(
+                accepted=True,
+                transport="gcp_cloud_tasks",
+            )
         ),
-        patch.object(
-            orchestrator, "_process_background_jobs_inline", new_callable=AsyncMock
-        ) as mock_inline,
-        patch(
-            "app.modules.governance.domain.scheduler.orchestrator.record_scheduler_inline_fallback"
-        ) as record_fallback,
-    ):
-        await orchestrator.background_job_processing_job()
-
-    mock_inline.assert_awaited_once()
-    record_fallback.assert_called_once_with(
-        "background_job_processing",
-        outcome="succeeded",
-    )
-
-
-@pytest.mark.asyncio
-async def test_background_job_processing_inline_marks_system_context(
-    orchestrator: SchedulerOrchestrator,
-    mock_session_maker,
-) -> None:
-    mock_db = AsyncMock()
-    mock_session_maker.return_value.__aenter__.return_value = mock_db
-    mock_session_maker.return_value.__aexit__.return_value = None
-
-    with (
-        patch(
-            "app.modules.governance.domain.scheduler.orchestrator.mark_session_system_context",
-            new=AsyncMock(),
-        ) as mark_system_context,
-        patch(
-            "app.modules.governance.domain.jobs.processor.JobProcessor",
-        ) as processor_cls,
-    ):
-        processor = processor_cls.return_value
-        processor.process_pending_jobs = AsyncMock(
-            return_value={"processed": 0, "succeeded": 0, "failed": 0}
+    ) as dispatch:
+        await orchestrator.landing_funnel_health_refresh_job()
+    dispatch.assert_awaited_once_with(
+        ManagedWorkRequest(
+            work_item=ManagedWorkItem.SCHEDULER_LANDING_FUNNEL_HEALTH_REFRESH
         )
-        await orchestrator._process_background_jobs_inline()
-
-    mark_system_context.assert_awaited_once_with(mock_db)
-    processor.process_pending_jobs.assert_awaited_once()
-
-
-def test_background_job_processor_runs_once_per_minute(orchestrator: SchedulerOrchestrator) -> None:
-    with (
-        patch.object(orchestrator.scheduler, "add_job") as add_job,
-        patch.object(orchestrator.scheduler, "start"),
-    ):
-        orchestrator.start()
-
-    background_call = next(
-        call
-        for call in add_job.call_args_list
-        if call.kwargs.get("id") == "background_job_processor"
     )
-    trigger = background_call.kwargs["trigger"]
-    assert isinstance(trigger, CronTrigger)
-
-    first = trigger.get_next_fire_time(
-        None,
-        datetime(2026, 1, 1, 10, 0, 5, tzinfo=timezone.utc),
-    )
-    second = trigger.get_next_fire_time(first, first)
-    third = trigger.get_next_fire_time(second, second)
-
-    assert first == datetime(2026, 1, 1, 10, 1, 0, tzinfo=timezone.utc)
-    assert second == datetime(2026, 1, 1, 10, 2, 0, tzinfo=timezone.utc)
-    assert third == datetime(2026, 1, 1, 10, 3, 0, tzinfo=timezone.utc)
-
 
 @pytest.mark.asyncio
 async def test_acceptance_sweep_job(orchestrator: SchedulerOrchestrator) -> None:
     """Test acceptance sweep dispatch."""
-    with patch("app.shared.core.celery_app.celery_app.send_task") as mock_send:
+    orchestrator._acquire_dispatch_lock = AsyncMock(return_value=True)  # type: ignore[method-assign]
+    with patch.object(
+        orchestrator.scheduled_trigger_dispatcher,
+        "dispatch",
+        new=AsyncMock(
+            return_value=ManagedWorkResult(
+                accepted=True,
+                transport="gcp_cloud_run_jobs",
+            )
+        ),
+    ) as dispatch:
         await orchestrator.acceptance_sweep_job()
-        mock_send.assert_called_with("scheduler.acceptance_sweep")
-
-
-@pytest.mark.asyncio
-async def test_maintenance_sweep_job_failure(orchestrator: SchedulerOrchestrator) -> None:
-    """Test maintenance sweep job handles Celery being unavailable."""
-    with (
-        patch("app.shared.core.celery_app.celery_app.send_task") as mock_send,
-        patch.object(
-            orchestrator, "_run_maintenance_sweep_inline", new_callable=AsyncMock
-        ) as mock_inline,
-    ):
-        mock_send.side_effect = RuntimeError("Redis connection error")
-        # Should not raise
-        await orchestrator.maintenance_sweep_job()
-        mock_send.assert_called_once()
-        mock_inline.assert_awaited_once()
+    dispatch.assert_awaited_once_with(
+        ManagedWorkRequest(work_item=ManagedWorkItem.SCHEDULER_ACCEPTANCE_SWEEP)
+    )

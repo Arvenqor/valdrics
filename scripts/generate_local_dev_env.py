@@ -75,13 +75,9 @@ def _build_overrides(seed: str) -> dict[str, str]:
         "TESTING": "false",
         "API_URL": "http://localhost:8000",
         "FRONTEND_URL": "http://localhost:5174",
-        "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN": (
-            "arn:aws:iam::000000000000:role/ValdricsLocalDevControlPlane"
-        ),
         "DATABASE_URL": "sqlite+aiosqlite:///./valdrics_local_dev.sqlite3",
         "DB_SSL_MODE": "disable",
         "LOCAL_SQLITE_BOOTSTRAP": "true",
-        "ENABLE_SCHEDULER": "false",
         "REDIS_URL": "",
         "POSTGRES_PASSWORD": "",
         "GRAFANA_PASSWORD": "",
@@ -90,7 +86,6 @@ def _build_overrides(seed: str) -> dict[str, str]:
         "SUPABASE_JWT_SECRET": derive_hex(seed, "SUPABASE_JWT_SECRET"),
         "KDF_SALT": derive_b64(seed, "KDF_SALT"),
         "ADMIN_API_KEY": derive_hex(seed, "ADMIN_API_KEY"),
-        "INTERNAL_JOB_SECRET": derive_hex(seed, "INTERNAL_JOB_SECRET"),
         "ENFORCEMENT_APPROVAL_TOKEN_SECRET": derive_hex(
             seed, "ENFORCEMENT_APPROVAL_TOKEN_SECRET"
         ),

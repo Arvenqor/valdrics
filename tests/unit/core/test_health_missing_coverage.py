@@ -24,8 +24,10 @@ class TestHealthServiceMissingCoverage:
         return HealthService(mock_db)
 
     @pytest.mark.asyncio
-    async def test_check_all_aws_degraded_only(self, health_service, mock_db):
-        """Test overall health check when only AWS is degraded (lines 25-26)."""
+    async def test_check_all_external_services_degraded_only(
+        self, health_service, mock_db
+    ):
+        """Test overall health check when only external services are degraded."""
         with (
             patch.object(
                 health_service,
@@ -70,12 +72,12 @@ class TestHealthServiceMissingCoverage:
 
             assert result["status"] == "degraded"
             assert result["database"]["status"] == "up"
-            assert result["redis"]["status"] == "healthy"
-            assert result["aws"]["status"] == "unhealthy"
+            assert result["cache"]["status"] == "healthy"
+            assert result["external_services"]["status"] == "degraded"
 
     @pytest.mark.asyncio
-    async def test_check_all_redis_degraded_only(self, health_service, mock_db):
-        """Test overall health check when only Redis is degraded (lines 25-26)."""
+    async def test_check_all_cache_degraded_only(self, health_service, mock_db):
+        """Test overall health check when only cache is degraded."""
         with (
             patch.object(
                 health_service,
@@ -120,40 +122,41 @@ class TestHealthServiceMissingCoverage:
 
             assert result["status"] == "degraded"
             assert result["database"]["status"] == "up"
-            assert result["redis"]["status"] == "degraded"
-            assert result["aws"]["status"] == "healthy"
+            assert result["cache"]["status"] == "degraded"
+            assert result["external_services"]["status"] == "healthy"
 
     @pytest.mark.asyncio
-    async def test_check_aws_client_error(self, health_service):
-        """Test AWS health check with client error (4xx) - lines 74."""
-        mock_response = MagicMock()
-        mock_response.status_code = 404  # Client error but still "reachable"
+    async def test_check_external_services_disabled_without_probes(
+        self, health_service
+    ):
+        """Test external services health when no probes are configured."""
+        result = await health_service._check_external_services()
 
-        with patch("app.shared.core.http.get_http_client") as mock_get_client:
-            mock_get_client.return_value.get = AsyncMock(
-                return_value=mock_response
-            )
-
-            success, details = await health_service.check_aws()
-
-            assert success is True
-            assert details["reachable"] is True
+        assert result["status"] == "disabled"
+        assert result["services"] == {}
 
     @pytest.mark.asyncio
-    async def test_check_aws_redirect_status(self, health_service):
-        """Test AWS health check with redirect status (3xx) - lines 74."""
+    async def test_check_external_services_unhealthy_probe(
+        self, health_service
+    ):
+        """Test external service probe failure becomes degraded."""
         mock_response = MagicMock()
-        mock_response.status_code = 301  # Redirect but still "reachable"
+        mock_response.status_code = 500
 
-        with patch("app.shared.core.http.get_http_client") as mock_get_client:
-            mock_get_client.return_value.get = AsyncMock(
-                return_value=mock_response
-            )
+        with (
+            patch.object(
+                health_service,
+                "_external_service_probes",
+                return_value={"status_page": "https://status.example.com/health"},
+            ),
+            patch("app.shared.core.http.get_http_client") as mock_get_client,
+        ):
+            mock_get_client.return_value.get = AsyncMock(return_value=mock_response)
 
-            success, details = await health_service.check_aws()
+            result = await health_service._check_external_services()
 
-            assert success is True
-            assert details["reachable"] is True
+        assert result["status"] == "degraded"
+        assert result["services"]["status_page"]["response_code"] == 500
 
     @pytest.mark.asyncio
     async def test_check_all_unhealthy_db_down(self, health_service):
@@ -179,7 +182,7 @@ class TestHealthServiceMissingCoverage:
                 "_check_external_services",
                 return_value={
                     "status": "healthy",
-                    "services": {"aws_sts": {"status": "healthy"}},
+                    "services": {"status_page": {"status": "healthy"}},
                 },
             ),
             patch.object(
@@ -213,49 +216,6 @@ class TestHealthServiceMissingCoverage:
         assert "DB error" in details["error"]
 
     @pytest.mark.asyncio
-    async def test_check_redis_not_configured(self, health_service):
-        """Test redis check when not configured (lines 49-50)."""
-        mock_settings = MagicMock()
-        mock_settings.REDIS_URL = None
-        with patch("app.shared.core.health.get_settings", return_value=mock_settings):
-            success, details = await health_service.check_redis()
-
-        assert success is True
-        assert details["status"] == "skipped"
-
-    @pytest.mark.asyncio
-    async def test_check_redis_client_missing(self, health_service):
-        """Test redis check when client is missing (lines 55-56)."""
-        mock_settings = MagicMock()
-        mock_settings.REDIS_URL = "redis://host"
-        with (
-            patch("app.shared.core.health.get_settings", return_value=mock_settings),
-            patch("app.shared.core.rate_limit.get_redis_client", return_value=None),
-        ):
-            success, details = await health_service.check_redis()
-
-        assert success is False
-        assert "not available" in details["error"]
-
-    @pytest.mark.asyncio
-    async def test_check_redis_exception(self, health_service):
-        """Test redis check exception (lines 63-65)."""
-        mock_settings = MagicMock()
-        mock_settings.REDIS_URL = "redis://host"
-        with (
-            patch("app.shared.core.health.get_settings", return_value=mock_settings),
-            patch("app.shared.core.rate_limit.get_redis_client") as mock_get_client,
-        ):
-            mock_client = MagicMock()
-            mock_client.ping = AsyncMock(side_effect=RuntimeError("Redis error"))
-            mock_get_client.return_value = mock_client
-
-            success, details = await health_service.check_redis()
-
-        assert success is False
-        assert "Redis error" in details["error"]
-
-    @pytest.mark.asyncio
     async def test_check_database_success(self, health_service, mock_db):
         """Test database check success (lines 41-42)."""
         with patch(
@@ -263,24 +223,6 @@ class TestHealthServiceMissingCoverage:
             return_value={"status": "up", "latency_ms": 1.0},
         ):
             success, details = await health_service.check_database()
-
-        assert success is True
-        assert "latency_ms" in details
-
-    @pytest.mark.asyncio
-    async def test_check_redis_success(self, health_service):
-        """Test redis check success (lines 62)."""
-        mock_settings = MagicMock()
-        mock_settings.REDIS_URL = "redis://host"
-        with (
-            patch("app.shared.core.health.get_settings", return_value=mock_settings),
-            patch("app.shared.core.rate_limit.get_redis_client") as mock_get_client,
-        ):
-            mock_client = MagicMock()
-            mock_client.ping = AsyncMock()
-            mock_get_client.return_value = mock_client
-
-            success, details = await health_service.check_redis()
 
         assert success is True
         assert "latency_ms" in details
@@ -332,32 +274,21 @@ class TestHealthServiceMissingCoverage:
             assert result["status"] == "healthy"
 
     @pytest.mark.asyncio
-    async def test_check_aws_server_error(self, health_service):
-        """Test AWS health check with server error (line 76)."""
-        mock_response = MagicMock()
-        mock_response.status_code = 500
-
-        with patch("app.shared.core.http.get_http_client") as mock_get_client:
-            mock_get_client.return_value.get = AsyncMock(
-                return_value=mock_response
-            )
-
-            success, details = await health_service.check_aws()
-
-            assert success is False
-            assert "STS returned 500" in details["error"]
-
-    @pytest.mark.asyncio
-    async def test_check_aws_exception(self, health_service):
-        """Test AWS health check exception (lines 78-79)."""
-        with patch("app.shared.core.http.get_http_client") as mock_get_client:
+    async def test_check_external_services_exception(self, health_service):
+        """Test external service probe exceptions become unhealthy service entries."""
+        with (
+            patch.object(
+                health_service,
+                "_external_service_probes",
+                return_value={"status_page": "https://status.example.com/health"},
+            ),
+            patch("app.shared.core.http.get_http_client") as mock_get_client,
+        ):
             mock_get_client.return_value.get = AsyncMock(
                 side_effect=RuntimeError("Network fail")
             )
 
-            success, details = await health_service.check_aws()
+            result = await health_service._check_external_services()
 
-            print(f"success: {success}, details: {details}")
-
-            assert success is False
-            assert "Network fail" in details["error"]
+        assert result["status"] == "degraded"
+        assert "Network fail" in result["services"]["status_page"]["error"]

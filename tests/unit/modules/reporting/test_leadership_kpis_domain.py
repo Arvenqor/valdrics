@@ -342,3 +342,45 @@ def test_render_csv_sanitizes_and_quotes_provider_and_service_cells() -> None:
     assert ["'=cmd()", "20.0000"] in rows
     assert ['\'=HYPERLINK("x")', "20.0000"] in rows
     assert ["Compute,Edge", "10.0000"] in rows
+
+
+def test_render_csv_rejects_non_finite_summary_and_breakdown_values() -> None:
+    payload = LeadershipKpisResponse(
+        start_date="2026-02-01",
+        end_date="2026-02-28",
+        as_of="2026-02-28T00:00:00+00:00",
+        tier="pro",
+        provider=None,
+        include_preliminary=False,
+        total_cost_usd=float("nan"),
+        cost_by_provider={"aws": 80.0},
+        top_services=[LeadershipTopService(service="AmazonEC2", cost_usd=20.0)],
+        carbon_total_kgco2e=12.0,
+        carbon_coverage_percent=100.0,
+        savings_opportunity_monthly_usd=25.0,
+        savings_realized_monthly_usd=12.0,
+        open_recommendations=3,
+        applied_recommendations=2,
+        pending_remediations=1,
+        completed_remediations=1,
+        security_high_risk_decisions=2,
+        security_approval_required_decisions=3,
+        security_anomaly_signal_decisions=1,
+        notes=[],
+    )
+
+    with pytest.raises(ValueError, match="total_cost_usd must be finite"):
+        LeadershipKpiService.render_csv(payload)
+
+    payload = payload.model_copy(update={"total_cost_usd": 100.0, "cost_by_provider": {"aws": float("inf")}})
+    with pytest.raises(ValueError, match="cost_by_provider must be finite"):
+        LeadershipKpiService.render_csv(payload)
+
+    payload = payload.model_copy(
+        update={
+            "cost_by_provider": {"aws": 80.0},
+            "top_services": [LeadershipTopService(service="AmazonEC2", cost_usd=float("nan"))],
+        }
+    )
+    with pytest.raises(ValueError, match="top_service_cost_usd must be finite"):
+        LeadershipKpiService.render_csv(payload)

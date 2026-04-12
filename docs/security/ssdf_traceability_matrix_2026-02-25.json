@@ -61,11 +61,11 @@
       "practice_id": "PO.5",
       "title": "Implement and Maintain Secure Environments for Software Development",
       "status": "partial",
-      "summary": "Runtime environment contract checks and deployment guardrails are enforced, with ongoing hardening tracked in the gap register.",
+      "summary": "Runtime environment contract checks and supported deployment-document guardrails are enforced, with ongoing hardening tracked in the gap register.",
       "evidence": [
         "scripts/validate_runtime_env.py",
-        "helm/valdrics/values.schema.json",
-        "tests/unit/ops/test_enforcement_webhook_helm_contract.py"
+        "scripts/verify_documentation_runtime_contracts.py",
+        "tests/unit/ops/test_documentation_runtime_contracts.py"
       ]
     },
     {
@@ -182,11 +182,11 @@
       "practice_id": "PW.9",
       "title": "Configure Software to Have Secure Settings by Default",
       "status": "implemented_baseline",
-      "summary": "Secure deployment defaults and fail-closed guardrails are codified in chart schema and template-level enforcement.",
+      "summary": "Secure managed-runtime defaults are codified in checked-in environment templates, generators, and contract tests.",
       "evidence": [
-        "helm/valdrics/values.yaml",
-        "helm/valdrics/values.schema.json",
-        "tests/unit/ops/test_enforcement_webhook_helm_contract.py"
+        ".env.example",
+        "scripts/generate_managed_runtime_env.py",
+        "tests/unit/core/test_env_contract_templates.py"
       ]
     },
     {

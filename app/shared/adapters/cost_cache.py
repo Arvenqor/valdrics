@@ -1,16 +1,14 @@
 """
-Cost Result Caching - Production Ready
+Cost result caching for tenant-scoped cost and analysis responses.
 
-Implements a caching strategy for cloud cost results with:
-1. Redis backend for production (distributed, persistent)
-2. In-memory fallback for development
+Supports:
+1. Process-local in-memory cache by default
+2. Explicit Redis shared-state cache when `REDIS_URL` is configured
 3. Automatic TTL management
-4. Cache invalidation support
+4. Targeted cache invalidation support
 
-Cost Benefits:
-- Reduces external ingestion overhead
-- Improves response times (cache hits < 10ms)
-- Enables offline analysis
+The supported managed Cloud Run profile remains cacheless by default. Redis is
+used only for explicitly configured shared-cache topologies.
 """
 
 import json
@@ -116,9 +114,9 @@ class CacheBackend(ABC):
 
 class InMemoryCache(CacheBackend):
     """
-    Simple in-memory cache for development/testing.
+    Process-local cache for tests, local development, and cacheless fallback.
 
-    Note: Not suitable for production multi-instance deployments.
+    Note: Not suitable for multi-instance shared-state deployments.
     """
 
     def __init__(self) -> None:
@@ -156,7 +154,7 @@ class InMemoryCache(CacheBackend):
 
 class RedisCache(CacheBackend):
     """
-    Redis-backed cache for production.
+    Redis-backed cache for explicitly configured shared-state deployments.
 
     Features:
     - Connection pooling
@@ -420,8 +418,9 @@ async def get_cost_cache() -> CostCache:
     """
     Factory to get cache instance.
 
-    Uses Redis if REDIS_URL is configured, otherwise in-memory.
-    Singleton pattern for connection reuse.
+    Uses Redis only when `REDIS_URL` is explicitly configured and healthy;
+    otherwise it falls back to in-memory. Singleton pattern for connection
+    reuse.
     """
     global _cache_instance
 

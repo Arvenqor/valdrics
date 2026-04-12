@@ -7,6 +7,7 @@ from typing import Dict, Any
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.background_job import BackgroundJob
+from app.modules.governance.domain.jobs.errors import PermanentJobError
 from app.modules.governance.domain.jobs.handlers.base import BaseJobHandler
 
 logger = structlog.get_logger()
@@ -45,7 +46,7 @@ class ZombieScanHandler(BaseJobHandler):
 
         tenant_id = job.tenant_id
         if not tenant_id:
-            raise ValueError("tenant_id required for zombie_scan")
+            raise PermanentJobError("tenant_id required for zombie_scan")
 
         payload = job.payload or {}
         region = self._normalize_region(payload)

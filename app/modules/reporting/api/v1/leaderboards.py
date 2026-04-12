@@ -4,6 +4,7 @@ Shows team savings rankings ("Who saved the most?").
 """
 
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal, InvalidOperation
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -30,6 +31,18 @@ def _require_tenant_id(user: CurrentUser) -> UUID:
     if user.tenant_id is None:
         raise HTTPException(status_code=403, detail="Tenant context is required")
     return user.tenant_id
+
+
+def _coerce_finite_savings(value: object) -> float:
+    if value is None or value == "":
+        return 0.0
+    try:
+        amount = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError) as exc:
+        raise ValueError("leaderboard savings must be numeric") from exc
+    if not amount.is_finite():
+        raise ValueError("leaderboard savings must be finite")
+    return float(amount)
 
 
 # ============================================================
@@ -150,7 +163,7 @@ async def get_leaderboard(
             else getattr(row, "remediation_count", 0)
         )
 
-        savings = float(row_total_savings or 0)
+        savings = _coerce_finite_savings(row_total_savings)
         total_savings += savings
 
         entries.append(

@@ -69,7 +69,14 @@ async def stream_stripe_cost_and_usage(
         for invoice in entries:
             if not isinstance(invoice, dict):
                 continue
-            timestamp = parse_timestamp_fn(invoice.get("created"))
+            try:
+                timestamp = parse_timestamp_fn(invoice.get("created"))
+            except (TypeError, ValueError) as exc:
+                logger.warning(
+                    "saas_stripe_invalid_timestamp_skipped",
+                    error=str(exc),
+                )
+                continue
             if timestamp < start_date or timestamp > end_date:
                 continue
 
@@ -168,7 +175,14 @@ async def stream_salesforce_cost_and_usage(
             if not isinstance(record, dict):
                 continue
             service_date = record.get("ServiceDate")
-            timestamp = parse_timestamp_fn(service_date)
+            try:
+                timestamp = parse_timestamp_fn(service_date)
+            except (TypeError, ValueError) as exc:
+                logger.warning(
+                    "saas_salesforce_invalid_timestamp_skipped",
+                    error=str(exc),
+                )
+                continue
             if timestamp < start_date or timestamp > end_date:
                 continue
             amount_local = as_float_fn(record.get("TotalPrice"))

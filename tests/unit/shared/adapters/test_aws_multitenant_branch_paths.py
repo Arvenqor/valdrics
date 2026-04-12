@@ -141,6 +141,20 @@ async def test_verify_connection_logs_and_returns_false_on_exception() -> None:
 
 
 @pytest.mark.asyncio
+async def test_verify_connection_broken_credentials_contract_bubbles() -> None:
+    adapter = aws_mt.MultiTenantAWSAdapter(_creds())
+    adapter.get_credentials = AsyncMock(side_effect=TypeError("broken sts contract"))
+
+    with patch.object(
+        aws_mt,
+        "get_settings",
+        return_value=SimpleNamespace(AWS_SUPPORTED_REGIONS=["us-east-1", "us-west-2"]),
+    ):
+        with pytest.raises(TypeError, match="broken sts contract"):
+            await adapter.verify_connection()
+
+
+@pytest.mark.asyncio
 async def test_get_credentials_returns_cached_temp_credentials_when_not_expired() -> None:
     adapter = aws_mt.MultiTenantAWSAdapter(_creds())
     cached = {
@@ -371,6 +385,31 @@ async def test_discover_resources_logs_and_returns_empty_on_scan_error() -> None
     )
     assert adapter.last_error is not None
     assert "AWS resource discovery failed" in adapter.last_error
+
+
+@pytest.mark.asyncio
+async def test_discover_resources_broken_plugin_contract_bubbles() -> None:
+    adapter = aws_mt.MultiTenantAWSAdapter(_creds())
+    tracer, _span = _tracer_with_span()
+    plugin = SimpleNamespace(category="network")
+    plugin.scan = AsyncMock(side_effect=ValueError("broken scan contract"))
+    registry = MagicMock()
+    registry.get_plugins_for_provider.return_value = [plugin]
+    adapter.get_credentials = AsyncMock(return_value={"AccessKeyId": "AKIA..."})
+
+    with (
+        patch.object(
+            aws_mt,
+            "get_settings",
+            return_value=SimpleNamespace(AWS_SUPPORTED_REGIONS=["us-east-1", "us-west-2"]),
+        ),
+        patch("app.shared.core.tracing.get_tracer", return_value=tracer),
+        patch("app.modules.optimization.domain.registry.registry", registry),
+    ):
+        with pytest.raises(ValueError, match="broken scan contract"):
+            await aws_mt.MultiTenantAWSAdapter.discover_resources.__wrapped__(
+                adapter, "eip", region="us-west-2"
+            )
 
 
 @pytest.mark.asyncio

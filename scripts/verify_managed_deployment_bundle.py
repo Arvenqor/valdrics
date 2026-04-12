@@ -6,22 +6,24 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from scripts.env_generation_common import (
-    repo_root_for as _repo_root_for,
-    resolve_cli_path_from_root,
-)
 import sys
 from typing import Any
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from scripts.env_generation_common import parse_env_file
+from scripts.env_generation_common import (
+    parse_env_file,
+    repo_root_for as _repo_root_for,
+    resolve_cli_path_from_root,
+)
 from scripts.generate_managed_deployment_artifacts import (
     _artifact_output_paths,
+    _is_valid_promotion_ref,
     _json_placeholder_blockers,
     _placeholder_keys,
     _runtime_blockers,
+    _terraform_remaining_inputs,
 )
 from scripts.generate_managed_migration_env import _migration_blockers
 from scripts.generate_managed_runtime_env import (
@@ -29,25 +31,24 @@ from scripts.generate_managed_runtime_env import (
     RUNTIME_VALIDATION_OPERATOR_INPUT_KEYS,
 )
 from scripts.managed_deployment_contract import (
+    SUPPORTED_ENVIRONMENTS,
     identify_runtime_unresolved_keys as _identify_unresolved_keys,
     required_migration_operator_input_keys as _migration_required_operator_input_keys,
     required_runtime_operator_input_keys as _runtime_required_operator_input_keys,
-    SUPPORTED_ENVIRONMENTS,
 )
+
 EXPECTED_DEPLOYMENT_ARTIFACT_KEYS = (
-    "koyeb_api_manifest",
-    "koyeb_worker_manifest",
-    "koyeb_secret_payload",
-    "koyeb_dashboard_env_json",
-    "koyeb_release_metadata",
-    "helm_values",
-    "helm_runtime_secret_json",
+    "unified_platform_manifest",
+    "secret_manager_runtime_secrets",
+    "cloudflare_pages_env_json",
+    "artifact_registry_release_metadata",
+    "terraform_runtime_tfvars",
 )
 EXPECTED_DEPLOYMENT_ARTIFACT_FILENAMES = {
     artifact_key: artifact_path.name
     for artifact_key, artifact_path in zip(
         EXPECTED_DEPLOYMENT_ARTIFACT_KEYS,
-        _artifact_output_paths(Path("/tmp/verify-managed-deployment-bundle"))[:7],
+        _artifact_output_paths(Path("/tmp/verify-managed-deployment-bundle"))[:5],
         strict=True,
     )
 }
@@ -202,7 +203,8 @@ def verify_managed_deployment_bundle(
     runtime_values = parse_env_file(runtime_env_path)
     migration_values = parse_env_file(migration_env_path)
     _expect(
-        str(runtime_values.get("ENVIRONMENT", "")).strip().lower() == normalized_environment,
+        str(runtime_values.get("ENVIRONMENT", "")).strip().lower()
+        == normalized_environment,
         (
             f"runtime env ENVIRONMENT mismatch in {runtime_env_path.as_posix()}: "
             f"expected {normalized_environment!r}"
@@ -210,7 +212,8 @@ def verify_managed_deployment_bundle(
         errors=errors,
     )
     _expect(
-        str(migration_values.get("ENVIRONMENT", "")).strip().lower() == normalized_environment,
+        str(migration_values.get("ENVIRONMENT", "")).strip().lower()
+        == normalized_environment,
         (
             f"migration env ENVIRONMENT mismatch in {migration_env_path.as_posix()}: "
             f"expected {normalized_environment!r}"
@@ -302,18 +305,6 @@ def verify_managed_deployment_bundle(
         errors=errors,
     )
 
-    allowed_migration_only_keys = {"DB_SSL_CA_CERT_PATH"}
-    _expect(
-        set(expected_migration_blockers).issubset(
-            set(expected_runtime_blockers) | allowed_migration_only_keys
-        ),
-        (
-            "migration blockers must be explained by runtime blockers or DB_SSL_CA_CERT_PATH: "
-            f"{expected_migration_blockers!r} vs {expected_runtime_blockers!r}"
-        ),
-        errors=errors,
-    )
-
     expected_deployment_blockers = _runtime_blockers(runtime_values)
     _expect(
         _sorted_strings(deployment_report.get("runtime_validation_blockers"))
@@ -325,19 +316,12 @@ def verify_managed_deployment_bundle(
         ),
         errors=errors,
     )
-    _expect(
-        expected_deployment_blockers == expected_runtime_blockers,
-        (
-            "runtime and deployment blocker models disagree: "
-            f"{expected_runtime_blockers!r} != {expected_deployment_blockers!r}"
-        ),
-        errors=errors,
-    )
 
     artifacts = deployment_report.get("artifacts")
     if not isinstance(artifacts, dict):
         errors.append("deployment report artifacts must be a JSON object")
         return errors
+
     seen_artifact_paths: dict[Path, str] = {}
     for artifact_key in EXPECTED_DEPLOYMENT_ARTIFACT_KEYS:
         artifact_path = artifacts.get(artifact_key)
@@ -347,7 +331,10 @@ def verify_managed_deployment_bundle(
             errors=errors,
         )
         if artifact_path:
-            resolved = _normalize_path(str(artifact_path), base_dir=deployment_report_path.parent)
+            resolved = _normalize_path(
+                str(artifact_path),
+                base_dir=deployment_report_path.parent,
+            )
             previous_key = seen_artifact_paths.get(resolved)
             _expect(
                 previous_key is None,
@@ -401,135 +388,139 @@ def verify_managed_deployment_bundle(
     if errors:
         return errors
 
-    koyeb_secret_payload_path = _normalize_path(
-        str(artifacts["koyeb_secret_payload"]),
+    secret_manager_runtime_path = _normalize_path(
+        str(artifacts["secret_manager_runtime_secrets"]),
         base_dir=deployment_report_path.parent,
     )
-    koyeb_dashboard_env_path = _normalize_path(
-        str(artifacts["koyeb_dashboard_env_json"]),
+    cloudflare_pages_env_path = _normalize_path(
+        str(artifacts["cloudflare_pages_env_json"]),
         base_dir=deployment_report_path.parent,
     )
-    koyeb_release_metadata_path = _normalize_path(
-        str(artifacts["koyeb_release_metadata"]),
-        base_dir=deployment_report_path.parent,
-    )
-    helm_secret_payload_path = _normalize_path(
-        str(artifacts["helm_runtime_secret_json"]),
+    artifact_registry_release_path = _normalize_path(
+        str(artifacts["artifact_registry_release_metadata"]),
         base_dir=deployment_report_path.parent,
     )
 
-    koyeb_secret_payload = _load_json(koyeb_secret_payload_path)
-    koyeb_dashboard_env = _load_json(koyeb_dashboard_env_path)
-    koyeb_release_metadata = _load_json(koyeb_release_metadata_path)
-    helm_secret_payload = _load_json(helm_secret_payload_path)
+    secret_manager_runtime_payload = _load_json(secret_manager_runtime_path)
+    cloudflare_pages_env = _load_json(cloudflare_pages_env_path)
+    artifact_registry_release = _load_json(artifact_registry_release_path)
     terraform_tfvars_payload = _load_json(terraform_tfvars_path)
 
-    expected_koyeb_blockers = _placeholder_keys(
-        {str(key): str(value) for key, value in koyeb_secret_payload.items()}
+    expected_secret_blockers = _placeholder_keys(
+        {str(key): str(value) for key, value in secret_manager_runtime_payload.items()}
     )
-    expected_koyeb_dashboard_blockers = _placeholder_keys(
-        {str(key): str(value) for key, value in koyeb_dashboard_env.items()}
+    expected_cloudflare_blockers = _placeholder_keys(
+        {str(key): str(value) for key, value in cloudflare_pages_env.items()}
     )
-    expected_koyeb_release_blockers = sorted(
-        set(_json_placeholder_blockers(koyeb_release_metadata))
+    expected_release_blockers = sorted(
+        set(_json_placeholder_blockers(artifact_registry_release))
     )
-    expected_helm_blockers = _placeholder_keys(
-        {str(key): str(value) for key, value in helm_secret_payload.items()}
+    expected_terraform_remaining_inputs = _terraform_remaining_inputs(
+        terraform_tfvars_payload
     )
-
-    _expect(
-        _sorted_strings(deployment_report.get("koyeb_secret_names"))
-        == sorted(str(key) for key in koyeb_secret_payload),
-        "deployment report koyeb_secret_names drift from generated secret payload",
-        errors=errors,
-    )
-    _expect(
-        _sorted_strings(deployment_report.get("helm_runtime_secret_keys"))
-        == sorted(str(key) for key in helm_secret_payload),
-        "deployment report helm_runtime_secret_keys drift from generated runtime secret payload",
-        errors=errors,
-    )
-    _expect(
-        _sorted_strings(deployment_report.get("koyeb_secret_value_blockers"))
-        == expected_koyeb_blockers,
-        (
-            "deployment report koyeb_secret_value_blockers drift from generated secret payload: "
-            f"expected {expected_koyeb_blockers!r}, "
-            f"got {_sorted_strings(deployment_report.get('koyeb_secret_value_blockers'))!r}"
-        ),
-        errors=errors,
-    )
-    _expect(
-        _sorted_strings(deployment_report.get("koyeb_dashboard_public_env_keys"))
-        == sorted(str(key) for key in koyeb_dashboard_env),
-        "deployment report koyeb_dashboard_public_env_keys drift from generated dashboard env payload",
-        errors=errors,
-    )
-    _expect(
-        _sorted_strings(deployment_report.get("koyeb_dashboard_public_env_blockers"))
-        == expected_koyeb_dashboard_blockers,
-        (
-            "deployment report koyeb_dashboard_public_env_blockers drift from generated dashboard env payload: "
-            f"expected {expected_koyeb_dashboard_blockers!r}, "
-            f"got {_sorted_strings(deployment_report.get('koyeb_dashboard_public_env_blockers'))!r}"
-        ),
-        errors=errors,
-    )
-    _expect(
-        _sorted_strings(deployment_report.get("koyeb_release_value_blockers"))
-        == expected_koyeb_release_blockers,
-        (
-            "deployment report koyeb_release_value_blockers drift from generated release metadata: "
-            f"expected {expected_koyeb_release_blockers!r}, "
-            f"got {_sorted_strings(deployment_report.get('koyeb_release_value_blockers'))!r}"
-        ),
-        errors=errors,
-    )
-    _expect(
-        _sorted_strings(deployment_report.get("helm_runtime_secret_value_blockers"))
-        == expected_helm_blockers,
-        (
-            "deployment report helm_runtime_secret_value_blockers drift from generated runtime secret payload: "
-            f"expected {expected_helm_blockers!r}, "
-            f"got {_sorted_strings(deployment_report.get('helm_runtime_secret_value_blockers'))!r}"
-        ),
-        errors=errors,
-    )
-    _expect(
-        bool(deployment_report.get("ready_for_koyeb"))
-        == (
-            not expected_deployment_blockers
-            and not expected_koyeb_blockers
-            and not expected_koyeb_dashboard_blockers
-        ),
-        "deployment report ready_for_koyeb does not match blockers",
-        errors=errors,
-    )
-    _expect(
-        bool(deployment_report.get("ready_for_koyeb_release"))
-        == (
-            not expected_deployment_blockers
-            and not expected_koyeb_blockers
-            and not expected_koyeb_dashboard_blockers
-            and not expected_koyeb_release_blockers
-        ),
-        "deployment report ready_for_koyeb_release does not match blockers",
-        errors=errors,
-    )
-    _expect(
-        bool(deployment_report.get("ready_for_helm"))
-        == (not expected_deployment_blockers and not expected_helm_blockers),
-        "deployment report ready_for_helm does not match blockers",
-        errors=errors,
+    expected_terraform_value_blockers = sorted(
+        set(_json_placeholder_blockers(terraform_tfvars_payload))
     )
 
-    expected_terraform_environment = "prod" if normalized_environment == "production" else normalized_environment
+    _expect(
+        _sorted_strings(deployment_report.get("secret_manager_secret_keys"))
+        == sorted(str(key) for key in secret_manager_runtime_payload),
+        "deployment report secret_manager_secret_keys drift from generated secret payload",
+        errors=errors,
+    )
+    _expect(
+        _sorted_strings(deployment_report.get("secret_manager_secret_value_blockers"))
+        == expected_secret_blockers,
+        (
+            "deployment report secret_manager_secret_value_blockers drift from generated secret payload: "
+            f"expected {expected_secret_blockers!r}, "
+            f"got {_sorted_strings(deployment_report.get('secret_manager_secret_value_blockers'))!r}"
+        ),
+        errors=errors,
+    )
+    _expect(
+        _sorted_strings(deployment_report.get("cloudflare_pages_public_env_keys"))
+        == sorted(str(key) for key in cloudflare_pages_env),
+        "deployment report cloudflare_pages_public_env_keys drift from generated Cloudflare Pages env payload",
+        errors=errors,
+    )
+    _expect(
+        _sorted_strings(deployment_report.get("cloudflare_pages_public_env_blockers"))
+        == expected_cloudflare_blockers,
+        (
+            "deployment report cloudflare_pages_public_env_blockers drift from generated Cloudflare Pages env payload: "
+            f"expected {expected_cloudflare_blockers!r}, "
+            f"got {_sorted_strings(deployment_report.get('cloudflare_pages_public_env_blockers'))!r}"
+        ),
+        errors=errors,
+    )
+    _expect(
+        _sorted_strings(deployment_report.get("artifact_registry_release_value_blockers"))
+        == expected_release_blockers,
+        (
+            "deployment report artifact_registry_release_value_blockers drift from generated Artifact Registry metadata: "
+            f"expected {expected_release_blockers!r}, "
+            f"got {_sorted_strings(deployment_report.get('artifact_registry_release_value_blockers'))!r}"
+        ),
+        errors=errors,
+    )
+    _expect(
+        _sorted_strings(deployment_report.get("terraform_remaining_inputs"))
+        == expected_terraform_remaining_inputs,
+        (
+            "deployment report terraform_remaining_inputs drift from generated Terraform tfvars: "
+            f"expected {expected_terraform_remaining_inputs!r}, "
+            f"got {_sorted_strings(deployment_report.get('terraform_remaining_inputs'))!r}"
+        ),
+        errors=errors,
+    )
+    _expect(
+        _sorted_strings(deployment_report.get("terraform_value_blockers"))
+        == expected_terraform_value_blockers,
+        (
+            "deployment report terraform_value_blockers drift from generated Terraform tfvars: "
+            f"expected {expected_terraform_value_blockers!r}, "
+            f"got {_sorted_strings(deployment_report.get('terraform_value_blockers'))!r}"
+        ),
+        errors=errors,
+    )
+    _expect(
+        bool(deployment_report.get("ready_for_unified_platform"))
+        == (
+            not expected_deployment_blockers
+            and not expected_secret_blockers
+            and not expected_cloudflare_blockers
+            and not expected_release_blockers
+        ),
+        "deployment report ready_for_unified_platform does not match blockers",
+        errors=errors,
+    )
+    _expect(
+        bool(deployment_report.get("ready_for_release_promotion"))
+        == (
+            not expected_release_blockers
+            and _is_valid_promotion_ref(
+                str(artifact_registry_release["services"]["api"]["promotion_ref"])
+            )
+            and _is_valid_promotion_ref(
+                str(artifact_registry_release["services"]["batch"]["promotion_ref"])
+            )
+        ),
+        "deployment report ready_for_release_promotion does not match blockers",
+        errors=errors,
+    )
+    _expect(
+        bool(deployment_report.get("ready_for_terraform"))
+        == (not expected_terraform_value_blockers),
+        "deployment report ready_for_terraform does not match blockers",
+        errors=errors,
+    )
     _expect(
         str(terraform_tfvars_payload.get("environment", "") or "").strip().lower()
-        == expected_terraform_environment,
+        == normalized_environment,
         (
             "terraform runtime tfvars environment mismatch: "
-            f"expected {expected_terraform_environment!r}"
+            f"expected {normalized_environment!r}"
         ),
         errors=errors,
     )

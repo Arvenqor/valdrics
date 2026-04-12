@@ -13,7 +13,10 @@ async def test_check_all_formats_expected_keys():
         "checks": {
             "database": {"status": "up"},
             "cache": {"status": "healthy"},
-            "external_services": {"services": {"aws_sts": {"status": "healthy"}}},
+            "external_services": {
+                "status": "healthy",
+                "services": {"upstream": {"status": "healthy"}},
+            },
             "system_resources": {"status": "healthy"},
         },
     }
@@ -22,10 +25,19 @@ async def test_check_all_formats_expected_keys():
     ):
         result = await service.check_all()
 
+    assert set(result) == {
+        "status",
+        "timestamp",
+        "database",
+        "cache",
+        "external_services",
+        "system_resources",
+        "checks",
+    }
     assert result["database"]["status"] == "up"
-    assert result["redis"]["status"] == "healthy"
-    assert result["aws"]["status"] == "healthy"
-    assert result["system"]["status"] == "healthy"
+    assert result["cache"]["status"] == "healthy"
+    assert result["external_services"]["status"] == "healthy"
+    assert result["system_resources"]["status"] == "healthy"
 
 
 @pytest.mark.asyncio
@@ -41,7 +53,17 @@ async def test_handle_check_errors_wraps_exception():
 
 
 @pytest.mark.asyncio
-async def test_check_aws_status_codes():
+async def test_check_external_services_disabled_without_probes():
+    service = HealthService()
+
+    result = await service._check_external_services()
+
+    assert result["status"] == "disabled"
+    assert result["services"] == {}
+
+
+@pytest.mark.asyncio
+async def test_check_external_services_status_codes():
     service = HealthService()
 
     class FakeResponse:
@@ -52,34 +74,32 @@ async def test_check_aws_status_codes():
         def __init__(self, code):
             self._code = code
 
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, exc_type, exc, tb):
-            return None
-
         async def get(self, _url, *, timeout=None):
             assert timeout is not None
             return FakeResponse(self._code)
 
-    with patch(
-        "app.shared.core.http.get_http_client", return_value=FakeClient(200)
+    with (
+        patch.object(
+            service,
+            "_external_service_probes",
+            return_value={"upstream": "https://status.example.com/health"},
+        ),
+        patch("app.shared.core.http.get_http_client", return_value=FakeClient(200)),
     ):
-        ok, _ = await service.check_aws()
-        assert ok is True
+        result = await service._check_external_services()
+        assert result["status"] == "healthy"
 
-    with patch(
-        "app.shared.core.http.get_http_client", return_value=FakeClient(404)
+    with (
+        patch.object(
+            service,
+            "_external_service_probes",
+            return_value={"upstream": "https://status.example.com/health"},
+        ),
+        patch("app.shared.core.http.get_http_client", return_value=FakeClient(503)),
     ):
-        ok, _ = await service.check_aws()
-        assert ok is True
-
-    with patch(
-        "app.shared.core.http.get_http_client", return_value=FakeClient(503)
-    ):
-        ok, details = await service.check_aws()
-        assert ok is False
-        assert "STS returned 503" in details["error"]
+        result = await service._check_external_services()
+        assert result["status"] == "degraded"
+        assert result["services"]["upstream"]["response_code"] == 503
 
 
 @pytest.mark.asyncio

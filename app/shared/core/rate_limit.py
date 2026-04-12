@@ -1,8 +1,10 @@
 """
-Rate Limiting Middleware for Valdrics
+Rate limiting for Valdrics.
 
-Provides API rate limiting using slowapi (built on limits library).
-Configurable via environment variables.
+The supported managed GCP runtime delegates public API throttling to Cloudflare
+edge controls and keeps the in-app slowapi limiter disabled. Redis-backed
+shared limiter state remains available only for explicit non-managed or
+break-glass application-side limiter paths.
 """
 
 import asyncio
@@ -79,6 +81,27 @@ def _analysis_limit_mapping(settings: Any) -> dict[str, str]:
     }
 
 
+def _managed_cloudflare_edge_profile(settings: Any) -> bool:
+    environment = str(getattr(settings, "ENVIRONMENT", "") or "").strip().lower()
+    runtime_profile = (
+        str(getattr(settings, "PLATFORM_RUNTIME_PROFILE", "gcp") or "gcp")
+        .strip()
+        .lower()
+    )
+    public_backend = (
+        str(
+            getattr(settings, "PUBLIC_API_RATE_LIMITING_BACKEND", "redis") or "redis"
+        )
+        .strip()
+        .lower()
+    )
+    return (
+        environment in {"production", "staging"}
+        and runtime_profile == "gcp"
+        and public_backend == "cloudflare"
+    )
+
+
 def context_aware_key(request: Request) -> str:
     """
     Identifies the requester for rate limiting.
@@ -107,32 +130,44 @@ def context_aware_key(request: Request) -> str:
 def get_limiter() -> Limiter:
     """Lazy initialization of the Limiter instance.
 
-    ADR (Finding #6): Production deployments MUST set REDIS_URL for distributed
-    rate limiting. The ``memory://`` fallback is intentionally kept for
-    single-instance dev/test, but it is NOT suitable for multi-replica
-    deployments where limits must be shared across processes.
+    Supported production postures are:
+    - explicit shared application limiter state via REDIS_URL
+    - managed GCP profile with Cloudflare edge throttling and the app limiter disabled
     """
     global _limiter, _limiter_storage_uri, _limiter_enabled
     settings = get_settings()
-    storage_uri = settings.REDIS_URL or "memory://"
     enabled = getattr(settings, "RATELIMIT_ENABLED", True) and not getattr(
         settings, "TESTING", False
     )
+    storage_uri = settings.REDIS_URL or "memory://"
     is_production_like = settings.ENVIRONMENT.lower() in ("production", "staging")
+    managed_cloudflare_profile = _managed_cloudflare_edge_profile(settings)
+    if not enabled:
+        storage_uri = "memory://"
+        if managed_cloudflare_profile:
+            logger.info(
+                "rate_limiting_delegated_to_cloudflare_edge",
+                msg="Cloudflare edge rate limiting is the supported public API throttle for the managed GCP profile.",
+            )
     if (
+        enabled
+        and
         is_production_like
         and not settings.REDIS_URL
         and not settings.ALLOW_IN_MEMORY_RATE_LIMITS
     ):
         raise RuntimeError(
-            "Distributed rate limiting is required in staging/production. "
-            "Set REDIS_URL (or explicitly ALLOW_IN_MEMORY_RATE_LIMITS=true for break-glass)."
+            "REDIS_URL is required only when RATELIMIT_ENABLED=true in staging/production "
+            "for the shared application limiter. The supported managed GCP profile uses "
+            "PUBLIC_API_RATE_LIMITING_BACKEND=cloudflare with RATELIMIT_ENABLED=false. "
+            "Set ALLOW_IN_MEMORY_RATE_LIMITS=true only for temporary break-glass usage."
         )
-    if is_production_like and not settings.REDIS_URL:
+    if enabled and is_production_like and not settings.REDIS_URL:
         logger.warning(
             "rate_limiting_in_memory_break_glass",
-            msg="REDIS_URL is not set. In-memory rate limiting is enabled via "
-            "ALLOW_IN_MEMORY_RATE_LIMITS and should be temporary.",
+            msg="REDIS_URL is not set. The shared application limiter is running with "
+            "instance-local in-memory state via ALLOW_IN_MEMORY_RATE_LIMITS and should "
+            "be temporary.",
         )
 
     if (
@@ -152,7 +187,7 @@ def get_limiter() -> Limiter:
 
 
 def get_redis_client() -> Redis | None:
-    """Lazy initialization of the Redis client for rate limiting and health checks."""
+    """Lazy initialization of the optional Redis client for shared rate-limit state."""
     global _redis_client, _redis_client_loop_marker, _redis_client_url
     settings = get_settings()
     # Tests should use in-memory fallback by default to avoid external network coupling
@@ -362,16 +397,22 @@ async def check_remediation_rate_limit(
     Check if a remediation action is allowed under rate limits.
 
     Returns True if allowed, False if rate limited.
-    Uses Redis if available, memory fallback otherwise.
+    Uses Redis-backed shared state when configured. Falls back to instance-local
+    state only for local runtimes, the managed Cloudflare-fronted profile, or
+    explicit break-glass operation.
     """
     from uuid import UUID
 
     tenant_key = str(tenant_id) if isinstance(tenant_id, UUID) else tenant_id
     redis = get_redis_client()
 
-    # Finding #6: Enforce Redis for production/staging to ensure distributed correctness
     settings = get_settings()
-    is_prod = settings.ENVIRONMENT.lower() in ("production", "staging")
+    is_production_like = settings.ENVIRONMENT.lower() in ("production", "staging")
+    allow_instance_local_fallback = (
+        not is_production_like
+        or _managed_cloudflare_edge_profile(settings)
+        or bool(getattr(settings, "ALLOW_IN_MEMORY_RATE_LIMITS", False))
+    )
 
     if redis:
         try:
@@ -393,17 +434,35 @@ async def check_remediation_rate_limit(
                 return False
             return True
         except REMEDIATION_REDIS_RATE_LIMIT_RECOVERABLE_EXCEPTIONS as e:
-            logger.error("remediation_rate_limit_redis_error", error=str(e))
-            # Fall through to memory fallback if NOT in production
-            if is_prod:
+            if not allow_instance_local_fallback:
+                logger.error(
+                    "remediation_rate_limit_redis_error",
+                    error=str(e),
+                    tenant_id=tenant_key,
+                    action=action,
+                )
                 return False
+            logger.warning(
+                "remediation_rate_limit_redis_error",
+                error=str(e),
+                tenant_id=tenant_key,
+                action=action,
+            )
 
-    # Finding #6: Enforce Redis for production/staging
-    if is_prod:
-        logger.error(
-            "redis_unavailable_in_production", tenant_id=tenant_key, action=action
+    if redis is None and is_production_like:
+        if not allow_instance_local_fallback:
+            logger.error(
+                "remediation_rate_limit_shared_state_unavailable",
+                tenant_id=tenant_key,
+                action=action,
+            )
+            return False
+        logger.warning(
+            "remediation_rate_limit_in_memory_fallback",
+            tenant_id=tenant_key,
+            action=action,
+            msg="Redis-backed shared rate-limit state is unavailable; using instance-local fallback state.",
         )
-        return False
 
     # Memory fallback for local/single-instance deployments
     current_time = _monotonic_time()

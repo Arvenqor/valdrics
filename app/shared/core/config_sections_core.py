@@ -13,6 +13,8 @@ class CoreRuntimeSettings:
     # is_production property ensures strict security for 'production'
     ENVIRONMENT: str = "development"
     API_URL: str = "http://localhost:8000"  # Base URL for OIDC and Magic Links
+    PLATFORM_RUNTIME_PROFILE: str = "gcp"  # gcp
+    OBSERVABILITY_BACKEND: str = "auto"  # auto, otlp, gcp
     OTEL_EXPORTER_OTLP_ENDPOINT: str | None = None  # Added for D5: Telemetry Sink
     OTEL_EXPORTER_OTLP_INSECURE: bool = False  # SEC-07: Secure Tracing
     OTEL_LOGS_EXPORT_ENABLED: bool = True
@@ -23,16 +25,18 @@ class CoreRuntimeSettings:
     PYTEST_CURRENT_TEST: str | None = None
     SENTRY_DSN: str | None = None
     EXPOSE_API_DOCUMENTATION_PUBLICLY: bool = False
-    WEB_CONCURRENCY: int = 2
     APP_RUNTIME_DATA_DIR: str = str(Path(tempfile.gettempdir()) / "valdrics")
     RATELIMIT_ENABLED: bool = True
+    # Supported managed GCP runtime: Cloudflare edge with RATELIMIT_ENABLED=false.
+    # Redis remains available only for explicit local/non-managed shared limiter paths.
+    PUBLIC_API_RATE_LIMITING_BACKEND: str = "redis"  # redis, cloudflare
     ANALYSIS_RATE_LIMIT_FREE_PER_HOUR: int = 1
     ANALYSIS_RATE_LIMIT_STARTER_PER_HOUR: int = 2
     ANALYSIS_RATE_LIMIT_GROWTH_PER_HOUR: int = 10
     ANALYSIS_RATE_LIMIT_PRO_PER_HOUR: int = 50
     ANALYSIS_RATE_LIMIT_ENTERPRISE_PER_HOUR: int = 200
-    # In staging/production, distributed rate limiting is required by default.
-    # This override exists only for controlled break-glass situations.
+    # When the shared application limiter is explicitly enabled in staging/production,
+    # in-memory state is allowed only as controlled break-glass.
     ALLOW_IN_MEMORY_RATE_LIMITS: bool = False
     AUTOPILOT_BYPASS_GRACE_PERIOD: bool = False
     TURNSTILE_ENABLED: bool = False
@@ -47,7 +51,6 @@ class CoreRuntimeSettings:
     TURNSTILE_REQUIRE_SSO_DISCOVERY: bool = True
     TURNSTILE_REQUIRE_ONBOARD: bool = True
     TURNSTILE_REQUIRE_PUBLIC_SALES_INTAKE: bool = True
-    INTERNAL_JOB_SECRET: str | None = None
     WEBHOOK_ALLOWED_DOMAINS: list[str] = Field(
         default_factory=list
     )  # Allowlist for generic webhook retries
@@ -76,6 +79,15 @@ class CoreRuntimeSettings:
         None  # Added for local testing (MotoServer/LocalStack)
     )
     AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN: str | None = None
+    GCP_PROJECT_ID: str | None = None
+    GCP_REGION: str | None = None
+    GCP_CLOUD_TASKS_QUEUE: str | None = None
+    GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL: str | None = None
+    GCP_CLOUD_RUN_SERVICE_NAME: str | None = None
+    GCP_CLOUD_RUN_BATCH_JOB_NAME: str | None = None
+    GCP_INTERNAL_BASE_URL: str | None = None
+    GCP_INTERNAL_AUTH_AUDIENCE: str | None = None
+    GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS: list[str] = Field(default_factory=list)
 
     # Optional override for a publicly reachable CloudFormation template URL.
     # When empty, onboarding derives a release-owned public API URL from API_URL.
@@ -128,11 +140,7 @@ class CoreRuntimeSettings:
     LLM_GLOBAL_ABUSE_BLOCK_SECONDS: int = 120
     LLM_GLOBAL_ABUSE_KILL_SWITCH: bool = False
 
-    # Scheduler
-    ENABLE_SCHEDULER: bool = True
-    SCHEDULER_HOUR: int = 8
-    SCHEDULER_MINUTE: int = 0
-    # Bound system-scope sweeps to reduce blast radius during incident conditions.
+    # Scheduler sweep controls for managed trigger execution.
     SCHEDULER_SYSTEM_SWEEP_MAX_TENANTS: int = 5000
     SCHEDULER_SYSTEM_SWEEP_MAX_CONNECTIONS: int = 5000
     BACKGROUND_JOB_PROCESS_BATCH_SIZE: int = 25
@@ -151,7 +159,7 @@ class CoreRuntimeSettings:
     # Cost-record retention is plan-aware and enforced by the maintenance sweep.
     COST_RECORD_RETENTION_PURGE_BATCH_SIZE: int = 5000
     COST_RECORD_RETENTION_PURGE_MAX_BATCHES: int = 50
-    # Scheduler distributed lock should fail-closed by default.
+    # Managed scheduler dispatch lock should fail-closed by default.
     # Enable only as temporary emergency bypass.
     SCHEDULER_LOCK_FAIL_OPEN: bool = False
     TENANT_ISOLATION_EVIDENCE_MAX_AGE_HOURS: int = 168
