@@ -74,12 +74,13 @@ async def test_ingest_costs_multiple_connections(
         patch(
             "app.modules.reporting.domain.service.CostPersistenceService"
         ) as mock_persistence,
-        patch("app.modules.reporting.domain.service.AttributionEngine"),
+        patch("app.modules.reporting.domain.service.AttributionEngine") as mock_attribution,
     ):
         attach_stream(mock_adapter, {"cost_usd": "100.0"})
 
         mock_persistence_instance = make_persistence_stub(records_saved=1)
         mock_persistence.return_value = mock_persistence_instance
+        mock_attribution.return_value = AsyncMock()
 
         result = await service.ingest_costs_for_tenant(tenant_id)
 
@@ -112,10 +113,11 @@ async def test_ingest_costs_processes_only_active_connections(
         patch(
             "app.modules.reporting.domain.service.CostPersistenceService"
         ) as mock_persistence,
-        patch("app.modules.reporting.domain.service.AttributionEngine"),
+        patch("app.modules.reporting.domain.service.AttributionEngine") as mock_attribution,
     ):
         attach_stream(mock_adapter, {"cost_usd": "100.0"})
         mock_persistence.return_value = make_persistence_stub(records_saved=1)
+        mock_attribution.return_value = AsyncMock()
 
         result = await service.ingest_costs_for_tenant(tenant_id)
 
@@ -158,12 +160,13 @@ async def test_ingest_costs_cloud_plus_connections(
         patch(
             "app.modules.reporting.domain.service.CostPersistenceService"
         ) as mock_persistence,
-        patch("app.modules.reporting.domain.service.AttributionEngine"),
+        patch("app.modules.reporting.domain.service.AttributionEngine") as mock_attribution,
     ):
         attach_stream(mock_adapter, {"cost_usd": "15.0"})
 
         mock_persistence_instance = make_persistence_stub(records_saved=1)
         mock_persistence.return_value = mock_persistence_instance
+        mock_attribution.return_value = AsyncMock()
 
         result = await service.ingest_costs_for_tenant(tenant_id)
 
@@ -209,12 +212,13 @@ async def test_ingest_costs_missing_cur_data_yields_zero_records(
         patch(
             "app.modules.reporting.domain.service.CostPersistenceService"
         ) as mock_persistence,
-        patch("app.modules.reporting.domain.service.AttributionEngine"),
+        patch("app.modules.reporting.domain.service.AttributionEngine") as mock_attribution,
     ):
         attach_stream(mock_adapter)
 
         mock_persistence_instance = make_persistence_stub(records_saved=0)
         mock_persistence.return_value = mock_persistence_instance
+        mock_attribution.return_value = AsyncMock()
 
         result = await service.ingest_costs_for_tenant(tenant_id)
 
@@ -224,7 +228,7 @@ async def test_ingest_costs_missing_cur_data_yields_zero_records(
 
 
 @pytest.mark.asyncio
-async def test_ingest_costs_invalid_tenant_config_marks_connection_failed(
+async def test_ingest_costs_invalid_tenant_config_bubbles(
     mock_db,
     mock_aws_connection: MagicMock,
     configure_connection_queries,
@@ -238,8 +242,22 @@ async def test_ingest_costs_invalid_tenant_config_marks_connection_failed(
         ),
     )
 
-    result = await service.ingest_costs_for_tenant(tenant_id)
+    with pytest.raises(ValueError, match="Invalid tenant config: missing CUR bucket"):
+        await service.ingest_costs_for_tenant(tenant_id)
 
-    assert result["status"] == "completed"
-    assert result["details"][0]["status"] == "failed"
-    assert "Invalid tenant config" in result["details"][0]["error"]
+
+@pytest.mark.asyncio
+async def test_ingest_costs_does_not_swallow_fatal_adapter_resolution_errors(
+    mock_db,
+    mock_aws_connection: MagicMock,
+    configure_connection_queries,
+) -> None:
+    tenant_id = mock_aws_connection.tenant_id
+    configure_connection_queries(aws=[mock_aws_connection])
+    service = ReportingService(
+        mock_db,
+        adapter_resolver=MagicMock(side_effect=KeyError("missing adapter mapping")),
+    )
+
+    with pytest.raises(KeyError, match="missing adapter mapping"):
+        await service.ingest_costs_for_tenant(tenant_id)

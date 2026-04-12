@@ -132,6 +132,49 @@ class TestCurrencyDeep:
             assert "NGN" in _RATES_CACHE
 
     @pytest.mark.asyncio
+    async def test_get_exchange_rate_redis_freshness_uses_wall_clock_not_monotonic(self):
+        service = ExchangeRateService()
+        mock_cache = MagicMock()
+        mock_cache.enabled = True
+        mock_cache._get = AsyncMock(
+            return_value={"rate": 1500.0, "updated_at": 10_000.0, "provider": "cbn_nfem"}
+        )
+        mock_cache._set = AsyncMock()
+
+        with (
+            patch("app.shared.core.cache.get_cache_service", return_value=mock_cache),
+            patch(
+                "app.shared.core.currency.get_settings",
+                return_value=MagicMock(EXCHANGE_RATE_SYNC_INTERVAL_HOURS=1),
+            ),
+            patch("app.shared.core.currency.time.monotonic", return_value=50.0),
+            patch("app.shared.core.currency.time.time", return_value=20_000.0),
+            patch.object(
+                service,
+                "_read_db_rate",
+                new=AsyncMock(return_value=(None, None, None)),
+            ),
+            patch.object(
+                service,
+                "_fetch_live_rate",
+                new=AsyncMock(return_value=(Decimal("1600.0"), "cbn_nfem")),
+            ),
+            patch.object(
+                service,
+                "_write_redis_rate",
+                new=AsyncMock(return_value=None),
+            ),
+            patch.object(
+                service,
+                "_upsert_db_rate",
+                new=AsyncMock(return_value=None),
+            ),
+        ):
+            rate = await service.get_rate("NGN")
+
+        assert rate == Decimal("1600.0")
+
+    @pytest.mark.asyncio
     async def test_get_exchange_rate_strict_failure_raises(self):
         service = ExchangeRateService()
         with (

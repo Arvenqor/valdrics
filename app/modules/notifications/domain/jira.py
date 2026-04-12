@@ -21,9 +21,6 @@ logger = structlog.get_logger()
 JIRA_CLIENT_RECOVERABLE_EXCEPTIONS = (
     httpx.HTTPError,
     RuntimeError,
-    TypeError,
-    ValueError,
-    AttributeError,
 )
 
 

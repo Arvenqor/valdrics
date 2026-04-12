@@ -71,13 +71,6 @@ def reload_settings_from_environment() -> "Settings":
             from app.models._encryption import clear_encryption_key_cache
 
             clear_encryption_key_cache()
-            celery_module = sys.modules.get("app.shared.core.celery_app")
-            if celery_module is not None:
-                refresh_celery = getattr(
-                    celery_module, "refresh_celery_app_config", None
-                )
-                if callable(refresh_celery):
-                    refresh_celery(current)
             app_main_module = sys.modules.get("app.main")
             if app_main_module is not None:
                 refresh_app_metadata = getattr(
@@ -115,6 +108,40 @@ class Settings(
         if normalized not in allowed:
             allowed_text = ", ".join(sorted(allowed))
             raise ValueError(f"ENVIRONMENT must be one of: {allowed_text}")
+        return normalized
+
+    @field_validator("PLATFORM_RUNTIME_PROFILE", mode="before")
+    @classmethod
+    def _normalize_platform_runtime_profile(cls, value: object) -> str:
+        normalized = str(value or "gcp").strip().lower()
+        allowed = {"gcp"}
+        if normalized not in allowed:
+            allowed_text = ", ".join(sorted(allowed))
+            raise ValueError(
+                f"PLATFORM_RUNTIME_PROFILE must be one of: {allowed_text}"
+            )
+        return normalized
+
+    @field_validator("OBSERVABILITY_BACKEND", mode="before")
+    @classmethod
+    def _normalize_observability_backend(cls, value: object) -> str:
+        normalized = str(value or "auto").strip().lower()
+        allowed = {"auto", "otlp", "gcp"}
+        if normalized not in allowed:
+            allowed_text = ", ".join(sorted(allowed))
+            raise ValueError(f"OBSERVABILITY_BACKEND must be one of: {allowed_text}")
+        return normalized
+
+    @field_validator("PUBLIC_API_RATE_LIMITING_BACKEND", mode="before")
+    @classmethod
+    def _normalize_public_api_rate_limiting_backend(cls, value: object) -> str:
+        normalized = str(value or "redis").strip().lower()
+        allowed = {"redis", "cloudflare"}
+        if normalized not in allowed:
+            allowed_text = ", ".join(sorted(allowed))
+            raise ValueError(
+                f"PUBLIC_API_RATE_LIMITING_BACKEND must be one of: {allowed_text}"
+            )
         return normalized
 
     @field_validator("AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN", mode="before")
@@ -228,6 +255,7 @@ class Settings(
     model_config = SettingsConfigDict(
         env_file=str(DEFAULT_ENV_FILE),
         env_ignore_empty=True,
+        extra="ignore",
     )
 
     @property

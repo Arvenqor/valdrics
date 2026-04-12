@@ -67,16 +67,15 @@ JOB_RUNTIME_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     OSError,
     TimeoutError,
     TypeError,
-    ValueError,
-    KeyError,
-    AttributeError,
 )
 JOB_RUNTIME_UNEXPECTED_ERRORS: tuple[type[Exception], ...] = (
     AssertionError,
+    AttributeError,
     LookupError,
     NotImplementedError,
     UnicodeError,
     ArithmeticError,
+    ValueError,
 )
 
 
@@ -312,15 +311,6 @@ class JobProcessor:
                                         "type": "execution",
                                     }
                                 )
-                    except (KeyError, ValueError) as e:
-                        # Handler configuration/payload errors
-                        logger.warning(
-                            "job_handler_config_error", job_id=str(job.id), error=str(e)
-                        )
-                        results["failed"] += 1
-                        results["errors"].append(
-                            {"job_id": str(job.id), "error": str(e), "type": "config"}
-                        )
                     except JOB_RUNTIME_RECOVERABLE_ERRORS as e:
                         results["failed"] += 1
                         results["errors"].append(

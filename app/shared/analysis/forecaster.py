@@ -15,12 +15,10 @@ logger = structlog.get_logger()
 FORECAST_RUNTIME_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     ValueError,
     TypeError,
-    KeyError,
     RuntimeError,
     ArithmeticError,
     OverflowError,
     IndexError,
-    AttributeError,
 )
 FORECAST_MARKER_LOAD_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     SQLAlchemyError,
@@ -29,12 +27,10 @@ FORECAST_MARKER_LOAD_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     TimeoutError,
     TypeError,
     ValueError,
-    AttributeError,
 )
 FORECAST_MAPE_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     ValueError,
     TypeError,
-    KeyError,
     RuntimeError,
     ArithmeticError,
     OverflowError,

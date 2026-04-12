@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.background_job import BackgroundJob
 from app.modules.governance.domain.jobs.handlers.base import BaseJobHandler
-from app.modules.governance.domain.jobs.errors import PermanentJobError
+from app.modules.governance.domain.jobs.errors import JobExecutionError, PermanentJobError
 
 
 class RecurringBillingHandler(BaseJobHandler):
@@ -19,18 +19,27 @@ class RecurringBillingHandler(BaseJobHandler):
             BillingService,
             TenantSubscription,
         )
+        from app.modules.billing.domain.billing.paystack_service_impl import (
+            RenewalOperationalError,
+        )
 
         payload = job.payload or {}
         sub_id = payload.get("subscription_id")
         charge_reference = payload.get("charge_reference")
 
         if not sub_id:
-            raise ValueError("subscription_id required for recurring_billing")
+            raise PermanentJobError("subscription_id required for recurring_billing")
+        try:
+            subscription_uuid = UUID(str(sub_id))
+        except (TypeError, ValueError) as exc:
+            raise PermanentJobError(
+                "subscription_id must be a valid UUID for recurring_billing"
+            ) from exc
 
         # Get subscription - P1: Enforce tenant isolation
         result = await db.execute(
             select(TenantSubscription).where(
-                TenantSubscription.id == UUID(sub_id),
+                TenantSubscription.id == subscription_uuid,
                 TenantSubscription.tenant_id == job.tenant_id,
             ).with_for_update()
         )
@@ -47,11 +56,14 @@ class RecurringBillingHandler(BaseJobHandler):
 
         # Execute charge
         billing_service = BillingService(db)
-        success = await billing_service.charge_renewal(
-            subscription,
-            reference=str(charge_reference) if charge_reference else None,
-            commit=False,
-        )
+        try:
+            success = await billing_service.charge_renewal(
+                subscription,
+                reference=str(charge_reference) if charge_reference else None,
+                commit=False,
+            )
+        except RenewalOperationalError as exc:
+            raise JobExecutionError(str(exc)) from exc
 
         if success:
             # Fetch actual price for result reporting
@@ -65,4 +77,4 @@ class RecurringBillingHandler(BaseJobHandler):
 
             return {"status": "completed", "amount_billed_usd": price}
         else:
-            raise Exception("Paystack charge failed or authorization missing")
+            raise JobExecutionError("Paystack charge failed or authorization missing")

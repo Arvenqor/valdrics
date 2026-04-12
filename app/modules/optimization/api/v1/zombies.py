@@ -1,5 +1,6 @@
 from typing import Annotated, Dict, Any, Optional
 from uuid import UUID
+from decimal import Decimal, InvalidOperation
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy import inspect as sa_inspect
@@ -59,6 +60,16 @@ _load_remediation_request_for_authorization = (
 _required_approval_permission = _required_approval_permission_impl
 
 
+def _coerce_finite_savings(value: Any) -> float:
+    try:
+        amount = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError) as exc:
+        raise ValueError("estimated_savings must be numeric") from exc
+    if not amount.is_finite():
+        raise ValueError("estimated_savings must be finite")
+    return float(amount)
+
+
 def _request_finding_status(request_row: RemediationRequest) -> str | None:
     finding = _request_loaded_finding(request_row)
     if finding is not None:
@@ -115,7 +126,9 @@ def _serialize_request_row(
         else None,
         "finding_status": _request_finding_status(request_row),
         "finding_category": _request_finding_category(request_row),
-        "estimated_savings": float(request_row.estimated_monthly_savings or 0),
+        "estimated_savings": _coerce_finite_savings(
+            request_row.estimated_monthly_savings or 0
+        ),
         "created_at": created_at.isoformat() if created_at else None,
     }
     if include_execution_fields:

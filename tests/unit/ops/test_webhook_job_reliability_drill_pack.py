@@ -35,7 +35,7 @@ def test_webhook_job_reliability_drill_scenarios_cover_required_failures() -> No
         "worker_crash_running_job_recovery",
         "dead_letter_routing",
         "retention_cleanup",
-        "scheduler_inline_fallback",
+        "managed_scheduler_dispatch",
     }
 
     combined_targets = "\n".join(
@@ -55,7 +55,11 @@ def test_webhook_job_reliability_drill_scenarios_cover_required_failures() -> No
     assert "test_process_single_job_dead_letter" in combined_targets
     assert "test_purge_terminal_background_jobs_batches_until_empty" in combined_targets
     assert (
-        "test_background_job_processing_falls_back_inline_when_celery_unavailable"
+        "test_scheduler_dispatch_route_requires_gcp_identity_token"
+        in combined_targets
+    )
+    assert (
+        "test_scheduler_dispatch_route_uses_managed_dispatcher_when_authorized"
         in combined_targets
     )
 
@@ -89,16 +93,22 @@ def test_webhook_job_reliability_runbook_documents_required_metrics_and_alerts()
 
     assert "scripts/run_webhook_job_reliability_drill.py" in text
     assert "scripts/bootstrap_local_sqlite_schema.py" in text
-    assert "uv run alembic upgrade head" in text
-    assert "kill a worker while jobs are `RUNNING`" in text
+    assert "verify_managed_deployment_bundle.py" in text
+    assert "reusable deploy workflow migration step" in text
+    assert "repository-managed worker loop" in text
     assert "Send a burst of duplicate deliveries" in text
     assert "valdrics_ops_background_jobs_stale_running_recovered_total" in text
     assert "valdrics_ops_background_jobs_dead_lettered_total" in text
     assert "valdrics_ops_background_jobs_overdue_pending_count" in text
     assert "valdrics_ops_audit_log_retention_failures_total" in text
-    assert "valdrics_scheduler_inline_fallback_total" in text
+    assert "valdrics_scheduler_dispatch_fail_closed_total" in text
+    assert "fail-closed internal scheduler dispatch contract" in text
+    assert "valdrics_scheduler_inline_fallback_total" not in text
+    assert "BackgroundJobStaleRunningRecoveryDetected" in text
     assert "BackgroundJobDeadLetterGrowth" in text
-    assert "SchedulerInlineFallbackActive" in text
+    assert "AuditLogRetentionFailures" in text
+    assert "SchedulerDispatchFailClosedDetected" in text
+    assert "SchedulerInlineFallbackActive" not in text
 
 
 def test_main_resolves_relative_output_from_repo_root_when_run_outside_repo(

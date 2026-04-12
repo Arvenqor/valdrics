@@ -2,83 +2,48 @@
 
 ## Current State
 
-The checked-in configuration provides in-region high availability by default
-and supports opt-in automated secondary-region failover when
-`enable_multi_region_failover=true` is applied in Terraform.
+The supported platform provides managed availability at the service layer and
+uses manual restore/redeploy/reroute for full-environment recovery.
 
-The repository does include a scheduled rebuild-and-verify disaster recovery
-drill workflow (`.github/workflows/disaster-recovery-drill.yml`) so the manual
-regional recovery path is exercised regularly instead of remaining a paper-only
-procedure.
+Repository-owned recovery expectations:
 
-Repository-backed rebuild-and-verify objective:
-
-- the automated drill must complete within 1200 seconds
-- the drill evidence artifact records `duration_seconds`
-- the drill evidence artifact records `regional_recovery_mode=manual_restore_redeploy_reroute`
-- the drill evidence artifact records `regional_recovery_rto_seconds=1200`
-- the drill evidence artifact records `regional_recovery_rpo_contract=provider_backup_restore_external_to_repository`
-- this objective validates application rebuild, migrations, worker bootstrap,
-  and API verification only; it does not claim a cloud-provider regional
-  backup-restore RTO
-- operator-controlled regional recovery for the repository-owned surface is
-  therefore defined as: once restored data endpoints and replacement
-  infrastructure are available, application rebuild, migrations, worker
-  bootstrap, and traffic-cutover verification must complete within 1200 seconds
-- repository-owned regional recovery therefore has an explicit manual contract:
-  `RTO <= 1200s` for rebuild-and-verify after restored data endpoints are
-  available, while `RPO` remains provider-backup/restore dependent outside the
-  repository-managed application surface
-
-Optional automated failover surface:
-
-- Terraform can provision a warm-standby secondary region through
-  `enable_multi_region_failover=true`
-- the root Terraform outputs expose `secondary_eks_cluster_name` and
-  `secondary_db_endpoint`
-- `.github/workflows/regional-failover.yml` executes the scripted cutover path
-- `.github/workflows/regional-failover.yml` requires `aws_role_to_assume` and
-  configures AWS credentials through GitHub OIDC before mutation
-- `scripts/run_regional_failover.py` promotes the secondary DB replica, verifies
-  both `/health/live` and dependency-aware `/health`, requires healthy
-  background job processing plus Celery worker heartbeat coverage, and only
-  accepts a Cloudflare API response when `success=true`
-- the automated cutover evidence records `aws_execution_identity` so the
-  assumed AWS principal is part of the failover artifact
-- the automated cutover evidence records
-  `regional_recovery_mode=automated_secondary_region_failover`
+- Cloudflare remains the public edge and routing layer.
+- Supabase remains the managed database/auth/storage dependency.
+- Google Cloud Run and Cloud Run Jobs provide immutable, revision-based runtime recovery.
+- `.github/workflows/deploy-unified-platform.yml` is the supported redeploy path.
+- `/health/live` and dependency-aware `/health` remain the required cutover checks.
+- the repository-owned regional recovery mode is `manual_restore_redeploy_reroute`
+- recovery evidence should record `regional_recovery_mode=manual_restore_redeploy_reroute`
 
 ## Availability Building Blocks
 
-- Edge/frontend: Cloudflare Pages or ingress fronting the API surface
-- API: multi-replica Helm deployment with anti-affinity and rolling updates
-- Database: AWS RDS with Multi-AZ enabled
-- Cache/rate-limit coordination: ElastiCache replication group with Multi-AZ enabled
+- Edge/frontend: Cloudflare Pages
+- API: Google Cloud Run
+- Async queue: Cloud Tasks
+- Scheduled control plane: Cloud Scheduler
+- Batch work: Cloud Run Jobs
+- Database/auth/storage: Supabase
+- Backend artifact promotion: Artifact Registry
 
 ## Failure Handling Model
 
 ### In-Region Failures
 
-- RDS and Redis are expected to fail over inside the provisioned region.
-- API replicas are expected to survive node-level failures through Kubernetes scheduling and anti-affinity.
+- Cloud Run recovers by shifting traffic to a healthy revision.
+- Cloud Tasks retries durable work under queue policy.
+- Supabase remains the managed dependency for database continuity.
 
-### Cross-Region Failures
+### Cross-Region / Full-Environment Failures
 
-Cross-region recovery has two supported paths:
+Cross-region recovery currently uses one supported path:
 
-1. Default/manual profile when only the primary region is provisioned:
-
-   1. Restore data from backups or snapshots into the target region.
-   2. Apply infrastructure and deploy the application stack in that region.
-   3. Update Cloudflare or other edge routing to direct traffic to the recovered stack.
-
-2. Automated warm-standby profile when `enable_multi_region_failover=true` is enabled:
-
-   1. Keep the secondary region provisioned with standby EKS, cache, and cross-region DB replica resources.
-   2. Execute `scripts/run_regional_failover.py` or `.github/workflows/regional-failover.yml` with `aws_role_to_assume`.
-   3. Promote the secondary DB replica, verify `/health/live` and `/health`, require healthy worker heartbeat coverage, and cut Cloudflare API DNS to the secondary origin only when the API reports dependency-ready status and Cloudflare returns `success=true`.
+1. Restore data from Supabase backup/restore or point-in-time recovery.
+2. Re-apply Terraform for the target environment.
+3. Redeploy the exact tested Artifact Registry release through the unified deployment workflow.
+4. Re-point Cloudflare traffic only after `/health/live` and `/health` both pass.
 
 ## What This Document Does Not Claim
 
-- No DNS-provider-driven automatic failover is defined in the checked-in infrastructure.
-- Autonomous failover without an operator-triggered script or workflow is not part of the supported production contract today.
+- No AWS warm-standby cutover is part of the supported production contract.
+- No AWS role-assumption or secondary database endpoint dependency exists in the active failover model.
+- Autonomous provider-driven failover without operator-triggered restore and redeploy is not claimed here.

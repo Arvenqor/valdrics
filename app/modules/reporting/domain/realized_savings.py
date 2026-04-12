@@ -45,11 +45,16 @@ def _decimal(value: Any) -> Decimal:
     if value is None:
         return Decimal("0")
     if isinstance(value, Decimal):
+        if not value.is_finite():
+            raise ValueError("value must be finite")
         return value
     try:
-        return Decimal(str(value))
-    except (InvalidOperation, TypeError, ValueError):
-        return Decimal("0")
+        amount = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError) as exc:
+        raise ValueError("value must be numeric") from exc
+    if not amount.is_finite():
+        raise ValueError("value must be finite")
+    return amount
 
 
 class RealizedSavingsService:
@@ -109,6 +114,13 @@ class RealizedSavingsService:
             return None
         if request.executed_at is None:
             return None
+
+        try:
+            normalized_monthly_multiplier_days = int(monthly_multiplier_days)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("monthly_multiplier_days must be an integer") from exc
+        if normalized_monthly_multiplier_days <= 0:
+            raise ValueError("monthly_multiplier_days must be > 0")
 
         account_id = getattr(request, "connection_id", None)
         if account_id is None:
@@ -179,7 +191,7 @@ class RealizedSavingsService:
 
         delta = baseline_avg - measurement_avg
         realized_daily = delta if delta > 0 else Decimal("0")
-        realized_monthly = realized_daily * Decimal(str(monthly_multiplier_days))
+        realized_monthly = realized_daily * Decimal(str(normalized_monthly_multiplier_days))
 
         confidence = Decimal("0.90")
         if (
@@ -241,7 +253,7 @@ class RealizedSavingsService:
                 measurement_avg_daily_cost_usd=measurement_avg,
                 realized_avg_daily_savings_usd=realized_daily,
                 realized_monthly_savings_usd=realized_monthly,
-                monthly_multiplier_days=int(monthly_multiplier_days),
+                monthly_multiplier_days=normalized_monthly_multiplier_days,
                 confidence_score=confidence,
                 details=details,
                 computed_at=now,
@@ -269,7 +281,7 @@ class RealizedSavingsService:
             existing.measurement_avg_daily_cost_usd = measurement_avg
             existing.realized_avg_daily_savings_usd = realized_daily
             existing.realized_monthly_savings_usd = realized_monthly
-            existing.monthly_multiplier_days = int(monthly_multiplier_days)
+            existing.monthly_multiplier_days = normalized_monthly_multiplier_days
             existing.confidence_score = confidence
             existing.details = details
             existing.computed_at = now

@@ -50,9 +50,6 @@ _REMEDIATION_COMMON_RECOVERABLE_EXCEPTIONS: tuple[type[Exception], ...] = (
     TimeoutError,
     ValueError,
     TypeError,
-    KeyError,
-    LookupError,
-    AttributeError,
 )
 REMEDIATION_TIER_LOOKUP_RECOVERABLE_EXCEPTIONS = (
     _REMEDIATION_COMMON_RECOVERABLE_EXCEPTIONS

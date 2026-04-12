@@ -1,5 +1,6 @@
 import logging
 from datetime import date, datetime, timezone
+from decimal import Decimal, InvalidOperation
 from typing import Any, AsyncGenerator
 import structlog
 from azure.identity.aio import ClientSecretCredential
@@ -41,9 +42,6 @@ AZURE_OPERATION_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     ServiceRequestError,
     ServiceResponseError,
     RuntimeError,
-    AttributeError,
-    TypeError,
-    ValueError,
 )
 AZURE_USAGE_LOOKUP_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     AdapterError,
@@ -193,8 +191,14 @@ class AzureAdapter(BaseAdapter):
                     dt = dt.astimezone(timezone.utc)
             except ValueError:
                 logger.error("azure_date_parse_failed", raw_val=raw_date)
-                # Fallback to now but log error
-                dt = datetime.now(timezone.utc)
+                raise ValueError("Azure usage date must be a valid datetime string")
+
+        try:
+            amount = Decimal(str(row[0]))
+        except (InvalidOperation, TypeError, ValueError) as exc:
+            raise ValueError("Azure cost row amount must be numeric") from exc
+        if amount.is_nan() or amount.is_infinite():
+            raise ValueError("Azure cost row amount must be finite")
 
         now = datetime.now(timezone.utc)
 
@@ -202,9 +206,9 @@ class AzureAdapter(BaseAdapter):
             "timestamp": dt,
             "service": row[1],
             "region": row[2],
-            "cost_usd": float(row[0]),
+            "cost_usd": float(amount),
             "currency": "USD",
-            "amount_raw": float(row[0]),
+            "amount_raw": float(amount),
             "usage_type": row[3],
             "cost_type": cost_type,
             "is_finalized": (now - dt).days > 3,

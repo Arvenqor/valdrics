@@ -27,6 +27,18 @@ PLATFORM_CURRENCY_CONVERSION_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
 
 
 class PlatformNativeConnectorMixin:
+    @staticmethod
+    def _parse_stream_timestamp(value: Any) -> datetime:
+        if isinstance(value, datetime):
+            return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+        if isinstance(value, str):
+            normalized = value.strip()
+            if not normalized:
+                raise ValueError("timestamp string is empty")
+            parsed = datetime.fromisoformat(normalized.replace("Z", "+00:00"))
+            return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+        raise ValueError("timestamp must be a datetime or ISO 8601 string")
+
     def _iter_month_starts(
         self: Any, start_date: datetime, end_date: datetime
     ) -> list[date]:
@@ -390,7 +402,16 @@ class PlatformNativeConnectorMixin:
         records = self._extract_ledger_records(payload)
 
         for entry in records:
-            timestamp = parse_timestamp(entry.get("timestamp") or entry.get("date"))
+            try:
+                timestamp = self._parse_stream_timestamp(
+                    entry.get("timestamp") or entry.get("date")
+                )
+            except ValueError as exc:
+                logger.warning(
+                    "platform_ledger_invalid_timestamp_skipped",
+                    error=str(exc),
+                )
+                continue
             if timestamp < start_date or timestamp > end_date:
                 continue
 
@@ -417,10 +438,16 @@ class PlatformNativeConnectorMixin:
                     else None
                 )
             else:
-                amount_local = as_float(
-                    entry.get("amount_raw", entry.get("amount", entry.get("cost", 0.0))),
-                    default=0.0,
+                raw_candidate = entry.get(
+                    "amount_raw", entry.get("amount", entry.get("cost"))
                 )
+                if not is_number(raw_candidate):
+                    logger.warning(
+                        "platform_ledger_invalid_amount_skipped",
+                        value=raw_candidate,
+                    )
+                    continue
+                amount_local = as_float(raw_candidate, default=0.0)
                 amount_raw = amount_local
                 cost_usd = float(amount_local)
                 if currency_code != "USD":

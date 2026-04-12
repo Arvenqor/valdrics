@@ -178,5 +178,8 @@ async def reset_circuit_breaker(
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to reset circuit breaker: {str(e)}. Please check Redis connectivity or contact support.",
+            detail=(
+                f"Failed to reset circuit breaker: {str(e)}. "
+                "Please verify the configured safety-state backend and contact support."
+            ),
         ) from e

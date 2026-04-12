@@ -29,7 +29,6 @@ def _runtime_template() -> str:
             "FRONTEND_URL=",
             "CORS_ORIGINS=[]",
             "DATABASE_URL=",
-            "REDIS_URL=",
             "SUPABASE_URL=",
             "SUPABASE_ANON_KEY=",
             "SUPABASE_JWT_SECRET=",
@@ -37,7 +36,6 @@ def _runtime_template() -> str:
             "ENCRYPTION_KEY=",
             "KDF_SALT=",
             "ADMIN_API_KEY=",
-            "INTERNAL_JOB_SECRET=",
             "INTERNAL_METRICS_AUTH_TOKEN=",
             "ENFORCEMENT_APPROVAL_TOKEN_SECRET=",
             "ENFORCEMENT_EXPORT_SIGNING_SECRET=",
@@ -45,8 +43,6 @@ def _runtime_template() -> str:
             "GROQ_API_KEY=",
             "PAYSTACK_SECRET_KEY=",
             "PAYSTACK_PUBLIC_KEY=",
-            "SENTRY_DSN=",
-            "OTEL_EXPORTER_OTLP_ENDPOINT=",
             "TRUSTED_PROXY_CIDRS=[]",
             "",
         ]
@@ -93,19 +89,25 @@ def _build_bundle(
                 "database_url": (
                     "postgresql+asyncpg://postgres:postgres@db.example.com:5432/postgres"
                 ),
-                "redis_url": "redis://redis.example.com:6379/0",
                 "supabase_url": "https://example.supabase.co",
                 "supabase_anon_key": "dashboard-anon-key",
                 "supabase_jwt_secret": "x" * 40,
-                "aws_assume_role_trust_principal_arn": (
-                    "arn:aws:iam::123456789012:role/ValdricsControlPlane"
+                "gcp_project_id": "valdrics-production",
+                "gcp_region": "us-central1",
+                "gcp_cloud_tasks_queue": "valdrics-managed-work",
+                "gcp_cloud_tasks_invoker_service_account_email": (
+                    "tasks@valdrics-production.iam.gserviceaccount.com"
                 ),
+                "gcp_cloud_run_service_name": "valdrics-api",
+                "gcp_cloud_run_batch_job_name": "valdrics-batch",
+                "gcp_internal_allowed_service_accounts": [
+                    "tasks@valdrics-production.iam.gserviceaccount.com",
+                    "scheduler@valdrics-production.iam.gserviceaccount.com",
+                ],
                 "llm_provider": "groq",
                 "llm_api_key": "gsk_test_runtime_key",
                 "paystack_secret_key": "sk_live_runtime_paystack_key",
                 "paystack_public_key": "pk_live_runtime_paystack_key",
-                "sentry_dsn": "https://key@example.com/1",
-                "otel_endpoint": "https://otel.example.com:4317",
                 "trusted_proxy_cidrs": ["203.0.113.10/32"],
             }
         )
@@ -119,13 +121,20 @@ def _build_bundle(
         )
         deployment_kwargs.update(
             {
-                "release_tag": "2026.03.26",
-                "api_image_digest": (
-                    "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                "release_tag": "2026.04.10",
+                "api_promotion_ref": (
+                    "us-central1-docker.pkg.dev/valdrics-prod/valdrics-runtime/"
+                    "valdrics-api@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
                 ),
-                "dashboard_image_digest": (
-                    "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-                ),
+                "gcp_project_id": "valdrics-production",
+                "gcp_region": "us-central1",
+                "cloudflare_account_id": "cf-account-prod",
+                "cloudflare_zone_id": "cf-zone-prod",
+                "cloudflare_pages_project_name": "valdrics-dashboard",
+                "cloudflare_pages_production_branch": "main",
+                "supabase_organization_id": "supabase-org-prod",
+                "supabase_project_name": "valdrics",
+                "supabase_region": "us-east-1",
             }
         )
 
@@ -156,23 +165,27 @@ def test_render_managed_deployment_handoff_renders_blocked_bundle_summary(
     content = rendered_path.read_text(encoding="utf-8")
     assert "Managed Deployment Handoff: staging" in content
     assert "Runtime env validation: BLOCKED" in content
-    assert "Current supported profile (`Koyeb managed services with immutable image promotion`): BLOCKED" in content
+    assert "Current supported profile (`Google Cloud Run + Cloudflare Pages + Supabase`): BLOCKED" in content
+    assert "Artifact Registry promotion contract: BLOCKED" in content
+    assert "Terraform infrastructure contract: BLOCKED" in content
     assert "verify_managed_release_readiness.py" in content
     assert "verify_codebase_audit_report.py" in content
     assert "verify_dashboard_runtime_contract.py" in content
     assert "render_managed_release_blocker_summary.py" in content
     assert "run_public_frontend_quality_gate.py" in content
-    assert "--reuse-built-dashboard-runtime" in content
-    assert "managed-release-blockers.md" in content
+    assert "release-unified-platform.yml" in content
+    assert "publish-artifact-registry-images.yml" in content
+    assert "deploy-unified-platform.yml" in content
+    assert "unified_platform_release.md" in content
     assert "`API_URL`" in content
     assert "`DATABASE_URL`" in content
     assert "`PUBLIC_API_URL`" in content
     assert "`release_tag`" in content
-    assert "`external_id`" in content
+    assert "`gcp_project_id`" in content
     assert "`SUPABASE_URL`" in content
 
 
-def test_render_managed_deployment_handoff_marks_koyeb_release_ready(
+def test_render_managed_deployment_handoff_marks_unified_release_ready(
     tmp_path: Path,
 ) -> None:
     runtime_report, migrate_report, deployment_report = _build_bundle(
@@ -193,15 +206,10 @@ def test_render_managed_deployment_handoff_marks_koyeb_release_ready(
     content = output_path.read_text(encoding="utf-8")
     assert "Runtime env validation: READY" in content
     assert "Migration env validation: READY" in content
-    assert "Current supported profile (`Koyeb managed services with immutable image promotion`): READY" in content
-    assert "Koyeb immutable release contract: READY" in content
-    assert "Future scale profile (`Helm + Terraform (AWS/EKS)`): BLOCKED" in content
-    assert "verify_managed_release_readiness.py" in content
-    assert "verify_codebase_audit_report.py" in content
-    assert "render_managed_release_blocker_summary.py" in content
-    assert "--reuse-built-dashboard-runtime" in content
-    assert "managed-release-blockers.md" in content
-    assert "`secret_rotation_lambda_arn`" in content
+    assert "Current supported profile (`Google Cloud Run + Cloudflare Pages + Supabase`): READY" in content
+    assert "Unified runtime deploy contract: READY" in content
+    assert "Artifact Registry promotion contract: READY" in content
+    assert "Terraform infrastructure contract: READY" in content
 
 
 def test_render_managed_deployment_handoff_rejects_incoherent_bundle(

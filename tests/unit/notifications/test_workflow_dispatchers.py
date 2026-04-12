@@ -108,6 +108,30 @@ async def test_github_dispatch_handles_httpx_error() -> None:
 
 
 @pytest.mark.asyncio
+async def test_github_dispatch_type_error_bubbles() -> None:
+    dispatcher = GitHubActionsDispatcher(
+        owner="Valdrics",
+        repo="valdrics",
+        workflow_id="remediation.yml",
+        ref="main",
+        token="ghp_token",
+        timeout_seconds=5.0,
+    )
+
+    client = AsyncMock()
+    client.post = AsyncMock(side_effect=TypeError("broken http client contract"))
+    with patch(
+        "app.shared.core.http.get_http_client",
+        return_value=client,
+    ):
+        with pytest.raises(TypeError, match="broken http client contract"):
+            await dispatcher.dispatch(
+                "policy.block",
+                {"tenant_id": "t1", "request_id": "r1"},
+            )
+
+
+@pytest.mark.asyncio
 async def test_generic_dispatch_validates_allowlist_and_posts() -> None:
     dispatcher = GenericCIWebhookDispatcher(
         url="https://ci.example.com/hooks/valdrics",
@@ -158,6 +182,28 @@ async def test_generic_dispatch_rejects_non_allowlisted_host() -> None:
     ):
         ok = await dispatcher.dispatch("policy.escalate", {"tenant_id": "t-1"})
     assert ok is False
+
+
+@pytest.mark.asyncio
+async def test_github_dispatch_payload_serialization_value_error_bubbles() -> None:
+    dispatcher = GitHubActionsDispatcher(
+        owner="Valdrics",
+        repo="valdrics",
+        workflow_id="remediation.yml",
+        ref="main",
+        token="ghp_token",
+        timeout_seconds=5.0,
+    )
+
+    with patch(
+        "app.modules.notifications.domain.workflows._serialize_payload",
+        side_effect=ValueError("bad payload shape"),
+    ):
+        with pytest.raises(ValueError, match="bad payload shape"):
+            await dispatcher.dispatch(
+                "policy.block",
+                {"tenant_id": "t1", "request_id": "r1"},
+            )
 
 
 def test_get_workflow_dispatchers_returns_all_enabled() -> None:

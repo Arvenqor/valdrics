@@ -297,3 +297,129 @@ def test_render_quarterly_csv_sanitizes_formula_cells_and_quotes_commas() -> Non
     assert ["'=calc()", "10.00", "5.00", "1", "1", "0", "1"] in rows
     assert ['\'=HYPERLINK("x")', "25.0000"] in rows
     assert ["Compute,Edge", "10.0000"] in rows
+
+
+def test_render_quarterly_csv_rejects_non_finite_summary_values() -> None:
+    payload = QuarterlyCommercialProofResponse(
+        period="explicit",
+        year=2026,
+        quarter=1,
+        start_date="2026-01-01",
+        end_date="2026-03-31",
+        as_of="2026-03-31T00:00:00+00:00",
+        tier="pro",
+        provider="aws",
+        leadership_kpis=_leadership_payload().model_copy(
+            update={"total_cost_usd": float("nan")}
+        ),
+        savings_proof=_savings_payload(),
+        notes=[],
+    )
+
+    with pytest.raises(ValueError, match="total_cost_usd must be finite"):
+        CommercialProofReportService.render_quarterly_csv(payload)
+
+
+def test_render_quarterly_csv_rejects_non_finite_breakdown_values() -> None:
+    payload = QuarterlyCommercialProofResponse(
+        period="explicit",
+        year=2026,
+        quarter=1,
+        start_date="2026-01-01",
+        end_date="2026-03-31",
+        as_of="2026-03-31T00:00:00+00:00",
+        tier="pro",
+        provider="aws",
+        leadership_kpis=_leadership_payload().model_copy(
+            update={"cost_by_provider": {"aws": float("inf")}}
+        ),
+        savings_proof=_savings_payload().model_copy(
+            update={
+                "breakdown": [
+                    SavingsProofBreakdownItem(
+                        provider="aws",
+                        opportunity_monthly_usd=float("nan"),
+                        realized_monthly_usd=30.0,
+                        open_recommendations=4,
+                        applied_recommendations=2,
+                        pending_remediations=1,
+                        completed_remediations=3,
+                    )
+                ]
+            }
+        ),
+        notes=[],
+    )
+
+    with pytest.raises(ValueError, match="cost_by_provider must be finite"):
+        CommercialProofReportService.render_quarterly_csv(payload)
+
+    payload = payload.model_copy(
+        update={"leadership_kpis": _leadership_payload()},
+    )
+    with pytest.raises(
+        ValueError, match="breakdown_opportunity_monthly_usd must be finite"
+    ):
+        CommercialProofReportService.render_quarterly_csv(payload)
+
+
+def test_render_quarterly_csv_rejects_non_finite_top_level_values() -> None:
+    payload = QuarterlyCommercialProofResponse(
+        period="explicit",
+        year=2026,
+        quarter=1,
+        start_date="2026-01-01",
+        end_date="2026-03-31",
+        as_of="2026-03-31T00:00:00+00:00",
+        tier="pro",
+        provider="aws",
+        leadership_kpis=_leadership_payload().model_copy(update={"total_cost_usd": float("nan")}),
+        savings_proof=_savings_payload(),
+        notes=[],
+    )
+
+    with pytest.raises(ValueError, match="total_cost_usd must be finite"):
+        CommercialProofReportService.render_quarterly_csv(payload)
+
+
+def test_render_quarterly_csv_rejects_non_finite_breakdown_values() -> None:
+    payload = QuarterlyCommercialProofResponse(
+        period="explicit",
+        year=2026,
+        quarter=1,
+        start_date="2026-01-01",
+        end_date="2026-03-31",
+        as_of="2026-03-31T00:00:00+00:00",
+        tier="pro",
+        provider="aws",
+        leadership_kpis=_leadership_payload().model_copy(
+            update={"cost_by_provider": {"aws": float("inf")}}
+        ),
+        savings_proof=_savings_payload().model_copy(
+            update={
+                "breakdown": [
+                    SavingsProofBreakdownItem(
+                        provider="aws",
+                        opportunity_monthly_usd=float("nan"),
+                        realized_monthly_usd=30.0,
+                        open_recommendations=4,
+                        applied_recommendations=2,
+                        pending_remediations=1,
+                        completed_remediations=3,
+                    )
+                ]
+            }
+        ),
+        notes=[],
+    )
+
+    with pytest.raises(ValueError, match="cost_by_provider must be finite"):
+        CommercialProofReportService.render_quarterly_csv(payload)
+
+    payload = payload.model_copy(
+        update={
+            "leadership_kpis": _leadership_payload(),
+        }
+    )
+    with pytest.raises(ValueError, match="breakdown_opportunity_monthly_usd must be finite"):
+        CommercialProofReportService.render_quarterly_csv(payload)

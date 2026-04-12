@@ -39,6 +39,22 @@ def _parse_env(path: Path) -> dict[str, str]:
     return values
 
 
+_GCP_RUNTIME_ARGS = {
+    "gcp_project_id": "valdrics-prod",
+    "gcp_region": "us-central1",
+    "gcp_cloud_tasks_queue": "valdrics-managed-work",
+    "gcp_cloud_tasks_invoker_service_account_email": (
+        "tasks-invoker@valdrics-prod.iam.gserviceaccount.com"
+    ),
+    "gcp_cloud_run_service_name": "valdrics-api",
+    "gcp_cloud_run_batch_job_name": "valdrics-batch",
+    "gcp_internal_allowed_service_accounts": [
+        "tasks-invoker@valdrics-prod.iam.gserviceaccount.com",
+        "scheduler-invoker@valdrics-prod.iam.gserviceaccount.com",
+    ],
+}
+
+
 def test_generate_managed_runtime_env_generates_internal_secrets_and_reports_unresolved_keys(
     tmp_path: Path,
 ) -> None:
@@ -53,7 +69,6 @@ def test_generate_managed_runtime_env_generates_internal_secrets_and_reports_unr
                 "API_URL=http://localhost:8000",
                 "FRONTEND_URL=http://localhost:5174",
                 "DATABASE_URL=",
-                "REDIS_URL=",
                 "SUPABASE_URL=",
                 "SUPABASE_ANON_KEY=",
                 "SUPABASE_JWT_SECRET=",
@@ -61,7 +76,6 @@ def test_generate_managed_runtime_env_generates_internal_secrets_and_reports_unr
                 "ENCRYPTION_KEY=",
                 "KDF_SALT=",
                 "ADMIN_API_KEY=",
-                "INTERNAL_JOB_SECRET=",
                 "INTERNAL_METRICS_AUTH_TOKEN=",
                 "ENFORCEMENT_APPROVAL_TOKEN_SECRET=",
                 "ENFORCEMENT_EXPORT_SIGNING_SECRET=",
@@ -69,8 +83,6 @@ def test_generate_managed_runtime_env_generates_internal_secrets_and_reports_unr
                 "GROQ_API_KEY=",
                 "PAYSTACK_SECRET_KEY=",
                 "PAYSTACK_PUBLIC_KEY=",
-                "SENTRY_DSN=",
-                "OTEL_EXPORTER_OTLP_ENDPOINT=",
                 "TRUSTED_PROXY_CIDRS=[]",
             ]
         ),
@@ -88,35 +100,45 @@ def test_generate_managed_runtime_env_generates_internal_secrets_and_reports_unr
     assert values["ENVIRONMENT"] == "production"
     assert values["DEBUG"] == "false"
     assert values["TESTING"] == "false"
+    assert values["PLATFORM_RUNTIME_PROFILE"] == "gcp"
+    assert values["OBSERVABILITY_BACKEND"] == "gcp"
+    assert values["PUBLIC_API_RATE_LIMITING_BACKEND"] == "cloudflare"
+    assert values["RATELIMIT_ENABLED"] == "false"
+    assert "WEB_CONCURRENCY" not in values
+    assert values["CIRCUIT_BREAKER_DISTRIBUTED_STATE"] == "false"
     assert values["DB_SSL_MODE"] == "require"
     assert values["SAAS_STRICT_INTEGRATIONS"] == "true"
     assert values["EXPOSE_API_DOCUMENTATION_PUBLICLY"] == "false"
     assert values["API_URL"] == "https://REPLACE_WITH_API_DOMAIN"
-    assert values["DATABASE_URL"].startswith("postgresql+asyncpg://REPLACE_WITH_DB_USER")
-    assert values["AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN"].startswith(
-        "arn:aws:iam::123456789012:role/REPLACE_WITH_"
+    assert values["DATABASE_URL"].startswith(
+        "postgresql+asyncpg://REPLACE_WITH_DB_USER"
     )
+    assert "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN" not in values
     assert values["PAYSTACK_SECRET_KEY"].startswith("sk_live_")
     assert values["PAYSTACK_PUBLIC_KEY"].startswith("pk_live_")
     assert values["GROQ_API_KEY"] == "REPLACE_WITH_GROQ_API_KEY"
+    assert "SENTRY_DSN" not in values
+    assert "OTEL_EXPORTER_OTLP_ENDPOINT" not in values
     assert len(values["CSRF_SECRET_KEY"]) >= 64
     assert len(values["ADMIN_API_KEY"]) >= 64
-    assert len(values["INTERNAL_JOB_SECRET"]) >= 64
     assert len(base64.b64decode(values["KDF_SALT"])) == 32
     assert len(values["ENCRYPTION_KEY"]) >= 32
 
     assert report["environment"] == "production"
-    assert report_payload["resolved_public_runtime_values"]["API_URL"] == "https://REPLACE_WITH_API_DOMAIN"
+    assert (
+        report_payload["resolved_public_runtime_values"]["API_URL"]
+        == "https://REPLACE_WITH_API_DOMAIN"
+    )
     assert (
         report_payload["resolved_public_runtime_values"]["FRONTEND_URL"]
         == "https://REPLACE_WITH_FRONTEND_DOMAIN"
     )
     assert report_payload["validation_ready"] is False
     assert "API_URL" in report_payload["required_operator_input_keys"]
-    assert "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN" in report_payload["required_operator_input_keys"]
+    assert "GCP_PROJECT_ID" in report_payload["required_operator_input_keys"]
     assert "GROQ_API_KEY" in report_payload["required_operator_input_keys"]
     assert "DATABASE_URL" in report_payload["unresolved_external_keys"]
-    assert "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN" in report_payload["unresolved_external_keys"]
+    assert "GCP_PROJECT_ID" in report_payload["unresolved_external_keys"]
     assert "GROQ_API_KEY" in report_payload["unresolved_external_keys"]
     assert "SUPABASE_URL" in report_payload["declared_external_placeholders"]
     assert "SUPABASE_ANON_KEY" in report_payload["declared_external_placeholders"]
@@ -125,6 +147,7 @@ def test_generate_managed_runtime_env_generates_internal_secrets_and_reports_unr
     assert "SUPABASE_URL" not in report_payload["runtime_validation_blockers"]
     assert "SUPABASE_ANON_KEY" not in report_payload["runtime_validation_blockers"]
     assert "DATABASE_URL" in report_payload["runtime_validation_blockers"]
+    assert "GCP_PROJECT_ID" in report_payload["runtime_validation_blockers"]
     assert report_payload["generated_internal_secret_keys"]
 
 
@@ -142,7 +165,6 @@ def test_generate_managed_runtime_env_respects_overrides_and_is_shell_source_saf
                 "FRONTEND_URL=",
                 "CORS_ORIGINS=[]",
                 "DATABASE_URL=",
-                "REDIS_URL=",
                 "SUPABASE_URL=",
                 "SUPABASE_ANON_KEY=",
                 "SUPABASE_JWT_SECRET=",
@@ -155,7 +177,6 @@ def test_generate_managed_runtime_env_respects_overrides_and_is_shell_source_saf
                 "ENCRYPTION_KEY=",
                 "KDF_SALT=",
                 "ADMIN_API_KEY=",
-                "INTERNAL_JOB_SECRET=",
                 "INTERNAL_METRICS_AUTH_TOKEN=",
                 "ENFORCEMENT_APPROVAL_TOKEN_SECRET=",
                 "ENFORCEMENT_EXPORT_SIGNING_SECRET=",
@@ -171,20 +192,15 @@ def test_generate_managed_runtime_env_respects_overrides_and_is_shell_source_saf
         api_url="https://api.staging.example.com",
         frontend_url="https://app.staging.example.com",
         database_url="postgresql+asyncpg://user:pass@db.example.com:5432/postgres",
-        redis_url="redis://redis.example.com:6379/0",
         supabase_url="https://example.supabase.co",
         supabase_anon_key="anon-key-for-dashboard",
         supabase_jwt_secret="x" * 40,
-        aws_assume_role_trust_principal_arn=(
-            "arn:aws:iam::123456789012:role/ValdricsControlPlane"
-        ),
         llm_provider="openai",
         llm_api_key="sk-test-openai-key",
         paystack_secret_key="sk_live_test_paystack_key",
         paystack_public_key="pk_live_test_paystack_key",
-        sentry_dsn="https://key@example.com/1",
-        otel_endpoint="https://otel.example.com:4317",
         trusted_proxy_cidrs=["203.0.113.10/32"],
+        **_GCP_RUNTIME_ARGS,
     )
 
     sourced = subprocess.run(
@@ -197,6 +213,25 @@ def test_generate_managed_runtime_env_respects_overrides_and_is_shell_source_saf
     report_payload = json.loads(report_path.read_text(encoding="utf-8"))
 
     assert values["LLM_PROVIDER"] == "openai"
+    assert values["PLATFORM_RUNTIME_PROFILE"] == "gcp"
+    assert values["OBSERVABILITY_BACKEND"] == "gcp"
+    assert "WEB_CONCURRENCY" not in values
+    assert values["PUBLIC_API_RATE_LIMITING_BACKEND"] == "cloudflare"
+    assert values["RATELIMIT_ENABLED"] == "false"
+    assert values["CIRCUIT_BREAKER_DISTRIBUTED_STATE"] == "false"
+    assert values["GCP_PROJECT_ID"] == "valdrics-prod"
+    assert values["GCP_REGION"] == "us-central1"
+    assert values["GCP_CLOUD_TASKS_QUEUE"] == "valdrics-managed-work"
+    assert (
+        values["GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL"]
+        == "tasks-invoker@valdrics-prod.iam.gserviceaccount.com"
+    )
+    assert values["GCP_CLOUD_RUN_SERVICE_NAME"] == "valdrics-api"
+    assert values["GCP_CLOUD_RUN_BATCH_JOB_NAME"] == "valdrics-batch"
+    assert values["GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS"] == (
+        '["tasks-invoker@valdrics-prod.iam.gserviceaccount.com",'
+        '"scheduler-invoker@valdrics-prod.iam.gserviceaccount.com"]'
+    )
     assert (
         report_payload["resolved_public_runtime_values"]["FRONTEND_URL"]
         == "https://app.staging.example.com"
@@ -207,10 +242,6 @@ def test_generate_managed_runtime_env_respects_overrides_and_is_shell_source_saf
     )
     assert values["SUPABASE_ANON_KEY"] == "anon-key-for-dashboard"
     assert values["OPENAI_API_KEY"] == "sk-test-openai-key"
-    assert (
-        values["AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN"]
-        == "arn:aws:iam::123456789012:role/ValdricsControlPlane"
-    )
     assert sourced.stdout == '["https://app.staging.example.com"]'
     assert values["TRUSTED_PROXY_CIDRS"] == '["203.0.113.10/32"]'
     assert "OPENAI_API_KEY" in report_payload["required_operator_input_keys"]
@@ -233,7 +264,6 @@ def test_generate_managed_runtime_env_can_satisfy_strict_runtime_validator(
                 "FRONTEND_URL=",
                 "CORS_ORIGINS=[]",
                 "DATABASE_URL=",
-                "REDIS_URL=",
                 "SUPABASE_URL=",
                 "SUPABASE_ANON_KEY=",
                 "SUPABASE_JWT_SECRET=",
@@ -241,7 +271,6 @@ def test_generate_managed_runtime_env_can_satisfy_strict_runtime_validator(
                 "ENCRYPTION_KEY=",
                 "KDF_SALT=",
                 "ADMIN_API_KEY=",
-                "INTERNAL_JOB_SECRET=",
                 "INTERNAL_METRICS_AUTH_TOKEN=",
                 "ENFORCEMENT_APPROVAL_TOKEN_SECRET=",
                 "ENFORCEMENT_EXPORT_SIGNING_SECRET=",
@@ -249,8 +278,6 @@ def test_generate_managed_runtime_env_can_satisfy_strict_runtime_validator(
                 "GROQ_API_KEY=",
                 "PAYSTACK_SECRET_KEY=",
                 "PAYSTACK_PUBLIC_KEY=",
-                "SENTRY_DSN=",
-                "OTEL_EXPORTER_OTLP_ENDPOINT=",
                 "TRUSTED_PROXY_CIDRS=[]",
             ]
         ),
@@ -264,20 +291,15 @@ def test_generate_managed_runtime_env_can_satisfy_strict_runtime_validator(
         api_url="https://api.runtime.example",
         frontend_url="https://app.runtime.example",
         database_url="postgresql+asyncpg://postgres:postgres@db.example.com:5432/postgres",
-        redis_url="redis://redis.example.com:6379/0",
         supabase_url="https://example.supabase.co",
         supabase_anon_key="anon-key-for-dashboard",
         supabase_jwt_secret="x" * 40,
-        aws_assume_role_trust_principal_arn=(
-            "arn:aws:iam::123456789012:role/ValdricsControlPlane"
-        ),
         llm_provider="groq",
         llm_api_key="testing-groq-runtime-key",
         paystack_secret_key="sk_live_runtime_paystack_key",
         paystack_public_key="pk_live_runtime_paystack_key",
-        sentry_dsn="https://key@example.com/1",
-        otel_endpoint="https://otel.example.com:4317",
         trusted_proxy_cidrs=["203.0.113.10/32"],
+        **_GCP_RUNTIME_ARGS,
     )
 
     with patch.dict("os.environ", {}, clear=True):
@@ -299,7 +321,10 @@ def test_generate_managed_runtime_env_can_satisfy_strict_runtime_validator(
             result = validate_runtime_env.main()
 
     assert result == 0
-    assert "runtime_env_validation_passed environment=production testing=False" in capsys.readouterr().out
+    assert (
+        "runtime_env_validation_passed environment=production testing=False"
+        in capsys.readouterr().out
+    )
 
 
 def test_generate_managed_runtime_env_preserves_existing_values_on_regeneration(
@@ -316,16 +341,13 @@ def test_generate_managed_runtime_env_preserves_existing_values_on_regeneration(
                 "FRONTEND_URL=",
                 "CORS_ORIGINS=[]",
                 "DATABASE_URL=",
-                "REDIS_URL=",
                 "SUPABASE_URL=",
                 "SUPABASE_ANON_KEY=",
                 "SUPABASE_JWT_SECRET=",
-                "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN=",
                 "CSRF_SECRET_KEY=",
                 "ENCRYPTION_KEY=",
                 "KDF_SALT=",
                 "ADMIN_API_KEY=",
-                "INTERNAL_JOB_SECRET=",
                 "INTERNAL_METRICS_AUTH_TOKEN=",
                 "ENFORCEMENT_APPROVAL_TOKEN_SECRET=",
                 "ENFORCEMENT_EXPORT_SIGNING_SECRET=",
@@ -333,8 +355,6 @@ def test_generate_managed_runtime_env_preserves_existing_values_on_regeneration(
                 "OPENAI_API_KEY=",
                 "PAYSTACK_SECRET_KEY=",
                 "PAYSTACK_PUBLIC_KEY=",
-                "SENTRY_DSN=",
-                "OTEL_EXPORTER_OTLP_ENDPOINT=",
                 "TRUSTED_PROXY_CIDRS=[]",
             ]
         ),
@@ -348,20 +368,15 @@ def test_generate_managed_runtime_env_preserves_existing_values_on_regeneration(
         api_url="https://api.runtime.example",
         frontend_url="https://app.runtime.example",
         database_url="postgresql+asyncpg://postgres:postgres@db.example.com:5432/postgres",
-        redis_url="redis://redis.example.com:6379/0",
         supabase_url="https://example.supabase.co",
         supabase_anon_key="anon-key-for-dashboard",
         supabase_jwt_secret="x" * 40,
-        aws_assume_role_trust_principal_arn=(
-            "arn:aws:iam::123456789012:role/ValdricsControlPlane"
-        ),
         llm_provider="openai",
         llm_api_key="sk-test-openai-key",
         paystack_secret_key="sk_live_test_paystack_key",
         paystack_public_key="pk_live_test_paystack_key",
-        sentry_dsn="https://key@example.com/1",
-        otel_endpoint="https://otel.example.com:4317",
         trusted_proxy_cidrs=["203.0.113.10/32"],
+        **_GCP_RUNTIME_ARGS,
     )
 
     first_values = _parse_env(output)
@@ -372,7 +387,6 @@ def test_generate_managed_runtime_env_preserves_existing_values_on_regeneration(
             "ENCRYPTION_KEY",
             "KDF_SALT",
             "ADMIN_API_KEY",
-            "INTERNAL_JOB_SECRET",
             "INTERNAL_METRICS_AUTH_TOKEN",
             "ENFORCEMENT_APPROVAL_TOKEN_SECRET",
             "ENFORCEMENT_EXPORT_SIGNING_SECRET",
@@ -391,11 +405,14 @@ def test_generate_managed_runtime_env_preserves_existing_values_on_regeneration(
 
     assert second_values["API_URL"] == "https://api.runtime.example"
     assert second_values["FRONTEND_URL"] == "https://app.runtime.example"
+    assert second_values["PLATFORM_RUNTIME_PROFILE"] == "gcp"
+    assert second_values["OBSERVABILITY_BACKEND"] == "gcp"
+    assert second_values["PUBLIC_API_RATE_LIMITING_BACKEND"] == "cloudflare"
+    assert second_values["RATELIMIT_ENABLED"] == "false"
+    assert second_values["CIRCUIT_BREAKER_DISTRIBUTED_STATE"] == "false"
+    assert second_values["GCP_PROJECT_ID"] == "valdrics-prod"
+    assert second_values["GCP_REGION"] == "us-central1"
     assert second_values["SUPABASE_ANON_KEY"] == "anon-key-for-dashboard"
-    assert (
-        second_values["AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN"]
-        == "arn:aws:iam::123456789012:role/ValdricsControlPlane"
-    )
     assert second_values["LLM_PROVIDER"] == "openai"
     assert second_values["OPENAI_API_KEY"] == "sk-test-openai-key"
     assert second_values["TRUSTED_PROXY_CIDRS"] == '["203.0.113.10/32"]'
@@ -469,42 +486,6 @@ def test_generate_managed_runtime_env_rejects_non_https_public_urls(
     ("field_name", "kwargs", "message"),
     [
         (
-            "SENTRY_DSN",
-            {"sentry_dsn": "not-a-url"},
-            "SENTRY_DSN must use an explicit http:// or https:// URL.",
-        ),
-        (
-            "OTEL_EXPORTER_OTLP_ENDPOINT",
-            {"otel_endpoint": "otel-collector:4317"},
-            "OTEL_EXPORTER_OTLP_ENDPOINT must use an explicit http:// or https:// URL.",
-        ),
-    ],
-)
-def test_generate_managed_runtime_env_rejects_invalid_observability_urls(
-    tmp_path: Path,
-    field_name: str,
-    kwargs: dict[str, str],
-    message: str,
-) -> None:
-    template = tmp_path / ".env.example"
-    output = tmp_path / "staging.env"
-    report_path = tmp_path / "staging.report.json"
-    _write(template, "API_URL=\nFRONTEND_URL=\nDATABASE_URL=\nTRUSTED_PROXY_CIDRS=[]\n")
-
-    with pytest.raises(ValueError, match=message):
-        generate_managed_runtime_env(
-            template_path=template,
-            output_path=output,
-            report_path=report_path,
-            environment="staging",
-            **kwargs,
-        )
-
-
-@pytest.mark.parametrize(
-    ("field_name", "kwargs", "message"),
-    [
-        (
             "PAYSTACK_SECRET_KEY",
             {"paystack_secret_key": "sk_test_not_live"},
             "PAYSTACK_SECRET_KEY must be a live key \\(sk_live_\\.\\.\\.\\) in production.",
@@ -537,28 +518,36 @@ def test_generate_managed_runtime_env_rejects_invalid_production_paystack_keys(
         )
 
 
-def test_generate_managed_runtime_env_rejects_invalid_aws_trust_principal_arn(
+def test_generate_managed_runtime_env_ignores_provider_specific_aws_contract_keys(
     tmp_path: Path,
 ) -> None:
     template = tmp_path / ".env.example"
     output = tmp_path / "production.env"
     report_path = tmp_path / "production.report.json"
-    _write(template, "API_URL=\nFRONTEND_URL=\nDATABASE_URL=\nTRUSTED_PROXY_CIDRS=[]\n")
+    _write(
+        template,
+        "API_URL=\nFRONTEND_URL=\nDATABASE_URL=\nAWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN=\nTRUSTED_PROXY_CIDRS=[]\n",
+    )
 
-    with pytest.raises(
-        ValueError,
-        match=(
-            "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN must be an IAM principal ARN "
-            r"\(role, user, or account root\)\."
-        ),
-    ):
-        generate_managed_runtime_env(
-            template_path=template,
-            output_path=output,
-            report_path=report_path,
-            environment="production",
-            aws_assume_role_trust_principal_arn="not-an-arn",
-        )
+    generate_managed_runtime_env(
+        template_path=template,
+        output_path=output,
+        report_path=report_path,
+        environment="production",
+    )
+
+    values = _parse_env(output)
+    report_payload = json.loads(report_path.read_text(encoding="utf-8"))
+
+    assert values["AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN"] == ""
+    assert (
+        "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN"
+        not in report_payload["required_operator_input_keys"]
+    )
+    assert (
+        "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN"
+        not in report_payload["runtime_validation_blockers"]
+    )
 
 
 def test_generate_managed_runtime_env_does_not_leave_outputs_when_report_staging_fails(
@@ -710,7 +699,9 @@ def test_generate_managed_runtime_env_rejects_blocked_parent_dirs(
     }
     kwargs[field_name] = blocked_parent / Path(kwargs[field_name]).name
 
-    with pytest.raises(ValueError, match=rf"{field_name} parent must be a directory path"):
+    with pytest.raises(
+        ValueError, match=rf"{field_name} parent must be a directory path"
+    ):
         generate_managed_runtime_env(**kwargs)
 
 
@@ -739,20 +730,29 @@ def test_main_resolves_default_paths_from_repo_root(
     )
 
     assert managed_runtime_env_generator.main(["--environment", "staging"]) == 0
-    assert captured["template_path"] == (
-        managed_runtime_env_generator._repo_root()
-        / managed_runtime_env_generator.DEFAULT_TEMPLATE_PATH
-    ).resolve()
-    assert captured["output_path"] == (
-        managed_runtime_env_generator._repo_root()
-        / managed_runtime_env_generator.DEFAULT_OUTPUT_DIR
-        / "staging.env"
-    ).resolve()
-    assert captured["report_path"] == (
-        managed_runtime_env_generator._repo_root()
-        / managed_runtime_env_generator.DEFAULT_OUTPUT_DIR
-        / "staging.report.json"
-    ).resolve()
+    assert (
+        captured["template_path"]
+        == (
+            managed_runtime_env_generator._repo_root()
+            / managed_runtime_env_generator.DEFAULT_TEMPLATE_PATH
+        ).resolve()
+    )
+    assert (
+        captured["output_path"]
+        == (
+            managed_runtime_env_generator._repo_root()
+            / managed_runtime_env_generator.DEFAULT_OUTPUT_DIR
+            / "staging.env"
+        ).resolve()
+    )
+    assert (
+        captured["report_path"]
+        == (
+            managed_runtime_env_generator._repo_root()
+            / managed_runtime_env_generator.DEFAULT_OUTPUT_DIR
+            / "staging.report.json"
+        ).resolve()
+    )
 
 
 def test_main_resolves_explicit_relative_paths_from_repo_root(
@@ -800,9 +800,10 @@ def test_main_resolves_explicit_relative_paths_from_repo_root(
     )
     assert captured["template_path"] == (repo_root / ".env.example").resolve()
     assert captured["output_path"] == (repo_root / ".runtime" / "staging.env").resolve()
-    assert captured["report_path"] == (
-        repo_root / ".runtime" / "staging.report.json"
-    ).resolve()
+    assert (
+        captured["report_path"]
+        == (repo_root / ".runtime" / "staging.report.json").resolve()
+    )
 
 
 def test_main_rejects_relative_paths_that_escape_repo_root(
@@ -817,7 +818,9 @@ def test_main_rejects_relative_paths_that_escape_repo_root(
     monkeypatch.chdir(outside_cwd)
     monkeypatch.setattr(managed_runtime_env_generator, "_repo_root", lambda: repo_root)
 
-    with pytest.raises(ValueError, match="output_path must stay within repo root when relative"):
+    with pytest.raises(
+        ValueError, match="output_path must stay within repo root when relative"
+    ):
         managed_runtime_env_generator.main(
             [
                 "--environment",

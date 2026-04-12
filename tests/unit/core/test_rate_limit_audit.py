@@ -19,6 +19,8 @@ def mock_settings():
     with patch("app.shared.core.rate_limit.get_settings") as mock:
         mock.return_value.REDIS_URL = "redis://localhost:6379"
         mock.return_value.RATELIMIT_ENABLED = True
+        mock.return_value.TESTING = False
+        mock.return_value.ENVIRONMENT = "development"
         yield mock
 
 

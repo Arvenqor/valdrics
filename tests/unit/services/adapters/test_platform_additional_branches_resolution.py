@@ -117,6 +117,9 @@ def test_platform_manual_feed_validation_error_branches() -> None:
     assert adapter._validate_manual_feed([{"cost_usd": 1.0}]) is False
     assert "missing timestamp/date" in (adapter.last_error or "")
 
+    assert adapter._validate_manual_feed([{"timestamp": "bad-ts", "cost_usd": 1.0}]) is False
+    assert "invalid timestamp/date" in (adapter.last_error or "")
+
     assert adapter._validate_manual_feed([{"timestamp": "2026-01-01T00:00:00Z", "cost_usd": "x"}]) is False
     assert "must include numeric cost_usd" in (adapter.last_error or "")
 
@@ -157,4 +160,3 @@ def test_platform_newrelic_and_usage_metric_branch_edges() -> None:
         {"usage": {"bad": "x"}, "hosts": 3}
     )
     assert metrics == [("hosts", 3.0, None)]
-

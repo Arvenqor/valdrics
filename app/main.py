@@ -50,8 +50,6 @@ from app.shared.core.enforcement_http_boundary import (
 from app.shared.core.sentry import init_sentry
 from app.shared.core.runtime_dependencies import validate_runtime_dependencies
 from app.shared.core.validation_errors import sanitize_validation_errors
-
-# SchedulerService imported lazily in lifespan() to avoid Celery blocking on startup
 from app.shared.core.timeout import TimeoutMiddleware
 from app.shared.core.tracing import setup_tracing
 from app.shared.db.local_sqlite_bootstrap import (
@@ -59,7 +57,6 @@ from app.shared.db.local_sqlite_bootstrap import (
     should_bootstrap_local_sqlite,
 )
 from app.shared.db.session import (
-    async_session_maker,
     dispose_db_runtime,
     get_engine,
 )
@@ -138,7 +135,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     set_startup_time()
 
-    # Setup: Initialize scheduler and emissions tracker
+    # Setup: initialize runtime services and emissions tracker.
     logger.info("app_starting", app_name=settings.APP_NAME)
 
     runtime_data_dir = _runtime_data_dir()
@@ -170,23 +167,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         )
     app.state.emissions_tracker = tracker
 
-    # Pass shared session factory to scheduler (DI pattern)
-    # Lazy import to avoid Celery blocking on module load
-    from app.modules.governance.domain.scheduler import SchedulerService
-
-    scheduler = SchedulerService(session_maker=async_session_maker)
     if settings.TESTING:
-        logger.info("scheduler_skipped_in_testing")
-    elif not settings.ENABLE_SCHEDULER:
-        logger.warning("scheduler_disabled_via_config")
-    elif settings.REDIS_URL:
-        scheduler.start()
-        logger.info("scheduler_started")
+        logger.info("managed_scheduler_startup_skipped_testing")
     else:
-        logger.warning(
-            "scheduler_skipped_no_redis", msg="Set REDIS_URL to enable background job"
+        logger.info(
+            "scheduler_managed_externally",
+            owner="cloud_scheduler",
+            runtime_profile="gcp",
         )
-    app.state.scheduler = scheduler
 
     # Refresh LLM pricing from DB on startup (non-fatal but important for correctness).
     if settings.TESTING:
@@ -270,7 +258,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except RuntimeError as exc:
         logger.warning("http_client_close_skipped_loop_closed", error=str(exc))
 
-    scheduler.stop()
     _stop_emissions_tracker(tracker)
 
     # Final DB Cleanup

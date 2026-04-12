@@ -73,7 +73,9 @@ async def test_verify_remediation_completed(
     mock_service: MagicMock, mock_db: AsyncMock
 ) -> None:
     """Verify that Scheduler runs tenants in parallel with semaphore limit."""
-    from app.modules.governance.domain.scheduler.orchestrator import SchedulerService
+    from app.modules.governance.domain.scheduler.orchestrator import (
+        SchedulerOrchestrator,
+    )
 
     # Mock DB session and tenants (mock 15 tenants)
     mock_db_instance = MagicMock(spec=AsyncSession)
@@ -86,16 +88,20 @@ async def test_verify_remediation_completed(
     mock_cm.__aexit__.return_value = None
     mock_session_maker.return_value = mock_cm
 
-    scheduler = SchedulerService(session_maker=mock_session_maker)
+    scheduler = SchedulerOrchestrator(session_maker=mock_session_maker)
 
     # Result for the tenant select query
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = mock_tenants
     mock_db.execute.return_value = mock_result
 
-    with patch("app.shared.core.celery_app.celery_app") as mock_celery:
+    with patch.object(
+        scheduler,
+        "cohort_analysis_job",
+        new=AsyncMock(return_value=True),
+    ) as cohort_analysis_job:
         start_time = datetime.now()
-        # daily_analysis_job enqueues jobs via Celery task dispatch
+        # daily_analysis_job dispatches all cohort work without blocking on heavy execution.
         await scheduler.daily_analysis_job()
         end_time = datetime.now()
 
@@ -103,5 +109,4 @@ async def test_verify_remediation_completed(
 
         # Verify that it completed "instantly" (just dispatches)
         assert duration < 0.5
-        # Verify Celery tasks were sent (3 per cohort, etc.)
-        assert mock_celery.send_task.call_count >= 3
+        assert cohort_analysis_job.await_count == 3

@@ -10,6 +10,7 @@ from app.modules.billing.domain.billing.dunning_service import (
     DunningService,
     DUNNING_RETRY_SCHEDULE_DAYS,
     DUNNING_MAX_ATTEMPTS,
+    DunningRetryDeferredError,
 )
 from app.modules.billing.domain.billing.paystack_billing import (
     SubscriptionStatus,
@@ -278,7 +279,7 @@ async def test_retry_payment_subscription_missing(mock_db):
 
 @pytest.mark.asyncio
 async def test_retry_payment_exception_path(mock_db, mock_subscription):
-    """Exception during charge should continue dunning workflow."""
+    """Operational charge failures should retry the job without consuming dunning attempts."""
     setup_mock_db_result(mock_db, mock_subscription)
 
     with patch(
@@ -291,11 +292,13 @@ async def test_retry_payment_exception_path(mock_db, mock_subscription):
         with patch.object(
             DunningService, "process_failed_payment", new_callable=AsyncMock
         ) as mock_process:
-            mock_process.return_value = {"status": "scheduled_retry"}
             dunning = DunningService(mock_db)
-            result = await dunning.retry_payment(mock_subscription.id)
-            assert result["status"] == "scheduled_retry"
-            mock_process.assert_awaited_once()
+            with pytest.raises(
+                DunningRetryDeferredError,
+                match="Dunning retry deferred due to operational failure",
+            ):
+                await dunning.retry_payment(mock_subscription.id)
+            mock_process.assert_not_awaited()
 
 
 def test_build_email_service_uses_injected_factory(mock_db):

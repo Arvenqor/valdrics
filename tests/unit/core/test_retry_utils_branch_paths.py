@@ -90,18 +90,33 @@ def test_set_retry_config_filters_invalid_exception_entries() -> None:
     mock_info.assert_called_once()
 
 
-def test_set_retry_config_falls_back_to_exception_for_non_tuple_exceptions() -> None:
-    set_retry_config(
-        "custom_default_exception",
-        {
-            "max_attempts": 1,
-            "min_wait": 0.1,
-            "max_wait": 0.2,
-            "multiplier": 1.5,
-            "exceptions": [ConnectionError],
-        },
-    )
+def test_set_retry_config_rejects_non_tuple_exceptions() -> None:
+    with pytest.raises(
+        ValueError, match="exceptions must be a tuple of exception classes"
+    ):
+        set_retry_config(
+            "custom_default_exception",
+            {
+                "max_attempts": 1,
+                "min_wait": 0.1,
+                "max_wait": 0.2,
+                "multiplier": 1.5,
+                "exceptions": [ConnectionError],
+            },
+        )
 
-    from app.shared.core.retry import RETRY_CONFIGS
 
-    assert RETRY_CONFIGS["custom_default_exception"]["exceptions"] == (Exception,)
+def test_set_retry_config_rejects_empty_exception_tuple_after_filtering() -> None:
+    with pytest.raises(
+        ValueError, match="exceptions must include at least one exception class"
+    ):
+        set_retry_config(
+            "custom_no_valid_exceptions",
+            {
+                "max_attempts": 2,
+                "min_wait": 0.1,
+                "max_wait": 0.2,
+                "multiplier": 1.5,
+                "exceptions": ("bad", object()),
+            },
+        )

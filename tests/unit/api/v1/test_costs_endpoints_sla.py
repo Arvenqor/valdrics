@@ -72,6 +72,28 @@ def test_build_unit_metrics_handles_zero_denominator_and_zero_baseline():
     assert all(metric.is_anomalous is False for metric in metrics)
 
 
+def test_build_unit_metrics_rejects_non_finite_values() -> None:
+    with pytest.raises(ValueError, match="total_cost must be finite"):
+        costs_api._build_unit_metrics(
+            total_cost=Decimal("NaN"),
+            baseline_total_cost=Decimal("1"),
+            threshold_percent=10.0,
+            request_volume=1.0,
+            workload_volume=1.0,
+            customer_volume=1.0,
+        )
+
+    with pytest.raises(ValueError, match="cost_per_request_denominator must be finite"):
+        costs_api._build_unit_metrics(
+            total_cost=Decimal("25.0"),
+            baseline_total_cost=Decimal("5"),
+            threshold_percent=10.0,
+            request_volume=float("nan"),
+            workload_volume=5.0,
+            customer_volume=2.5,
+        )
+
+
 def test_csv_cell_sanitization_and_anomaly_severity_validation() -> None:
     assert costs_api._sanitize_csv_cell(None) == ""
     assert costs_api._sanitize_csv_cell("") == ""
@@ -111,6 +133,27 @@ def test_anomaly_to_response_item_maps_decimal_fields() -> None:
     assert item.expected_cost_usd == 100.0
     assert item.delta_cost_usd == 50.0
     assert item.percent_change == 50.0
+
+
+def test_anomaly_to_response_item_rejects_non_finite_decimal_fields() -> None:
+    anomaly = costs_api.CostAnomaly(
+        day=date(2026, 2, 27),
+        provider="aws",
+        account_id=uuid.uuid4(),
+        account_name="prod-account",
+        service="AmazonEC2",
+        actual_cost_usd=Decimal("NaN"),
+        expected_cost_usd=Decimal("100"),
+        delta_cost_usd=Decimal("50"),
+        percent_change=50.0,
+        kind="spike",
+        probable_cause="spend_spike",
+        confidence=0.9,
+        severity="high",
+    )
+
+    with pytest.raises(ValueError, match="actual_cost_usd must be finite"):
+        costs_api._anomaly_to_response_item(anomaly)
 
 
 @pytest.mark.asyncio
@@ -216,4 +259,3 @@ async def test_get_ingestion_sla_no_jobs(async_client: AsyncClient, app, db):
         assert data["records_ingested"] == 0
     finally:
         app.dependency_overrides.pop(get_current_user, None)
-

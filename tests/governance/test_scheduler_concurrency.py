@@ -2,7 +2,6 @@ import pytest
 import asyncio
 from unittest.mock import MagicMock, AsyncMock, patch
 from uuid import uuid4
-from app.modules.governance.domain.scheduler.cohorts import TenantCohort
 from app.models.tenant import Tenant
 
 
@@ -12,7 +11,7 @@ async def test_scheduler_concurrency_lock():
     BE-SCHED-1: Verify that parallel scheduler tasks don't create duplicate jobs
     using row-level locking (SELECT FOR UPDATE SKIP LOCKED).
     """
-    from app.tasks.scheduler_tasks import _cohort_analysis_logic
+    from app.shared.orchestration.managed_work_runners import run_cohort_analysis
 
     mock_db = AsyncMock()
 
@@ -44,8 +43,11 @@ async def test_scheduler_concurrency_lock():
     mock_result_empty = MagicMock()
     mock_result_empty.scalars.return_value.all.return_value = []
 
-    # We need to mock the async_session_maker that the task imports from .session
-    with patch("app.tasks.scheduler_tasks.async_session_maker") as mock_maker:
+    with (
+        patch("app.shared.orchestration.managed_work_runners.async_session_maker") as mock_maker,
+        patch("app.shared.orchestration.managed_work_runners._system_sweep_tenant_limit", return_value=1),
+        patch("app.shared.orchestration.managed_work_runners.BACKGROUND_JOBS_ENQUEUED"),
+    ):
         mock_maker.return_value = MockAsyncContext(mock_db)
 
         # Track calls to differentiate queries vs inserts
@@ -63,11 +65,9 @@ async def test_scheduler_concurrency_lock():
 
         mock_db.execute.side_effect = execute_side_effect
 
-        # Run two concurrency simulations
         await asyncio.gather(
-            _cohort_analysis_logic(TenantCohort.HIGH_VALUE),
-            _cohort_analysis_logic(TenantCohort.HIGH_VALUE),
+            run_cohort_analysis({"cohort": "high_value"}),
+            run_cohort_analysis({"cohort": "high_value"}),
         )
 
-        # Verify that execute was called (confirming it didn't crash)
         assert mock_db.execute.call_count >= 2

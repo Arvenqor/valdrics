@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import patch, AsyncMock, ANY
 from uuid import uuid4
+from app.modules.governance.domain.jobs.errors import PermanentJobError
 from app.modules.governance.domain.jobs.handlers.zombie import ZombieScanHandler
 from app.models.background_job import BackgroundJob
 
@@ -10,7 +11,7 @@ async def test_execute_missing_tenant(db):
     handler = ZombieScanHandler()
     job = BackgroundJob(tenant_id=None)
 
-    with pytest.raises(ValueError, match="tenant_id required"):
+    with pytest.raises(PermanentJobError, match="tenant_id required"):
         await handler.execute(job, db)
 
 

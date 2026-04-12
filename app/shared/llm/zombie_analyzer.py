@@ -32,8 +32,6 @@ ZOMBIE_USAGE_TRACKING_RECOVERABLE_EXCEPTIONS = (
     RuntimeError,
     TypeError,
     ValueError,
-    AttributeError,
-    KeyError,
 )
 
 ZOMBIE_ANALYSIS_PROMPT = """You are a Cloud+ FinOps expert analyzing zombie (unused/underutilized) resources across IaaS and Cloud+ providers.

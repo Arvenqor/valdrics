@@ -1,4 +1,6 @@
 from app.models.background_job import JobType
+import pytest
+from app.modules.governance.domain.jobs.errors import PermanentJobError
 from app.modules.governance.domain.jobs.handlers import get_handler_factory
 from app.modules.governance.domain.jobs.handlers.analysis import (
     ReportGenerationHandler,
@@ -30,3 +32,10 @@ def test_report_generation_handler_registered() -> None:
 def test_enforcement_reconciliation_handler_registered() -> None:
     handler_cls = get_handler_factory(JobType.ENFORCEMENT_RECONCILIATION.value)
     assert handler_cls is EnforcementReconciliationHandler
+
+
+def test_unknown_job_type_is_permanent_error() -> None:
+    with pytest.raises(
+        PermanentJobError, match="No handler registered for job type: unknown_job"
+    ):
+        get_handler_factory("unknown_job")

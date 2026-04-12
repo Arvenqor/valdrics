@@ -13,8 +13,11 @@ manual dashboard review.
 
 - Scheduler task: `scheduler.refresh_landing_funnel_health`
 - Schedule: hourly at minute `10` UTC
-- Inline fallback: APScheduler can run the same logic inline if Celery dispatch
-  is unavailable
+- Managed execution: Cloud Scheduler triggers the internal scheduler dispatch
+  route, which uses the managed runtime dispatcher instead of a legacy
+  fallback path
+- Local verification: the repository-managed worker loop exercises the same
+  runner directly for deterministic checks
 - Source of truth:
   - `LandingTelemetryDailyRollup`
   - `TenantGrowthFunnelSnapshot`
@@ -46,7 +49,7 @@ manual dashboard review.
 
 ## Expected internal action
 
-1. Confirm the scheduler refreshed metrics successfully.
+1. Confirm the managed scheduler refreshed metrics successfully.
 2. Inspect `/admin/health` and `/admin/landing-campaigns` for the affected step.
 3. Determine whether degradation is caused by acquisition quality,
    onboarding friction, or first-value activation failure.

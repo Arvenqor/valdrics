@@ -115,7 +115,7 @@ async def test_check_budget_state_lookup_cache_error_fails_closed() -> None:
 
 
 @pytest.mark.asyncio
-async def test_check_budget_state_unhandled_cache_error_fails_closed() -> None:
+async def test_check_budget_state_unexpected_cache_error_bubbles() -> None:
     tenant_id = uuid4()
     db = AsyncMock()
     cache = SimpleNamespace(
@@ -123,11 +123,19 @@ async def test_check_budget_state_unhandled_cache_error_fails_closed() -> None:
         client=SimpleNamespace(get=AsyncMock(side_effect=Exception("redis-timeout"))),
     )
     with patch("app.shared.llm.budget_manager.get_cache_service", return_value=cache):
-        with pytest.raises(manager_module.BudgetExceededError) as exc:
+        with pytest.raises(Exception, match="redis-timeout"):
             await budget_execution.check_budget_state(_Manager, tenant_id, db)
 
-    assert exc.value.details["error"] == "service_unavailable"
-    assert exc.value.details["reason"] == "redis-timeout"
+
+@pytest.mark.asyncio
+async def test_check_budget_state_attribute_error_bubbles() -> None:
+    tenant_id = uuid4()
+    db = AsyncMock()
+    cache = SimpleNamespace(enabled=True, client=SimpleNamespace())
+
+    with patch("app.shared.llm.budget_manager.get_cache_service", return_value=cache):
+        with pytest.raises(AttributeError):
+            await budget_execution.check_budget_state(_Manager, tenant_id, db)
 
 
 @pytest.mark.asyncio
@@ -283,8 +291,42 @@ async def test_check_budget_and_alert_dispatch_paths() -> None:
             db,
             Decimal("1.0000"),
         )
+
+
+@pytest.mark.asyncio
+async def test_check_budget_and_alert_broken_slack_contract_bubbles() -> None:
+    tenant_id = uuid4()
+    db = AsyncMock()
+    db.flush = AsyncMock()
+    db.commit = AsyncMock()
+
+    budget = SimpleNamespace(
+        monthly_limit_usd=Decimal("100"),
+        alert_threshold_percent=Decimal("80"),
+        alert_sent_at=None,
+    )
+    budget_result = MagicMock()
+    budget_result.scalar_one_or_none.return_value = budget
+    usage_result = MagicMock()
+    usage_result.scalar.return_value = Decimal("90")
+    db.execute = AsyncMock(side_effect=[budget_result, usage_result])
+
+    with (
+        patch("app.shared.llm.budget_manager.audit_log") as audit_log,
+        patch(
+            "app.modules.notifications.domain.get_tenant_slack_service",
+            new=AsyncMock(return_value=SimpleNamespace()),
+        ),
+        pytest.raises(AttributeError),
+    ):
+        await budget_execution.check_budget_and_alert(
+            _Manager,
+            tenant_id,
+            db,
+            Decimal("1.0000"),
+        )
     audit_log.assert_called_once()
-    assert budget.alert_sent_at is not None
+    assert budget.alert_sent_at is None
 
     budget.alert_sent_at = None
     db.execute = AsyncMock(side_effect=[budget_result, usage_result])
@@ -751,6 +793,37 @@ async def test_record_usage_entry_error_without_rollback_callable() -> None:
 
     logger.error.assert_called_once()
     logger.warning.assert_not_called()
+    manager._release_fair_use_inflight_slot.assert_awaited_once_with(tenant_id)
+
+
+@pytest.mark.asyncio
+async def test_record_usage_entry_broken_alert_contract_bubbles() -> None:
+    tenant_id = uuid4()
+    db = AsyncMock()
+    db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=lambda: None))
+    db.flush = AsyncMock()
+    db.commit = AsyncMock()
+    db.add = MagicMock()
+
+    manager = SimpleNamespace(
+        BYOK_PLATFORM_FEE_USD=Decimal("0.0100"),
+        estimate_cost=_Manager.estimate_cost,
+        _to_decimal=_Manager._to_decimal,
+        _check_budget_and_alert=AsyncMock(side_effect=AttributeError("missing alert dependency")),
+        _release_fair_use_inflight_slot=AsyncMock(),
+    )
+
+    with patch("app.shared.llm.budget_manager.LLMUsage", return_value=object()):
+        with pytest.raises(AttributeError, match="missing alert dependency"):
+            await budget_execution.record_usage_entry(
+                manager,
+                tenant_id,
+                db,
+                model="gpt-4o",
+                prompt_tokens=1,
+                completion_tokens=1,
+            )
+
     manager._release_fair_use_inflight_slot.assert_awaited_once_with(tenant_id)
 
 

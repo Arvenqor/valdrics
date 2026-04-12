@@ -22,6 +22,7 @@ _REQUIRED_API_PREFIXES = {
     "/api/v1/costs",
     "/api/v1/currency",
     "/api/v1/enforcement",
+    "/api/v1/internal",
     "/api/v1/jobs",
     "/api/v1/leaderboards",
     "/api/v1/leadership",
@@ -89,7 +90,8 @@ def register_lifecycle_routes(
     async def health_check(db: Annotated[AsyncSession, Depends(get_system_db)]) -> Any:
         """
         Enhanced health check for load balancers.
-        Checks DB, Redis, and AWS STS reachability.
+        Checks DB, optional cache backends, background execution, and configured
+        external dependency probes.
         """
         from app.shared.core.health import HealthService
 
@@ -114,6 +116,9 @@ def register_api_routers(app: FastAPI) -> None:
     from app.modules.governance.api.v1.audit import router as audit_router
     from app.modules.governance.api.v1.health_dashboard import (
         router as health_dashboard_router,
+    )
+    from app.modules.governance.api.v1.internal_orchestration import (
+        router as internal_orchestration_router,
     )
     from app.modules.governance.api.v1.jobs import router as jobs_router
     from app.modules.governance.api.v1.public import router as public_router
@@ -153,6 +158,7 @@ def register_api_routers(app: FastAPI) -> None:
         (enforcement_router, "/api/v1/enforcement"),
         (audit_router, "/api/v1/audit"),
         (jobs_router, "/api/v1/jobs"),
+        (internal_orchestration_router, "/api/v1/internal"),
         (health_dashboard_router, "/api/v1/admin/health-dashboard"),
         (usage_router, "/api/v1/usage"),
         (currency_router, "/api/v1/currency"),

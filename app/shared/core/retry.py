@@ -293,9 +293,13 @@ def set_retry_config(operation_type: str, config: dict[str, Any]) -> None:
             if isinstance(exc, type) and issubclass(exc, BaseException)
         )
     else:
-        exceptions = ()
+        raise ValueError(
+            f"Invalid retry configuration for {operation_type}: exceptions must be a tuple of exception classes"
+        )
     if not exceptions:
-        exceptions = (Exception,)
+        raise ValueError(
+            f"Invalid retry configuration for {operation_type}: exceptions must include at least one exception class"
+        )
 
     typed_config: RetryConfig = {
         "max_attempts": int(config["max_attempts"]),

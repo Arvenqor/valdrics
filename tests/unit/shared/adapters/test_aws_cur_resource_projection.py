@@ -97,6 +97,19 @@ class TestAWSCURAdapterResourceProjection:
         assert "AWS CUR resource discovery failed" in adapter.last_error
 
 
+    async def test_discover_resources_invalid_cur_rows_bubble(
+        self, mock_creds: AWSCredentials
+    ) -> None:
+        adapter = AWSCURAdapter(mock_creds)
+        with patch.object(
+            adapter,
+            "get_cost_and_usage",
+            AsyncMock(side_effect=ValueError("invalid cur row shape")),
+        ):
+            with pytest.raises(ValueError, match="invalid cur row shape"):
+                await adapter.discover_resources("ec2")
+
+
     async def test_get_resource_usage_projects_and_filters_cur_rows(
         self, mock_creds: AWSCredentials
     ) -> None:
@@ -147,3 +160,16 @@ class TestAWSCURAdapterResourceProjection:
         assert out == []
         assert adapter.last_error is not None
         assert "AWS CUR resource usage lookup failed" in adapter.last_error
+
+
+    async def test_get_resource_usage_invalid_cur_rows_bubble(
+        self, mock_creds: AWSCredentials
+    ) -> None:
+        adapter = AWSCURAdapter(mock_creds)
+        with patch.object(
+            adapter,
+            "get_cost_and_usage",
+            AsyncMock(side_effect=TypeError("invalid cur row shape")),
+        ):
+            with pytest.raises(TypeError, match="invalid cur row shape"):
+                await adapter.get_resource_usage("ec2")

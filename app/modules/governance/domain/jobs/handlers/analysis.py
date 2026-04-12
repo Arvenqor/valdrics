@@ -11,6 +11,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.background_job import BackgroundJob
+from app.modules.governance.domain.jobs.errors import PermanentJobError
 from app.modules.governance.domain.jobs.handlers.base import BaseJobHandler
 
 
@@ -18,8 +19,11 @@ def _parse_iso_date(value: Any) -> date:
     if isinstance(value, date):
         return value
     if isinstance(value, str):
-        return date.fromisoformat(value)
-    raise ValueError("Expected ISO date string")
+        try:
+            return date.fromisoformat(value)
+        except ValueError as exc:
+            raise PermanentJobError("Expected ISO date string") from exc
+    raise PermanentJobError("Expected ISO date string")
 
 
 class ZombieAnalysisHandler(BaseJobHandler):
@@ -30,12 +34,12 @@ class ZombieAnalysisHandler(BaseJobHandler):
     async def execute(self, job: BackgroundJob, db: AsyncSession) -> Dict[str, Any]:
         tenant_id = job.tenant_id
         if tenant_id is None:
-            raise ValueError("tenant_id required for zombie_analysis")
+            raise PermanentJobError("tenant_id required for zombie_analysis")
 
         payload = job.payload or {}
         zombies_payload = payload.get("zombies")
         if not isinstance(zombies_payload, dict):
-            raise ValueError("zombies payload required for zombie_analysis")
+            raise PermanentJobError("zombies payload required for zombie_analysis")
         requested_by_user_id_raw = payload.get("requested_by_user_id")
         requested_by_user_id: UUID | None = None
         if requested_by_user_id_raw is not None:
@@ -98,7 +102,7 @@ class ReportGenerationHandler(BaseJobHandler):
     async def execute(self, job: BackgroundJob, db: AsyncSession) -> Dict[str, Any]:
         tenant_id = job.tenant_id
         if tenant_id is None:
-            raise ValueError("tenant_id required for report_generation")
+            raise PermanentJobError("tenant_id required for report_generation")
 
         payload = job.payload or {}
         report_type = str(payload.get("report_type") or "close_package").strip().lower()
@@ -164,6 +168,6 @@ class ReportGenerationHandler(BaseJobHandler):
                 "generated_at": datetime.now(timezone.utc).isoformat(),
             }
 
-        raise ValueError(
+        raise PermanentJobError(
             "Unsupported report_type. Expected one of: close_package, leadership_kpis"
         )

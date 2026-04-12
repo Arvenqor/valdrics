@@ -10,6 +10,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.background_job import BackgroundJob
+from app.modules.governance.domain.jobs.errors import PermanentJobError
 from app.modules.governance.domain.jobs.handlers.base import BaseJobHandler
 from app.modules.optimization.domain.license_governance import LicenseGovernanceService
 
@@ -22,7 +23,7 @@ class LicenseGovernanceHandler(BaseJobHandler):
     async def execute(self, job: BackgroundJob, db: AsyncSession) -> Dict[str, Any]:
         tenant_id = job.tenant_id
         if tenant_id is None:
-            raise ValueError("tenant_id required for license_governance")
+            raise PermanentJobError("tenant_id required for license_governance")
 
         tenant_uuid = UUID(str(tenant_id))
         result = await LicenseGovernanceService(db).run_tenant_governance(tenant_uuid)
@@ -34,4 +35,3 @@ class LicenseGovernanceHandler(BaseJobHandler):
 
         payload.setdefault("tenant_id", str(tenant_uuid))
         return payload
-

@@ -1,4 +1,6 @@
 import structlog
+from typing import Any, cast
+from google.auth.exceptions import GoogleAuthError
 from opentelemetry import trace
 from opentelemetry.trace import Tracer
 from opentelemetry.sdk.trace import SynchronousMultiSpanProcessor, TracerProvider
@@ -9,11 +11,12 @@ from opentelemetry.semconv.resource import ResourceAttributes
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from fastapi import FastAPI
 from app.shared.core.config import get_settings
+from app.shared.orchestration.contracts import observability_backend
 
 logger = structlog.get_logger()
 STRICT_TRACING_ENVIRONMENTS = frozenset({"production", "staging"})
 _configured_tracer_provider: TracerProvider | None = None
-_configured_tracing_signature: tuple[str | None, bool, str] | None = None
+_configured_tracing_signature: tuple[str, str | None, bool, str] | None = None
 
 
 def _build_tracing_resource(environment: str) -> Resource:
@@ -31,8 +34,9 @@ def _reset_tracer_provider(
     resource: Resource,
 ) -> None:
     provider.shutdown()
-    provider._resource = resource  # type: ignore[attr-defined]
-    provider._active_span_processor = SynchronousMultiSpanProcessor()  # type: ignore[attr-defined]
+    provider._resource = resource
+    span_processor_factory = cast(Any, SynchronousMultiSpanProcessor)
+    provider._active_span_processor = span_processor_factory()
 
 
 def _instrument_fastapi_once(app: FastAPI) -> None:
@@ -55,16 +59,27 @@ def setup_tracing(app: FastAPI | None = None) -> None:
 
     environment = str(getattr(settings, "ENVIRONMENT", "") or "development")
     otlp_endpoint = str(getattr(settings, "OTEL_EXPORTER_OTLP_ENDPOINT", "") or "").strip()
-    if otlp_endpoint:
-        insecure = bool(getattr(settings, "OTEL_EXPORTER_OTLP_INSECURE", False))
-    elif environment.strip().lower() in STRICT_TRACING_ENVIRONMENTS:
-        raise RuntimeError(
-            "OTEL_EXPORTER_OTLP_ENDPOINT must be configured in staging/production."
-        )
-    else:
-        insecure = False
+    backend = observability_backend(settings)
+    insecure = bool(getattr(settings, "OTEL_EXPORTER_OTLP_INSECURE", False))
 
-    signature = (otlp_endpoint or None, insecure, environment)
+    if backend.value == "otlp":
+        if otlp_endpoint:
+            exporter_target = otlp_endpoint
+        elif environment.strip().lower() in STRICT_TRACING_ENVIRONMENTS:
+            raise RuntimeError(
+                "OTEL_EXPORTER_OTLP_ENDPOINT must be configured in staging/production."
+            )
+        else:
+            exporter_target = None
+            insecure = False
+    else:
+        exporter_target = str(getattr(settings, "GCP_PROJECT_ID", "") or "").strip() or None
+        if not exporter_target and environment.strip().lower() in STRICT_TRACING_ENVIRONMENTS:
+            raise RuntimeError(
+                "GCP_PROJECT_ID must be configured when OBSERVABILITY_BACKEND=gcp in staging/production."
+            )
+
+    signature = (backend.value, exporter_target, insecure, environment)
     resource = _build_tracing_resource(environment)
 
     global _configured_tracer_provider, _configured_tracing_signature
@@ -77,10 +92,32 @@ def setup_tracing(app: FastAPI | None = None) -> None:
     if _configured_tracing_signature != signature:
         if _configured_tracing_signature is not None:
             _reset_tracer_provider(provider, resource=resource)
-        if otlp_endpoint:
+        if backend.value == "otlp" and otlp_endpoint:
             logger.info("setup_tracing_otlp", endpoint=otlp_endpoint, insecure=insecure)
             otlp_exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=insecure)
             provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
+        elif backend.value == "gcp":
+            try:
+                from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
+            except ImportError as exc:  # pragma: no cover - dependency guard
+                raise RuntimeError(
+                    "Cloud Trace exporter dependency is not installed."
+                ) from exc
+            cloud_trace_exporter_factory = cast(Any, CloudTraceSpanExporter)
+            try:
+                logger.info("setup_tracing_gcp", project_id=exporter_target)
+                provider.add_span_processor(
+                    BatchSpanProcessor(
+                        cloud_trace_exporter_factory(project_id=exporter_target)
+                    )
+                )
+            except GoogleAuthError as exc:
+                logger.warning(
+                    "setup_tracing_gcp_fallback_console_missing_credentials",
+                    project_id=exporter_target,
+                    error=str(exc),
+                )
+                provider.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
         else:
             logger.info("setup_tracing_console")
             provider.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))

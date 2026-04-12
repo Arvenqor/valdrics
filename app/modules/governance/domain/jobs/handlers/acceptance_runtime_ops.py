@@ -14,6 +14,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.background_job import BackgroundJob
+from app.modules.governance.domain.jobs.errors import PermanentJobError
 from app.modules.governance.domain.security.audit_log import (
     AuditEventType,
     AuditLog,
@@ -49,7 +50,7 @@ ACCEPTANCE_PARSE_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
 
 def _require_tenant_id(job: BackgroundJob) -> UUID:
     if job.tenant_id is None:
-        raise ValueError("tenant_id required for acceptance_suite_capture")
+        raise PermanentJobError("tenant_id required for acceptance_suite_capture")
     return UUID(str(job.tenant_id))
 
 
@@ -57,8 +58,11 @@ def _iso_date(value: object) -> date:
     if isinstance(value, date):
         return value
     if isinstance(value, str):
-        return date.fromisoformat(value)
-    raise ValueError("Expected ISO date string")
+        try:
+            return date.fromisoformat(value)
+        except ValueError as exc:
+            raise PermanentJobError("Expected ISO date string") from exc
+    raise PermanentJobError("Expected ISO date string")
 
 
 def _tenant_tier(plan: str | None) -> PricingTier:

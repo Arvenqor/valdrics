@@ -18,7 +18,7 @@ Rotate all high-impact credentials immediately:
 - `GROQ_API_KEY` / other LLM provider keys
 - `SLACK_BOT_TOKEN`
 - `SMTP_PASSWORD`
-- `REDIS_URL` credentials
+- `REDIS_URL` credentials only if an explicit local drill or break-glass shared-state backend is enabled
 
 ## Procedure
 

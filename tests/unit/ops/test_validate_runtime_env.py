@@ -21,15 +21,14 @@ def _patch_supported_python_runtime() -> None:
 
 
 def _set_strict_env() -> None:
-    os.environ["DATABASE_URL"] = "postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/valdrics"
+    os.environ["DATABASE_URL"] = (
+        "postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/valdrics"
+    )
     os.environ["CSRF_SECRET_KEY"] = "ci-csrf-secret-key-32-chars-min-000000"
     os.environ["ENCRYPTION_KEY"] = "ci-encryption-key-32-chars-min-00000000"
     os.environ["KDF_SALT"] = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
     os.environ["SUPABASE_JWT_SECRET"] = "ci-supabase-jwt-secret-32-chars-0000"
     os.environ["ADMIN_API_KEY"] = "ci-admin-api-key-32-chars-min-0000000"
-    os.environ["AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN"] = (
-        "arn:aws:iam::123456789012:role/ValdricsControlPlane"
-    )
     os.environ["ENFORCEMENT_APPROVAL_TOKEN_SECRET"] = (
         "ci-enforcement-approval-token-secret-32-chars"
     )
@@ -41,11 +40,27 @@ def _set_strict_env() -> None:
     os.environ["PAYSTACK_SECRET_KEY"] = "example_paystack_secret_ci_validation_only"
     os.environ["PAYSTACK_PUBLIC_KEY"] = "example_paystack_public_ci_validation_only"
     os.environ["ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION"] = "true"
-    os.environ["REDIS_URL"] = "redis://localhost:6379/0"
-    os.environ["SENTRY_DSN"] = "https://example@sentry.io/1"
-    os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://otel-collector:4317"
+    os.environ["PLATFORM_RUNTIME_PROFILE"] = "gcp"
+    os.environ["OBSERVABILITY_BACKEND"] = "gcp"
+    os.environ["PUBLIC_API_RATE_LIMITING_BACKEND"] = "cloudflare"
+    os.environ["RATELIMIT_ENABLED"] = "false"
+    os.environ["CIRCUIT_BREAKER_DISTRIBUTED_STATE"] = "false"
+    os.environ["GCP_PROJECT_ID"] = "valdrics-prod"
+    os.environ["GCP_REGION"] = "us-central1"
+    os.environ["GCP_CLOUD_TASKS_QUEUE"] = "valdrics-managed-work"
+    os.environ["GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL"] = (
+        "tasks-invoker@valdrics-prod.iam.gserviceaccount.com"
+    )
+    os.environ["GCP_CLOUD_RUN_SERVICE_NAME"] = "valdrics-api"
+    os.environ["GCP_CLOUD_RUN_BATCH_JOB_NAME"] = "valdrics-batch"
+    os.environ["GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS"] = (
+        '["tasks-invoker@valdrics-prod.iam.gserviceaccount.com",'
+        '"scheduler-invoker@valdrics-prod.iam.gserviceaccount.com"]'
+    )
     os.environ["FORECASTER_ALLOW_HOLT_WINTERS_FALLBACK"] = "true"
-    os.environ["FORECASTER_BREAK_GLASS_REASON"] = "Hermetic validator test without prophet wheel."
+    os.environ["FORECASTER_BREAK_GLASS_REASON"] = (
+        "Hermetic validator test without prophet wheel."
+    )
     os.environ["FORECASTER_BREAK_GLASS_EXPIRES_AT"] = (
         datetime.now(timezone.utc) + timedelta(hours=4)
     ).isoformat()
@@ -108,7 +123,10 @@ def test_validate_runtime_env_passes_with_explicit_environment_values(
             result = validate_runtime_env.main()
 
     assert result == 0
-    assert "runtime_env_validation_passed environment=production testing=False" in capsys.readouterr().out
+    assert (
+        "runtime_env_validation_passed environment=production testing=False"
+        in capsys.readouterr().out
+    )
 
 
 def test_validate_runtime_env_rejects_insecure_cors_origin(
@@ -150,7 +168,6 @@ def test_validate_runtime_env_loads_explicit_env_file(
                 "KDF_SALT=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
                 "SUPABASE_JWT_SECRET=ci-supabase-jwt-secret-32-chars-0000",
                 "ADMIN_API_KEY=ci-admin-api-key-32-chars-min-0000000",
-                "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN=arn:aws:iam::123456789012:role/ValdricsControlPlane",
                 "ENFORCEMENT_APPROVAL_TOKEN_SECRET=ci-enforcement-approval-token-secret-32-chars",
                 "ENFORCEMENT_EXPORT_SIGNING_SECRET=ci-enforcement-export-signing-secret-32-char",
                 "GROQ_API_KEY=testing",
@@ -158,9 +175,18 @@ def test_validate_runtime_env_loads_explicit_env_file(
                 "PAYSTACK_SECRET_KEY=example_paystack_secret_ci_validation_only",
                 "PAYSTACK_PUBLIC_KEY=example_paystack_public_ci_validation_only",
                 "ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=true",
-                "REDIS_URL=redis://localhost:6379/0",
-                "SENTRY_DSN=https://example@sentry.io/1",
-                "OTEL_EXPORTER_OTLP_ENDPOINT=https://otel-collector:4317",
+                "PLATFORM_RUNTIME_PROFILE=gcp",
+                "OBSERVABILITY_BACKEND=gcp",
+                "PUBLIC_API_RATE_LIMITING_BACKEND=cloudflare",
+                "RATELIMIT_ENABLED=false",
+                "CIRCUIT_BREAKER_DISTRIBUTED_STATE=false",
+                "GCP_PROJECT_ID=valdrics-prod",
+                "GCP_REGION=us-central1",
+                "GCP_CLOUD_TASKS_QUEUE=valdrics-managed-work",
+                "GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL=tasks-invoker@valdrics-prod.iam.gserviceaccount.com",
+                "GCP_CLOUD_RUN_SERVICE_NAME=valdrics-api",
+                "GCP_CLOUD_RUN_BATCH_JOB_NAME=valdrics-batch",
+                'GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS=["tasks-invoker@valdrics-prod.iam.gserviceaccount.com","scheduler-invoker@valdrics-prod.iam.gserviceaccount.com"]',
                 "API_URL=https://api.runtime.example",
                 "FRONTEND_URL=https://app.runtime.example",
                 'CORS_ORIGINS=["https://app.runtime.example"]',
@@ -194,7 +220,10 @@ def test_validate_runtime_env_loads_explicit_env_file(
             result = validate_runtime_env.main()
 
     assert result == 0
-    assert "runtime_env_validation_passed environment=production testing=False" in capsys.readouterr().out
+    assert (
+        "runtime_env_validation_passed environment=production testing=False"
+        in capsys.readouterr().out
+    )
 
 
 def test_validate_runtime_env_rejects_directory_env_file(
@@ -222,7 +251,6 @@ def test_validate_runtime_env_restores_environment_after_validation(
                 "KDF_SALT=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
                 "SUPABASE_JWT_SECRET=ci-supabase-jwt-secret-32-chars-0000",
                 "ADMIN_API_KEY=ci-admin-api-key-32-chars-min-0000000",
-                "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN=arn:aws:iam::123456789012:role/ValdricsControlPlane",
                 "ENFORCEMENT_APPROVAL_TOKEN_SECRET=ci-enforcement-approval-token-secret-32-chars",
                 "ENFORCEMENT_EXPORT_SIGNING_SECRET=ci-enforcement-export-signing-secret-32-char",
                 "GROQ_API_KEY=testing",
@@ -230,9 +258,18 @@ def test_validate_runtime_env_restores_environment_after_validation(
                 "PAYSTACK_SECRET_KEY=example_paystack_secret_ci_validation_only",
                 "PAYSTACK_PUBLIC_KEY=example_paystack_public_ci_validation_only",
                 "ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=true",
-                "REDIS_URL=redis://localhost:6379/0",
-                "SENTRY_DSN=https://example@sentry.io/1",
-                "OTEL_EXPORTER_OTLP_ENDPOINT=https://otel-collector:4317",
+                "PLATFORM_RUNTIME_PROFILE=gcp",
+                "OBSERVABILITY_BACKEND=gcp",
+                "PUBLIC_API_RATE_LIMITING_BACKEND=cloudflare",
+                "RATELIMIT_ENABLED=false",
+                "CIRCUIT_BREAKER_DISTRIBUTED_STATE=false",
+                "GCP_PROJECT_ID=valdrics-prod",
+                "GCP_REGION=us-central1",
+                "GCP_CLOUD_TASKS_QUEUE=valdrics-managed-work",
+                "GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL=tasks-invoker@valdrics-prod.iam.gserviceaccount.com",
+                "GCP_CLOUD_RUN_SERVICE_NAME=valdrics-api",
+                "GCP_CLOUD_RUN_BATCH_JOB_NAME=valdrics-batch",
+                'GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS=["tasks-invoker@valdrics-prod.iam.gserviceaccount.com","scheduler-invoker@valdrics-prod.iam.gserviceaccount.com"]',
                 "API_URL=https://api.runtime.example",
                 "FRONTEND_URL=https://app.runtime.example",
                 'CORS_ORIGINS=["https://app.runtime.example"]',
@@ -263,7 +300,10 @@ def test_validate_runtime_env_restores_environment_after_validation(
         assert result == 0
         assert os.environ == original_environment
 
-    assert "runtime_env_validation_passed environment=production testing=False" in capsys.readouterr().out
+    assert (
+        "runtime_env_validation_passed environment=production testing=False"
+        in capsys.readouterr().out
+    )
 
 
 def test_validate_runtime_env_rejects_placeholder_public_url(
@@ -279,7 +319,6 @@ def test_validate_runtime_env_rejects_placeholder_public_url(
                 "KDF_SALT=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
                 "SUPABASE_JWT_SECRET=ci-supabase-jwt-secret-32-chars-0000",
                 "ADMIN_API_KEY=ci-admin-api-key-32-chars-min-0000000",
-                "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN=arn:aws:iam::123456789012:role/ValdricsControlPlane",
                 "ENFORCEMENT_APPROVAL_TOKEN_SECRET=ci-enforcement-approval-token-secret-32-chars",
                 "ENFORCEMENT_EXPORT_SIGNING_SECRET=ci-enforcement-export-signing-secret-32-char",
                 "GROQ_API_KEY=testing",
@@ -287,9 +326,18 @@ def test_validate_runtime_env_rejects_placeholder_public_url(
                 "PAYSTACK_SECRET_KEY=example_paystack_secret_ci_validation_only",
                 "PAYSTACK_PUBLIC_KEY=example_paystack_public_ci_validation_only",
                 "ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=true",
-                "REDIS_URL=redis://localhost:6379/0",
-                "SENTRY_DSN=https://example@sentry.io/1",
-                "OTEL_EXPORTER_OTLP_ENDPOINT=https://otel-collector:4317",
+                "PLATFORM_RUNTIME_PROFILE=gcp",
+                "OBSERVABILITY_BACKEND=gcp",
+                "PUBLIC_API_RATE_LIMITING_BACKEND=cloudflare",
+                "RATELIMIT_ENABLED=false",
+                "CIRCUIT_BREAKER_DISTRIBUTED_STATE=false",
+                "GCP_PROJECT_ID=valdrics-prod",
+                "GCP_REGION=us-central1",
+                "GCP_CLOUD_TASKS_QUEUE=valdrics-managed-work",
+                "GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL=tasks-invoker@valdrics-prod.iam.gserviceaccount.com",
+                "GCP_CLOUD_RUN_SERVICE_NAME=valdrics-api",
+                "GCP_CLOUD_RUN_BATCH_JOB_NAME=valdrics-batch",
+                'GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS=["tasks-invoker@valdrics-prod.iam.gserviceaccount.com","scheduler-invoker@valdrics-prod.iam.gserviceaccount.com"]',
                 "API_URL=https://REPLACE_WITH_API_DOMAIN",
                 "FRONTEND_URL=https://app.runtime.example",
                 'CORS_ORIGINS=["https://app.runtime.example"]',
@@ -339,7 +387,6 @@ def test_validate_runtime_env_rejects_unsupported_python_runtime(
                 "KDF_SALT=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
                 "SUPABASE_JWT_SECRET=ci-supabase-jwt-secret-32-chars-0000",
                 "ADMIN_API_KEY=ci-admin-api-key-32-chars-min-0000000",
-                "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN=arn:aws:iam::123456789012:role/ValdricsControlPlane",
                 "ENFORCEMENT_APPROVAL_TOKEN_SECRET=ci-enforcement-approval-token-secret-32-chars",
                 "ENFORCEMENT_EXPORT_SIGNING_SECRET=ci-enforcement-export-signing-secret-32-char",
                 "GROQ_API_KEY=testing",
@@ -347,9 +394,18 @@ def test_validate_runtime_env_rejects_unsupported_python_runtime(
                 "PAYSTACK_SECRET_KEY=example_paystack_secret_ci_validation_only",
                 "PAYSTACK_PUBLIC_KEY=example_paystack_public_ci_validation_only",
                 "ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=true",
-                "REDIS_URL=redis://localhost:6379/0",
-                "SENTRY_DSN=https://example@sentry.io/1",
-                "OTEL_EXPORTER_OTLP_ENDPOINT=https://otel-collector:4317",
+                "PLATFORM_RUNTIME_PROFILE=gcp",
+                "OBSERVABILITY_BACKEND=gcp",
+                "PUBLIC_API_RATE_LIMITING_BACKEND=cloudflare",
+                "RATELIMIT_ENABLED=false",
+                "CIRCUIT_BREAKER_DISTRIBUTED_STATE=false",
+                "GCP_PROJECT_ID=valdrics-prod",
+                "GCP_REGION=us-central1",
+                "GCP_CLOUD_TASKS_QUEUE=valdrics-managed-work",
+                "GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL=tasks-invoker@valdrics-prod.iam.gserviceaccount.com",
+                "GCP_CLOUD_RUN_SERVICE_NAME=valdrics-api",
+                "GCP_CLOUD_RUN_BATCH_JOB_NAME=valdrics-batch",
+                'GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS=["tasks-invoker@valdrics-prod.iam.gserviceaccount.com","scheduler-invoker@valdrics-prod.iam.gserviceaccount.com"]',
                 "API_URL=https://api.runtime.example",
                 "FRONTEND_URL=https://app.runtime.example",
                 'CORS_ORIGINS=["https://app.runtime.example"]',

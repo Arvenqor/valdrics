@@ -112,16 +112,16 @@ DIMENSION_TOKENS: dict[str, tuple[EvidenceToken, ...]] = {
     ),
     "operational_misconfiguration": (
         EvidenceToken(
-            "tests/unit/ops/test_enforcement_webhook_helm_contract.py",
-            "test_helm_webhook_rejects_fail_closed_without_ha_replicas",
+            "tests/unit/enforcement/enforcement_api_cases_part01.py",
+            "test_gate_k8s_admission_review_contract_allow",
         ),
         EvidenceToken(
-            "tests/unit/ops/test_enforcement_webhook_helm_contract.py",
-            "test_helm_webhook_rejects_fail_closed_with_recreate_strategy",
+            "tests/unit/enforcement/enforcement_api_cases_part02.py",
+            "test_gate_k8s_admission_review_rejects_invalid_cost_annotation",
         ),
         EvidenceToken(
             "docs/runbooks/enforcement_preprovision_integrations.md",
-            "failurePolicy: Fail",
+            "`failurePolicy: Fail` requires API HA",
         ),
     ),
 }
@@ -157,6 +157,12 @@ GAP_REGISTER_REQUIRED_TOKENS: tuple[str, ...] = (
     "docs/ops/evidence/enforcement_stress_artifact_YYYY-MM-DD.json",
     "docs/ops/evidence/enforcement_failure_injection_YYYY-MM-DD.json",
     "docs/evidence/ci-green-YYYY-MM-DD.md",
+)
+
+GAP_REGISTER_FORBIDDEN_TOKENS: tuple[str, ...] = (
+    "test_enforcement_webhook_helm_contract",
+    "Kubernetes webhook production guidance profile",
+    "deployable webhook template + explicit failure-policy profiles via chart values and runbook contract",
 )
 
 ARTIFACT_TEMPLATE_TOKENS: tuple[EvidenceToken, ...] = (
@@ -242,6 +248,9 @@ def validate_gap_register_contract(*, gap_register_path: Path) -> None:
     for token in GAP_REGISTER_REQUIRED_TOKENS:
         if token not in raw:
             raise ValueError(f"Gap register missing required token: {token!r}")
+    for token in GAP_REGISTER_FORBIDDEN_TOKENS:
+        if token in raw:
+            raise ValueError(f"Gap register contains forbidden token: {token!r}")
 
 
 def validate_artifact_template_contract(*, repo_root: Path) -> None:

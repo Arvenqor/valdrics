@@ -1,0 +1,354 @@
+name: Deploy Unified Platform
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment."
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      git_ref:
+        description: "Git ref to deploy."
+        required: false
+        type: string
+      release_tag:
+        description: "Immutable release tag recorded in the managed deployment bundle."
+        required: true
+        type: string
+      api_promotion_ref:
+        description: "Digest-pinned Artifact Registry ref for the API service."
+        required: true
+        type: string
+      batch_promotion_ref:
+        description: "Digest-pinned Artifact Registry ref for the Cloud Run batch job."
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      environment:
+        description: "Target environment."
+        required: true
+        type: string
+      git_ref:
+        description: "Git ref to deploy."
+        required: false
+        type: string
+      release_tag:
+        description: "Immutable release tag recorded in the managed deployment bundle."
+        required: true
+        type: string
+      api_promotion_ref:
+        description: "Digest-pinned Artifact Registry ref for the API service."
+        required: true
+        type: string
+      batch_promotion_ref:
+        description: "Digest-pinned Artifact Registry ref for the Cloud Run batch job."
+        required: true
+        type: string
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER:
+        required: true
+      GCP_DEPLOYER_SERVICE_ACCOUNT:
+        required: true
+      CLOUDFLARE_API_TOKEN:
+        required: true
+      SUPABASE_ACCESS_TOKEN:
+        required: true
+      SUPABASE_DATABASE_PASSWORD:
+        required: true
+      RUNTIME_SECRET_ENV_JSON:
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    name: Deploy Backend, Infra, and Frontend
+    runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment }}
+    env:
+      DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+      DEPLOY_DIR: .runtime/deploy/${{ inputs.environment }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.git_ref || github.sha }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@7c6bc77d364ec2995949c0ea27054688c57f7ef7 # v3.0.0
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOYER_SERVICE_ACCOUNT }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@aa5489c8a0d8b7f894b681febe64e5b7ddf32f20 # v3.0.1
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          version: ">= 363.0.0"
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24.14.0"
+          cache: "pnpm"
+          cache-dependency-path: dashboard/pnpm-lock.yaml
+
+      - name: Install pnpm
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          corepack prepare pnpm@10.19.0 --activate
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version-file: .python-version
+
+      - name: Install uv
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip uv
+
+      - name: Install backend dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv sync --locked --dev
+
+      - name: Materialize managed runtime env from GitHub contract
+        shell: bash
+        env:
+          RUNTIME_PLAIN_ENV_JSON: ${{ vars.RUNTIME_PLAIN_ENV_JSON }}
+          RUNTIME_SECRET_ENV_JSON: ${{ secrets.RUNTIME_SECRET_ENV_JSON }}
+        run: |
+          set -euo pipefail
+          mkdir -p .runtime
+          python3 - <<'PY'
+          from __future__ import annotations
+
+          import json
+          import os
+          from pathlib import Path
+          import shlex
+
+          def load_payload(name: str) -> dict[str, str]:
+              raw = os.environ.get(name, "")
+              try:
+                  payload = json.loads(raw)
+              except json.JSONDecodeError as exc:
+                  raise SystemExit(f"{name} must be valid JSON: {exc}") from exc
+              if not isinstance(payload, dict):
+                  raise SystemExit(f"{name} must be a JSON object")
+
+              normalized: dict[str, str] = {}
+              for raw_key, raw_value in payload.items():
+                  key = str(raw_key or "").strip()
+                  if not key:
+                      raise SystemExit(f"{name} contains an empty key")
+                  if not isinstance(raw_value, str):
+                      raise SystemExit(f"{name}.{key} must be a string")
+                  normalized[key] = raw_value
+              return normalized
+
+          plain = load_payload("RUNTIME_PLAIN_ENV_JSON")
+          secret = load_payload("RUNTIME_SECRET_ENV_JSON")
+          overlap = sorted(set(plain) & set(secret))
+          if overlap:
+              raise SystemExit(
+                  "RUNTIME_PLAIN_ENV_JSON and RUNTIME_SECRET_ENV_JSON must not share keys: "
+                  + ", ".join(overlap)
+              )
+
+          merged = {**plain, **secret}
+          output = Path(".runtime") / f"{os.environ['DEPLOY_ENVIRONMENT']}.env"
+          lines = []
+          for key in sorted(merged):
+              value = merged[key]
+              rendered = "" if value == "" else shlex.quote(value)
+              lines.append(f"{key}={rendered}")
+          output.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
+
+      - name: Generate managed runtime, migration, and deployment bundle
+        id: managed_bundle
+        shell: bash
+        env:
+          API_PROMOTION_REF: ${{ inputs.api_promotion_ref }}
+          BATCH_PROMOTION_REF: ${{ inputs.batch_promotion_ref }}
+        run: |
+          set -euo pipefail
+          uv run python3 scripts/generate_managed_runtime_env.py \
+            --environment "${DEPLOY_ENVIRONMENT}" \
+            --template-path .env.example \
+            --output-path ".runtime/${DEPLOY_ENVIRONMENT}.env" \
+            --report-path ".runtime/${DEPLOY_ENVIRONMENT}.report.json"
+
+          MIGRATION_DATABASE_URL="$(
+            python3 - <<'PY'
+            from __future__ import annotations
+
+            import os
+            from pathlib import Path
+            import shlex
+
+            runtime_env = Path(f".runtime/{os.environ['DEPLOY_ENVIRONMENT']}.env")
+            for raw_line in runtime_env.read_text(encoding="utf-8").splitlines():
+                if not raw_line.startswith("DATABASE_URL="):
+                    continue
+                raw_value = raw_line.partition("=")[2].strip()
+                if not raw_value:
+                    raise SystemExit("DATABASE_URL is missing from the materialized runtime env")
+                parsed = shlex.split(raw_value, posix=True)
+                print(parsed[0] if parsed else "")
+                raise SystemExit(0)
+            raise SystemExit("DATABASE_URL is missing from the materialized runtime env")
+            PY
+          )"
+
+          uv run python3 scripts/generate_managed_migration_env.py \
+            --environment "${DEPLOY_ENVIRONMENT}" \
+            --output-path ".runtime/${DEPLOY_ENVIRONMENT}.migrate.env" \
+            --report-path ".runtime/${DEPLOY_ENVIRONMENT}.migrate.report.json" \
+            --database-url "${MIGRATION_DATABASE_URL}"
+
+          uv run python3 scripts/validate_runtime_env.py \
+            --environment "${DEPLOY_ENVIRONMENT}" \
+            --env-file ".runtime/${DEPLOY_ENVIRONMENT}.env"
+
+          uv run python3 scripts/validate_migration_env.py \
+            --env-file ".runtime/${DEPLOY_ENVIRONMENT}.migrate.env"
+
+          uv run python3 scripts/generate_managed_deployment_artifacts.py \
+            --environment "${DEPLOY_ENVIRONMENT}" \
+            --runtime-env-file ".runtime/${DEPLOY_ENVIRONMENT}.env" \
+            --output-dir "${DEPLOY_DIR}" \
+            --release-tag "${RELEASE_TAG}" \
+            --api-promotion-ref "${API_PROMOTION_REF}" \
+            --batch-promotion-ref "${BATCH_PROMOTION_REF}" \
+            --gcp-project-id "${{ vars.GCP_PROJECT_ID }}" \
+            --gcp-region "${{ vars.GCP_REGION }}" \
+            --cloudflare-account-id "${{ vars.CLOUDFLARE_ACCOUNT_ID }}" \
+            --cloudflare-zone-id "${{ vars.CLOUDFLARE_ZONE_ID }}" \
+            --cloudflare-pages-project-name "${{ vars.CLOUDFLARE_PAGES_PROJECT_NAME }}" \
+            --cloudflare-pages-production-branch "${{ vars.CLOUDFLARE_PAGES_PRODUCTION_BRANCH }}" \
+            --supabase-organization-id "${{ vars.SUPABASE_ORGANIZATION_ID }}" \
+            --supabase-project-name "${{ vars.SUPABASE_PROJECT_NAME }}" \
+            --supabase-region "${{ vars.SUPABASE_REGION }}"
+
+          uv run python3 scripts/verify_managed_deployment_bundle.py \
+            --environment "${DEPLOY_ENVIRONMENT}"
+
+          python3 - <<'PY'
+          from __future__ import annotations
+
+          import json
+          import os
+          from pathlib import Path
+
+          deploy_dir = Path(os.environ["DEPLOY_DIR"])
+          report = json.loads((deploy_dir / "deployment.report.json").read_text(encoding="utf-8"))
+          tfvars = json.loads((deploy_dir / "terraform.runtime.auto.tfvars.json").read_text(encoding="utf-8"))
+          pages = json.loads((deploy_dir / "cloudflare-pages-env.json").read_text(encoding="utf-8"))
+
+          if not report.get("ready_for_terraform"):
+              raise SystemExit("managed deployment bundle is not ready_for_terraform")
+          if not report.get("ready_for_release_promotion"):
+              raise SystemExit("managed deployment bundle is not ready_for_release_promotion")
+
+          outputs = {
+              "migration_env_path": f".runtime/{os.environ['DEPLOY_ENVIRONMENT']}.migrate.env",
+              "tfvars_path": str(deploy_dir / "terraform.runtime.auto.tfvars.json"),
+              "api_url": str(tfvars["api_url"]),
+              "cloudflare_account_id": str(tfvars["cloudflare_account_id"]),
+              "cloudflare_pages_project_name": str(tfvars["cloudflare_pages_project_name"]),
+              "cloudflare_pages_production_branch": str(tfvars["cloudflare_pages_production_branch"]),
+              "public_api_url": str(pages["PUBLIC_API_URL"]),
+              "public_supabase_url": str(pages["PUBLIC_SUPABASE_URL"]),
+              "public_supabase_anon_key": str(pages["PUBLIC_SUPABASE_ANON_KEY"]),
+          }
+
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as handle:
+              for key, value in outputs.items():
+                  handle.write(f"{key}={value}\n")
+          PY
+
+      - name: Upload non-secret deployment evidence bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: managed-deployment-bundle-${{ inputs.environment }}-${{ inputs.release_tag }}
+          path: |
+            .runtime/${{ inputs.environment }}.report.json
+            .runtime/${{ inputs.environment }}.migrate.report.json
+            .runtime/deploy/${{ inputs.environment }}/unified-platform-manifest.json
+            .runtime/deploy/${{ inputs.environment }}/cloudflare-pages-env.json
+            .runtime/deploy/${{ inputs.environment }}/artifact-registry-release.json
+            .runtime/deploy/${{ inputs.environment }}/deployment.report.json
+          retention-days: 30
+
+      - name: Terraform apply unified platform
+        shell: bash
+        env:
+          TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TF_VAR_supabase_access_token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          TF_VAR_supabase_database_password: ${{ secrets.SUPABASE_DATABASE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          terraform -chdir=terraform init
+          terraform -chdir=terraform plan \
+            -var-file="../${{ steps.managed_bundle.outputs.tfvars_path }}" \
+            -out=tfplan
+          terraform -chdir=terraform apply -auto-approve tfplan
+
+      - name: Apply database migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          set -a
+          source "${{ steps.managed_bundle.outputs.migration_env_path }}"
+          set +a
+          uv run alembic upgrade head
+
+      - name: Install dashboard dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm --dir dashboard install --frozen-lockfile
+
+      - name: Build dashboard
+        shell: bash
+        env:
+          PUBLIC_API_URL: ${{ steps.managed_bundle.outputs.public_api_url }}
+          PUBLIC_SUPABASE_URL: ${{ steps.managed_bundle.outputs.public_supabase_url }}
+          PUBLIC_SUPABASE_ANON_KEY: ${{ steps.managed_bundle.outputs.public_supabase_anon_key }}
+        run: |
+          set -euo pipefail
+          pnpm --dir dashboard run build
+
+      - name: Deploy dashboard to Cloudflare Pages
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ steps.managed_bundle.outputs.cloudflare_account_id }}
+        run: |
+          set -euo pipefail
+          pnpm --dir dashboard exec wrangler pages deploy .svelte-kit/cloudflare --project-name "${{ steps.managed_bundle.outputs.cloudflare_pages_project_name }}" --branch "${{ steps.managed_bundle.outputs.cloudflare_pages_production_branch }}"
+
+      - name: Smoke check API liveness
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error "${{ steps.managed_bundle.outputs.api_url }}/health/live" >/dev/null

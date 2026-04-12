@@ -6,23 +6,24 @@ This document closes `BENCH-DOC-001` by publishing concrete operational profiles
 
 Profiles covered:
 
-1. Kubernetes webhook production guidance profile.
+1. Kubernetes AdmissionReview guidance profile.
 2. CEL portability profile for enforcement policy-as-code.
 3. Terraform ordering profile for preflight decision stages.
 
-## 1) Kubernetes Webhook Production Guidance Profile
+## 1) Kubernetes AdmissionReview Guidance Profile
 
 Primary source:
 
 1. Kubernetes admission webhook good practices:
    - https://kubernetes.io/docs/concepts/cluster-administration/admission-webhooks-good-practices/
 
-Runtime/Helm contract in repository:
+Active contract in repository:
 
-1. `helm/valdrics/templates/enforcement-validating-webhook.yaml`
-2. `helm/valdrics/templates/enforcement-webhook-pdb.yaml`
-3. `helm/valdrics/values.schema.json`
-4. `docs/runbooks/enforcement_preprovision_integrations.md`
+1. `app/modules/enforcement/api/v1/enforcement.py`
+2. `app/modules/enforcement/api/v1/schemas.py`
+3. `docs/runbooks/enforcement_preprovision_integrations.md`
+
+Archived self-managed Helm reference remains outside the supported deployment contract.
 
 Production profile requirements:
 
@@ -36,8 +37,8 @@ Production profile requirements:
 
 Validation evidence:
 
-1. `uv run pytest --no-cov -q tests/unit/ops/test_enforcement_webhook_helm_contract.py`
-2. `uv run pytest --no-cov -q tests/unit/enforcement/test_enforcement_api.py -k "admission_review"`
+1. `uv run pytest --no-cov -q tests/unit/enforcement/enforcement_api_cases_part01.py tests/unit/enforcement/enforcement_api_cases_part02.py`
+2. `uv run pytest --no-cov -q tests/unit/enforcement/test_enforcement_endpoint_wrapper_coverage.py::test_enforcement_endpoint_wrappers_cover_preflight_and_k8s_review_branches`
 
 ## 2) CEL Portability Profile
 

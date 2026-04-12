@@ -330,6 +330,7 @@ class ExchangeRateService:
             return Decimal("1.0")
 
         now_ts = time.monotonic()
+        now_wall_ts = time.time()
         max_age_seconds = self.cache_ttl_hours * 3600
 
         # L1: in-memory cache
@@ -350,7 +351,7 @@ class ExchangeRateService:
         if (
             redis_rate
             and redis_updated_ts
-            and (now_ts - redis_updated_ts) <= max_age_seconds
+            and (now_wall_ts - redis_updated_ts) <= max_age_seconds
         ):
             if strict and currency == "NGN" and redis_provider != "cbn_nfem":
                 logger.warning(

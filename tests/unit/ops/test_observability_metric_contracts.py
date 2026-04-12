@@ -29,15 +29,23 @@ def test_prometheus_alerts_reference_current_exported_metrics() -> None:
     assert "valdrics_ops_background_jobs_dead_lettered_total" in combined
     assert "valdrics_ops_background_jobs_overdue_pending_count" in combined
     assert "valdrics_ops_audit_log_retention_failures_total" in combined
-    assert "valdrics_scheduler_inline_fallback_total" in combined
+    assert "valdrics_scheduler_dispatch_fail_closed_total" in combined
     assert "valdrics_ops_landing_funnel_weekly_conversion_rate" in combined
     assert "valdrics_ops_landing_funnel_weekly_delta_rate" in combined
     assert "valdrics_ops_landing_funnel_last_evaluated_unixtime" in combined
     assert "http_request_duration_highr_seconds_bucket" in combined
+    assert "valdrics_scheduler_inline_fallback_total" not in combined
     assert "valdrics_llm_cost_usd" not in combined
     assert "valdrics_scan_errors_total" not in combined
     assert "valdrics_carbon_emissions_kg" not in combined
     assert "http_request_duration_seconds_bucket" not in combined
+
+    rule_names = []
+    for group in alerts["groups"]:
+        for rule in group["rules"]:
+            rule_names.append(str(rule["alert"]))
+    assert "SchedulerDispatchFailClosedDetected" in rule_names
+    assert "SchedulerInlineFallbackActive" not in rule_names
 
 
 def test_finops_dashboard_references_current_metrics() -> None:
@@ -62,7 +70,8 @@ def test_finops_dashboard_references_current_metrics() -> None:
     assert "valdrics_ops_background_jobs_dead_lettered_total" in combined
     assert "valdrics_ops_background_jobs_stale_running_recovered_total" in combined
     assert "valdrics_ops_audit_log_retention_failures_total" in combined
-    assert "valdrics_scheduler_inline_fallback_total" in combined
+    assert "valdrics_scheduler_dispatch_fail_closed_total" in combined
+    assert "valdrics_scheduler_inline_fallback_total" not in combined
     assert "valdrics_zombie_potential_savings_usd" not in combined
     assert "valdrics_scans_completed_total" not in combined
     assert "valdrics_llm_cost_usd" not in combined

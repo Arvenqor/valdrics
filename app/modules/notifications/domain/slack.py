@@ -21,7 +21,6 @@ logger = structlog.get_logger()
 SLACK_CLIENT_RECOVERABLE_EXCEPTIONS = (
     RuntimeError,
     TypeError,
-    AttributeError,
     OSError,
     ValueError,
 )
@@ -29,7 +28,6 @@ SLACK_DEDUP_REDIS_RECOVERABLE_EXCEPTIONS = (
     RedisError,
     RuntimeError,
     TypeError,
-    AttributeError,
     OSError,
     ValueError,
 )

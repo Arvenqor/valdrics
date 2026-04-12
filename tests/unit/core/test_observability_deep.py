@@ -42,6 +42,7 @@ class TestObservabilityDeep:
         with patch(
             "app.shared.core.sentry.get_settings",
             return_value=SimpleNamespace(
+                OBSERVABILITY_BACKEND="otlp",
                 SENTRY_DSN="",
                 ENVIRONMENT="development",
                 APP_VERSION=None,
@@ -55,6 +56,7 @@ class TestObservabilityDeep:
         with patch(
             "app.shared.core.sentry.get_settings",
             return_value=SimpleNamespace(
+                OBSERVABILITY_BACKEND="otlp",
                 SENTRY_DSN="https://test@sentry.io/1",
                 ENVIRONMENT="production",
                 APP_VERSION=None,

@@ -13,7 +13,8 @@ Endpoint: GET /usage
 from typing import Annotated, Literal
 from uuid import UUID
 from datetime import datetime, timezone, timedelta
-from fastapi import APIRouter, Depends
+from decimal import Decimal, InvalidOperation
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, func, cast, Integer
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, ValidationError
@@ -38,8 +39,25 @@ USAGE_CACHE_PAYLOAD_ERRORS = (ValidationError, TypeError, ValueError)
 
 def _require_tenant_id(user: CurrentUser) -> UUID:
     if user.tenant_id is None:
-        raise ValueError("tenant_id is required for usage metrics")
+        raise HTTPException(status_code=403, detail="Tenant context required.")
     return user.tenant_id
+
+
+def _coerce_finite_float(
+    value: object,
+    *,
+    field_name: str,
+    default: float = 0.0,
+) -> float:
+    if value is None:
+        return default
+    try:
+        amount = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError) as exc:
+        raise ValueError(f"{field_name} must be numeric") from exc
+    if not amount.is_finite():
+        raise ValueError(f"{field_name} must be finite")
+    return float(amount)
 
 
 class LLMUsageMetrics(BaseModel):
@@ -258,7 +276,7 @@ async def _get_recent_llm_activity(
             input_tokens=rec.input_tokens,
             output_tokens=rec.output_tokens,
             total_tokens=rec.total_tokens,
-            cost_usd=float(rec.cost_usd),
+            cost_usd=_coerce_finite_float(rec.cost_usd, field_name="cost_usd"),
             request_type=rec.request_type,
         )
         for rec in records
@@ -296,12 +314,20 @@ async def _get_llm_usage(
     row = result.one()
     tokens_used = int(row.tokens_used or 0)
     requests_count = int(row.requests_count or 0)
-    cost_usd = float(row.cost_usd or 0)
+    cost_usd = _coerce_finite_float(row.cost_usd, field_name="cost_usd")
     budget_limit = row.budget_limit_usd
 
     # If no token limit set, we use an approximate one based on USD limit ($1 = ~100k tokens at avg price)
     tokens_limit = (
-        int(float(budget_limit) * 100000) if budget_limit is not None else 100000
+        int(
+            _coerce_finite_float(
+                budget_limit,
+                field_name="budget_limit_usd",
+            )
+            * 100000
+        )
+        if budget_limit is not None
+        else 100000
     )
     utilization = (tokens_used / tokens_limit * 100) if tokens_limit > 0 else 0
 

@@ -49,10 +49,21 @@ def _settings() -> Settings:
     s.TRUSTED_PROXY_HOPS = 1
     s.TRUSTED_PROXY_CIDRS = []
     s.ADMIN_API_KEY = "a" * 32
-    s.CIRCUIT_BREAKER_DISTRIBUTED_STATE = True
+    s.CIRCUIT_BREAKER_DISTRIBUTED_STATE = False
     s.REDIS_URL = "redis://localhost:6379"
     s.RATELIMIT_ENABLED = True
     s.ALLOW_IN_MEMORY_RATE_LIMITS = False
+    s.GCP_PROJECT_ID = "valdrics-test"
+    s.GCP_REGION = "us-central1"
+    s.GCP_CLOUD_TASKS_QUEUE = "valdrics-default"
+    s.GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL = (
+        "tasks@valdrics-test.iam.gserviceaccount.com"
+    )
+    s.GCP_CLOUD_RUN_SERVICE_NAME = "valdrics-api"
+    s.GCP_CLOUD_RUN_BATCH_JOB_NAME = "valdrics-scheduler-batch"
+    s.GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS = [
+        "tasks@valdrics-test.iam.gserviceaccount.com"
+    ]
     s.CORS_ORIGINS = []
     s.API_URL = "https://api.example.com"
     s.FRONTEND_URL = "https://app.example.com"
@@ -157,30 +168,33 @@ def test_reload_settings_from_environment_logs_warning_when_cache_refresh_fails(
     logger.warning.assert_called_once()
 
 
-def test_reload_settings_from_environment_refreshes_loaded_celery_config() -> None:
-    current = types.SimpleNamespace(APP_NAME="old-name", REDIS_URL="redis://old")
+def test_reload_settings_from_environment_does_not_refresh_removed_celery_config() -> None:
+    current = types.SimpleNamespace(
+        APP_NAME="old-name",
+        REDIS_URL="redis://old",
+        PLATFORM_RUNTIME_PROFILE="gcp",
+    )
     refreshed = MagicMock()
     refreshed.APP_NAME = "new-name"
     refreshed.REDIS_URL = "redis://new"
+    refreshed.PLATFORM_RUNTIME_PROFILE = "gcp"
     refreshed.model_dump.return_value = {
         "APP_NAME": refreshed.APP_NAME,
         "REDIS_URL": refreshed.REDIS_URL,
+        "PLATFORM_RUNTIME_PROFILE": refreshed.PLATFORM_RUNTIME_PROFILE,
     }
     logger = MagicMock()
 
     fake_security_module = types.ModuleType("app.shared.core.security")
     fake_encryption_module = types.ModuleType("app.models._encryption")
-    fake_celery_module = types.ModuleType("app.shared.core.celery_app")
 
     class _KeyManager:
         clear_key_caches = MagicMock()
 
     clear_encryption_key_cache = MagicMock()
-    refresh_celery_app_config = MagicMock()
 
     fake_security_module.EncryptionKeyManager = _KeyManager
     fake_encryption_module.clear_encryption_key_cache = clear_encryption_key_cache
-    fake_celery_module.refresh_celery_app_config = refresh_celery_app_config
 
     with (
         patch("app.shared.core.config.get_settings", return_value=current),
@@ -191,7 +205,6 @@ def test_reload_settings_from_environment_refreshes_loaded_celery_config() -> No
             {
                 "app.shared.core.security": fake_security_module,
                 "app.models._encryption": fake_encryption_module,
-                "app.shared.core.celery_app": fake_celery_module,
             },
         ),
     ):
@@ -199,7 +212,6 @@ def test_reload_settings_from_environment_refreshes_loaded_celery_config() -> No
 
     assert result is current
     assert current.REDIS_URL == "redis://new"
-    refresh_celery_app_config.assert_called_once_with(current)
 
 
 def test_reload_settings_from_environment_refreshes_loaded_fastapi_metadata() -> None:
@@ -220,12 +232,10 @@ def test_reload_settings_from_environment_refreshes_loaded_fastapi_metadata() ->
 
     fake_security_module = types.ModuleType("app.shared.core.security")
     fake_encryption_module = types.ModuleType("app.models._encryption")
-    fake_celery_module = types.ModuleType("app.shared.core.celery_app")
     fake_app_main_module = types.ModuleType("app.main")
 
     cache_warm_flags: list[bool] = []
     cleared_encryption_cache: list[bool] = []
-    refreshed_celery_config: list[object] = []
     refreshed_fastapi_metadata: list[object] = []
 
     class _KeyManager:
@@ -236,15 +246,11 @@ def test_reload_settings_from_environment_refreshes_loaded_fastapi_metadata() ->
     def clear_encryption_key_cache() -> None:
         cleared_encryption_cache.append(True)
 
-    def refresh_celery_app_config(settings_obj: object) -> None:
-        refreshed_celery_config.append(settings_obj)
-
     def refresh_fastapi_app_metadata(settings_obj: object) -> None:
         refreshed_fastapi_metadata.append(settings_obj)
 
     fake_security_module.EncryptionKeyManager = _KeyManager
     fake_encryption_module.clear_encryption_key_cache = clear_encryption_key_cache
-    fake_celery_module.refresh_celery_app_config = refresh_celery_app_config
     fake_app_main_module.refresh_fastapi_app_metadata = refresh_fastapi_app_metadata
 
     with (
@@ -256,7 +262,6 @@ def test_reload_settings_from_environment_refreshes_loaded_fastapi_metadata() ->
                 {
                     "app.shared.core.security": fake_security_module,
                     "app.models._encryption": fake_encryption_module,
-                    "app.shared.core.celery_app": fake_celery_module,
                     "app.main": fake_app_main_module,
                 },
             ),
@@ -268,7 +273,6 @@ def test_reload_settings_from_environment_refreshes_loaded_fastapi_metadata() ->
     assert current.VERSION == "0.2.0"
     assert cache_warm_flags == [True]
     assert cleared_encryption_cache == [True]
-    assert refreshed_celery_config == [current]
     assert refreshed_fastapi_metadata == [current]
 
 
@@ -277,6 +281,13 @@ def test_environment_validator_normalizes_and_rejects_invalid_values() -> None:
 
     with pytest.raises(ValueError, match="ENVIRONMENT must be one of"):
         Settings._normalize_environment("prod-preview")
+
+
+def test_platform_runtime_profile_validator_allows_only_gcp() -> None:
+    assert Settings._normalize_platform_runtime_profile("GCP") == "gcp"
+
+    with pytest.raises(ValueError, match="PLATFORM_RUNTIME_PROFILE must be one of"):
+        Settings._normalize_platform_runtime_profile("legacy")
 
 
 def test_config_core_secret_validator_branch_paths() -> None:
@@ -466,7 +477,6 @@ def test_config_environment_safety_branch_paths() -> None:
     s.CORS_ORIGINS = ["https://app.example.com"]
     s.API_URL = "https://api.example.com"
     s.FRONTEND_URL = "https://app.example.com"
-    s.WEB_CONCURRENCY = "not-an-int"
     with patch("app.shared.core.config.structlog.get_logger") as get_logger:
         s._validate_environment_safety()
     assert get_logger.return_value.warning.call_count == 0

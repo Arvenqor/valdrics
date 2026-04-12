@@ -18,6 +18,7 @@ class TestSentryDeep:
         with patch(
             "app.shared.core.sentry.get_settings",
             return_value=SimpleNamespace(
+                OBSERVABILITY_BACKEND="otlp",
                 SENTRY_DSN="http://test@sentry.io/1",
                 ENVIRONMENT="development",
                 APP_VERSION=None,
@@ -33,6 +34,7 @@ class TestSentryDeep:
         with patch(
             "app.shared.core.sentry.get_settings",
             return_value=SimpleNamespace(
+                OBSERVABILITY_BACKEND="otlp",
                 SENTRY_DSN="http://test@sentry.io/1",
                 ENVIRONMENT="development",
                 APP_VERSION=None,
@@ -47,6 +49,7 @@ class TestSentryDeep:
         with patch(
             "app.shared.core.sentry.get_settings",
             return_value=SimpleNamespace(
+                OBSERVABILITY_BACKEND="otlp",
                 SENTRY_DSN="",
                 ENVIRONMENT="development",
                 APP_VERSION=None,

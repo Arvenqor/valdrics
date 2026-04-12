@@ -2,33 +2,58 @@ import structlog
 from datetime import datetime, timedelta, timezone
 import uuid
 from typing import Any, AsyncIterator, Optional
+from decimal import Decimal, InvalidOperation
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.aws_connection import AWSConnection
 from app.shared.adapters.aws_utils import resolve_aws_region_hint
 from app.shared.core.async_utils import maybe_await
 from app.shared.db.session import async_session_maker, mark_session_system_context
+from app.modules.governance.domain.jobs.errors import PermanentJobError
 
 logger = structlog.get_logger()
 CUR_DEFAULT_LOOKBACK_DAYS = 7
 CUR_IDEMPOTENT_OVERLAP_HOURS = 24
 CUR_CONNECTION_INGEST_RECOVERABLE_EXCEPTIONS: tuple[type[BaseException], ...] = (
     RuntimeError,
-    ValueError,
-    TypeError,
     ConnectionError,
     TimeoutError,
     OSError,
 )
 CUR_MANIFEST_DISCOVERY_RECOVERABLE_EXCEPTIONS: tuple[type[BaseException], ...] = (
     RuntimeError,
-    ValueError,
-    TypeError,
-    KeyError,
     ConnectionError,
     TimeoutError,
     OSError,
 )
+
+
+def _normalize_cur_record_timestamp(value: object) -> datetime:
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
+    if isinstance(value, str):
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("timestamp string is empty")
+        if normalized.endswith("Z"):
+            normalized = normalized[:-1] + "+00:00"
+        try:
+            parsed = datetime.fromisoformat(normalized)
+        except ValueError as exc:
+            raise ValueError("timestamp must be an ISO 8601 datetime string") from exc
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+    raise ValueError("timestamp must be a datetime or ISO 8601 string")
+
+
+def _normalize_cur_cost_amount(value: object) -> Decimal:
+    try:
+        return Decimal(str(value or 0))
+    except (InvalidOperation, ValueError) as exc:
+        raise ValueError("cost_usd must be numeric") from exc
 
 
 class CURIngestionJob:
@@ -68,29 +93,35 @@ class CURIngestionJob:
         if db_session is None:
             raise RuntimeError("Database session is required for CUR ingestion")
 
-        # 1. Fetch connection(s)
-        if not tenant_id:
-            raise ValueError("tenant_id is required for CUR ingestion scope")
+        previous_db = self.db
+        self.db = db_session
 
-        query = select(AWSConnection)
-        if connection_id:
-            query = query.where(AWSConnection.id == connection_id)
-        query = query.where(AWSConnection.tenant_id == tenant_id)
+        try:
+            # 1. Fetch connection(s)
+            if not tenant_id:
+                raise PermanentJobError("tenant_id is required for CUR ingestion scope")
 
-        # We only want connections where CUR is configured (e.g. has bucket info)
-        # Note: CUR configuration status might be stored in metadata or a flag
-        result = await db_session.execute(query)
-        connections = result.scalars().all()
+            query = select(AWSConnection)
+            if connection_id:
+                query = query.where(AWSConnection.id == connection_id)
+            query = query.where(AWSConnection.tenant_id == tenant_id)
 
-        for conn in connections:
-            try:
-                await self.ingest_for_connection(conn)
-            except CUR_CONNECTION_INGEST_RECOVERABLE_EXCEPTIONS as e:
-                logger.error(
-                    "cur_ingestion_connection_failed",
-                    connection_id=str(conn.id),
-                    error=str(e),
-                )
+            # We only want connections where CUR is configured (e.g. has bucket info)
+            # Note: CUR configuration status might be stored in metadata or a flag
+            result = await db_session.execute(query)
+            connections = result.scalars().all()
+
+            for conn in connections:
+                try:
+                    await self.ingest_for_connection(conn)
+                except CUR_CONNECTION_INGEST_RECOVERABLE_EXCEPTIONS as e:
+                    logger.error(
+                        "cur_ingestion_connection_failed",
+                        connection_id=str(conn.id),
+                        error=str(e),
+                    )
+        finally:
+            self.db = previous_db
 
     async def ingest_for_connection(self, connection: AWSConnection) -> None:
         """
@@ -135,16 +166,14 @@ class CURIngestionJob:
                 record.setdefault("source_adapter", "cur_data_export")
                 if not isinstance(record.get("tags"), dict):
                     record["tags"] = {}
-
-                timestamp = record.get("timestamp")
-                if isinstance(timestamp, datetime):
-                    if timestamp.tzinfo is None:
-                        record["timestamp"] = timestamp.replace(tzinfo=timezone.utc)
-                else:
-                    continue
+                record["timestamp"] = _normalize_cur_record_timestamp(
+                    record.get("timestamp")
+                )
+                normalized_cost = _normalize_cur_cost_amount(record.get("cost_usd", 0))
+                record["cost_usd"] = normalized_cost
 
                 records_ingested += 1
-                total_cost += float(record.get("cost_usd", 0) or 0)
+                total_cost += float(normalized_cost)
                 yield record
 
         save_result = await persistence.save_records_stream(
@@ -261,7 +290,11 @@ class CURIngestionJob:
             manifest_data = json.loads(manifest_resp["Body"].read().decode("utf-8"))
 
             # CUR Parquet manifests list files in 'reportKeys'
-            report_keys = manifest_data.get("reportKeys", [])
+            if "reportKeys" not in manifest_data:
+                raise KeyError("reportKeys")
+            report_keys = manifest_data["reportKeys"]
+            if not isinstance(report_keys, list):
+                raise TypeError("reportKeys must be a list")
             if not report_keys:
                 logger.warning("cur_manifest_empty_files", manifest=manifest_key)
                 return None

@@ -56,6 +56,109 @@ async def test_execute_with_connection_id_filter_path_calls_ingest_once() -> Non
 
 
 @pytest.mark.asyncio
+async def test_execute_with_explicit_db_override_establishes_ingest_context() -> None:
+    db_override = MagicMock()
+    db_override.execute = AsyncMock(
+        return_value=_scalars_result(
+            [
+                _conn(
+                    id="conn-override",
+                    tenant_id="tenant-1",
+                    last_ingested_at=None,
+                )
+            ]
+        )
+    )
+    db_override.add = MagicMock()
+    job = CURIngestionJob()
+    adapter = MagicMock()
+
+    async def _stream_costs(**kwargs):
+        del kwargs
+        yield {
+            "timestamp": "2026-03-01T00:00:00Z",
+            "cost_usd": "1.25",
+        }
+
+    adapter.stream_cost_and_usage = _stream_costs
+    persistence = AsyncMock()
+    persistence.save_records_stream = AsyncMock(return_value={"records_saved": 1})
+
+    with (
+        patch.object(job, "_build_cur_adapter", return_value=adapter),
+        patch.object(job, "_build_persistence_service", return_value=persistence),
+    ):
+        await job._execute(tenant_id="tenant-1", db=db_override)
+
+    db_override.execute.assert_awaited_once()
+    db_override.add.assert_called_once()
+    persistence.save_records_stream.assert_awaited_once()
+    assert job.db is None
+
+
+@pytest.mark.asyncio
+async def test_ingest_for_connection_rejects_invalid_adapter_timestamp() -> None:
+    conn = _conn(id="bad-ts", tenant_id="tenant-1", last_ingested_at=None)
+    db = MagicMock()
+    db.add = MagicMock()
+    job = CURIngestionJob(db=db)
+    adapter = MagicMock()
+
+    async def _stream_costs(**kwargs):
+        del kwargs
+        yield {"timestamp": "bad-ts", "cost_usd": "1.25"}
+
+    adapter.stream_cost_and_usage = _stream_costs
+    persistence = AsyncMock()
+
+    async def _consume(records, **kwargs):
+        del kwargs
+        async for _ in records:
+            pass
+        return {"records_saved": 0}
+
+    persistence.save_records_stream = AsyncMock(side_effect=_consume)
+
+    with (
+        patch.object(job, "_build_cur_adapter", return_value=adapter),
+        patch.object(job, "_build_persistence_service", return_value=persistence),
+    ):
+        with pytest.raises(ValueError, match="ISO 8601"):
+            await job.ingest_for_connection(conn)
+
+
+@pytest.mark.asyncio
+async def test_ingest_for_connection_rejects_invalid_adapter_cost() -> None:
+    conn = _conn(id="bad-cost", tenant_id="tenant-1", last_ingested_at=None)
+    db = MagicMock()
+    db.add = MagicMock()
+    job = CURIngestionJob(db=db)
+    adapter = MagicMock()
+
+    async def _stream_costs(**kwargs):
+        del kwargs
+        yield {"timestamp": "2026-03-01T00:00:00Z", "cost_usd": "bad-cost"}
+
+    adapter.stream_cost_and_usage = _stream_costs
+    persistence = AsyncMock()
+
+    async def _consume(records, **kwargs):
+        del kwargs
+        async for _ in records:
+            pass
+        return {"records_saved": 0}
+
+    persistence.save_records_stream = AsyncMock(side_effect=_consume)
+
+    with (
+        patch.object(job, "_build_cur_adapter", return_value=adapter),
+        patch.object(job, "_build_persistence_service", return_value=persistence),
+    ):
+        with pytest.raises(ValueError, match="cost_usd must be numeric"):
+            await job.ingest_for_connection(conn)
+
+
+@pytest.mark.asyncio
 async def test_find_latest_cur_key_warns_when_no_manifest_files_exist() -> None:
     job = CURIngestionJob()
     conn = _conn()
@@ -189,6 +292,23 @@ async def test_execute_does_not_swallow_fatal_connection_ingest_exceptions() -> 
 
 
 @pytest.mark.asyncio
+async def test_execute_does_not_swallow_value_error_connection_ingest_contract_defects() -> (
+    None
+):
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=_scalars_result([_conn(id="bad-shape")]))
+    job = CURIngestionJob(db=db)
+
+    with patch.object(
+        job,
+        "ingest_for_connection",
+        new=AsyncMock(side_effect=ValueError("bad cur record shape")),
+    ):
+        with pytest.raises(ValueError, match="bad cur record shape"):
+            await job._execute(tenant_id="tenant-1")
+
+
+@pytest.mark.asyncio
 async def test_run_without_db_commits_standalone_session() -> None:
     session = MagicMock()
     session.commit = AsyncMock()
@@ -224,4 +344,32 @@ async def test_find_latest_cur_key_does_not_swallow_fatal_errors() -> None:
         patch("boto3.client", return_value=mock_s3),
     ):
         with pytest.raises(_FatalTestSignal):
+            await job._find_latest_cur_key(conn, "cur-bucket")
+
+
+@pytest.mark.asyncio
+async def test_find_latest_cur_key_does_not_swallow_manifest_key_errors() -> None:
+    job = CURIngestionJob()
+    conn = _conn()
+    mock_s3 = MagicMock()
+    mock_s3.list_objects_v2.return_value = {
+        "Contents": [
+            {
+                "Key": "cur/valdrics-cur/2026-02-01/valdrics-cur-Manifest.json",
+                "LastModified": datetime(2026, 2, 1, tzinfo=timezone.utc),
+            }
+        ]
+    }
+    body = MagicMock()
+    body.read.return_value = b'{"wrongKey": ["part-000.parquet"]}'
+    mock_s3.get_object.return_value = {"Body": body}
+
+    with (
+        patch(
+            "app.modules.governance.domain.jobs.cur_ingestion.resolve_aws_region_hint",
+            return_value="us-east-1",
+        ),
+        patch("boto3.client", return_value=mock_s3),
+    ):
+        with pytest.raises(KeyError, match="reportKeys"):
             await job._find_latest_cur_key(conn, "cur-bucket")

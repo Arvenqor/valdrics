@@ -21,6 +21,7 @@ from typing import Any
 import structlog
 
 from app.shared.core.config import get_settings
+from app.shared.orchestration.contracts import observability_backend
 
 logger = structlog.get_logger()
 
@@ -58,6 +59,9 @@ def init_sentry() -> bool:
         True if Sentry was initialized, False otherwise
     """
     settings = get_settings()
+    if observability_backend(settings).value == "gcp":
+        logger.info("sentry_disabled", reason="OBSERVABILITY_BACKEND=gcp")
+        return False
     dsn = str(getattr(settings, "SENTRY_DSN", None) or "").strip()
 
     if not dsn:

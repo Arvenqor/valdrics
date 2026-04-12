@@ -1,4 +1,4 @@
-"""Verify deterministic container image references in compose files."""
+"""Verify deterministic image references on the active container surfaces."""
 
 from __future__ import annotations
 
@@ -15,8 +15,8 @@ from dotenv import dotenv_values
 DEFAULT_REPO_ROOT = Path(".")
 DEFAULT_COMPOSE_PATHS: tuple[Path, ...] = (
     Path("docker-compose.yml"),
+    Path("docker-compose.redis.yml"),
     Path("docker-compose.observability.yml"),
-    Path("docker-compose.prod.yml"),
 )
 MUTABLE_TAGS = {"latest"}
 SHA256_DIGEST_RE = re.compile(r"^[0-9a-f]{64}$")

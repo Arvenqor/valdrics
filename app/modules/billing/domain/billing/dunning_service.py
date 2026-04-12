@@ -28,6 +28,7 @@ from app.modules.billing.domain.billing.paystack_service_runtime_ops import (
 from app.modules.billing.domain.billing.entitlement_policy import sync_tenant_plan
 from app.shared.core.pricing import PricingTier
 from app.models.background_job import JobType
+from app.modules.governance.domain.jobs.errors import JobExecutionError
 from app.modules.governance.domain.jobs.processor import enqueue_job
 
 logger = structlog.get_logger()
@@ -66,6 +67,10 @@ DUNNING_EMAIL_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     TypeError,
     ValueError,
 )
+
+
+class DunningRetryDeferredError(JobExecutionError):
+    """Raised when a dunning retry should be retried operationally."""
 
 
 class DunningService:
@@ -313,11 +318,9 @@ class DunningService:
                 subscription_id=str(subscription_id),
                 error=str(e),
             )
-            return await self.process_failed_payment(
-                subscription.id,
-                is_webhook=False,
-                commit=commit,
-            )
+            raise DunningRetryDeferredError(
+                f"Dunning retry deferred due to operational failure: {e}"
+            ) from e
 
     async def _handle_retry_success(
         self,

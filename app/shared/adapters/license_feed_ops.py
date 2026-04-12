@@ -4,6 +4,8 @@ from collections.abc import Callable, Iterable
 from datetime import datetime
 from typing import Any
 
+from app.shared.adapters.feed_utils import parse_required_timestamp
+
 
 def normalize_text(value: Any) -> str | None:
     if value is None:
@@ -39,6 +41,7 @@ def validate_manual_feed(
     feed: Any,
     *,
     is_number_fn: Callable[[Any], bool],
+    parse_timestamp_fn: Callable[[Any], datetime] = parse_required_timestamp,
 ) -> str | None:
     """
     Validate manual/csv license feed structure.
@@ -56,6 +59,10 @@ def validate_manual_feed(
         has_timestamp = entry.get("timestamp") or entry.get("date")
         if not has_timestamp:
             return f"License feed entry #{idx + 1} is missing timestamp/date."
+        try:
+            parse_timestamp_fn(has_timestamp)
+        except (TypeError, ValueError):
+            return f"License feed entry #{idx + 1} has invalid timestamp/date."
         amount = entry.get("cost_usd", entry.get("amount_usd"))
         if not is_number_fn(amount):
             return (
@@ -77,10 +84,20 @@ def iter_manual_cost_rows(
         return ()
 
     rows: list[dict[str, Any]] = []
-    for entry in feed:
-        timestamp = parse_timestamp_fn(entry.get("timestamp") or entry.get("date"))
+    for idx, entry in enumerate(feed, start=1):
+        try:
+            timestamp = parse_timestamp_fn(entry.get("timestamp") or entry.get("date"))
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"License feed entry #{idx} has invalid timestamp/date."
+            ) from exc
         if timestamp < start_date or timestamp > end_date:
             continue
+        amount = entry.get("cost_usd", entry.get("amount_usd"))
+        if not is_number_fn(amount):
+            raise ValueError(
+                f"License feed entry #{idx} must include numeric cost_usd or amount_usd."
+            )
         resource_id_raw = entry.get("resource_id") or entry.get("id")
         resource_id = (
             str(resource_id_raw).strip() if resource_id_raw not in (None, "") else None
@@ -104,7 +121,7 @@ def iter_manual_cost_rows(
                 "resource_id": resource_id,
                 "usage_amount": usage_amount,
                 "usage_unit": usage_unit,
-                "cost_usd": float(entry.get("cost_usd") or entry.get("amount_usd") or 0.0),
+                "cost_usd": float(amount or 0.0),
                 "amount_raw": entry.get("amount_raw"),
                 "currency": str(entry.get("currency") or "USD"),
                 "timestamp": timestamp,

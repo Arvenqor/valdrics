@@ -18,7 +18,7 @@ def _write(path: Path, content: str) -> None:
 def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
     _write(
         tmp_path / "README.md",
-        "Valdrics\nOptimize Cloud Value, Not Just Cost\nPython 3.12\n",
+        "Valdrics\nOptimize Cloud Value, Not Just Cost\nPython 3.12\nSupported Managed Platform\nArchived Future-Scale Reference\nLocal development only:\n",
     )
     _write(
         tmp_path / "docs/FULL_CODEBASE_AUDIT.md",
@@ -26,15 +26,15 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
     )
     _write(
         tmp_path / "docs/architecture/overview.md",
-        "boundary target\nHelm chart\nKoyeb-managed services\n",
+        "boundary target\nGoogle Cloud Run\nCloudflare Pages\nSupabase\nArtifact Registry\n",
     )
     _write(
         tmp_path / "docs/DEPLOYMENT.md",
-        "Current supported production deployment profile\nKoyeb managed services with immutable image promotion\nFuture Scale Profile\n.github/workflows/publish-release-images.yml\nverify_codebase_audit_report.py\nverify_dashboard_runtime_contract.py\nrender_managed_release_blocker_summary.py\ndigest-pinned `promotion_ref` values\nkoyeb-release.json\nkoyeb-dashboard-env.json\nmanaged-release-blockers.md\n",
+        "Current supported production deployment profile\nGoogle Cloud Run + Cloudflare Pages + Supabase\n.github/workflows/release-unified-platform.yml\n.github/workflows/publish-artifact-registry-images.yml\n.github/workflows/deploy-unified-platform.yml\nverify_codebase_audit_report.py\nverify_dashboard_runtime_contract.py\nrender_managed_release_blocker_summary.py\nArtifact Registry\nartifact-registry-release.json\ncloudflare-pages-env.json\nunified-platform-manifest.json\nmanaged-release-blockers.md\nCloudflare edge rate limiting\nGCP external HTTPS load balancer\nPUBLIC_API_RATE_LIMITING_BACKEND=cloudflare\nCloud Run custom audiences\n",
     )
     _write(
         tmp_path / "docs/CAPACITY_PLAN.md",
-        "current supported operating profile is Koyeb\nfuture scale path\nAWS RDS profile\nKoyeb-managed API, worker, and dashboard services\ndocs/architecture/tiering-2026.md\n",
+        "current supported operating profile is the unified platform\nfuture scale path\nGoogle Cloud Run\nCloud Tasks\nCloud Run Jobs\nCloudflare Pages\nSupabase\n",
     )
     _write(
         tmp_path / "docs/roadmap.md",
@@ -46,7 +46,7 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
     )
     _write(
         tmp_path / "docs/ROLLBACK_PLAN.md",
-        "ENABLE_SCHEDULER=false\nbackup/restore\nKoyeb Rollback\nimmutable release artifacts\n",
+        "backup/restore\nCloud Run Rollback\nArtifact Registry\nCloud Scheduler job\nCloud Run custom audiences\n",
     )
     _write(
         tmp_path / "docs/architecture/database_schema_overview.md",
@@ -54,23 +54,27 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
     )
     _write(
         tmp_path / "docs/architecture/failover.md",
-        "Cloudflare\nRDS\ndisaster-recovery-drill.yml\nregional-failover.yml\nscripts/run_regional_failover.py\nenable_multi_region_failover=true\nsecondary_db_endpoint\naws_role_to_assume\nGitHub OIDC\n/health\nsuccess=true\nregional_recovery_mode=automated_secondary_region_failover\n1200 seconds\nduration_seconds\nregional_recovery_mode=manual_restore_redeploy_reroute\nregional_recovery_rto_seconds=1200\nregional_recovery_rpo_contract=provider_backup_restore_external_to_repository\n",
+        "Cloudflare\nSupabase\nGoogle Cloud Run\nArtifact Registry\n/health\n/health/live\nregional_recovery_mode=manual_restore_redeploy_reroute\n",
     )
     _write(
         tmp_path / "docs/runbooks/disaster_recovery.md",
-        "Current supported production: Koyeb-managed API, worker, and dashboard services\nAWS RDS\ndisaster-recovery-drill.yml\nregional-failover.yml\nscripts/run_regional_failover.py\nenable_multi_region_failover=true\nsecondary_db_endpoint\naws_role_to_assume\nGitHub OIDC\n/health\nsuccess=true\nregional_recovery_mode=automated_secondary_region_failover\n1200 seconds\nduration_seconds\nregional_recovery_mode=manual_restore_redeploy_reroute\nregional_recovery_rto_seconds=1200\nregional_recovery_rpo_contract=provider_backup_restore_external_to_repository\n",
+        "Google Cloud Run\nCloud Run Jobs\nCloudflare Pages\nSupabase\nArtifact Registry\n.github/workflows/deploy-unified-platform.yml\n/health\n/health/live\nregional_recovery_mode=manual_restore_redeploy_reroute\n",
     )
     _write(
         tmp_path / "docs/runbooks/incident_response.md",
-        "Settings -> Notifications\nstrict SaaS mode\n",
+        "Settings -> Notifications\nstrict SaaS mode\nCloudflare edge rate limiting is healthy\nlocal drill or explicit break-glass shared-state cache backend\n",
+    )
+    _write(
+        tmp_path / "docs/runbooks/secret_rotation_emergency.md",
+        "ENFORCEMENT_APPROVAL_TOKEN_SECRET\nPAYSTACK_SECRET_KEY=sk_live_...\n`REDIS_URL` credentials only if an explicit local drill or break-glass shared-state backend is enabled\n",
     )
     _write(
         tmp_path / "docs/runbooks/production_env_checklist.md",
-        "Python 3.12.x\n.python-version\nAPI_URL=https://api.example.com\nFRONTEND_URL=https://app.example.com\nSUPABASE_ANON_KEY=...\nSENTRY_DSN=https://...\nOTEL_EXPORTER_OTLP_ENDPOINT=https://collector:4317\nENFORCEMENT_APPROVAL_TOKEN_SECRET=...\nENFORCEMENT_EXPORT_SIGNING_SECRET=...\nINTERNAL_METRICS_AUTH_TOKEN=<32+ char secret>\nEXPOSE_API_DOCUMENTATION_PUBLICLY=false\ngenerate_managed_runtime_env.py\ngenerate_managed_migration_env.py\ngenerate_managed_deployment_artifacts.py\nverify_codebase_audit_report.py\nverify_managed_deployment_bundle.py\nverify_dashboard_runtime_contract.py\nrender_managed_release_blocker_summary.py\npublish-release-images.yml\n--api-image-digest <sha256:...>\n--dashboard-image-digest <sha256:...>\nrun_public_frontend_quality_gate.py\ndeployment.report.json\nkoyeb-dashboard-env.json\nkoyeb-release.json\nmanaged-release-blockers.md\n--env-file .runtime/production.env\n--env-file .runtime/production.migrate.env\nset -a && source .runtime/production.migrate.env && uv run alembic upgrade head\n",
+        "Python 3.12.x\n.python-version\nAPI_URL=https://api.example.com\nFRONTEND_URL=https://app.example.com\nPUBLIC_API_RATE_LIMITING_BACKEND=cloudflare\nRATELIMIT_ENABLED=false\nCIRCUIT_BREAKER_DISTRIBUTED_STATE=false\nSUPABASE_ANON_KEY=...\nPLATFORM_RUNTIME_PROFILE=gcp\nOBSERVABILITY_BACKEND=gcp\nENFORCEMENT_APPROVAL_TOKEN_SECRET=...\nPAYSTACK_SECRET_KEY=sk_live_...\nINTERNAL_METRICS_AUTH_TOKEN=<32+ char secret>\nEXPOSE_API_DOCUMENTATION_PUBLICLY=false\nCLOUDFLARE_ZONE_ID\ngenerate_managed_runtime_env.py\ngenerate_managed_migration_env.py\ngenerate_managed_deployment_artifacts.py\nverify_codebase_audit_report.py\nverify_managed_deployment_bundle.py\nverify_dashboard_runtime_contract.py\nrender_managed_release_blocker_summary.py\nrelease-unified-platform.yml\npublish-artifact-registry-images.yml\ndeploy-unified-platform.yml\n--api-promotion-ref <repo@sha256:...>\nrun_public_frontend_quality_gate.py\ndeployment.report.json\ncloudflare-pages-env.json\nartifact-registry-release.json\nunified-platform-manifest.json\nmanaged-release-blockers.md\nCloud Run custom audiences\n--env-file .runtime/production.env\n--env-file .runtime/production.migrate.env\nreusable deploy workflow migration step succeeds from `.runtime/production.migrate.env`\n",
     )
     _write(
-        tmp_path / "docs/runbooks/koyeb_release_promotion.md",
-        "publish-release-images.yml\nghcr-release.env\npromotion_ref\nGHCR_NAMESPACE=valdrics\nverify_codebase_audit_report.py\nverify_dashboard_runtime_contract.py\nrender_managed_release_blocker_summary.py\nmanaged-release-blockers.md\n",
+        tmp_path / "docs/runbooks/unified_platform_release.md",
+        "Google Cloud Run\nCloud Tasks\nCloud Scheduler\nCloud Run Jobs\nArtifact Registry\nCloudflare Pages\nSupabase\nCloudflare Pages/DNS/WAF\nGCP runtime + API load balancer\nrelease-unified-platform.yml\npublish-artifact-registry-images.yml\ndeploy-unified-platform.yml\n",
     )
     _write(
         tmp_path / "docs/integrations/workflow_automation.md",
@@ -78,20 +82,29 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
     )
     _write(
         tmp_path / "docs/SOC2_CONTROLS.md",
-        "CODEOWNERS\n`app/shared/core/logging.py`\n`docs/FULL_CODEBASE_AUDIT.md`\n",
+        "CODEOWNERS\n`app/shared/core/logging.py`\n`docs/runbooks/disaster_recovery.md`\n`docs/ROLLBACK_PLAN.md`\n`docs/FULL_CODEBASE_AUDIT.md`\n",
     )
     _write(
         tmp_path / "docs/policies/data_retention.md",
-        "Audit logs | Automated retention purge\nAUDIT_LOG_RETENTION_DAYS\nresource_type=audit_logs_retention\n",
+        "Audit logs | Automated retention purge\nAUDIT_LOG_RETENTION_DAYS\nresource_type=audit_logs_retention\nSupabase-managed backups and point-in-time recovery\nProvider-managed retention outside repository automation\n",
     )
     _write(
         tmp_path / "docs/runbooks/enforcement_preprovision_integrations.md",
-        "failurePolicy: Fail\n`failurePolicy: Fail` requires API HA\nKeep webhook timeout low (`<= 2s`)\n",
+        "failurePolicy: Fail\n`failurePolicy: Fail` requires API HA\nArchived self-managed Helm reference\nKeep webhook timeout low (`<= 2s`)\n",
+    )
+    _write(
+        tmp_path / "docs/ops/benchmark_alignment_profiles_2026-02-27.md",
+        "Kubernetes AdmissionReview guidance profile\n"
+        "Archived self-managed Helm reference remains outside the supported deployment contract.\n"
+        "tests/unit/enforcement/enforcement_api_cases_part01.py\n"
+        "tests/unit/enforcement/enforcement_api_cases_part02.py\n"
+        "test_enforcement_endpoint_wrappers_cover_preflight_and_k8s_review_branches\n",
     )
     _write(
         tmp_path / "docs/runbooks/partition_maintenance.md",
-        "internal scheduler\nX-Internal-Job-Secret\nadvisory lock\n",
+        "Cloud Scheduler\nGoogle-signed identity\nadvisory lock\n",
     )
+
     errors = verify_contracts(root=tmp_path)
     assert errors == []
 
@@ -115,11 +128,12 @@ def test_verify_contracts_reports_missing_and_forbidden_phrases(tmp_path: Path) 
         ),
         DocumentationContract(
             path="docs/DEPLOYMENT.md",
-            required_phrases=("Supported production deployment profile", "verify_dashboard_runtime_contract.py"),
+            required_phrases=("Current supported production deployment profile",),
+            forbidden_phrases=("Helm/Terraform material for future scale research",),
         ),
         DocumentationContract(
             path="docs/CAPACITY_PLAN.md",
-            required_phrases=("AWS RDS profile",),
+            required_phrases=("Google Cloud Run",),
         ),
         DocumentationContract(
             path="docs/roadmap.md",
@@ -131,7 +145,7 @@ def test_verify_contracts_reports_missing_and_forbidden_phrases(tmp_path: Path) 
         ),
         DocumentationContract(
             path="docs/ROLLBACK_PLAN.md",
-            required_phrases=("ENABLE_SCHEDULER=false",),
+            required_phrases=("Cloud Scheduler job", "Cloud Run custom audiences"),
         ),
         DocumentationContract(
             path="docs/architecture/database_schema_overview.md",
@@ -140,10 +154,12 @@ def test_verify_contracts_reports_missing_and_forbidden_phrases(tmp_path: Path) 
         DocumentationContract(
             path="docs/architecture/failover.md",
             required_phrases=("Cloudflare",),
+            forbidden_phrases=("aws_role_to_assume",),
         ),
         DocumentationContract(
             path="docs/runbooks/disaster_recovery.md",
-            required_phrases=("AWS RDS",),
+            required_phrases=("Supabase",),
+            forbidden_phrases=("secondary_db_endpoint",),
         ),
         DocumentationContract(
             path="docs/runbooks/incident_response.md",
@@ -155,32 +171,15 @@ def test_verify_contracts_reports_missing_and_forbidden_phrases(tmp_path: Path) 
             required_phrases=(
                 "Python 3.12.x",
                 ".python-version",
-                "OTEL_EXPORTER_OTLP_ENDPOINT=https://",
-                "ENFORCEMENT_APPROVAL_TOKEN_SECRET=...",
-                "ENFORCEMENT_EXPORT_SIGNING_SECRET=...",
-                "generate_managed_migration_env.py",
-                "generate_managed_deployment_artifacts.py",
-                "verify_managed_deployment_bundle.py",
-                "verify_dashboard_runtime_contract.py",
-                "render_managed_release_blocker_summary.py",
-                "publish-release-images.yml",
-                "--api-image-digest <sha256:...>",
-                "--dashboard-image-digest <sha256:...>",
-                "run_public_frontend_quality_gate.py",
-                "managed-release-blockers.md",
+                "release-unified-platform.yml",
+                "publish-artifact-registry-images.yml",
+                "--api-promotion-ref <repo@sha256:...>",
+                "cloudflare-pages-env.json",
             ),
         ),
         DocumentationContract(
-            path="docs/runbooks/koyeb_release_promotion.md",
-            required_phrases=(
-                "publish-release-images.yml",
-                "ghcr-release.env",
-                "promotion_ref",
-                "GHCR_NAMESPACE=valdrics",
-                "verify_dashboard_runtime_contract.py",
-                "render_managed_release_blocker_summary.py",
-                "managed-release-blockers.md",
-            ),
+            path="docs/runbooks/unified_platform_release.md",
+            required_phrases=("release-unified-platform.yml",),
         ),
         DocumentationContract(
             path="docs/integrations/workflow_automation.md",
@@ -189,47 +188,38 @@ def test_verify_contracts_reports_missing_and_forbidden_phrases(tmp_path: Path) 
         DocumentationContract(
             path="docs/SOC2_CONTROLS.md",
             required_phrases=("CODEOWNERS",),
+            forbidden_phrases=("Infrastructure: Helm chart",),
         ),
         DocumentationContract(
             path="docs/policies/data_retention.md",
             required_phrases=("AUDIT_LOG_RETENTION_DAYS",),
+            forbidden_phrases=("AWS RDS backups (Terraform profile)",),
         ),
         DocumentationContract(
             path="docs/runbooks/enforcement_preprovision_integrations.md",
-            required_phrases=("failurePolicy: Fail",),
+            required_phrases=("Archived self-managed Helm reference",),
+            forbidden_phrases=("Helm deployment profile (recommended)",),
+        ),
+        DocumentationContract(
+            path="docs/ops/benchmark_alignment_profiles_2026-02-27.md",
+            required_phrases=("Kubernetes AdmissionReview guidance profile",),
+            forbidden_phrases=("tests/unit/ops/",),
         ),
         DocumentationContract(
             path="docs/runbooks/partition_maintenance.md",
-            required_phrases=("internal scheduler",),
-            forbidden_phrases=("pg_cron",),
+            required_phrases=("Cloud Scheduler",),
+            forbidden_phrases=("pg_cron", "X-Internal-Job-Secret"),
         ),
     ):
         _write(tmp_path / contract.path, "placeholder\n")
 
-    _write(
-        tmp_path / "README.md",
-        "11 zombie-detection plugins\n",
-    )
-
-    _write(
-        tmp_path / "docs/FULL_CODEBASE_AUDIT.md",
-        "5358 tests collected\n",
-    )
-
-    _write(
-        tmp_path / "docs/architecture/overview.md",
-        "Zero external dependencies\n",
-    )
+    _write(tmp_path / "README.md", "11 zombie-detection plugins\n")
+    _write(tmp_path / "docs/FULL_CODEBASE_AUDIT.md", "5358 tests collected\n")
+    _write(tmp_path / "docs/architecture/overview.md", "Zero external dependencies\n")
 
     errors = verify_contracts(root=tmp_path)
-    assert (
-        "README.md: missing required phrase 'Valdrics'"
-        in errors
-    )
-    assert (
-        "README.md: forbidden phrase present '11 zombie-detection plugins'"
-        in errors
-    )
+    assert "README.md: missing required phrase 'Valdrics'" in errors
+    assert "README.md: forbidden phrase present '11 zombie-detection plugins'" in errors
     assert (
         "docs/FULL_CODEBASE_AUDIT.md: missing required phrase 'time-bound snapshot'"
         in errors
@@ -244,6 +234,264 @@ def test_verify_contracts_reports_missing_and_forbidden_phrases(tmp_path: Path) 
     )
     assert (
         "docs/architecture/overview.md: forbidden phrase present 'Zero external dependencies'"
+        in errors
+    )
+
+
+def test_verify_contracts_rejects_local_redis_wording_in_managed_deployment_docs(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        documentation_runtime_contracts,
+        "DOCUMENTATION_CONTRACTS",
+        (
+            DocumentationContract(
+                path="docs/DEPLOYMENT.md",
+                required_phrases=("Current supported production deployment profile",),
+                forbidden_phrases=("Redis-backed local cache infrastructure",),
+            ),
+        ),
+    )
+    _write(
+        tmp_path / "docs/DEPLOYMENT.md",
+        "Current supported production deployment profile\n"
+        "Redis-backed local cache infrastructure\n",
+    )
+
+    errors = verify_contracts(root=tmp_path)
+    assert (
+        "docs/DEPLOYMENT.md: forbidden phrase present 'Redis-backed local cache infrastructure'"
+        in errors
+    )
+
+
+def test_verify_contracts_rejects_broad_cache_wording_in_incident_runbook(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        documentation_runtime_contracts,
+        "DOCUMENTATION_CONTRACTS",
+        (
+            DocumentationContract(
+                path="docs/runbooks/incident_response.md",
+                required_phrases=("strict SaaS mode",),
+                forbidden_phrases=(
+                    "optional cache backends are either healthy or falling back cleanly",
+                ),
+            ),
+        ),
+    )
+    _write(
+        tmp_path / "docs/runbooks/incident_response.md",
+        "strict SaaS mode\n"
+        "optional cache backends are either healthy or falling back cleanly\n",
+    )
+
+    errors = verify_contracts(root=tmp_path)
+    assert (
+        "docs/runbooks/incident_response.md: forbidden phrase present 'optional cache backends are either healthy or falling back cleanly'"
+        in errors
+    )
+
+
+def test_verify_contracts_rejects_otlp_observability_in_managed_production_docs(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        documentation_runtime_contracts,
+        "DOCUMENTATION_CONTRACTS",
+        (
+            DocumentationContract(
+                path="docs/runbooks/production_env_checklist.md",
+                required_phrases=("OBSERVABILITY_BACKEND=gcp",),
+                forbidden_phrases=("OBSERVABILITY_BACKEND=otlp",),
+            ),
+        ),
+    )
+    _write(
+        tmp_path / "docs/runbooks/production_env_checklist.md",
+        "OBSERVABILITY_BACKEND=gcp\nOBSERVABILITY_BACKEND=otlp\n",
+    )
+
+    errors = verify_contracts(root=tmp_path)
+    assert (
+        "docs/runbooks/production_env_checklist.md: forbidden phrase present 'OBSERVABILITY_BACKEND=otlp'"
+        in errors
+    )
+
+
+def test_verify_contracts_rejects_legacy_regional_failover_wording(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        documentation_runtime_contracts,
+        "DOCUMENTATION_CONTRACTS",
+        (
+            DocumentationContract(
+                path="docs/architecture/failover.md",
+                required_phrases=("regional_recovery_mode=manual_restore_redeploy_reroute",),
+                forbidden_phrases=(
+                    "regional-failover",
+                    "automated_secondary_region_failover",
+                ),
+            ),
+        ),
+    )
+    _write(
+        tmp_path / "docs/architecture/failover.md",
+        "regional_recovery_mode=manual_restore_redeploy_reroute\n"
+        "regional-failover\n"
+        "automated_secondary_region_failover\n",
+    )
+
+    errors = verify_contracts(root=tmp_path)
+    assert (
+        "docs/architecture/failover.md: forbidden phrase present 'regional-failover'"
+        in errors
+    )
+    assert (
+        "docs/architecture/failover.md: forbidden phrase present 'automated_secondary_region_failover'"
+        in errors
+    )
+
+
+def test_verify_contracts_rejects_helm_scope_in_soc2_controls(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        documentation_runtime_contracts,
+        "DOCUMENTATION_CONTRACTS",
+        (
+            DocumentationContract(
+                path="docs/SOC2_CONTROLS.md",
+                required_phrases=("CODEOWNERS",),
+                forbidden_phrases=("Infrastructure: Helm chart",),
+            ),
+        ),
+    )
+    _write(
+        tmp_path / "docs/SOC2_CONTROLS.md",
+        "CODEOWNERS\nInfrastructure: Helm chart\n",
+    )
+
+    errors = verify_contracts(root=tmp_path)
+    assert (
+        "docs/SOC2_CONTROLS.md: forbidden phrase present 'Infrastructure: Helm chart'"
+        in errors
+    )
+
+
+def test_verify_contracts_rejects_aws_rds_retention_wording_in_supported_policy(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        documentation_runtime_contracts,
+        "DOCUMENTATION_CONTRACTS",
+        (
+            DocumentationContract(
+                path="docs/policies/data_retention.md",
+                required_phrases=("AUDIT_LOG_RETENTION_DAYS",),
+                forbidden_phrases=("AWS RDS backups (Terraform profile)",),
+            ),
+        ),
+    )
+    _write(
+        tmp_path / "docs/policies/data_retention.md",
+        "AUDIT_LOG_RETENTION_DAYS\nAWS RDS backups (Terraform profile)\n",
+    )
+
+    errors = verify_contracts(root=tmp_path)
+    assert (
+        "docs/policies/data_retention.md: forbidden phrase present 'AWS RDS backups (Terraform profile)'"
+        in errors
+    )
+
+
+def test_verify_contracts_rejects_recommended_helm_wording_in_enforcement_runbook(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        documentation_runtime_contracts,
+        "DOCUMENTATION_CONTRACTS",
+        (
+            DocumentationContract(
+                path="docs/runbooks/enforcement_preprovision_integrations.md",
+                required_phrases=("Archived self-managed Helm reference",),
+                forbidden_phrases=("Helm deployment profile (recommended)",),
+            ),
+        ),
+    )
+    _write(
+        tmp_path / "docs/runbooks/enforcement_preprovision_integrations.md",
+        "Archived self-managed Helm reference\nHelm deployment profile (recommended)\n",
+    )
+
+    errors = verify_contracts(root=tmp_path)
+    assert (
+        "docs/runbooks/enforcement_preprovision_integrations.md: forbidden phrase present 'Helm deployment profile (recommended)'"
+        in errors
+    )
+
+
+def test_verify_contracts_rejects_stale_helm_test_reference_in_benchmark_profile(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        documentation_runtime_contracts,
+        "DOCUMENTATION_CONTRACTS",
+        (
+            DocumentationContract(
+                path="docs/ops/benchmark_alignment_profiles_2026-02-27.md",
+                required_phrases=("Kubernetes AdmissionReview guidance profile",),
+                forbidden_phrases=("tests/unit/ops/",),
+            ),
+        ),
+    )
+    _write(
+        tmp_path / "docs/ops/benchmark_alignment_profiles_2026-02-27.md",
+        "Kubernetes AdmissionReview guidance profile\n"
+        "tests/unit/ops/legacy_contract_test.py\n",
+    )
+
+    errors = verify_contracts(root=tmp_path)
+    assert (
+        "docs/ops/benchmark_alignment_profiles_2026-02-27.md: forbidden phrase present 'tests/unit/ops/'"
+        in errors
+    )
+
+
+def test_verify_contracts_rejects_live_deployment_doc_research_wording(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        documentation_runtime_contracts,
+        "DOCUMENTATION_CONTRACTS",
+        (
+            DocumentationContract(
+                path="docs/DEPLOYMENT.md",
+                required_phrases=("Current supported production deployment profile",),
+                forbidden_phrases=("Helm/Terraform material for future scale research",),
+            ),
+        ),
+    )
+    _write(
+        tmp_path / "docs/DEPLOYMENT.md",
+        "Current supported production deployment profile\n"
+        "Helm/Terraform material for future scale research\n",
+    )
+
+    errors = verify_contracts(root=tmp_path)
+    assert (
+        "docs/DEPLOYMENT.md: forbidden phrase present 'Helm/Terraform material for future scale research'"
         in errors
     )
 

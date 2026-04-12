@@ -7,7 +7,12 @@ from pydantic import SecretStr
 import structlog
 
 from app.shared.adapters.base import BaseAdapter
-from app.shared.adapters.feed_utils import as_float, is_number, parse_timestamp
+from app.shared.adapters.feed_utils import (
+    as_float,
+    is_number,
+    parse_required_timestamp,
+    parse_timestamp,
+)
 from app.shared.adapters.http_retry import execute_with_http_retry
 from app.shared.adapters.license_feed_ops import (
     coerce_bool as feed_coerce_bool,
@@ -205,7 +210,7 @@ class LicenseAdapter(BaseAdapter):
                 feed=feed,
                 start_date=start_date,
                 end_date=end_date,
-                parse_timestamp_fn=parse_timestamp,
+                parse_timestamp_fn=parse_required_timestamp,
                 as_float_fn=as_float,
                 is_number_fn=is_number,
             ):

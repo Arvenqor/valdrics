@@ -2,6 +2,8 @@
 Targeted tests for app/shared/core/notifications.py missing coverage
 """
 
+from datetime import datetime
+
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -28,7 +30,12 @@ class TestNotificationDispatcherCoverage:
                     "Test Alert", "Test message", "warning"
                 )
                 mock_logger.info.assert_called_once_with(
-                    "notification_dispatched", title="Test Alert", severity="warning"
+                    "notification_dispatched",
+                    title="Test Alert",
+                    severity="warning",
+                    tenant_id=None,
+                    channels=["slack"],
+                    attempted_channels=["slack"],
                 )
 
     @pytest.mark.asyncio
@@ -42,10 +49,39 @@ class TestNotificationDispatcherCoverage:
                     title="Test Alert", message="Test message", severity="error"
                 )
 
-                # Should not raise exception, just log
-                mock_logger.info.assert_called_once_with(
-                    "notification_dispatched", title="Test Alert", severity="error"
+                mock_logger.warning.assert_called_once_with(
+                    "notification_dispatch_skipped_no_channels",
+                    title="Test Alert",
+                    severity="error",
+                    tenant_id=None,
                 )
+
+    @pytest.mark.asyncio
+    async def test_send_alert_logs_failed_when_all_channels_report_failure(self):
+        """Provider-level false results should log delivery failure, not success."""
+        mock_slack = AsyncMock()
+        mock_slack.send_alert = AsyncMock(return_value=False)
+
+        with (
+            patch(
+                "app.shared.core.notifications.get_slack_service",
+                return_value=mock_slack,
+            ),
+            patch("app.shared.core.notifications.logger") as mock_logger,
+        ):
+            await NotificationDispatcher.send_alert(
+                title="Test Alert",
+                message="Test message",
+                severity="warning",
+            )
+
+        mock_logger.warning.assert_called_once_with(
+            "notification_dispatch_failed",
+            title="Test Alert",
+            severity="warning",
+            tenant_id=None,
+            channels=["slack"],
+        )
 
     @pytest.mark.asyncio
     async def test_send_alert_default_severity(self):
@@ -153,10 +189,11 @@ class TestNotificationDispatcherCoverage:
 
         mock_get_teams.assert_not_awaited()
         mock_teams.send_alert.assert_not_awaited()
-        mock_logger.info.assert_called_once_with(
-            "notification_dispatched",
+        mock_logger.warning.assert_called_once_with(
+            "notification_dispatch_skipped_no_channels",
             title="Tenant Alert",
             severity="warning",
+            tenant_id="tenant-102",
         )
 
     @pytest.mark.asyncio
@@ -168,11 +205,19 @@ class TestNotificationDispatcherCoverage:
         with patch(
             "app.shared.core.notifications.get_slack_service", return_value=mock_slack
         ):
-            await NotificationDispatcher.notify_zombies(
-                zombies_data, estimated_savings=150.0
-            )
+            with patch("app.shared.core.notifications.logger") as mock_logger:
+                await NotificationDispatcher.notify_zombies(
+                    zombies_data, estimated_savings=150.0
+                )
 
-            mock_slack.notify_zombies.assert_called_once_with(zombies_data, 150.0)
+                mock_slack.notify_zombies.assert_called_once_with(zombies_data, 150.0)
+                mock_logger.info.assert_called_once_with(
+                    "zombie_notification_dispatched",
+                    tenant_id=None,
+                    estimated_savings=150.0,
+                    channels=["slack"],
+                    attempted_channels=["slack"],
+                )
 
     @pytest.mark.asyncio
     async def test_notify_zombies_without_slack(self):
@@ -182,10 +227,16 @@ class TestNotificationDispatcherCoverage:
         with patch(
             "app.shared.core.notifications.get_slack_service", return_value=None
         ):
-            # Should not raise exception
-            await NotificationDispatcher.notify_zombies(
-                zombies_data, estimated_savings=75.0
-            )
+            with patch("app.shared.core.notifications.logger") as mock_logger:
+                await NotificationDispatcher.notify_zombies(
+                    zombies_data, estimated_savings=75.0
+                )
+
+                mock_logger.warning.assert_called_once_with(
+                    "zombie_notification_skipped_no_channels",
+                    tenant_id=None,
+                    estimated_savings=75.0,
+                )
 
     @pytest.mark.asyncio
     async def test_notify_zombies_tenant_prefers_tenant_settings(self):
@@ -221,11 +272,23 @@ class TestNotificationDispatcherCoverage:
         with patch(
             "app.shared.core.notifications.get_slack_service", return_value=mock_slack
         ):
-            await NotificationDispatcher.notify_budget_alert(
-                current_spend=850.0, budget_limit=1000.0, percent_used=85.0
-            )
+            with patch("app.shared.core.notifications.logger") as mock_logger:
+                await NotificationDispatcher.notify_budget_alert(
+                    current_spend=850.0, budget_limit=1000.0, percent_used=85.0
+                )
 
-            mock_slack.notify_budget_alert.assert_called_once_with(850.0, 1000.0, 85.0)
+                mock_slack.notify_budget_alert.assert_called_once_with(
+                    850.0, 1000.0, 85.0
+                )
+                mock_logger.info.assert_called_once_with(
+                    "budget_notification_dispatched",
+                    tenant_id=None,
+                    current_spend=850.0,
+                    budget_limit=1000.0,
+                    percent_used=85.0,
+                    channels=["slack"],
+                    attempted_channels=["slack"],
+                )
 
     @pytest.mark.asyncio
     async def test_notify_budget_alert_without_slack(self):
@@ -233,10 +296,18 @@ class TestNotificationDispatcherCoverage:
         with patch(
             "app.shared.core.notifications.get_slack_service", return_value=None
         ):
-            # Should not raise exception
-            await NotificationDispatcher.notify_budget_alert(
-                current_spend=1200.0, budget_limit=1000.0, percent_used=120.0
-            )
+            with patch("app.shared.core.notifications.logger") as mock_logger:
+                await NotificationDispatcher.notify_budget_alert(
+                    current_spend=1200.0, budget_limit=1000.0, percent_used=120.0
+                )
+
+                mock_logger.warning.assert_called_once_with(
+                    "budget_notification_skipped_no_channels",
+                    tenant_id=None,
+                    current_spend=1200.0,
+                    budget_limit=1000.0,
+                    percent_used=120.0,
+                )
 
     @pytest.mark.asyncio
     async def test_notify_budget_alert_tenant_prefers_tenant_settings(self):
@@ -443,7 +514,7 @@ class TestNotificationDispatcherCoverage:
         mock_get_tenant.assert_awaited_once_with(fake_db, "tenant-56")
         mock_get_env.assert_not_called()
         env_slack.send_alert.assert_not_awaited()
-        mock_logger.warning.assert_called_once()
+        assert mock_logger.warning.call_count == 2
 
     @pytest.mark.asyncio
     async def test_notify_policy_event_jira_no_fallback_when_tenant_context_present(
@@ -476,7 +547,7 @@ class TestNotificationDispatcherCoverage:
         mock_get_tenant.assert_awaited_once_with(fake_db, "tenant-57")
         mock_get_env.assert_not_called()
         env_jira.create_policy_issue.assert_not_awaited()
-        mock_logger.warning.assert_called_once()
+        assert mock_logger.warning.call_count == 2
 
     @pytest.mark.asyncio
     async def test_notify_policy_event_workflow_dispatches_with_evidence_links(self):
@@ -516,6 +587,51 @@ class TestNotificationDispatcherCoverage:
         assert payload["request_id"] == "req-1"
         assert "evidence_links" in payload
         assert "remediation_plan_api" in payload["evidence_links"]
+
+    @pytest.mark.asyncio
+    async def test_notify_policy_event_workflow_only_counts_as_dispatched(self):
+        """Workflow-only policy notifications should log success, not skipped."""
+        workflow = MagicMock()
+        workflow.provider = "github_actions"
+        workflow.dispatch = AsyncMock(return_value=True)
+        fake_db = MagicMock()
+        with (
+            patch.object(
+                NotificationDispatcher,
+                "_tenant_has_feature",
+                new=AsyncMock(return_value=True),
+            ),
+            patch(
+                "app.shared.core.notifications.get_tenant_workflow_dispatchers",
+                new=AsyncMock(return_value=[workflow]),
+            ),
+            patch("app.shared.core.notifications.logger") as mock_logger,
+        ):
+            await NotificationDispatcher.notify_policy_event(
+                tenant_id="tenant-workflow",
+                decision="block",
+                summary="workflow only",
+                resource_id="prod-db",
+                action="delete_rds_instance",
+                notify_slack=False,
+                notify_jira=False,
+                notify_teams=False,
+                notify_workflow=True,
+                request_id="req-workflow",
+                db=fake_db,
+            )
+
+        mock_logger.info.assert_any_call(
+            "policy_notification_dispatched",
+            tenant_id="tenant-workflow",
+            decision="block",
+            notify_slack=False,
+            notify_jira=False,
+            notify_teams=False,
+            notify_workflow=True,
+            channels=["workflow:github_actions"],
+            attempted_channels=["workflow:github_actions"],
+        )
 
     @pytest.mark.asyncio
     async def test_notify_remediation_completed_workflow_dispatches(self):
@@ -706,3 +822,80 @@ class TestNotificationDispatcherCoverage:
         tenant_dispatchers.assert_not_awaited()
         env_dispatchers.assert_not_called()
         workflow.dispatch.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_notify_license_reclamation_workflow_only_counts_as_dispatched(self):
+        """Workflow-only license reclamation should log delivery success."""
+        workflow = MagicMock()
+        workflow.provider = "gitlab_ci"
+        workflow.dispatch = AsyncMock(return_value=True)
+        fake_db = MagicMock()
+
+        with (
+            patch(
+                "app.shared.core.notifications.get_tenant_slack_service",
+                new=AsyncMock(return_value=None),
+            ),
+            patch.object(
+                NotificationDispatcher,
+                "_tenant_has_feature",
+                new=AsyncMock(return_value=True),
+            ),
+            patch(
+                "app.shared.core.notifications.get_tenant_workflow_dispatchers",
+                new=AsyncMock(return_value=[workflow]),
+            ),
+            patch("app.shared.core.notifications.logger") as mock_logger,
+        ):
+            await NotificationDispatcher.notify_license_reclamation(
+                tenant_id="tenant-license",
+                user_email="owner@example.com",
+                last_active_at=datetime(2026, 3, 1, 0, 0, 0),
+                savings=25.0,
+                grace_period_days=14,
+                request_id="req-license",
+                db=fake_db,
+            )
+
+        mock_logger.info.assert_any_call(
+            "license_reclamation_notification_dispatched",
+            tenant_id="tenant-license",
+            user_email="owner@example.com",
+            channels=["workflow:gitlab_ci"],
+            attempted_channels=["workflow:gitlab_ci"],
+        )
+
+    @pytest.mark.asyncio
+    async def test_notify_license_reclamation_never_active_uses_null_last_active(self):
+        workflow = MagicMock()
+        workflow.provider = "gitlab_ci"
+        workflow.dispatch = AsyncMock(return_value=True)
+        fake_db = MagicMock()
+
+        with (
+            patch(
+                "app.shared.core.notifications.get_tenant_slack_service",
+                new=AsyncMock(return_value=None),
+            ),
+            patch.object(
+                NotificationDispatcher,
+                "_tenant_has_feature",
+                new=AsyncMock(return_value=True),
+            ),
+            patch(
+                "app.shared.core.notifications.get_tenant_workflow_dispatchers",
+                new=AsyncMock(return_value=[workflow]),
+            ),
+        ):
+            await NotificationDispatcher.notify_license_reclamation(
+                tenant_id="tenant-license",
+                user_email="owner@example.com",
+                last_active_at=None,
+                savings=25.0,
+                grace_period_days=14,
+                request_id="req-license",
+                db=fake_db,
+            )
+
+        payload = workflow.dispatch.await_args.args[1]
+        assert payload["last_active_at"] is None

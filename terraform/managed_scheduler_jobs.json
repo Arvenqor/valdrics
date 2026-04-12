@@ -1,0 +1,92 @@
+{
+  "background_job_processor": {
+    "description": "Continuously drain durable background work.",
+    "payload": {},
+    "schedule": "* * * * *",
+    "time_zone": "Etc/UTC",
+    "work_item": "background_jobs.process"
+  },
+  "cohort_active_scan": {
+    "description": "Dispatch the active tenant cohort scan daily.",
+    "payload": {
+      "cohort": "active"
+    },
+    "schedule": "0 2 * * *",
+    "time_zone": "Etc/UTC",
+    "work_item": "scheduler.cohort_analysis"
+  },
+  "cohort_dormant_scan": {
+    "description": "Dispatch the dormant tenant cohort scan weekly.",
+    "payload": {
+      "cohort": "dormant"
+    },
+    "schedule": "0 3 * * 0",
+    "time_zone": "Etc/UTC",
+    "work_item": "scheduler.cohort_analysis"
+  },
+  "cohort_high_value_scan": {
+    "description": "Dispatch the high-value tenant cohort scan every 6 hours.",
+    "payload": {
+      "cohort": "high_value"
+    },
+    "schedule": "0 */6 * * *",
+    "time_zone": "Etc/UTC",
+    "work_item": "scheduler.cohort_analysis"
+  },
+  "daily_acceptance_sweep": {
+    "description": "Dispatch the daily acceptance evidence capture sweep.",
+    "payload": {},
+    "schedule": "0 5 * * *",
+    "time_zone": "Etc/UTC",
+    "work_item": "scheduler.acceptance_sweep"
+  },
+  "daily_billing_sweep": {
+    "description": "Dispatch the daily billing and ledger sweep.",
+    "payload": {},
+    "schedule": "0 4 * * *",
+    "time_zone": "Etc/UTC",
+    "work_item": "scheduler.billing_sweep"
+  },
+  "daily_license_governance_sweep": {
+    "description": "Dispatch the daily license governance sweep.",
+    "payload": {},
+    "schedule": "0 6 * * *",
+    "time_zone": "Etc/UTC",
+    "work_item": "license.governance_sweep"
+  },
+  "daily_maintenance_sweep": {
+    "description": "Dispatch the nightly maintenance sweep.",
+    "payload": {},
+    "schedule": "0 3 * * *",
+    "time_zone": "Etc/UTC",
+    "work_item": "scheduler.maintenance_sweep"
+  },
+  "hourly_enforcement_reconciliation_sweep": {
+    "description": "Dispatch the hourly enforcement reconciliation sweep.",
+    "payload": {},
+    "schedule": "20 * * * *",
+    "time_zone": "Etc/UTC",
+    "work_item": "scheduler.enforcement_reconciliation_sweep"
+  },
+  "hourly_landing_funnel_health_refresh": {
+    "description": "Refresh landing funnel health telemetry.",
+    "payload": {},
+    "schedule": "10 * * * *",
+    "time_zone": "Etc/UTC",
+    "work_item": "scheduler.refresh_landing_funnel_health"
+  },
+  "stuck_job_detector": {
+    "description": "Detect overdue pending jobs and update stuck-job metrics.",
+    "payload": {},
+    "schedule": "0 * * * *",
+    "time_zone": "Etc/UTC",
+    "work_item": "background_jobs.detect_stuck"
+  },
+  "weekly_remediation_sweep": {
+    "description": "Dispatch the weekly remediation lifecycle sweep.",
+    "payload": {},
+    "schedule": "0 20 * * 5",
+    "time_zone": "Etc/UTC",
+    "work_item": "scheduler.remediation_sweep"
+  }
+}

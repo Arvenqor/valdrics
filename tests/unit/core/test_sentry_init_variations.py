@@ -23,6 +23,7 @@ def test_init_sentry_production_sampling_and_release():
         patch(
             "app.shared.core.sentry.get_settings",
             return_value=SimpleNamespace(
+                OBSERVABILITY_BACKEND="otlp",
                 SENTRY_DSN="https://test@sentry.io/1",
                 ENVIRONMENT="production",
                 APP_VERSION="2.3.4",
@@ -46,6 +47,7 @@ def test_init_sentry_default_env_and_sampling():
         patch(
             "app.shared.core.sentry.get_settings",
             return_value=SimpleNamespace(
+                OBSERVABILITY_BACKEND="otlp",
                 SENTRY_DSN="https://test@sentry.io/1",
                 ENVIRONMENT=None,
                 APP_VERSION=None,
@@ -71,6 +73,7 @@ def test_init_sentry_integrations_wired():
         patch(
             "app.shared.core.sentry.get_settings",
             return_value=SimpleNamespace(
+                OBSERVABILITY_BACKEND="otlp",
                 SENTRY_DSN="https://test@sentry.io/1",
                 ENVIRONMENT="development",
                 APP_VERSION=None,

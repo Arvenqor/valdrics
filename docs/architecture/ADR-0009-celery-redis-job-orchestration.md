@@ -1,13 +1,14 @@
 # ADR-0009: Celery + Redis over FastAPI BackgroundTasks for Core Orchestration
 
 - Date: 2026-03-06
-- Status: Accepted
+- Status: Superseded by the unified managed GCP orchestration stack on 2026-04-11
 - Owners: Platform, Reliability, Data Engineering
 
 ## Context
 
-Core workflows require scheduled and asynchronous execution with retry controls,
-state tracking, and separation from request lifecycles.
+At the time of this decision, core workflows required scheduled and
+asynchronous execution with retry controls, state tracking, and separation from
+request lifecycles.
 
 FastAPI `BackgroundTasks` is suitable for lightweight request-adjacent work but
 does not provide the same distributed queue semantics, durable retries, and
@@ -15,31 +16,28 @@ operational tooling expected for long-running orchestration.
 
 ## Decision
 
-Use Celery with Redis-backed brokering/result coordination for core scheduled and
-asynchronous orchestration paths.
+The interim decision was to use Celery with Redis-backed brokering/result
+coordination for core scheduled and asynchronous orchestration paths.
 
 Rationale:
 
-- Reliability and control:
-  - Supports bounded retries, delayed execution, and worker isolation.
-- Operational visibility:
-  - Better observability and queue-level control for production incidents.
-- Separation of concerns:
-  - Keeps heavy/background execution independent from request thread lifecycles.
+- At the time, Celery provided bounded retries, delayed execution, and worker isolation.
+- At the time, Celery provided queue-level operational visibility that FastAPI `BackgroundTasks` could not.
+- The supported replacement is now:
+  - Cloud Tasks for request-adjacent async work
+  - Cloud Scheduler for scheduled dispatch
+  - Cloud Run Jobs for long-running batch work
 
 ## Consequences
 
-- Positive:
+- Historical benefits:
   - More robust scheduler and job execution model for enterprise operations.
   - Reduced risk of request-path starvation from heavy background work.
-- Tradeoffs:
-  - Additional distributed runtime components to operate (workers + Redis).
-  - Requires stricter configuration management and health monitoring.
+- Current managed-platform consequence:
+  - Celery and Redis are no longer part of the supported production runtime.
+  - Managed orchestration now relies on Cloud Tasks, Cloud Scheduler, and Cloud Run Jobs.
 
 ## Review Trigger
 
-Re-open this decision when either condition occurs:
-
-1. Workload shape becomes simple enough that distributed queueing is unnecessary.
-2. A managed orchestration platform supersedes current Celery/Redis operations.
-
+This review trigger has been reached and closed: the managed orchestration
+platform now supersedes Celery/Redis operations in the supported runtime.

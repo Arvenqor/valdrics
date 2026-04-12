@@ -32,10 +32,17 @@ def test_env_example_contains_required_runtime_contract_keys() -> None:
         "ADMIN_API_KEY",
         "LLM_PROVIDER",
         "REDIS_URL",
-        "SENTRY_DSN",
         "APP_RUNTIME_DATA_DIR",
         "CIRCUIT_BREAKER_DISTRIBUTED_STATE",
     }
 
     missing = required - keys
     assert not missing, f".env.example missing keys: {sorted(missing)}"
+
+
+def test_env_example_does_not_publish_local_compose_redis_url_as_shared_default() -> (
+    None
+):
+    text = (REPO_ROOT / ".env.example").read_text(encoding="utf-8")
+    assert "REDIS_URL=redis://redis:6379" not in text
+    assert "Local compose default: redis://redis:6379" not in text

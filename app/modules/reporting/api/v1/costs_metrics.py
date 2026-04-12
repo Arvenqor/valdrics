@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 from datetime import date, datetime, time, timedelta, timezone
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any, Optional
 from uuid import UUID, uuid4
 
@@ -30,15 +30,34 @@ from .costs_models import (
 )
 
 
+def _coerce_finite_float(value: Any, *, field_name: str) -> float:
+    try:
+        amount = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError) as exc:
+        raise ValueError(f"{field_name} must be numeric") from exc
+    if not amount.is_finite():
+        raise ValueError(f"{field_name} must be finite")
+    return float(amount)
+
+
 def settings_to_response(
     settings: UnitEconomicsSettings,
 ) -> UnitEconomicsSettingsResponse:
     return UnitEconomicsSettingsResponse(
         id=settings.id,
-        default_request_volume=float(settings.default_request_volume),
-        default_workload_volume=float(settings.default_workload_volume),
-        default_customer_volume=float(settings.default_customer_volume),
-        anomaly_threshold_percent=float(settings.anomaly_threshold_percent),
+        default_request_volume=_coerce_finite_float(
+            settings.default_request_volume, field_name="default_request_volume"
+        ),
+        default_workload_volume=_coerce_finite_float(
+            settings.default_workload_volume, field_name="default_workload_volume"
+        ),
+        default_customer_volume=_coerce_finite_float(
+            settings.default_customer_volume, field_name="default_customer_volume"
+        ),
+        anomaly_threshold_percent=_coerce_finite_float(
+            settings.anomaly_threshold_percent,
+            field_name="anomaly_threshold_percent",
+        ),
     )
 
 

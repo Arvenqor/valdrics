@@ -135,6 +135,34 @@ async def test_unit_economics_settings_lifecycle(async_client, app, db, admin_us
 
 
 @pytest.mark.asyncio
+async def test_unit_economics_settings_rejects_non_finite_persisted_values(
+    async_client, app, db, admin_user
+):
+    app.dependency_overrides[get_current_user] = lambda: admin_user
+    try:
+        db.add(
+            UnitEconomicsSettings(
+                tenant_id=admin_user.tenant_id,
+                default_request_volume=Decimal("NaN"),
+                default_workload_volume=Decimal("80.0"),
+                default_customer_volume=Decimal("25.0"),
+                anomaly_threshold_percent=Decimal("30.0"),
+            )
+        )
+        await db.commit()
+
+        response = await async_client.get("/api/v1/costs/unit-economics/settings")
+
+        assert response.status_code == 400
+        assert response.json()["error"]["message"] == (
+            "default_request_volume must be finite"
+        )
+        assert response.json()["error"]["code"] == "value_error"
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+
+
+@pytest.mark.asyncio
 async def test_unit_economics_reports_anomalies_and_dispatches_alert(
     async_client, app, db, admin_user
 ):

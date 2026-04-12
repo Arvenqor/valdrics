@@ -130,7 +130,7 @@ async def export_compliance_pack(
     ),
 ) -> Any:
     if user.tenant_id is None:
-        raise HTTPException(status_code=400, detail="Authenticated user must have a tenant")
+        raise HTTPException(status_code=403, detail="Tenant context required.")
     actor = CompliancePackActor(
         id=user.id,
         email=user.email,

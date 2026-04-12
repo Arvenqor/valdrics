@@ -8,7 +8,6 @@ import base64
 import ipaddress
 import json
 from pathlib import Path
-import re
 import secrets
 import sys
 from typing import Any
@@ -111,23 +110,38 @@ def _default_supabase_jwt_secret() -> str:
     return "REPLACE_WITH_SUPABASE_JWT_SECRET_MINIMUM_32_CHARS_VALUE"
 
 
-def _default_aws_assume_role_trust_principal_arn() -> str:
-    return "arn:aws:iam::123456789012:role/REPLACE_WITH_VALDRICS_CONTROL_PLANE_ROLE"
+def _default_gcp_project_id() -> str:
+    return "REPLACE_WITH_GCP_PROJECT_ID"
 
 
-def _default_redis_url() -> str:
-    return "redis://REPLACE_WITH_REDIS_HOST:6379/0"
+def _default_gcp_region() -> str:
+    return "REPLACE_WITH_GCP_REGION"
 
 
-def _default_sentry_dsn() -> str:
-    return (
-        "https://REPLACE_WITH_SENTRY_KEY@REPLACE_WITH_SENTRY_HOST/"
-        "REPLACE_WITH_SENTRY_PROJECT"
+def _default_gcp_cloud_tasks_queue() -> str:
+    return "valdrics-managed-work"
+
+
+def _default_gcp_cloud_tasks_invoker_service_account_email() -> str:
+    return "REPLACE_WITH_GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL"
+
+
+def _default_gcp_cloud_run_service_name() -> str:
+    return "valdrics-api"
+
+
+def _default_gcp_cloud_run_batch_job_name() -> str:
+    return "valdrics-batch"
+
+
+def _default_gcp_internal_allowed_service_accounts() -> str:
+    return json.dumps(
+        [
+            "REPLACE_WITH_GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL",
+            "REPLACE_WITH_GCP_CLOUD_SCHEDULER_INVOKER_SERVICE_ACCOUNT_EMAIL",
+        ],
+        separators=(",", ":"),
     )
-
-
-def _default_otel_endpoint() -> str:
-    return "https://REPLACE_WITH_OTEL_COLLECTOR:4317"
 
 
 def _default_paystack_secret_key() -> str:
@@ -159,7 +173,9 @@ def _normalize_trusted_proxy_cidrs(cidrs: list[str] | None) -> list[str] | None:
         try:
             ipaddress.ip_network(cidr, strict=False)
         except ValueError as exc:
-            raise ValueError(f"trusted_proxy_cidrs contains invalid CIDR: {cidr}") from exc
+            raise ValueError(
+                f"trusted_proxy_cidrs contains invalid CIDR: {cidr}"
+            ) from exc
         normalized.append(cidr)
     return normalized
 
@@ -173,7 +189,9 @@ def _normalize_strict_public_url(value: str | None, *, field_name: str) -> str |
 
     parsed = urlparse(normalized)
     if parsed.scheme != "https" or not parsed.netloc:
-        raise ValueError(f"{field_name} must use an explicit https:// URL in staging/production.")
+        raise ValueError(
+            f"{field_name} must use an explicit https:// URL in staging/production."
+        )
     if parsed.username or parsed.password:
         raise ValueError(f"{field_name} must not include embedded credentials.")
     if parsed.query or parsed.fragment:
@@ -181,7 +199,9 @@ def _normalize_strict_public_url(value: str | None, *, field_name: str) -> str |
 
     hostname = str(parsed.hostname or "").strip().lower()
     if not hostname or hostname == "localhost":
-        raise ValueError(f"{field_name} must not point at localhost in staging/production.")
+        raise ValueError(
+            f"{field_name} must not point at localhost in staging/production."
+        )
 
     try:
         host_ip = ipaddress.ip_address(hostname)
@@ -228,23 +248,6 @@ def _normalize_paystack_key(
     if environment == "production" and not normalized.startswith(required_prefix):
         raise ValueError(
             f"{field_name} must be a live key ({required_prefix}...) in production."
-        )
-    return normalized
-
-
-def _normalize_aws_principal_arn(value: str | None) -> str | None:
-    if value is None:
-        return None
-    normalized = str(value).strip()
-    if not normalized:
-        raise ValueError("AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN must be a non-empty string")
-    arn_pattern = re.compile(
-        r"^arn:(aws|aws-us-gov|aws-cn):iam::\d{12}:(root|role\/[\w+=,.@\-_/]+|user\/[\w+=,.@\-_/]+)$"
-    )
-    if not arn_pattern.fullmatch(normalized):
-        raise ValueError(
-            "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN must be an IAM principal ARN "
-            "(role, user, or account root)."
         )
     return normalized
 
@@ -311,17 +314,20 @@ def _build_overrides(
     api_url: str | None,
     frontend_url: str | None,
     database_url: str | None,
-    redis_url: str | None,
     supabase_url: str | None,
     supabase_anon_key: str | None,
     supabase_jwt_secret: str | None,
-    aws_assume_role_trust_principal_arn: str | None,
+    gcp_project_id: str | None,
+    gcp_region: str | None,
+    gcp_cloud_tasks_queue: str | None,
+    gcp_cloud_tasks_invoker_service_account_email: str | None,
+    gcp_cloud_run_service_name: str | None,
+    gcp_cloud_run_batch_job_name: str | None,
+    gcp_internal_allowed_service_accounts: list[str] | None,
     llm_provider: str | None,
     llm_api_key: str | None,
     paystack_secret_key: str | None,
     paystack_public_key: str | None,
-    sentry_dsn: str | None,
-    otel_endpoint: str | None,
     trusted_proxy_cidrs: list[str] | None,
 ) -> dict[str, str]:
     normalized_trusted_proxy_cidrs = _normalize_trusted_proxy_cidrs(
@@ -329,24 +335,19 @@ def _build_overrides(
         if trusted_proxy_cidrs is not None
         else _existing_trusted_proxy_cidrs(existing_values)
     )
-    resolved_api_url = _normalize_strict_public_url(
-        api_url or _existing_value(existing_values, "API_URL"),
-        field_name="API_URL",
-    ) or _default_api_url()
+    resolved_api_url = (
+        _normalize_strict_public_url(
+            api_url or _existing_value(existing_values, "API_URL"),
+            field_name="API_URL",
+        )
+        or _default_api_url()
+    )
     resolved_frontend_url = (
         _normalize_strict_public_url(
             frontend_url or _existing_value(existing_values, "FRONTEND_URL"),
             field_name="FRONTEND_URL",
         )
         or _default_frontend_url()
-    )
-    normalized_sentry_dsn = _normalize_optional_http_url(
-        sentry_dsn or _existing_value(existing_values, "SENTRY_DSN"),
-        field_name="SENTRY_DSN",
-    )
-    normalized_otel_endpoint = _normalize_optional_http_url(
-        otel_endpoint or _existing_value(existing_values, "OTEL_EXPORTER_OTLP_ENDPOINT"),
-        field_name="OTEL_EXPORTER_OTLP_ENDPOINT",
     )
     normalized_paystack_secret_key = _normalize_paystack_key(
         paystack_secret_key or _existing_value(existing_values, "PAYSTACK_SECRET_KEY"),
@@ -360,15 +361,15 @@ def _build_overrides(
         environment=environment,
         required_prefix="pk_live_",
     )
-    normalized_aws_assume_role_trust_principal_arn = _normalize_aws_principal_arn(
-        aws_assume_role_trust_principal_arn
-        or _existing_value(existing_values, "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN")
+    normalized_llm_provider = (
+        str(
+            llm_provider
+            or _existing_value(existing_values, "LLM_PROVIDER")
+            or DEFAULT_LLM_PROVIDER
+        )
+        .strip()
+        .lower()
     )
-    normalized_llm_provider = str(
-        llm_provider
-        or _existing_value(existing_values, "LLM_PROVIDER")
-        or DEFAULT_LLM_PROVIDER
-    ).strip().lower()
     llm_provider_key_name = {
         "groq": "GROQ_API_KEY",
         "openai": "OPENAI_API_KEY",
@@ -384,21 +385,66 @@ def _build_overrides(
         "DEBUG": "false",
         "TESTING": "false",
         "ENVIRONMENT": environment,
-        "ENABLE_SCHEDULER": "true",
-        "WEB_CONCURRENCY": "2",
         "APP_RUNTIME_DATA_DIR": "/tmp/valdrics",
         "API_URL": resolved_api_url,
+        "PLATFORM_RUNTIME_PROFILE": "gcp",
+        "OBSERVABILITY_BACKEND": "gcp",
+        "PUBLIC_API_RATE_LIMITING_BACKEND": "cloudflare",
+        "RATELIMIT_ENABLED": "false",
         "FRONTEND_URL": resolved_frontend_url,
+        "GCP_PROJECT_ID": gcp_project_id
+        or _existing_or_default(
+            existing_values, "GCP_PROJECT_ID", _default_gcp_project_id()
+        ),
+        "GCP_REGION": gcp_region
+        or _existing_or_default(existing_values, "GCP_REGION", _default_gcp_region()),
+        "GCP_CLOUD_TASKS_QUEUE": gcp_cloud_tasks_queue
+        or _existing_or_default(
+            existing_values,
+            "GCP_CLOUD_TASKS_QUEUE",
+            _default_gcp_cloud_tasks_queue(),
+        ),
+        "GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL": (
+            gcp_cloud_tasks_invoker_service_account_email
+            or _existing_or_default(
+                existing_values,
+                "GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL",
+                _default_gcp_cloud_tasks_invoker_service_account_email(),
+            )
+        ),
+        "GCP_CLOUD_RUN_SERVICE_NAME": gcp_cloud_run_service_name
+        or _existing_or_default(
+            existing_values,
+            "GCP_CLOUD_RUN_SERVICE_NAME",
+            _default_gcp_cloud_run_service_name(),
+        ),
+        "GCP_CLOUD_RUN_BATCH_JOB_NAME": gcp_cloud_run_batch_job_name
+        or _existing_or_default(
+            existing_values,
+            "GCP_CLOUD_RUN_BATCH_JOB_NAME",
+            _default_gcp_cloud_run_batch_job_name(),
+        ),
+        "GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS": (
+            json.dumps(gcp_internal_allowed_service_accounts, separators=(",", ":"))
+            if gcp_internal_allowed_service_accounts
+            else _existing_or_default(
+                existing_values,
+                "GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS",
+                _default_gcp_internal_allowed_service_accounts(),
+            )
+        ),
         "CORS_ORIGINS": _render_cors_origins(resolved_frontend_url),
         "DATABASE_URL": database_url
-        or _existing_or_default(existing_values, "DATABASE_URL", _default_database_url()),
+        or _existing_or_default(
+            existing_values, "DATABASE_URL", _default_database_url()
+        ),
         "DB_SSL_MODE": "require",
         "DB_USE_NULL_POOL": "false",
         "DB_EXTERNAL_POOLER": "false",
-        "REDIS_URL": redis_url
-        or _existing_or_default(existing_values, "REDIS_URL", _default_redis_url()),
         "SUPABASE_URL": supabase_url
-        or _existing_or_default(existing_values, "SUPABASE_URL", _default_supabase_url()),
+        or _existing_or_default(
+            existing_values, "SUPABASE_URL", _default_supabase_url()
+        ),
         "SUPABASE_ANON_KEY": supabase_anon_key
         or _existing_or_default(
             existing_values, "SUPABASE_ANON_KEY", _default_supabase_anon_key()
@@ -407,22 +453,17 @@ def _build_overrides(
         or _existing_or_default(
             existing_values, "SUPABASE_JWT_SECRET", _default_supabase_jwt_secret()
         ),
-        "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN": (
-            normalized_aws_assume_role_trust_principal_arn
-            or _default_aws_assume_role_trust_principal_arn()
-        ),
         "CSRF_SECRET_KEY": _existing_or_default(
             existing_values, "CSRF_SECRET_KEY", _generate_hex(64)
         ),
         "ENCRYPTION_KEY": _existing_or_default(
             existing_values, "ENCRYPTION_KEY", _generate_urlsafe_b64(32)
         ),
-        "KDF_SALT": _existing_or_default(existing_values, "KDF_SALT", _generate_b64(32)),
+        "KDF_SALT": _existing_or_default(
+            existing_values, "KDF_SALT", _generate_b64(32)
+        ),
         "ADMIN_API_KEY": _existing_or_default(
             existing_values, "ADMIN_API_KEY", _generate_hex(64)
-        ),
-        "INTERNAL_JOB_SECRET": _existing_or_default(
-            existing_values, "INTERNAL_JOB_SECRET", _generate_hex(64)
         ),
         "INTERNAL_METRICS_AUTH_TOKEN": _existing_or_default(
             existing_values, "INTERNAL_METRICS_AUTH_TOKEN", _generate_hex(64)
@@ -433,20 +474,22 @@ def _build_overrides(
         "ENFORCEMENT_EXPORT_SIGNING_SECRET": _existing_or_default(
             existing_values, "ENFORCEMENT_EXPORT_SIGNING_SECRET", _generate_hex(64)
         ),
-        "PAYSTACK_SECRET_KEY": normalized_paystack_secret_key or _default_paystack_secret_key(),
-        "PAYSTACK_PUBLIC_KEY": normalized_paystack_public_key or _default_paystack_public_key(),
+        "PAYSTACK_SECRET_KEY": normalized_paystack_secret_key
+        or _default_paystack_secret_key(),
+        "PAYSTACK_PUBLIC_KEY": normalized_paystack_public_key
+        or _default_paystack_public_key(),
         "PAYSTACK_DEFAULT_CHECKOUT_CURRENCY": "NGN",
         "PAYSTACK_ENABLE_USD_CHECKOUT": "false",
         "ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION": "false",
         "SAAS_STRICT_INTEGRATIONS": "true",
         "EXPOSE_API_DOCUMENTATION_PUBLICLY": "false",
         "OTEL_LOGS_EXPORT_ENABLED": "true",
-        "OTEL_EXPORTER_OTLP_ENDPOINT": normalized_otel_endpoint or _default_otel_endpoint(),
-        "SENTRY_DSN": normalized_sentry_dsn or _default_sentry_dsn(),
         "TRUST_PROXY_HEADERS": "true",
         "TRUSTED_PROXY_HOPS": "1",
-        "TRUSTED_PROXY_CIDRS": _render_trusted_proxy_cidrs(normalized_trusted_proxy_cidrs),
-        "CIRCUIT_BREAKER_DISTRIBUTED_STATE": "true",
+        "TRUSTED_PROXY_CIDRS": _render_trusted_proxy_cidrs(
+            normalized_trusted_proxy_cidrs
+        ),
+        "CIRCUIT_BREAKER_DISTRIBUTED_STATE": "false",
         "FORECASTER_ALLOW_HOLT_WINTERS_FALLBACK": "false",
         "FORECASTER_BREAK_GLASS_REASON": "",
         "FORECASTER_BREAK_GLASS_EXPIRES_AT": "",
@@ -470,7 +513,9 @@ def _build_overrides(
         "GENERIC_CI_WEBHOOK_BEARER_TOKEN": "",
         "GENERIC_CI_WEBHOOK_ENABLED": "",
     }
-    overrides.update(_build_llm_overrides(normalized_llm_provider, resolved_llm_api_key))
+    overrides.update(
+        _build_llm_overrides(normalized_llm_provider, resolved_llm_api_key)
+    )
     return overrides
 
 
@@ -495,17 +540,20 @@ def generate_managed_runtime_env(
     api_url: str | None = None,
     frontend_url: str | None = None,
     database_url: str | None = None,
-    redis_url: str | None = None,
     supabase_url: str | None = None,
     supabase_anon_key: str | None = None,
     supabase_jwt_secret: str | None = None,
-    aws_assume_role_trust_principal_arn: str | None = None,
+    gcp_project_id: str | None = None,
+    gcp_region: str | None = None,
+    gcp_cloud_tasks_queue: str | None = None,
+    gcp_cloud_tasks_invoker_service_account_email: str | None = None,
+    gcp_cloud_run_service_name: str | None = None,
+    gcp_cloud_run_batch_job_name: str | None = None,
+    gcp_internal_allowed_service_accounts: list[str] | None = None,
     llm_provider: str | None = None,
     llm_api_key: str | None = None,
     paystack_secret_key: str | None = None,
     paystack_public_key: str | None = None,
-    sentry_dsn: str | None = None,
-    otel_endpoint: str | None = None,
     trusted_proxy_cidrs: list[str] | None = None,
 ) -> dict[str, Any]:
     normalized_environment = str(environment or "").strip().lower()
@@ -521,13 +569,18 @@ def generate_managed_runtime_env(
             "template_path, output_path, and report_path must be different files"
         )
     protected_paths = _protected_output_paths()
-    for field_name, resolved in (("output_path", output_resolved), ("report_path", report_resolved)):
+    for field_name, resolved in (
+        ("output_path", output_resolved),
+        ("report_path", report_resolved),
+    ):
         if resolved in protected_paths:
             raise ValueError(
                 f"{field_name} must not overwrite runtime source, template, or validator files"
             )
     if not template_path.exists():
-        raise FileNotFoundError(f"Template file does not exist: {template_path.as_posix()}")
+        raise FileNotFoundError(
+            f"Template file does not exist: {template_path.as_posix()}"
+        )
     if not template_path.is_file():
         raise ValueError(f"template_path must be a file: {template_path.as_posix()}")
     if output_path.exists() and not output_path.is_file():
@@ -545,17 +598,22 @@ def generate_managed_runtime_env(
         api_url=api_url,
         frontend_url=frontend_url,
         database_url=database_url,
-        redis_url=redis_url,
         supabase_url=supabase_url,
         supabase_anon_key=supabase_anon_key,
         supabase_jwt_secret=supabase_jwt_secret,
-        aws_assume_role_trust_principal_arn=aws_assume_role_trust_principal_arn,
+        gcp_project_id=gcp_project_id,
+        gcp_region=gcp_region,
+        gcp_cloud_tasks_queue=gcp_cloud_tasks_queue,
+        gcp_cloud_tasks_invoker_service_account_email=(
+            gcp_cloud_tasks_invoker_service_account_email
+        ),
+        gcp_cloud_run_service_name=gcp_cloud_run_service_name,
+        gcp_cloud_run_batch_job_name=gcp_cloud_run_batch_job_name,
+        gcp_internal_allowed_service_accounts=gcp_internal_allowed_service_accounts,
         llm_provider=llm_provider,
         llm_api_key=llm_api_key,
         paystack_secret_key=paystack_secret_key,
         paystack_public_key=paystack_public_key,
-        sentry_dsn=sentry_dsn,
-        otel_endpoint=otel_endpoint,
         trusted_proxy_cidrs=trusted_proxy_cidrs,
     )
     rendered = _render_output(
@@ -647,11 +705,25 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--api-url", default=None)
     parser.add_argument("--frontend-url", default=None)
     parser.add_argument("--database-url", default=None)
-    parser.add_argument("--redis-url", default=None)
     parser.add_argument("--supabase-url", default=None)
     parser.add_argument("--supabase-anon-key", default=None)
     parser.add_argument("--supabase-jwt-secret", default=None)
-    parser.add_argument("--aws-assume-role-trust-principal-arn", default=None)
+    parser.add_argument("--gcp-project-id", default=None)
+    parser.add_argument("--gcp-region", default=None)
+    parser.add_argument("--gcp-cloud-tasks-queue", default=None)
+    parser.add_argument("--gcp-cloud-tasks-invoker-service-account-email", default=None)
+    parser.add_argument("--gcp-cloud-run-service-name", default=None)
+    parser.add_argument("--gcp-cloud-run-batch-job-name", default=None)
+    parser.add_argument(
+        "--gcp-internal-allowed-service-account",
+        action="append",
+        dest="gcp_internal_allowed_service_accounts",
+        default=None,
+        help=(
+            "Allowed internal Google service account email. "
+            "Provide more than once for multiple values."
+        ),
+    )
     parser.add_argument(
         "--llm-provider",
         default=None,
@@ -660,8 +732,6 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--llm-api-key", default=None)
     parser.add_argument("--paystack-secret-key", default=None)
     parser.add_argument("--paystack-public-key", default=None)
-    parser.add_argument("--sentry-dsn", default=None)
-    parser.add_argument("--otel-endpoint", default=None)
     parser.add_argument(
         "--trusted-proxy-cidr",
         action="append",
@@ -697,17 +767,24 @@ def main(argv: list[str] | None = None) -> int:
         api_url=args.api_url,
         frontend_url=args.frontend_url,
         database_url=args.database_url,
-        redis_url=args.redis_url,
         supabase_url=args.supabase_url,
         supabase_anon_key=args.supabase_anon_key,
         supabase_jwt_secret=args.supabase_jwt_secret,
-        aws_assume_role_trust_principal_arn=args.aws_assume_role_trust_principal_arn,
+        gcp_project_id=args.gcp_project_id,
+        gcp_region=args.gcp_region,
+        gcp_cloud_tasks_queue=args.gcp_cloud_tasks_queue,
+        gcp_cloud_tasks_invoker_service_account_email=(
+            args.gcp_cloud_tasks_invoker_service_account_email
+        ),
+        gcp_cloud_run_service_name=args.gcp_cloud_run_service_name,
+        gcp_cloud_run_batch_job_name=args.gcp_cloud_run_batch_job_name,
+        gcp_internal_allowed_service_accounts=(
+            args.gcp_internal_allowed_service_accounts
+        ),
         llm_provider=args.llm_provider,
         llm_api_key=args.llm_api_key,
         paystack_secret_key=args.paystack_secret_key,
         paystack_public_key=args.paystack_public_key,
-        sentry_dsn=args.sentry_dsn,
-        otel_endpoint=args.otel_endpoint,
         trusted_proxy_cidrs=args.trusted_proxy_cidrs,
     )
     print(

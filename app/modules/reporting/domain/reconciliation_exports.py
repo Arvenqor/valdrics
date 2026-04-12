@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+from decimal import Decimal, InvalidOperation
 import io
 from datetime import date
 from typing import Any
@@ -12,6 +13,38 @@ from app.modules.reporting.api.v1.costs_helpers import sanitize_csv_cell
 
 def _sanitize_row(values: list[Any]) -> list[str]:
     return [sanitize_csv_cell(value) for value in values]
+
+
+def _coerce_finite_csv_value(value: Any, *, field_name: str) -> Any:
+    if value is None:
+        return value
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return value
+    try:
+        amount = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        return value
+    if not amount.is_finite():
+        raise ValueError(f"{field_name} must be finite")
+    return value
+
+
+def _csv_field_value(section: str, key: str, value: Any) -> Any:
+    numeric_suffixes = (
+        "_usd",
+        "_percent",
+        "_cost",
+        "_amount",
+        "_amount_usd",
+        "_delta",
+        "_delta_usd",
+    )
+    numeric_keys = {"total_records", "preliminary_records", "final_records", "count"}
+    if key in numeric_keys or key.endswith(numeric_suffixes):
+        return _coerce_finite_csv_value(value, field_name=f"{section}.{key}")
+    return value
 
 
 def render_close_package_csv(
@@ -33,12 +66,24 @@ def render_close_package_csv(
     writer.writerow(_sanitize_row(["meta", "close_status", close_status]))
 
     for key, value in lifecycle_summary.items():
-        writer.writerow(_sanitize_row(["lifecycle", key, value]))
+        writer.writerow(
+            _sanitize_row(
+                ["lifecycle", key, _csv_field_value("lifecycle", key, value)]
+            )
+        )
 
     for key, value in reconciliation_summary.items():
         if key in {"impacted_services", "discrepancies"}:
             continue
-        writer.writerow(_sanitize_row(["reconciliation", key, value]))
+        writer.writerow(
+            _sanitize_row(
+                [
+                    "reconciliation",
+                    key,
+                    _csv_field_value("reconciliation", key, value),
+                ]
+            )
+        )
 
     if isinstance(invoice_reconciliation, dict) and invoice_reconciliation:
         writer.writerow(
@@ -55,7 +100,11 @@ def render_close_package_csv(
                 [
                     "invoice_reconciliation",
                     "threshold_percent",
-                    invoice_reconciliation.get("threshold_percent"),
+                    _csv_field_value(
+                        "invoice_reconciliation",
+                        "threshold_percent",
+                        invoice_reconciliation.get("threshold_percent"),
+                    ),
                 ]
             )
         )
@@ -64,7 +113,11 @@ def render_close_package_csv(
                 [
                     "invoice_reconciliation",
                     "ledger_final_cost_usd",
-                    invoice_reconciliation.get("ledger_final_cost_usd"),
+                    _csv_field_value(
+                        "invoice_reconciliation",
+                        "ledger_final_cost_usd",
+                        invoice_reconciliation.get("ledger_final_cost_usd"),
+                    ),
                 ]
             )
         )
@@ -74,7 +127,11 @@ def render_close_package_csv(
                     [
                         "invoice_reconciliation",
                         "delta_usd",
-                        invoice_reconciliation.get("delta_usd"),
+                        _csv_field_value(
+                            "invoice_reconciliation",
+                            "delta_usd",
+                            invoice_reconciliation.get("delta_usd"),
+                        ),
                     ]
                 )
             )
@@ -83,7 +140,11 @@ def render_close_package_csv(
                     [
                         "invoice_reconciliation",
                         "absolute_delta_usd",
-                        invoice_reconciliation.get("absolute_delta_usd"),
+                        _csv_field_value(
+                            "invoice_reconciliation",
+                            "absolute_delta_usd",
+                            invoice_reconciliation.get("absolute_delta_usd"),
+                        ),
                     ]
                 )
             )
@@ -92,7 +153,11 @@ def render_close_package_csv(
                     [
                         "invoice_reconciliation",
                         "delta_percent",
-                        invoice_reconciliation.get("delta_percent"),
+                        _csv_field_value(
+                            "invoice_reconciliation",
+                            "delta_percent",
+                            invoice_reconciliation.get("delta_percent"),
+                        ),
                     ]
                 )
             )
@@ -121,7 +186,11 @@ def render_close_package_csv(
                     [
                         "invoice_reconciliation",
                         "invoice_total_amount",
-                        invoice_obj.get("total_amount"),
+                        _csv_field_value(
+                            "invoice_reconciliation",
+                            "invoice_total_amount",
+                            invoice_obj.get("total_amount"),
+                        ),
                     ]
                 )
             )
@@ -130,7 +199,11 @@ def render_close_package_csv(
                     [
                         "invoice_reconciliation",
                         "invoice_total_amount_usd",
-                        invoice_obj.get("total_amount_usd"),
+                        _csv_field_value(
+                            "invoice_reconciliation",
+                            "invoice_total_amount_usd",
+                            invoice_obj.get("total_amount_usd"),
+                        ),
                     ]
                 )
             )
@@ -169,9 +242,11 @@ def render_close_package_csv(
                     entry["recorded_at"],
                     entry["service"],
                     entry["region"],
-                    entry["old_cost"],
-                    entry["new_cost"],
-                    entry["delta_usd"],
+                    _csv_field_value("restatements", "old_cost", entry["old_cost"]),
+                    _csv_field_value("restatements", "new_cost", entry["new_cost"]),
+                    _csv_field_value(
+                        "restatements", "delta_usd", entry["delta_usd"]
+                    ),
                     entry["reason"],
                     entry["cost_record_id"],
                     entry["ingestion_batch_id"],

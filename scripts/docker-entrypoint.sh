@@ -10,4 +10,6 @@ validate_runtime_dependencies(settings)
 print("runtime_env_validation_passed", f"environment={settings.ENVIRONMENT}")
 PY
 
-exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers "${WEB_CONCURRENCY:-1}"
+PORT="${PORT:-8000}"
+
+exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT}"

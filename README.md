@@ -107,6 +107,17 @@ It connects to your cloud, uncovers waste, explains spend behavior, and gives yo
 - Local `uv` workflows should use the repository `.python-version`.
 - `Python 3.13` is not part of the supported contract yet. The async SQLite test path is not treated as production-ready on that interpreter in this repository.
 
+## Supported Managed Platform
+
+The supported managed platform is:
+
+- backend runtime on Google Cloud Run / Cloud Tasks / Cloud Scheduler / Cloud Run Jobs
+- dashboard deployment on Cloudflare Pages
+- database/auth/storage control-plane ownership on Supabase
+
+See `docs/runbooks/unified_platform_release.md` for the release contract and
+`terraform/` for the infrastructure source of truth behind the supported managed platform.
+
 ### 🧟 **Deep Zombie Detection**
 
 Not just "idle EC2." We find _everything_:
@@ -233,15 +244,19 @@ make bootstrap-local-db
 
 `.env.dev` is local-only, runs with `TESTING=false`, and must not be used in staging/production.
 
-For the Postgres/Redis docker compose path, generate the compose-specific local env file:
+Local development only: for the docker compose path with PostgreSQL, generate the compose-specific local env file:
 
 ```bash
 make env-compose
 ```
 
 `.env.compose.dev` is local-only, ignored by git, and is the expected input for the
-checked-in `docker compose` workflow. If you need provider keys locally, edit the generated
-file and add values such as `OPENAI_API_KEY`, `GROQ_API_KEY`, or `SLACK_BOT_TOKEN`.
+checked-in `docker compose` workflow. The default compose path is cacheless. If you need
+the isolated local Redis drill overlay, use `make docker-up-redis`, which applies
+`docker-compose.redis.yml` on top of the base stack instead of baking Redis into the
+default topology. If you need
+provider keys locally, edit the generated file and add values such as `OPENAI_API_KEY`,
+`GROQ_API_KEY`, or `SLACK_BOT_TOKEN`.
 
 ### 2. Start the Stack
 
@@ -254,10 +269,16 @@ make dev
 If `.env.dev` exists, `make dev` auto-loads it and bootstraps the local sqlite schema before
 starting the API.
 
-Full dockerized Postgres/Redis path:
+Local development only: default dockerized Postgres path without Redis:
 
 ```bash
 make docker-up
+```
+
+Optional local Redis drill overlay for cache/coordinator tests:
+
+```bash
+make docker-up-redis
 ```
 
 Optional observability stack:
@@ -292,8 +313,8 @@ The dashboard will guide you through deploying our read-only IAM role via CloudF
 | **Frontend**      | SvelteKit (Svelte 5 Runes), TailwindCSS v4, Shadcn-Svelte           |
 | **Database**      | PostgreSQL (managed or self-hosted), Supabase-compatible auth flows |
 | **LLM**           | LangChain, OpenAI, Anthropic, Google Genai, Groq                    |
-| **Infra**         | Docker, Koyeb, GitHub Actions, Helm/Terraform (future scale), Prometheus |
-| **Observability** | OpenTelemetry, Grafana Dashboards, Prometheus Metrics               |
+| **Infra**         | Docker (local only), Google Cloud Run, Cloudflare Pages, Supabase, GitHub Actions, Terraform |
+| **Observability** | OpenTelemetry, Google Cloud Operations, Grafana/Prometheus for local dashboards |
 | **GreenOps**      | CodeCarbon integration                                              |
 
 ---
@@ -302,35 +323,40 @@ The dashboard will guide you through deploying our read-only IAM role via CloudF
 
 Valdrics currently standardizes on:
 
-- **Koyeb** for staging and production runtime
-- **GHCR** for immutable API/dashboard images
-- **GitHub Actions** for image publish and supply-chain checks
+- **Google Cloud Run / Cloud Run Jobs / Cloud Tasks / Cloud Scheduler** for backend runtime and orchestration
+- **Cloudflare Pages** for the dashboard edge
+- **Supabase** for PostgreSQL, Auth, and Storage
+- **Artifact Registry** for immutable backend release artifacts
+- **GitHub Actions** for artifact publish and deployment orchestration
 
 The current release contract is:
 
-`publish once to GHCR -> promote the same digest-pinned images through Koyeb`
+`publish once to Artifact Registry -> promote the same digest-pinned backend artifact through staging and production`
 
 See:
 
 - `docs/DEPLOYMENT.md`
 - `docs/runbooks/production_env_checklist.md`
-- `docs/runbooks/koyeb_release_promotion.md`
+- `docs/runbooks/unified_platform_release.md`
 
-### Future Scale Path
+### Archived Future-Scale Reference
 
-Helm/Terraform/EKS remains in-repo as the future scale path when the platform
-outgrows the current Koyeb operating model.
+Additional platform shapes may remain in-repo for future scale exploration,
+but they are not the active operating model.
 
-### Pre-configured Components
+### Supported Release References
 
 | Component              | Location                     | Description                                 |
 | ---------------------- | ---------------------------- | ------------------------------------------- |
-| **Koyeb Runbooks**     | `docs/runbooks/`             | Current staging/production release path     |
-| **Helm Chart**         | `helm/valdrics/`             | Future scale deployment path                |
+| **Unified Runbooks**   | `docs/runbooks/`             | Current staging/production release path     |
 | **Grafana Dashboards** | `grafana/dashboards/`        | API Overview + FinOps metrics               |
 | **Load Tests**         | `loadtest/`                  | k6 + Locust performance tests               |
 | **SBOM Generation**    | `.github/workflows/sbom.yml` | CycloneDX + vulnerability scanning          |
-| **GHCR Publish**       | `.github/workflows/publish-release-images.yml` | Immutable API/dashboard release images |
+| **Artifact Publish**   | `.github/workflows/publish-artifact-registry-images.yml` | Immutable backend release artifact |
+
+Archived reference only:
+
+- `Helm Chart (archived, not part of the supported deployment)`: `helm/valdrics/`
 
 ### CI/CD Pipeline
 

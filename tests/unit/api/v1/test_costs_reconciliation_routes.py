@@ -16,6 +16,7 @@ from app.modules.reporting.api.v1.costs_reconciliation_routes import (
     export_focus_v13_costs_csv_impl,
     get_reconciliation_close_package_impl,
     get_restatement_history_impl,
+    list_provider_invoices_impl,
     upsert_provider_invoice_impl,
 )
 from app.shared.core.auth import CurrentUser, UserRole
@@ -24,6 +25,9 @@ from app.shared.core.pricing import PricingTier
 
 class _FakeDB:
     async def commit(self) -> None:
+        return None
+
+    async def rollback(self) -> None:
         return None
 
 
@@ -120,6 +124,86 @@ async def test_upsert_provider_invoice_impl_maps_validation_errors() -> None:
                 require_tenant_id=lambda u: u.tenant_id,  # type: ignore[return-value]
             )
     assert exc_info.value.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_list_provider_invoices_impl_rejects_non_finite_totals() -> None:
+    user = _user()
+    db = _FakeDB()
+    invoice = SimpleNamespace(
+        id=uuid4(),
+        provider="aws",
+        period_start=date(2026, 1, 1),
+        period_end=date(2026, 1, 31),
+        invoice_number="INV-001",
+        currency="USD",
+        total_amount="NaN",
+        total_amount_usd=100.0,
+        status="draft",
+        notes=None,
+        updated_at=None,
+    )
+    with patch(
+        "app.modules.reporting.api.v1.costs_reconciliation_routes.CostReconciliationService.list_invoices",
+        new=AsyncMock(return_value=[invoice]),
+    ):
+        with pytest.raises(ValueError, match="finite"):
+            await list_provider_invoices_impl(
+                provider="aws",
+                start_date=None,
+                end_date=None,
+                user=user,
+                db=db,  # type: ignore[arg-type]
+                require_tenant_id=lambda u: u.tenant_id,  # type: ignore[return-value]
+                normalize_provider_filter=lambda value: value,
+            )
+
+
+@pytest.mark.asyncio
+async def test_upsert_provider_invoice_impl_rejects_non_finite_serialized_invoice() -> None:
+    user = _user()
+    db = _FakeDB()
+    payload = ProviderInvoiceUpsertRequest(
+        provider="aws",
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 31),
+        currency="USD",
+        total_amount=100.0,
+        invoice_number="INV-001",
+        status="draft",
+        notes=None,
+    )
+    invoice = SimpleNamespace(
+        id=uuid4(),
+        provider="aws",
+        period_start=date(2026, 1, 1),
+        period_end=date(2026, 1, 31),
+        invoice_number="INV-001",
+        currency="USD",
+        total_amount=100.0,
+        total_amount_usd="NaN",
+        status="draft",
+        notes=None,
+        updated_at=None,
+    )
+    with (
+        patch(
+            "app.modules.reporting.api.v1.costs_reconciliation_routes.CostReconciliationService.upsert_invoice",
+            new=AsyncMock(return_value=invoice),
+        ),
+        patch(
+            "app.modules.reporting.api.v1.costs_reconciliation_routes.AuditLogger.log",
+            new=AsyncMock(return_value=None),
+        ),
+    ):
+        with pytest.raises(ValueError, match="finite"):
+            await upsert_provider_invoice_impl(
+                request=_request(),
+                payload=payload,
+                user=user,
+                db=db,  # type: ignore[arg-type]
+                require_tenant_id=lambda u: u.tenant_id,  # type: ignore[return-value]
+            )
 
 
 @pytest.mark.asyncio

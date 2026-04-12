@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify required architecture decisions and scheduler sequence documentation."""
+"""Verify required architecture decisions and managed scheduler sequence documentation."""
 
 from __future__ import annotations
 
@@ -22,6 +22,7 @@ PLACEHOLDER_TOKEN_RE = re.compile(
 class DocumentRequirement:
     path: str
     required_tokens: tuple[str, ...]
+    forbidden_tokens: tuple[str, ...] = ()
 
 
 REQUIRED_DOCUMENTS: tuple[DocumentRequirement, ...] = (
@@ -52,7 +53,8 @@ REQUIRED_DOCUMENTS: tuple[DocumentRequirement, ...] = (
             "## Decision",
             "## Consequences",
             "Redis",
-            "in-memory",
+            "Cloud Run",
+            "Superseded",
         ),
     ),
     DocumentRequirement(
@@ -72,18 +74,29 @@ REQUIRED_DOCUMENTS: tuple[DocumentRequirement, ...] = (
             "## Decision",
             "## Consequences",
             "Celery",
-            "BackgroundTasks",
+            "Cloud Tasks",
+            "Cloud Scheduler",
+            "Cloud Run Jobs",
+            "Superseded",
         ),
     ),
     DocumentRequirement(
         path="scheduler_orchestration_sequence.md",
         required_tokens=(
             "sequenceDiagram",
-            "scheduler_tasks.py",
-            "orchestrator.py",
+            "Cloud Scheduler",
+            "Cloud Tasks",
+            "Cloud Run Jobs",
+            "managed_work_runners.py",
+            "fail-closed",
+            "## Repository-Managed Local Loop",
             "## Concurrency and Deterministic Replay",
             "## Observability and Snapshot Stability",
             "## Failure Modes and Operational Misconfiguration Guards",
+        ),
+        forbidden_tokens=(
+            "Celery",
+            "scheduler_tasks.py",
         ),
     ),
 )
@@ -110,13 +123,16 @@ def verify_architecture_docs(docs_root: Path) -> tuple[str, ...]:
         for token in requirement.required_tokens:
             if token not in text:
                 errors.append(f"missing token in {path.as_posix()}: {token}")
+        for token in requirement.forbidden_tokens:
+            if token in text:
+                errors.append(f"forbidden token present in {path.as_posix()}: {token}")
     return tuple(errors)
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Verify required ADR coverage and scheduler orchestration sequence docs."
+            "Verify required ADR coverage and managed scheduler orchestration sequence docs."
         )
     )
     parser.add_argument(

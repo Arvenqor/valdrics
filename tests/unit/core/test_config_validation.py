@@ -16,8 +16,61 @@ FAKE_ENFORCEMENT_APPROVAL_SECRET = "a" * 48
 FAKE_ENFORCEMENT_EXPORT_SECRET = "e" * 48
 FAKE_API_URL = "https://api.example.com"
 FAKE_FRONTEND_URL = "https://app.example.com"
+FAKE_OTEL_ENDPOINT = "https://otel.example.com:4317"
+FAKE_SENTRY_DSN = "https://public@example.com/1"
 # Base64 for 'KDF_SALT_FOR_TESTING_32_BYTES_OK' (32 bytes)
 FAKE_KDF_SALT = "S0RGX1NBTFRfRk9SX1RFU1RJTkdfMzJfQllURVNfT0s="
+FAKE_GCP_PROJECT_ID = "valdrics-prod"
+FAKE_GCP_REGION = "us-central1"
+FAKE_GCP_TASK_QUEUE = "valdrics-managed-work"
+FAKE_GCP_TASKS_INVOKER = "tasks-invoker@valdrics-prod.iam.gserviceaccount.com"
+FAKE_GCP_SCHEDULER_INVOKER = (
+    "scheduler-invoker@valdrics-prod.iam.gserviceaccount.com"
+)
+FAKE_GCP_CLOUD_RUN_SERVICE_NAME = "valdrics-api"
+FAKE_GCP_CLOUD_RUN_BATCH_JOB_NAME = "valdrics-batch"
+FAKE_GCP_INTERNAL_BASE_URL = "https://valdrics-api-xyz.run.app"
+
+
+def strict_managed_production_kwargs(**overrides: object) -> dict[str, object]:
+    base: dict[str, object] = {
+        "ENVIRONMENT": "production",
+        "DATABASE_URL": "postgresql+asyncpg://test",
+        "API_URL": FAKE_API_URL,
+        "FRONTEND_URL": FAKE_FRONTEND_URL,
+        "PLATFORM_RUNTIME_PROFILE": "gcp",
+        "OBSERVABILITY_BACKEND": "gcp",
+        "PUBLIC_API_RATE_LIMITING_BACKEND": "cloudflare",
+        "RATELIMIT_ENABLED": False,
+        "CIRCUIT_BREAKER_DISTRIBUTED_STATE": False,
+        "GCP_PROJECT_ID": FAKE_GCP_PROJECT_ID,
+        "GCP_REGION": FAKE_GCP_REGION,
+        "GCP_CLOUD_TASKS_QUEUE": FAKE_GCP_TASK_QUEUE,
+        "GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL": FAKE_GCP_TASKS_INVOKER,
+        "GCP_CLOUD_RUN_BATCH_JOB_NAME": FAKE_GCP_CLOUD_RUN_BATCH_JOB_NAME,
+        "GCP_CLOUD_RUN_SERVICE_NAME": FAKE_GCP_CLOUD_RUN_SERVICE_NAME,
+        "GCP_INTERNAL_BASE_URL": FAKE_GCP_INTERNAL_BASE_URL,
+        "GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS": [
+            FAKE_GCP_TASKS_INVOKER,
+            FAKE_GCP_SCHEDULER_INVOKER,
+        ],
+        "SUPABASE_JWT_SECRET": FAKE_SUPABASE_SECRET,
+        "ENCRYPTION_KEY": FAKE_ENCRYPTION_KEY,
+        "CSRF_SECRET_KEY": FAKE_CSRF_SECRET,
+        "KDF_SALT": FAKE_KDF_SALT,
+        "DEBUG": False,
+        "TESTING": False,
+        "DB_SSL_MODE": "require",
+        "ADMIN_API_KEY": "a" * 32,
+        "GROQ_API_KEY": "g" * 32,
+        "PAYSTACK_SECRET_KEY": FAKE_PAYSTACK_SECRET_KEY,
+        "PAYSTACK_PUBLIC_KEY": FAKE_PAYSTACK_PUBLIC_KEY,
+        "ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION": True,
+        "ENFORCEMENT_APPROVAL_TOKEN_SECRET": FAKE_ENFORCEMENT_APPROVAL_SECRET,
+        "ENFORCEMENT_EXPORT_SIGNING_SECRET": FAKE_ENFORCEMENT_EXPORT_SECRET,
+    }
+    base.update(overrides)
+    return base
 
 
 class TestSettingsValidation:
@@ -112,24 +165,8 @@ class TestSettingsValidation:
         with patch.dict("os.environ", {}, clear=True):
             with pytest.raises(ValidationError) as exc:
                 Settings(
-                    ENVIRONMENT="production",
-                    DATABASE_URL="postgresql+asyncpg://test",
-                    REDIS_URL="redis://localhost:6379",
-                    SUPABASE_JWT_SECRET=FAKE_SUPABASE_SECRET,
-                    ENCRYPTION_KEY=FAKE_ENCRYPTION_KEY,
-                    CSRF_SECRET_KEY=FAKE_CSRF_SECRET,
-                    KDF_SALT=FAKE_KDF_SALT,
-                    DEBUG=False,
-                    TESTING=False,
-                    GROQ_API_KEY="g" * 32,
-                    DB_SSL_MODE="require",
-                    ADMIN_API_KEY="a" * 32,
-                    PAYSTACK_SECRET_KEY=FAKE_PAYSTACK_SECRET_KEY,
-                    PAYSTACK_PUBLIC_KEY=FAKE_PAYSTACK_PUBLIC_KEY,
-                    ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=True,
                     EXPOSE_API_DOCUMENTATION_PUBLICLY=True,
-                    ENFORCEMENT_APPROVAL_TOKEN_SECRET=FAKE_ENFORCEMENT_APPROVAL_SECRET,
-                    ENFORCEMENT_EXPORT_SIGNING_SECRET=FAKE_ENFORCEMENT_EXPORT_SECRET,
+                    **strict_managed_production_kwargs(),
                     _env_file=None,
                 )
 
@@ -140,19 +177,10 @@ class TestSettingsValidation:
         with patch.dict("os.environ", {}, clear=True):
             with pytest.raises(ValidationError) as exc:
                 Settings(
-                    ENVIRONMENT="production",
-                    DATABASE_URL="postgresql+asyncpg://test",
-                    SUPABASE_JWT_SECRET=FAKE_SUPABASE_SECRET,
-                    ENCRYPTION_KEY=FAKE_ENCRYPTION_KEY,
-                    CSRF_SECRET_KEY=FAKE_CSRF_SECRET,
-                    KDF_SALT=FAKE_KDF_SALT,
-                    DEBUG=False,  # Production mode
-                    TESTING=False,
-                    GROQ_API_KEY="g" * 32,
-                    DB_SSL_MODE="verify-ca",
-                    DB_SSL_CA_CERT_PATH=None,  # Missing CA cert
-                    ENFORCEMENT_APPROVAL_TOKEN_SECRET=FAKE_ENFORCEMENT_APPROVAL_SECRET,
-                    ENFORCEMENT_EXPORT_SIGNING_SECRET=FAKE_ENFORCEMENT_EXPORT_SECRET,
+                    **strict_managed_production_kwargs(
+                        DB_SSL_MODE="verify-ca",
+                        DB_SSL_CA_CERT_PATH=None,  # Missing CA cert
+                    ),
                     _env_file=None,
                 )
 
@@ -163,26 +191,10 @@ class TestSettingsValidation:
         """Test successful SSL verification in production."""
         with patch.dict("os.environ", {}, clear=True):
             settings = Settings(
-                ENVIRONMENT="production",
-                DATABASE_URL="postgresql+asyncpg://test",
-                REDIS_URL="redis://localhost:6379",
-                API_URL=FAKE_API_URL,
-                FRONTEND_URL=FAKE_FRONTEND_URL,
-                SUPABASE_JWT_SECRET=FAKE_SUPABASE_SECRET,
-                ENCRYPTION_KEY=FAKE_ENCRYPTION_KEY,
-                CSRF_SECRET_KEY=FAKE_CSRF_SECRET,
-                KDF_SALT=FAKE_KDF_SALT,
-                DEBUG=False,  # Production mode
-                TESTING=False,
-                DB_SSL_MODE="verify-ca",
-                DB_SSL_CA_CERT_PATH="/path/to/ca.crt",
-                ADMIN_API_KEY="a" * 32,
-                GROQ_API_KEY="g" * 32,
-                PAYSTACK_SECRET_KEY=FAKE_PAYSTACK_SECRET_KEY,
-                PAYSTACK_PUBLIC_KEY=FAKE_PAYSTACK_PUBLIC_KEY,
-                ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=True,
-                ENFORCEMENT_APPROVAL_TOKEN_SECRET=FAKE_ENFORCEMENT_APPROVAL_SECRET,
-                ENFORCEMENT_EXPORT_SIGNING_SECRET=FAKE_ENFORCEMENT_EXPORT_SECRET,
+                **strict_managed_production_kwargs(
+                    DB_SSL_MODE="verify-ca",
+                    DB_SSL_CA_CERT_PATH="/path/to/ca.crt",
+                ),
                 _env_file=None,
             )
 
@@ -298,22 +310,10 @@ class TestSettingsValidation:
         with patch.dict("os.environ", {}, clear=True):
             with pytest.raises(ValidationError) as exc:
                 Settings(
-                    DATABASE_URL="sqlite+aiosqlite:///:memory:",
-                    SUPABASE_JWT_SECRET=FAKE_SUPABASE_SECRET,
-                    ENCRYPTION_KEY=FAKE_ENCRYPTION_KEY,
-                    CSRF_SECRET_KEY=FAKE_CSRF_SECRET,
-                    KDF_SALT=FAKE_KDF_SALT,
-                    DEBUG=False,  # Production mode
-                    ENVIRONMENT="production",
-                    TESTING=False,
-                    DB_SSL_MODE="require",
-                    ADMIN_API_KEY="short",  # Too short
-                    GROQ_API_KEY="g" * 32,
-                    PAYSTACK_SECRET_KEY=FAKE_PAYSTACK_SECRET_KEY,
-                    PAYSTACK_PUBLIC_KEY=FAKE_PAYSTACK_PUBLIC_KEY,
-                    ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=True,
-                    ENFORCEMENT_APPROVAL_TOKEN_SECRET=FAKE_ENFORCEMENT_APPROVAL_SECRET,
-                    ENFORCEMENT_EXPORT_SIGNING_SECRET=FAKE_ENFORCEMENT_EXPORT_SECRET,
+                    **strict_managed_production_kwargs(
+                        DATABASE_URL="sqlite+aiosqlite:///:memory:",
+                        ADMIN_API_KEY="short",  # Too short
+                    ),
                     _env_file=None,
                 )
 
@@ -344,24 +344,9 @@ class TestSettingsValidation:
         with patch.dict("os.environ", {}, clear=True):
             with pytest.raises(ValidationError) as exc:
                 Settings(
-                    ENVIRONMENT="production",
-                    DATABASE_URL="postgresql+asyncpg://test",
-                    SUPABASE_JWT_SECRET=FAKE_SUPABASE_SECRET,
-                    ENCRYPTION_KEY=FAKE_ENCRYPTION_KEY,
-                    CSRF_SECRET_KEY=FAKE_CSRF_SECRET,
-                    KDF_SALT=FAKE_KDF_SALT,
-                    DEBUG=False,
-                    TESTING=False,
-                    GROQ_API_KEY="g" * 32,
-                    DB_SSL_MODE="require",
-                    ADMIN_API_KEY="a" * 32,
-                    PAYSTACK_SECRET_KEY=FAKE_PAYSTACK_SECRET_KEY,
-                    PAYSTACK_PUBLIC_KEY=FAKE_PAYSTACK_PUBLIC_KEY,
-                    ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=True,
                     REMEDIATION_KILL_SWITCH_SCOPE="global",
                     REMEDIATION_KILL_SWITCH_ALLOW_GLOBAL_SCOPE=False,
-                    ENFORCEMENT_APPROVAL_TOKEN_SECRET=FAKE_ENFORCEMENT_APPROVAL_SECRET,
-                    ENFORCEMENT_EXPORT_SIGNING_SECRET=FAKE_ENFORCEMENT_EXPORT_SECRET,
+                    **strict_managed_production_kwargs(),
                     _env_file=None,
                 )
 
@@ -375,26 +360,10 @@ class TestSettingsValidation:
         with patch.dict("os.environ", {}, clear=True):
             with pytest.raises(ValidationError) as exc:
                 Settings(
-                    DATABASE_URL="sqlite+aiosqlite:///:memory:",
-                    SUPABASE_JWT_SECRET=FAKE_SUPABASE_SECRET,
-                    ENCRYPTION_KEY=FAKE_ENCRYPTION_KEY,
-                    CSRF_SECRET_KEY=FAKE_CSRF_SECRET,
-                    KDF_SALT=FAKE_KDF_SALT,
-                    DEBUG=False,  # Production mode
-                    TESTING=False,
-                    ADMIN_API_KEY="a" * 32,  # Valid API Key
-                    ENVIRONMENT="production",  # Trigger CORS check
-                    API_URL="https://api.example.com",
-                    FRONTEND_URL="https://app.example.com",
                     CORS_ORIGINS=["http://localhost:3000", "https://example.com"],
-                    REDIS_URL="redis://localhost:6379",
-                    GROQ_API_KEY="g" * 32,
-                    DB_SSL_MODE="require",
-                    PAYSTACK_SECRET_KEY=FAKE_PAYSTACK_SECRET_KEY,
-                    PAYSTACK_PUBLIC_KEY=FAKE_PAYSTACK_PUBLIC_KEY,
-                    ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=True,
-                    ENFORCEMENT_APPROVAL_TOKEN_SECRET=FAKE_ENFORCEMENT_APPROVAL_SECRET,
-                    ENFORCEMENT_EXPORT_SIGNING_SECRET=FAKE_ENFORCEMENT_EXPORT_SECRET,
+                    **strict_managed_production_kwargs(
+                        DATABASE_URL="sqlite+aiosqlite:///:memory:"
+                    ),
                     _env_file=None,
                 )
 
@@ -406,25 +375,10 @@ class TestSettingsValidation:
         with patch.dict("os.environ", {}, clear=True):
             with pytest.raises(ValidationError) as exc:
                 Settings(
-                    DATABASE_URL="sqlite+aiosqlite:///:memory:",
-                    SUPABASE_JWT_SECRET=FAKE_SUPABASE_SECRET,
-                    ENCRYPTION_KEY=FAKE_ENCRYPTION_KEY,
-                    CSRF_SECRET_KEY=FAKE_CSRF_SECRET,
-                    KDF_SALT=FAKE_KDF_SALT,
-                    DEBUG=False,  # Production mode
-                    TESTING=False,
-                    ADMIN_API_KEY="a" * 32,  # Valid API Key
-                    ENVIRONMENT="production",
-                    API_URL=FAKE_API_URL,
-                    FRONTEND_URL="http://example.com",  # HTTP instead of HTTPS
-                    REDIS_URL="redis://localhost:6379",
-                    GROQ_API_KEY="g" * 32,
-                    DB_SSL_MODE="require",
-                    PAYSTACK_SECRET_KEY=FAKE_PAYSTACK_SECRET_KEY,
-                    PAYSTACK_PUBLIC_KEY=FAKE_PAYSTACK_PUBLIC_KEY,
-                    ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=True,
-                    ENFORCEMENT_APPROVAL_TOKEN_SECRET=FAKE_ENFORCEMENT_APPROVAL_SECRET,
-                    ENFORCEMENT_EXPORT_SIGNING_SECRET=FAKE_ENFORCEMENT_EXPORT_SECRET,
+                    **strict_managed_production_kwargs(
+                        DATABASE_URL="sqlite+aiosqlite:///:memory:",
+                        FRONTEND_URL="http://example.com",  # HTTP instead of HTTPS
+                    ),
                     _env_file=None,
                 )
             assert "FRONTEND_URL must use an explicit https:// URL" in str(exc.value)
@@ -490,25 +444,9 @@ class TestSettingsValidation:
 
             # Debug=False should be production
             settings_prod = Settings(
-                ENVIRONMENT="production",
-                DATABASE_URL="sqlite+aiosqlite:///:memory:",
-                REDIS_URL="redis://localhost:6379",
-                API_URL=FAKE_API_URL,
-                FRONTEND_URL=FAKE_FRONTEND_URL,
-                SUPABASE_JWT_SECRET=FAKE_SUPABASE_SECRET,
-                ENCRYPTION_KEY=FAKE_ENCRYPTION_KEY,  # Required in prod
-                CSRF_SECRET_KEY=FAKE_CSRF_SECRET,  # Required in prod
-                KDF_SALT=FAKE_KDF_SALT,  # Required in prod
-                DB_SSL_MODE="require",
-                ADMIN_API_KEY="a" * 32,
-                GROQ_API_KEY="g" * 32,
-                PAYSTACK_SECRET_KEY=FAKE_PAYSTACK_SECRET_KEY,
-                PAYSTACK_PUBLIC_KEY=FAKE_PAYSTACK_PUBLIC_KEY,
-                ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=True,
-                ENFORCEMENT_APPROVAL_TOKEN_SECRET=FAKE_ENFORCEMENT_APPROVAL_SECRET,
-                ENFORCEMENT_EXPORT_SIGNING_SECRET=FAKE_ENFORCEMENT_EXPORT_SECRET,
-                DEBUG=False,
-                TESTING=False,
+                **strict_managed_production_kwargs(
+                    DATABASE_URL="sqlite+aiosqlite:///:memory:"
+                ),
                 _env_file=None,
             )
             assert settings_prod.is_production is True
@@ -543,27 +481,9 @@ class TestSettingsValidation:
         with patch.dict("os.environ", {}, clear=True):
             with pytest.raises(ValidationError) as exc:
                 Settings(
-                    ENVIRONMENT="production",
-                    DATABASE_URL="postgresql+asyncpg://test",
-                    API_URL=FAKE_API_URL,
-                    FRONTEND_URL=FAKE_FRONTEND_URL,
-                    SUPABASE_JWT_SECRET=FAKE_SUPABASE_SECRET,
-                    ENCRYPTION_KEY=FAKE_ENCRYPTION_KEY,
-                    CSRF_SECRET_KEY=FAKE_CSRF_SECRET,
-                    KDF_SALT=FAKE_KDF_SALT,
-                    DEBUG=False,
-                    TESTING=False,
-                    WEB_CONCURRENCY=1,
-                    DB_SSL_MODE="require",
-                    ADMIN_API_KEY="a" * 32,
-                    GROQ_API_KEY="g" * 32,
-                    PAYSTACK_SECRET_KEY=FAKE_PAYSTACK_SECRET_KEY,
-                    PAYSTACK_PUBLIC_KEY=FAKE_PAYSTACK_PUBLIC_KEY,
-                    ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=True,
                     SAAS_STRICT_INTEGRATIONS=True,
                     SLACK_CHANNEL_ID="C0123456789",
-                    ENFORCEMENT_APPROVAL_TOKEN_SECRET=FAKE_ENFORCEMENT_APPROVAL_SECRET,
-                    ENFORCEMENT_EXPORT_SIGNING_SECRET=FAKE_ENFORCEMENT_EXPORT_SECRET,
+                    **strict_managed_production_kwargs(),
                     _env_file=None,
                 )
             assert (
@@ -575,28 +495,9 @@ class TestSettingsValidation:
         """Strict SaaS mode may keep shared Slack bot token while blocking env routing config."""
         with patch.dict("os.environ", {}, clear=True):
             settings = Settings(
-                ENVIRONMENT="production",
-                DATABASE_URL="postgresql+asyncpg://test",
-                REDIS_URL="redis://localhost:6379",
-                API_URL=FAKE_API_URL,
-                FRONTEND_URL=FAKE_FRONTEND_URL,
-                SUPABASE_JWT_SECRET=FAKE_SUPABASE_SECRET,
-                ENCRYPTION_KEY=FAKE_ENCRYPTION_KEY,
-                CSRF_SECRET_KEY=FAKE_CSRF_SECRET,
-                KDF_SALT=FAKE_KDF_SALT,
-                DEBUG=False,
-                TESTING=False,
-                WEB_CONCURRENCY=1,
-                DB_SSL_MODE="require",
-                ADMIN_API_KEY="a" * 32,
-                GROQ_API_KEY="g" * 32,
-                PAYSTACK_SECRET_KEY=FAKE_PAYSTACK_SECRET_KEY,
-                PAYSTACK_PUBLIC_KEY=FAKE_PAYSTACK_PUBLIC_KEY,
-                ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=True,
                 SAAS_STRICT_INTEGRATIONS=True,
                 SLACK_BOT_TOKEN="xoxb-shared-token",
-                ENFORCEMENT_APPROVAL_TOKEN_SECRET=FAKE_ENFORCEMENT_APPROVAL_SECRET,
-                ENFORCEMENT_EXPORT_SIGNING_SECRET=FAKE_ENFORCEMENT_EXPORT_SECRET,
+                **strict_managed_production_kwargs(),
                 _env_file=None,
             )
             assert settings.SAAS_STRICT_INTEGRATIONS is True
@@ -605,138 +506,249 @@ class TestSettingsValidation:
         with patch.dict("os.environ", {}, clear=True):
             with pytest.raises(ValidationError) as exc:
                 Settings(
-                    ENVIRONMENT="production",
-                    DATABASE_URL="postgresql+asyncpg://test",
-                    SUPABASE_JWT_SECRET=FAKE_SUPABASE_SECRET,
-                    ENCRYPTION_KEY=FAKE_ENCRYPTION_KEY,
-                    CSRF_SECRET_KEY=FAKE_CSRF_SECRET,
-                    KDF_SALT=FAKE_KDF_SALT,
-                    DEBUG=False,
-                    TESTING=False,
-                    WEB_CONCURRENCY=1,
-                    DB_SSL_MODE="require",
-                    ADMIN_API_KEY="a" * 32,
-                    GROQ_API_KEY="g" * 32,
-                    PAYSTACK_SECRET_KEY=FAKE_PAYSTACK_SECRET_KEY,
-                    PAYSTACK_PUBLIC_KEY=FAKE_PAYSTACK_PUBLIC_KEY,
-                    ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=True,
                     DB_USE_NULL_POOL=True,
                     DB_EXTERNAL_POOLER=False,
-                    ENFORCEMENT_APPROVAL_TOKEN_SECRET=FAKE_ENFORCEMENT_APPROVAL_SECRET,
-                    ENFORCEMENT_EXPORT_SIGNING_SECRET=FAKE_ENFORCEMENT_EXPORT_SECRET,
+                    **strict_managed_production_kwargs(),
                     _env_file=None,
                 )
             assert "DB_USE_NULL_POOL=true requires DB_EXTERNAL_POOLER=true" in str(
                 exc.value
             )
 
-    def test_settings_multi_worker_requires_distributed_breaker_and_redis(self):
+    def test_settings_managed_gcp_rejects_distributed_breaker_state(
+        self,
+    ):
         with patch.dict("os.environ", {}, clear=True):
             with pytest.raises(ValidationError) as exc:
                 Settings(
-                    ENVIRONMENT="production",
-                    DATABASE_URL="postgresql+asyncpg://test",
-                    SUPABASE_JWT_SECRET=FAKE_SUPABASE_SECRET,
-                    ENCRYPTION_KEY=FAKE_ENCRYPTION_KEY,
-                    CSRF_SECRET_KEY=FAKE_CSRF_SECRET,
-                    KDF_SALT=FAKE_KDF_SALT,
-                    DEBUG=False,
-                    TESTING=False,
-                    WEB_CONCURRENCY=4,
-                    DB_SSL_MODE="require",
-                    ADMIN_API_KEY="a" * 32,
-                    GROQ_API_KEY="g" * 32,
-                    PAYSTACK_SECRET_KEY=FAKE_PAYSTACK_SECRET_KEY,
-                    PAYSTACK_PUBLIC_KEY=FAKE_PAYSTACK_PUBLIC_KEY,
-                    ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=True,
-                    ENFORCEMENT_APPROVAL_TOKEN_SECRET=FAKE_ENFORCEMENT_APPROVAL_SECRET,
-                    ENFORCEMENT_EXPORT_SIGNING_SECRET=FAKE_ENFORCEMENT_EXPORT_SECRET,
+                    **strict_managed_production_kwargs(
+                        CIRCUIT_BREAKER_DISTRIBUTED_STATE=True,
+                    ),
                     _env_file=None,
                 )
-        assert "WEB_CONCURRENCY > 1 requires CIRCUIT_BREAKER_DISTRIBUTED_STATE" in str(
-            exc.value
+        assert (
+            "CIRCUIT_BREAKER_DISTRIBUTED_STATE must be false for the supported managed GCP profile"
+            in str(exc.value)
         )
 
-    def test_settings_multi_worker_allowed_with_distributed_breaker_and_redis(self):
-        with patch.dict("os.environ", {}, clear=True):
-            settings = Settings(
-                ENVIRONMENT="production",
-                DATABASE_URL="postgresql+asyncpg://test",
-                REDIS_URL="redis://localhost:6379",
-                API_URL=FAKE_API_URL,
-                FRONTEND_URL=FAKE_FRONTEND_URL,
-                SUPABASE_JWT_SECRET=FAKE_SUPABASE_SECRET,
-                ENCRYPTION_KEY=FAKE_ENCRYPTION_KEY,
-                CSRF_SECRET_KEY=FAKE_CSRF_SECRET,
-                KDF_SALT=FAKE_KDF_SALT,
-                DEBUG=False,
-                TESTING=False,
-                WEB_CONCURRENCY=4,
-                DB_SSL_MODE="require",
-                ADMIN_API_KEY="a" * 32,
-                GROQ_API_KEY="g" * 32,
-                PAYSTACK_SECRET_KEY=FAKE_PAYSTACK_SECRET_KEY,
-                PAYSTACK_PUBLIC_KEY=FAKE_PAYSTACK_PUBLIC_KEY,
-                ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=True,
-                ENFORCEMENT_APPROVAL_TOKEN_SECRET=FAKE_ENFORCEMENT_APPROVAL_SECRET,
-                ENFORCEMENT_EXPORT_SIGNING_SECRET=FAKE_ENFORCEMENT_EXPORT_SECRET,
-                _env_file=None,
-            )
-        assert settings.CIRCUIT_BREAKER_DISTRIBUTED_STATE is True
-
-    def test_settings_production_requires_redis_for_rate_limiting(self):
+    def test_settings_production_requires_redis_only_for_explicit_app_limiter(self):
         with patch.dict("os.environ", {}, clear=True):
             with pytest.raises(ValidationError) as exc:
                 Settings(
-                    ENVIRONMENT="production",
-                    DATABASE_URL="postgresql+asyncpg://test",
-                    SUPABASE_JWT_SECRET=FAKE_SUPABASE_SECRET,
-                    ENCRYPTION_KEY=FAKE_ENCRYPTION_KEY,
-                    CSRF_SECRET_KEY=FAKE_CSRF_SECRET,
-                    KDF_SALT=FAKE_KDF_SALT,
-                    DEBUG=False,
-                    TESTING=False,
-                    WEB_CONCURRENCY=1,
-                    DB_SSL_MODE="require",
-                    ADMIN_API_KEY="a" * 32,
-                    GROQ_API_KEY="g" * 32,
-                    PAYSTACK_SECRET_KEY=FAKE_PAYSTACK_SECRET_KEY,
-                    PAYSTACK_PUBLIC_KEY=FAKE_PAYSTACK_PUBLIC_KEY,
-                    ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=True,
-                    ENFORCEMENT_APPROVAL_TOKEN_SECRET=FAKE_ENFORCEMENT_APPROVAL_SECRET,
-                    ENFORCEMENT_EXPORT_SIGNING_SECRET=FAKE_ENFORCEMENT_EXPORT_SECRET,
+                    **strict_managed_production_kwargs(
+                        PUBLIC_API_RATE_LIMITING_BACKEND="redis",
+                        RATELIMIT_ENABLED=True,
+                        REDIS_URL=None,
+                    ),
                     _env_file=None,
                 )
-            assert "REDIS_URL is required for distributed rate limiting" in str(
+            assert "REDIS_URL is required only when RATELIMIT_ENABLED=true" in str(
                 exc.value
             )
 
     def test_settings_production_allows_in_memory_rate_limit_with_break_glass(self):
         with patch.dict("os.environ", {}, clear=True):
             settings = Settings(
+                **strict_managed_production_kwargs(
+                    PUBLIC_API_RATE_LIMITING_BACKEND="redis",
+                    RATELIMIT_ENABLED=True,
+                    ALLOW_IN_MEMORY_RATE_LIMITS=True,
+                    REDIS_URL=None,
+                ),
+                _env_file=None,
+            )
+            assert settings.ALLOW_IN_MEMORY_RATE_LIMITS is True
+
+    def test_settings_gcp_cloudflare_profile_allows_supported_managed_contract(self):
+        with patch.dict("os.environ", {}, clear=True):
+            settings = Settings(
                 ENVIRONMENT="production",
                 DATABASE_URL="postgresql+asyncpg://test",
                 API_URL=FAKE_API_URL,
                 FRONTEND_URL=FAKE_FRONTEND_URL,
+                PLATFORM_RUNTIME_PROFILE="gcp",
+                OBSERVABILITY_BACKEND="gcp",
+                PUBLIC_API_RATE_LIMITING_BACKEND="cloudflare",
+                RATELIMIT_ENABLED=False,
+                CIRCUIT_BREAKER_DISTRIBUTED_STATE=False,
+                GCP_PROJECT_ID="valdrics-prod",
+                GCP_REGION="us-central1",
+                GCP_CLOUD_TASKS_QUEUE="valdrics-managed-work",
+                GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL=(
+                    "tasks-invoker@valdrics-prod.iam.gserviceaccount.com"
+                ),
+                GCP_CLOUD_RUN_BATCH_JOB_NAME="valdrics-batch",
+                GCP_CLOUD_RUN_SERVICE_NAME="valdrics-api",
+                GCP_INTERNAL_BASE_URL="https://valdrics-api-xyz.run.app",
+                GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS=[
+                    "tasks-invoker@valdrics-prod.iam.gserviceaccount.com",
+                    "scheduler-invoker@valdrics-prod.iam.gserviceaccount.com",
+                ],
                 SUPABASE_JWT_SECRET=FAKE_SUPABASE_SECRET,
                 ENCRYPTION_KEY=FAKE_ENCRYPTION_KEY,
                 CSRF_SECRET_KEY=FAKE_CSRF_SECRET,
                 KDF_SALT=FAKE_KDF_SALT,
                 DEBUG=False,
                 TESTING=False,
-                WEB_CONCURRENCY=1,
                 DB_SSL_MODE="require",
                 ADMIN_API_KEY="a" * 32,
                 GROQ_API_KEY="g" * 32,
                 PAYSTACK_SECRET_KEY=FAKE_PAYSTACK_SECRET_KEY,
                 PAYSTACK_PUBLIC_KEY=FAKE_PAYSTACK_PUBLIC_KEY,
                 ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=True,
-                ALLOW_IN_MEMORY_RATE_LIMITS=True,
+                TRUST_PROXY_HEADERS=True,
+                TRUSTED_PROXY_CIDRS=["203.0.113.10/32"],
                 ENFORCEMENT_APPROVAL_TOKEN_SECRET=FAKE_ENFORCEMENT_APPROVAL_SECRET,
                 ENFORCEMENT_EXPORT_SIGNING_SECRET=FAKE_ENFORCEMENT_EXPORT_SECRET,
                 _env_file=None,
             )
-            assert settings.ALLOW_IN_MEMORY_RATE_LIMITS is True
+
+        assert settings.PUBLIC_API_RATE_LIMITING_BACKEND == "cloudflare"
+        assert settings.RATELIMIT_ENABLED is False
+        assert settings.CIRCUIT_BREAKER_DISTRIBUTED_STATE is False
+
+    def test_settings_gcp_cloudflare_profile_rejects_enabled_app_rate_limiter(self):
+        with patch.dict("os.environ", {}, clear=True):
+            with pytest.raises(ValidationError) as exc:
+                Settings(
+                    ENVIRONMENT="production",
+                    DATABASE_URL="postgresql+asyncpg://test",
+                    API_URL=FAKE_API_URL,
+                    FRONTEND_URL=FAKE_FRONTEND_URL,
+                    PLATFORM_RUNTIME_PROFILE="gcp",
+                    OBSERVABILITY_BACKEND="gcp",
+                    PUBLIC_API_RATE_LIMITING_BACKEND="cloudflare",
+                    RATELIMIT_ENABLED=True,
+                    CIRCUIT_BREAKER_DISTRIBUTED_STATE=False,
+                    GCP_PROJECT_ID="valdrics-prod",
+                    GCP_REGION="us-central1",
+                    GCP_CLOUD_TASKS_QUEUE="valdrics-managed-work",
+                    GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL=(
+                        "tasks-invoker@valdrics-prod.iam.gserviceaccount.com"
+                    ),
+                    GCP_CLOUD_RUN_BATCH_JOB_NAME="valdrics-batch",
+                    GCP_CLOUD_RUN_SERVICE_NAME="valdrics-api",
+                    GCP_INTERNAL_BASE_URL="https://valdrics-api-xyz.run.app",
+                    GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS=[
+                        "tasks-invoker@valdrics-prod.iam.gserviceaccount.com",
+                        "scheduler-invoker@valdrics-prod.iam.gserviceaccount.com",
+                    ],
+                    SUPABASE_JWT_SECRET=FAKE_SUPABASE_SECRET,
+                    ENCRYPTION_KEY=FAKE_ENCRYPTION_KEY,
+                    CSRF_SECRET_KEY=FAKE_CSRF_SECRET,
+                    KDF_SALT=FAKE_KDF_SALT,
+                    DEBUG=False,
+                    TESTING=False,
+                    DB_SSL_MODE="require",
+                    OTEL_EXPORTER_OTLP_ENDPOINT=FAKE_OTEL_ENDPOINT,
+                    ADMIN_API_KEY="a" * 32,
+                    GROQ_API_KEY="g" * 32,
+                    PAYSTACK_SECRET_KEY=FAKE_PAYSTACK_SECRET_KEY,
+                    PAYSTACK_PUBLIC_KEY=FAKE_PAYSTACK_PUBLIC_KEY,
+                    ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=True,
+                    TRUST_PROXY_HEADERS=True,
+                    TRUSTED_PROXY_CIDRS=["203.0.113.10/32"],
+                    ENFORCEMENT_APPROVAL_TOKEN_SECRET=FAKE_ENFORCEMENT_APPROVAL_SECRET,
+                    ENFORCEMENT_EXPORT_SIGNING_SECRET=FAKE_ENFORCEMENT_EXPORT_SECRET,
+                    _env_file=None,
+                )
+
+        assert "RATELIMIT_ENABLED must be false" in str(exc.value)
+
+    def test_settings_gcp_cloudflare_profile_rejects_internal_auth_audience_drift(self):
+        with patch.dict("os.environ", {}, clear=True):
+            with pytest.raises(ValidationError) as exc:
+                Settings(
+                    ENVIRONMENT="production",
+                    DATABASE_URL="postgresql+asyncpg://test",
+                    API_URL=FAKE_API_URL,
+                    FRONTEND_URL=FAKE_FRONTEND_URL,
+                    PLATFORM_RUNTIME_PROFILE="gcp",
+                    OBSERVABILITY_BACKEND="gcp",
+                    PUBLIC_API_RATE_LIMITING_BACKEND="cloudflare",
+                    RATELIMIT_ENABLED=False,
+                    CIRCUIT_BREAKER_DISTRIBUTED_STATE=False,
+                    GCP_PROJECT_ID="valdrics-prod",
+                    GCP_REGION="us-central1",
+                    GCP_CLOUD_TASKS_QUEUE="valdrics-managed-work",
+                    GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL=(
+                        "tasks-invoker@valdrics-prod.iam.gserviceaccount.com"
+                    ),
+                    GCP_CLOUD_RUN_BATCH_JOB_NAME="valdrics-batch",
+                    GCP_CLOUD_RUN_SERVICE_NAME="valdrics-api",
+                    GCP_INTERNAL_BASE_URL="https://valdrics-api-xyz.run.app",
+                    GCP_INTERNAL_AUTH_AUDIENCE="https://internal.valdrics.example",
+                    GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS=[
+                        "tasks-invoker@valdrics-prod.iam.gserviceaccount.com",
+                        "scheduler-invoker@valdrics-prod.iam.gserviceaccount.com",
+                    ],
+                    SUPABASE_JWT_SECRET=FAKE_SUPABASE_SECRET,
+                    ENCRYPTION_KEY=FAKE_ENCRYPTION_KEY,
+                    CSRF_SECRET_KEY=FAKE_CSRF_SECRET,
+                    KDF_SALT=FAKE_KDF_SALT,
+                    DEBUG=False,
+                    TESTING=False,
+                    DB_SSL_MODE="require",
+                    ADMIN_API_KEY="a" * 32,
+                    GROQ_API_KEY="g" * 32,
+                    PAYSTACK_SECRET_KEY=FAKE_PAYSTACK_SECRET_KEY,
+                    PAYSTACK_PUBLIC_KEY=FAKE_PAYSTACK_PUBLIC_KEY,
+                    ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=True,
+                    TRUST_PROXY_HEADERS=True,
+                    TRUSTED_PROXY_CIDRS=["203.0.113.10/32"],
+                    ENFORCEMENT_APPROVAL_TOKEN_SECRET=FAKE_ENFORCEMENT_APPROVAL_SECRET,
+                    ENFORCEMENT_EXPORT_SIGNING_SECRET=FAKE_ENFORCEMENT_EXPORT_SECRET,
+                    _env_file=None,
+                )
+
+        assert "GCP_INTERNAL_AUTH_AUDIENCE must match API_URL" in str(exc.value)
+
+    def test_settings_gcp_cloudflare_profile_rejects_run_app_origin(self):
+        with patch.dict("os.environ", {}, clear=True):
+            with pytest.raises(ValidationError) as exc:
+                Settings(
+                    ENVIRONMENT="production",
+                    DATABASE_URL="postgresql+asyncpg://test",
+                    API_URL="https://valdrics-api-xyz.run.app",
+                    FRONTEND_URL=FAKE_FRONTEND_URL,
+                    PLATFORM_RUNTIME_PROFILE="gcp",
+                    OBSERVABILITY_BACKEND="gcp",
+                    PUBLIC_API_RATE_LIMITING_BACKEND="cloudflare",
+                    RATELIMIT_ENABLED=False,
+                    CIRCUIT_BREAKER_DISTRIBUTED_STATE=False,
+                    GCP_PROJECT_ID="valdrics-prod",
+                    GCP_REGION="us-central1",
+                    GCP_CLOUD_TASKS_QUEUE="valdrics-managed-work",
+                    GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL=(
+                        "tasks-invoker@valdrics-prod.iam.gserviceaccount.com"
+                    ),
+                    GCP_CLOUD_RUN_BATCH_JOB_NAME="valdrics-batch",
+                    GCP_CLOUD_RUN_SERVICE_NAME="valdrics-api",
+                    GCP_INTERNAL_BASE_URL="https://valdrics-api-xyz.run.app",
+                    GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS=[
+                        "tasks-invoker@valdrics-prod.iam.gserviceaccount.com",
+                        "scheduler-invoker@valdrics-prod.iam.gserviceaccount.com",
+                    ],
+                    SUPABASE_JWT_SECRET=FAKE_SUPABASE_SECRET,
+                    ENCRYPTION_KEY=FAKE_ENCRYPTION_KEY,
+                    CSRF_SECRET_KEY=FAKE_CSRF_SECRET,
+                    KDF_SALT=FAKE_KDF_SALT,
+                    DEBUG=False,
+                    TESTING=False,
+                    DB_SSL_MODE="require",
+                    ADMIN_API_KEY="a" * 32,
+                    GROQ_API_KEY="g" * 32,
+                    PAYSTACK_SECRET_KEY=FAKE_PAYSTACK_SECRET_KEY,
+                    PAYSTACK_PUBLIC_KEY=FAKE_PAYSTACK_PUBLIC_KEY,
+                    ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=True,
+                    TRUST_PROXY_HEADERS=True,
+                    TRUSTED_PROXY_CIDRS=["203.0.113.10/32"],
+                    ENFORCEMENT_APPROVAL_TOKEN_SECRET=FAKE_ENFORCEMENT_APPROVAL_SECRET,
+                    ENFORCEMENT_EXPORT_SIGNING_SECRET=FAKE_ENFORCEMENT_EXPORT_SECRET,
+                    _env_file=None,
+                )
+
+        assert "Cloudflare-proxied custom hostname" in str(exc.value)
 
     def test_settings_rejects_short_enforcement_fallback_signing_keys(self):
         with patch.dict("os.environ", {}, clear=True):
@@ -875,23 +887,10 @@ class TestSettingsValidation:
         with patch.dict("os.environ", {}, clear=True):
             with pytest.raises(ValidationError) as exc:
                 Settings(
-                    ENVIRONMENT="production",
-                    DATABASE_URL="postgresql+asyncpg://test",
-                    REDIS_URL="redis://localhost:6379",
-                    API_URL=FAKE_API_URL,
-                    FRONTEND_URL=FAKE_FRONTEND_URL,
-                    SUPABASE_JWT_SECRET=FAKE_SUPABASE_SECRET,
-                    ENCRYPTION_KEY=FAKE_ENCRYPTION_KEY,
-                    CSRF_SECRET_KEY=FAKE_CSRF_SECRET,
-                    KDF_SALT=FAKE_KDF_SALT,
-                    DEBUG=False,
-                    TESTING=False,
-                    DB_SSL_MODE="require",
-                    ADMIN_API_KEY="a" * 32,
-                    GROQ_API_KEY="g" * 32,
-                    PAYSTACK_SECRET_KEY=FAKE_PAYSTACK_SECRET_KEY,
-                    PAYSTACK_PUBLIC_KEY=FAKE_PAYSTACK_PUBLIC_KEY,
-                    ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=True,
+                    **strict_managed_production_kwargs(
+                        ENFORCEMENT_APPROVAL_TOKEN_SECRET="",
+                        ENFORCEMENT_EXPORT_SIGNING_SECRET="",
+                    ),
                     _env_file=None,
                 )
             assert "ENFORCEMENT_APPROVAL_TOKEN_SECRET" in str(exc.value)
@@ -899,25 +898,10 @@ class TestSettingsValidation:
     def test_settings_accept_production_enforcement_signing_keys(self):
         with patch.dict("os.environ", {}, clear=True):
             settings = Settings(
-                ENVIRONMENT="production",
-                DATABASE_URL="postgresql+asyncpg://test",
-                REDIS_URL="redis://localhost:6379",
-                API_URL=FAKE_API_URL,
-                FRONTEND_URL=FAKE_FRONTEND_URL,
-                SUPABASE_JWT_SECRET=FAKE_SUPABASE_SECRET,
-                ENCRYPTION_KEY=FAKE_ENCRYPTION_KEY,
-                CSRF_SECRET_KEY=FAKE_CSRF_SECRET,
-                KDF_SALT=FAKE_KDF_SALT,
-                DEBUG=False,
-                TESTING=False,
-                DB_SSL_MODE="require",
-                ADMIN_API_KEY="a" * 32,
-                GROQ_API_KEY="g" * 32,
-                PAYSTACK_SECRET_KEY=FAKE_PAYSTACK_SECRET_KEY,
-                PAYSTACK_PUBLIC_KEY=FAKE_PAYSTACK_PUBLIC_KEY,
-                ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION=True,
-                ENFORCEMENT_APPROVAL_TOKEN_SECRET="a" * 48,
-                ENFORCEMENT_EXPORT_SIGNING_SECRET="x" * 48,
+                **strict_managed_production_kwargs(
+                    ENFORCEMENT_APPROVAL_TOKEN_SECRET="a" * 48,
+                    ENFORCEMENT_EXPORT_SIGNING_SECRET="x" * 48,
+                ),
                 _env_file=None,
             )
 

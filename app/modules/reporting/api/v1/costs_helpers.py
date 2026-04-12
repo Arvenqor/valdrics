@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import csv
 import io
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from fastapi import HTTPException
@@ -12,6 +12,16 @@ from app.modules.reporting.domain.anomaly_detection import CostAnomaly
 from .costs_models import AcceptanceKpisResponse, CostAnomalyItem, UnitEconomicsMetric
 
 CSV_FORMULA_PREFIXES = ("=", "+", "@", "\t")
+
+
+def _to_finite_float(value: Any, *, field_name: str) -> float:
+    try:
+        amount = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError) as exc:
+        raise ValueError(f"{field_name} must be numeric") from exc
+    if not amount.is_finite():
+        raise ValueError(f"{field_name} must be finite")
+    return float(amount)
 
 
 def sanitize_csv_cell(value: Any) -> str:
@@ -44,9 +54,13 @@ def anomaly_to_response_item(item: CostAnomaly) -> CostAnomalyItem:
         account_id=str(item.account_id),
         account_name=item.account_name,
         service=item.service,
-        actual_cost_usd=float(item.actual_cost_usd),
-        expected_cost_usd=float(item.expected_cost_usd),
-        delta_cost_usd=float(item.delta_cost_usd),
+        actual_cost_usd=_to_finite_float(
+            item.actual_cost_usd, field_name="actual_cost_usd"
+        ),
+        expected_cost_usd=_to_finite_float(
+            item.expected_cost_usd, field_name="expected_cost_usd"
+        ),
+        delta_cost_usd=_to_finite_float(item.delta_cost_usd, field_name="delta_cost_usd"),
         percent_change=item.percent_change,
         kind=item.kind,
         probable_cause=item.probable_cause,
@@ -63,6 +77,11 @@ def build_unit_metrics(
     workload_volume: float,
     customer_volume: float,
 ) -> list[UnitEconomicsMetric]:
+    total_cost_value = _to_finite_float(total_cost, field_name="total_cost")
+    baseline_total_cost_value = _to_finite_float(
+        baseline_total_cost,
+        field_name="baseline_total_cost",
+    )
     defs = [
         ("cost_per_request", "Cost Per Request", request_volume),
         ("cost_per_workload", "Cost Per Workload", workload_volume),
@@ -71,10 +90,14 @@ def build_unit_metrics(
 
     metrics: list[UnitEconomicsMetric] = []
     for key, label, denominator in defs:
-        if denominator <= 0:
+        normalized_denominator = _to_finite_float(
+            denominator,
+            field_name=f"{key}_denominator",
+        )
+        if normalized_denominator <= 0:
             continue
-        current_cpu = float(total_cost / Decimal(str(denominator)))
-        baseline_cpu = float(baseline_total_cost / Decimal(str(denominator)))
+        current_cpu = total_cost_value / normalized_denominator
+        baseline_cpu = baseline_total_cost_value / normalized_denominator
         if baseline_cpu > 0:
             delta = ((current_cpu - baseline_cpu) / baseline_cpu) * 100
         else:
@@ -84,8 +107,8 @@ def build_unit_metrics(
             UnitEconomicsMetric(
                 metric_key=key,
                 label=label,
-                denominator=round(denominator, 4),
-                total_cost=float(total_cost),
+                denominator=round(normalized_denominator, 4),
+                total_cost=total_cost_value,
                 cost_per_unit=round(current_cpu, 6),
                 baseline_cost_per_unit=round(baseline_cpu, 6),
                 delta_percent=round(delta, 2),

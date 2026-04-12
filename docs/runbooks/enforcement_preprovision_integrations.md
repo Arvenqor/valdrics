@@ -1,9 +1,12 @@
 # Enforcement Pre-Provision Integration Runbook
 
-This runbook defines the production integration contract for:
+This runbook defines:
 
-1. Terraform/CI preflight gate with approval continuation.
-2. Kubernetes AdmissionReview webhook integration and failure-policy alignment.
+1. the active Terraform/CI preflight gate with approval continuation.
+2. the API contract for Kubernetes AdmissionReview consumers.
+
+The repository Helm chart is archived and is not part of the supported Valdrics
+deployment profile.
 
 ## 1) Terraform preflight and continuation contract
 
@@ -122,9 +125,11 @@ webhooks:
 
 Change `failurePolicy` only with explicit release sign-off and incident rollback plan.
 
-### 2.3 Helm deployment profile (recommended)
+### 2.3 Archived self-managed Helm reference
 
-Use chart values to make rollout intent explicit:
+If you are studying or maintaining the archived self-managed reference, these
+chart values capture the historical rollout intent. They are not the supported
+deployment path for the unified platform:
 
 ```yaml
 enforcementWebhook:

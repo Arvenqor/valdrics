@@ -1,11 +1,17 @@
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.modules.governance.domain.jobs.cur_ingestion import CURIngestionJob
+from app.modules.governance.domain.jobs.cur_ingestion import (
+    CURIngestionJob,
+    _normalize_cur_cost_amount,
+    _normalize_cur_record_timestamp,
+)
+from app.modules.governance.domain.jobs.errors import PermanentJobError
 
 
 @pytest.mark.asyncio
@@ -98,8 +104,21 @@ async def test_execute_requires_tenant_scope():
     db.execute = AsyncMock()
     job = CURIngestionJob(db=db)
 
-    with pytest.raises(ValueError, match="tenant_id is required"):
+    with pytest.raises(PermanentJobError, match="tenant_id is required"):
         await job._execute()
+
+
+def test_cur_ingestion_normalizers_validate_timestamp_and_cost() -> None:
+    assert _normalize_cur_record_timestamp("2026-03-01T00:00:00Z").isoformat() == (
+        "2026-03-01T00:00:00+00:00"
+    )
+    assert _normalize_cur_cost_amount("12.5") == Decimal("12.5")
+
+    with pytest.raises(ValueError, match="ISO 8601"):
+        _normalize_cur_record_timestamp("not-a-timestamp")
+
+    with pytest.raises(ValueError, match="cost_usd must be numeric"):
+        _normalize_cur_cost_amount("not-a-number")
 
 
 @pytest.mark.asyncio
@@ -120,16 +139,24 @@ async def test_ingest_uses_configured_bucket():
     async def _stream_costs(**kwargs):
         del kwargs
         yield {
-            "timestamp": datetime(2026, 3, 1, tzinfo=timezone.utc),
+            "timestamp": "2026-03-01T00:00:00Z",
             "service": "AmazonEC2",
             "region": "us-east-1",
-            "cost_usd": 12.5,
+            "cost_usd": "12.5",
             "currency": "USD",
         }
 
     adapter.stream_cost_and_usage = _stream_costs
     persistence = AsyncMock()
-    persistence.save_records_stream = AsyncMock(return_value={"records_saved": 1})
+    captured_records: list[dict[str, object]] = []
+
+    async def _consume(records, **kwargs):
+        del kwargs
+        async for record in records:
+            captured_records.append(record)
+        return {"records_saved": 1}
+
+    persistence.save_records_stream = AsyncMock(side_effect=_consume)
 
     with (
         patch.object(job, "_build_cur_adapter", return_value=adapter),
@@ -144,6 +171,8 @@ async def test_ingest_uses_configured_bucket():
     assert mock_logger.info.call_args.kwargs["connection_id"] == "conn-3"
     assert mock_logger.info.call_args.kwargs["bucket"] == "custom-cur-bucket"
     assert mock_logger.info.call_args.kwargs["records_saved"] == 1
+    assert captured_records[0]["timestamp"].isoformat() == "2026-03-01T00:00:00+00:00"
+    assert captured_records[0]["cost_usd"] == Decimal("12.5")
 
 
 @pytest.mark.asyncio

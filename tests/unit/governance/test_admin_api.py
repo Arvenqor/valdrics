@@ -19,6 +19,7 @@ from app.models.landing_telemetry_rollup import LandingTelemetryDailyRollup
 from app.models.tenant import Tenant
 from app.models.tenant_growth_funnel_snapshot import TenantGrowthFunnelSnapshot
 from app.shared.core.pricing import PricingTier
+from app.shared.orchestration.contracts import ManagedWorkResult
 
 
 @pytest_asyncio.fixture
@@ -189,11 +190,49 @@ async def test_validate_admin_key_success():
 @pytest.mark.asyncio
 async def test_trigger_analysis_success():
     request = MagicMock(spec=Request)
-    request.app.state.scheduler.daily_analysis_job = AsyncMock()
+    dispatcher = MagicMock()
+    dispatcher.dispatch = AsyncMock(
+        side_effect=[
+            ManagedWorkResult(accepted=True, transport="gcp_cloud_run_jobs"),
+            ManagedWorkResult(accepted=True, transport="gcp_cloud_run_jobs"),
+            ManagedWorkResult(accepted=True, transport="gcp_cloud_run_jobs"),
+        ]
+    )
 
-    resp = await trigger_analysis(request, True)
+    with patch(
+        "app.shared.orchestration.runtime.get_scheduled_trigger_dispatcher",
+        return_value=dispatcher,
+    ):
+        resp = await trigger_analysis(request, True)
+
     assert resp["status"] == "triggered"
-    request.app.state.scheduler.daily_analysis_job.assert_awaited_once()
+    assert "all cohorts" in resp["message"]
+    assert dispatcher.dispatch.await_count == 3
+
+
+@pytest.mark.asyncio
+async def test_trigger_analysis_rejects_incomplete_dispatch():
+    request = MagicMock(spec=Request)
+    dispatcher = MagicMock()
+    dispatcher.dispatch = AsyncMock(
+        side_effect=[
+            ManagedWorkResult(accepted=True, transport="gcp_cloud_run_jobs"),
+            ManagedWorkResult(accepted=False, transport="gcp_cloud_run_jobs"),
+            RuntimeError("dispatcher unavailable"),
+        ]
+    )
+
+    with (
+        patch(
+            "app.shared.orchestration.runtime.get_scheduled_trigger_dispatcher",
+            return_value=dispatcher,
+        ),
+        pytest.raises(HTTPException) as exc,
+    ):
+        await trigger_analysis(request, True)
+
+    assert exc.value.status_code == 503
+    assert "Dispatched 1 of 3 cohorts" in str(exc.value.detail)
 
 
 @pytest.mark.asyncio

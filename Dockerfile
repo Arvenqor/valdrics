@@ -60,7 +60,7 @@ USER appuser
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl --fail --silent --show-error http://127.0.0.1:8000/health/live || exit 1
+    CMD ["/bin/sh", "-c", "curl --fail --silent --show-error \"http://127.0.0.1:${PORT:-8000}/health/live\" || exit 1"]
 
 EXPOSE 8000
 

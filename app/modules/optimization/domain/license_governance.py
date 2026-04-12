@@ -321,7 +321,7 @@ class LicenseGovernanceService(BaseService):
                                 await NotificationDispatcher.notify_license_reclamation(
                                     tenant_id=str(tenant_id),
                                     user_email=user_email,
-                                    last_active_at=last_active or datetime.fromtimestamp(0, tz=timezone.utc),
+                                    last_active_at=last_active,
                                     savings=float(default_seat_price_usd),
                                     grace_period_days=settings.license_reclaim_grace_period_days,
                                     request_id=str(request.id),

@@ -285,6 +285,48 @@ async def test_hybrid_verify_and_stream_cloudkitty_conversion_fallback() -> None
 
 
 @pytest.mark.asyncio
+async def test_hybrid_cloudkitty_stream_skips_invalid_timestamp_and_rate_rows() -> None:
+    adapter = HybridAdapter(
+        _conn(
+            vendor="openstack",
+            auth_method="api_key",
+            connector_config={
+                "auth_url": "https://keystone.example.com",
+                "cloudkitty_base_url": "https://cloudkitty.example.com",
+            },
+        )
+    )
+
+    with (
+        patch.object(adapter, "_get_openstack_token", new=AsyncMock(return_value="token-1")),
+        patch.object(
+            adapter,
+            "_get_json",
+            new=AsyncMock(
+                return_value={
+                    "results": [
+                        {"desc": ["bad-ts"], "qty": 1, "rate": 4},
+                        {"desc": ["2026-01-10T00:00:00Z"], "qty": 1, "rate": "bad"},
+                        {"desc": ["2026-01-11T00:00:00Z"], "qty": 2, "rate": 5},
+                    ]
+                }
+            ),
+        ),
+    ):
+        rows = [
+            row
+            async for row in adapter._stream_cloudkitty_cost_and_usage(
+                datetime(2026, 1, 1, tzinfo=timezone.utc),
+                datetime(2026, 1, 31, tzinfo=timezone.utc),
+            )
+        ]
+
+    assert len(rows) == 1
+    assert rows[0]["timestamp"] == datetime(2026, 1, 11, tzinfo=timezone.utc)
+    assert rows[0]["cost_usd"] == 5.0
+
+
+@pytest.mark.asyncio
 async def test_hybrid_vmware_session_verify_and_stream_error_paths() -> None:
     adapter = HybridAdapter(
         _conn(
@@ -557,6 +599,8 @@ def test_hybrid_url_pricing_ssl_and_manual_feed_branches() -> None:
     assert "must be a JSON object" in (adapter.last_error or "")
     assert adapter._validate_manual_feed([{"cost_usd": 1.0}]) is False
     assert "missing timestamp/date" in (adapter.last_error or "")
+    assert adapter._validate_manual_feed([{"timestamp": "bad-ts", "cost_usd": 1.0}]) is False
+    assert "invalid timestamp/date" in (adapter.last_error or "")
     assert adapter._validate_manual_feed([{"timestamp": "2026-01-01T00:00:00Z", "cost_usd": "x"}]) is False
     assert "must include numeric cost_usd" in (adapter.last_error or "")
 
@@ -582,17 +626,31 @@ async def test_hybrid_feed_stream_non_list_and_default_value_branches() -> None:
             ],
         )
     )
-    rows = [
-        row
-        async for row in adapter.stream_cost_and_usage(
-            datetime(2026, 1, 1, tzinfo=timezone.utc),
-            datetime(2026, 1, 31, tzinfo=timezone.utc),
+    with pytest.raises(ValueError, match="Spend feed entry #2 must include numeric cost_usd or amount_usd"):
+        rows = [
+            row
+            async for row in adapter.stream_cost_and_usage(
+                datetime(2026, 1, 1, tzinfo=timezone.utc),
+                datetime(2026, 1, 31, tzinfo=timezone.utc),
+            )
+        ]
+        assert rows == []
+
+    invalid_ts = HybridAdapter(
+        _conn(
+            auth_method="manual",
+            spend_feed=[{"timestamp": "bad-ts", "cost_usd": 1.0}],
         )
-    ]
-    assert len(rows) == 1
-    assert rows[0]["service"] == "Hybrid Infra"
-    assert rows[0]["cost_usd"] == 0.0
-    assert rows[0]["tags"] == {}
+    )
+    with pytest.raises(ValueError, match="Spend feed entry #1 has invalid timestamp/date"):
+        rows = [
+            row
+            async for row in invalid_ts.stream_cost_and_usage(
+                datetime(2026, 1, 1, tzinfo=timezone.utc),
+                datetime(2026, 1, 31, tzinfo=timezone.utc),
+            )
+        ]
+        assert rows == []
 
 
 @pytest.mark.asyncio
@@ -736,6 +794,41 @@ async def test_hybrid_openstack_vmware_and_ledger_success_branches() -> None:
     assert rows[1]["usage_amount"] is None
     assert rows[1]["usage_unit"] is None
     assert rows[1]["cost_usd"] == 7.7
+
+
+@pytest.mark.asyncio
+async def test_hybrid_ledger_stream_skips_invalid_timestamp_and_amount_rows() -> None:
+    ledger = HybridAdapter(
+        _conn(
+            vendor="ledger",
+            auth_method="api_key",
+            connector_config={"base_url": "https://ledger.example.com"},
+        )
+    )
+
+    with patch.object(
+        ledger,
+        "_get_json",
+        new=AsyncMock(
+            return_value={
+                "records": [
+                    {"timestamp": "bad-ts", "cost_usd": 1.0},
+                    {"timestamp": "2026-01-10T00:00:00Z", "amount_raw": "bad"},
+                    {"timestamp": "2026-01-11T00:00:00Z", "cost_usd": 4.5},
+                ]
+            }
+        ),
+    ):
+        rows = [
+            row
+            async for row in ledger._stream_ledger_http_cost_and_usage(
+                datetime(2026, 1, 1, tzinfo=timezone.utc),
+                datetime(2026, 1, 31, tzinfo=timezone.utc),
+            )
+        ]
+
+    assert len(rows) == 1
+    assert rows[0]["cost_usd"] == 4.5
 
 
 @pytest.mark.asyncio

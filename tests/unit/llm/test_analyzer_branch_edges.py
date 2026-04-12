@@ -68,6 +68,13 @@ def test_output_token_ceiling_and_bind_edge_cases() -> None:
 
     assert analyzer._bind_output_token_ceiling(_AllTypeErrorsLLM(), 512) is None
 
+    class _BrokenBindLLM:
+        def bind(self, **_kwargs: object) -> object:
+            raise AttributeError("missing bind dependency")
+
+    with pytest.raises(AttributeError, match="missing bind dependency"):
+        analyzer._bind_output_token_ceiling(_BrokenBindLLM(), 512)
+
 
 def test_resolve_positive_limit_and_record_to_date_edge_cases() -> None:
     analyzer = FinOpsAnalyzer(MagicMock())
@@ -635,6 +642,25 @@ async def test_process_results_unexpected_parse_and_non_dict_payload() -> None:
         not_dict = await analyzer._process_analysis_results("{}", None, usage_summary)
 
     assert not_dict["llm_raw"]["error"] == "AI analysis produced non-object payload"
+
+
+@pytest.mark.asyncio
+async def test_process_results_model_dump_key_error_bubbles() -> None:
+    analyzer = FinOpsAnalyzer(MagicMock())
+    usage_summary = MagicMock(records=[], tenant_id=None)
+    cache = SimpleNamespace(set_analysis=AsyncMock())
+    payload = SimpleNamespace(model_dump=MagicMock(side_effect=KeyError("missing field")))
+
+    with (
+        patch("app.shared.llm.analyzer.get_cache_service", return_value=cache),
+        patch("app.shared.llm.analyzer.LLMGuardrails.validate_output", return_value=payload),
+        patch(
+            "app.shared.llm.analyzer.SymbolicForecaster.forecast",
+            new=AsyncMock(return_value={}),
+        ),
+    ):
+        with pytest.raises(KeyError, match="missing field"):
+            await analyzer._process_analysis_results("{}", None, usage_summary)
 
 
 @pytest.mark.asyncio

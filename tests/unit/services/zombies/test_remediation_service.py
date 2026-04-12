@@ -716,6 +716,102 @@ async def test_execute_backup_failure_aborts(remediation_service, db_session):
 
 
 @pytest.mark.asyncio
+async def test_execute_unexpected_lookup_error_bubbles(remediation_service, db_session):
+    request_id = uuid4()
+    tenant_id = uuid4()
+    req = MagicMock(spec=RemediationRequest)
+    req.id = request_id
+    req.tenant_id = tenant_id
+    req.status = RemediationStatus.APPROVED
+    req.resource_id = "v-1"
+    req.resource_type = "vol"
+    req.action = RemediationAction.DELETE_VOLUME
+    req.create_backup = False
+    req.reviewed_by_user_id = uuid4()
+    req.estimated_monthly_savings = Decimal("40.0")
+    req.provider = "aws"
+    req.connection_id = None
+    req.action_parameters = {}
+    req.region = "us-east-1"
+
+    mock_res = MagicMock()
+    mock_res.scalar_one_or_none.return_value = req
+    db_session.execute.return_value = mock_res
+
+    with (
+        patch(
+            "app.modules.optimization.domain.remediation.RemediationActionFactory.get_strategy"
+        ) as mock_get_strategy,
+        patch(
+            "app.modules.optimization.domain.remediation.AuditLogger.log",
+            return_value=AsyncMock(),
+        ),
+        patch(
+            "app.modules.optimization.domain.remediation.SafetyGuardrailService"
+        ) as mock_safety,
+    ):
+        mock_safety.return_value.check_all_guards = AsyncMock()
+        mock_strategy = MagicMock()
+        mock_strategy.execute = AsyncMock(
+            side_effect=LookupError("unexpected strategy lookup defect")
+        )
+        mock_get_strategy.return_value = mock_strategy
+
+        with pytest.raises(LookupError, match="unexpected strategy lookup defect"):
+            await remediation_service.execute(
+                request_id, tenant_id, bypass_grace_period=True
+            )
+
+
+@pytest.mark.asyncio
+async def test_execute_unexpected_attribute_error_bubbles(remediation_service, db_session):
+    request_id = uuid4()
+    tenant_id = uuid4()
+    req = MagicMock(spec=RemediationRequest)
+    req.id = request_id
+    req.tenant_id = tenant_id
+    req.status = RemediationStatus.APPROVED
+    req.resource_id = "v-1"
+    req.resource_type = "vol"
+    req.action = RemediationAction.DELETE_VOLUME
+    req.create_backup = False
+    req.reviewed_by_user_id = uuid4()
+    req.estimated_monthly_savings = Decimal("40.0")
+    req.provider = "aws"
+    req.connection_id = None
+    req.action_parameters = {}
+    req.region = "us-east-1"
+
+    mock_res = MagicMock()
+    mock_res.scalar_one_or_none.return_value = req
+    db_session.execute.return_value = mock_res
+
+    with (
+        patch(
+            "app.modules.optimization.domain.remediation.RemediationActionFactory.get_strategy"
+        ) as mock_get_strategy,
+        patch(
+            "app.modules.optimization.domain.remediation.AuditLogger.log",
+            return_value=AsyncMock(),
+        ),
+        patch(
+            "app.modules.optimization.domain.remediation.SafetyGuardrailService"
+        ) as mock_safety,
+    ):
+        mock_safety.return_value.check_all_guards = AsyncMock()
+        mock_strategy = MagicMock()
+        mock_strategy.execute = AsyncMock(
+            side_effect=AttributeError("unexpected strategy attribute defect")
+        )
+        mock_get_strategy.return_value = mock_strategy
+
+        with pytest.raises(AttributeError, match="unexpected strategy attribute defect"):
+            await remediation_service.execute(
+                request_id, tenant_id, bypass_grace_period=True
+            )
+
+
+@pytest.mark.asyncio
 async def test_execute_fails_closed_when_finding_binding_mismatches(
     remediation_service, db_session
 ):

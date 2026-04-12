@@ -91,6 +91,8 @@ def _normalize_path(value: str | None, *, max_length: int = 256) -> str | None:
 def _normalize_timestamp(value: datetime | None) -> datetime | None:
     if value is None:
         return None
+    if not isinstance(value, datetime):
+        return None
     if value.tzinfo is None:
         return value.replace(tzinfo=timezone.utc)
     return value.astimezone(timezone.utc)
@@ -288,7 +290,12 @@ async def record_tenant_growth_funnel_stage(
     source: str | None = None,
     commit: bool = False,
 ) -> TenantGrowthFunnelSnapshot:
-    normalized_time = _normalize_timestamp(occurred_at) or datetime.now(timezone.utc)
+    if occurred_at is None:
+        normalized_time = datetime.now(timezone.utc)
+    else:
+        normalized_time = _normalize_timestamp(occurred_at)
+        if normalized_time is None:
+            raise ValueError("occurred_at must be a timezone-aware or naive datetime")
     normalized_tier = normalize_tier(current_tier)
 
     await _ensure_snapshot_row(db, tenant_id)

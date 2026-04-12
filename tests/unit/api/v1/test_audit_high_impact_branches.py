@@ -9,6 +9,7 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 
+from app.modules.governance.api.v1 import audit_compliance as audit_compliance_api
 from app.modules.governance.api.v1 import audit_partitioning as audit_partitioning_api
 from app.modules.governance.api.v1.audit import (
     _compute_partitioning_evidence,
@@ -110,6 +111,17 @@ async def test_list_load_test_evidence_requires_tenant_context() -> None:
     with pytest.raises(HTTPException) as exc:
         await list_load_test_evidence(_admin_user(None), AsyncMock(), limit=10)
     assert exc.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_export_compliance_pack_requires_tenant_context() -> None:
+    with pytest.raises(HTTPException) as exc:
+        await audit_compliance_api.export_compliance_pack(
+            user=_owner_user(None),
+            db=AsyncMock(),
+        )
+    assert exc.value.status_code == 403
+    assert exc.value.detail == "Tenant context required."
 
 
 @pytest.mark.asyncio

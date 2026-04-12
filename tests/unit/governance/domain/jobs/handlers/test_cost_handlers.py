@@ -1,11 +1,15 @@
 import pytest
 from uuid import uuid4
 from unittest.mock import MagicMock, patch, AsyncMock
+from decimal import Decimal
+from app.modules.governance.domain.jobs.errors import PermanentJobError
 from app.modules.governance.domain.jobs.handlers.costs import (
     CostIngestionHandler,
     CostForecastHandler,
     CostExportHandler,
     CostAnomalyDetectionHandler,
+    _normalize_cost_amount,
+    _normalize_record_timestamp,
 )
 from app.models.background_job import BackgroundJob
 
@@ -14,11 +18,45 @@ class _FatalTestSignal(BaseException):
     """Sentinel fatal error used to assert broad Exception handlers do not swallow BaseException."""
 
 
+def test_cost_ingestion_normalizers_validate_timestamp_and_cost() -> None:
+    assert _normalize_record_timestamp("2026-01-01T00:00:00Z").isoformat() == (
+        "2026-01-01T00:00:00+00:00"
+    )
+    assert _normalize_cost_amount("12.5") == Decimal("12.5")
+
+    with pytest.raises(ValueError, match="ISO 8601"):
+        _normalize_record_timestamp("not-a-timestamp")
+
+    with pytest.raises(ValueError, match="cost_usd must be numeric"):
+        _normalize_cost_amount("not-a-number")
+
+
 @pytest.mark.asyncio
 async def test_ingestion_execute_missing_tenant_id(db):
     handler = CostIngestionHandler()
     job = BackgroundJob(tenant_id=None)
-    with pytest.raises(ValueError):
+    with pytest.raises(PermanentJobError):
+        await handler.execute(job, db)
+
+
+@pytest.mark.asyncio
+async def test_ingestion_execute_rejects_partial_backfill_window(db):
+    handler = CostIngestionHandler()
+    job = BackgroundJob(tenant_id=uuid4(), payload={"start_date": "2026-01-01"})
+
+    with pytest.raises(PermanentJobError, match="Both start_date and end_date"):
+        await handler.execute(job, db)
+
+
+@pytest.mark.asyncio
+async def test_ingestion_execute_rejects_inverted_backfill_window(db):
+    handler = CostIngestionHandler()
+    job = BackgroundJob(
+        tenant_id=uuid4(),
+        payload={"start_date": "2026-01-31", "end_date": "2026-01-01"},
+    )
+
+    with pytest.raises(PermanentJobError, match="start_date must be <= end_date"):
         await handler.execute(job, db)
 
 
@@ -68,15 +106,17 @@ async def test_ingestion_execute_success(db):
         adapter = mock_factory.return_value
 
         # Mock stream
+        captured_records: list[dict[str, object]] = []
+
         async def mock_stream(*args, **kwargs):
-            yield {"cost_usd": 10.0}
+            yield {"cost_usd": "10.0", "timestamp": "2026-01-01T00:00:00Z"}
 
         adapter.stream_cost_and_usage = mock_stream
         persistence = MockPersistence.return_value
 
         async def mock_save_records(records, **kwargs):
-            async for _ in records:
-                pass
+            async for record in records:
+                captured_records.append(record)
             return {"records_saved": 1}
 
         persistence.save_records_stream = AsyncMock(side_effect=mock_save_records)
@@ -89,6 +129,8 @@ async def test_ingestion_execute_success(db):
         assert result["connections_processed"] == 1
         assert result["ingested"] == 1
         assert result["details"][0]["total_cost"] == 10.0
+        assert captured_records[0]["timestamp"].isoformat() == "2026-01-01T00:00:00+00:00"
+        assert str(captured_records[0]["cost_usd"]) == "10.0"
 
 
 @pytest.mark.asyncio
@@ -133,6 +175,18 @@ async def test_forecast_execute_success(db):
 
 
 @pytest.mark.asyncio
+async def test_forecast_execute_rejects_invalid_start_date(db):
+    handler = CostForecastHandler()
+    job = BackgroundJob(
+        tenant_id=uuid4(),
+        payload={"start_date": "bad-date", "end_date": "2023-01-31"},
+    )
+
+    with pytest.raises(PermanentJobError, match="start_date must be an ISO date string"):
+        await handler.execute(job, db)
+
+
+@pytest.mark.asyncio
 async def test_export_execute_success(db):
     handler = CostExportHandler()
     job = BackgroundJob(
@@ -156,6 +210,18 @@ async def test_export_execute_success(db):
         assert result["status"] == "completed"
         assert result["records_exported"] == 3
         assert result["total_cost_usd"] == 150.0
+
+
+@pytest.mark.asyncio
+async def test_export_execute_rejects_invalid_end_date(db):
+    handler = CostExportHandler()
+    job = BackgroundJob(
+        tenant_id=uuid4(),
+        payload={"start_date": "2023-01-01", "end_date": "invalid"},
+    )
+
+    with pytest.raises(PermanentJobError, match="end_date must be an ISO date string"):
+        await handler.execute(job, db)
 
 
 @pytest.mark.asyncio
@@ -248,6 +314,28 @@ async def test_anomaly_detection_execute_with_alerts(db):
 
 
 @pytest.mark.asyncio
+async def test_anomaly_detection_execute_rejects_invalid_target_date(db):
+    handler = CostAnomalyDetectionHandler()
+    job = BackgroundJob(
+        tenant_id=uuid4(),
+        payload={"target_date": "not-a-date"},
+    )
+
+    with (
+        patch(
+            "app.shared.core.pricing.get_tenant_tier",
+            new=AsyncMock(return_value=MagicMock(value="growth")),
+        ),
+        patch(
+            "app.shared.core.pricing.is_feature_enabled",
+            return_value=True,
+        ),
+    ):
+        with pytest.raises(PermanentJobError, match="target_date must be an ISO date string"):
+            await handler.execute(job, db)
+
+
+@pytest.mark.asyncio
 async def test_ingestion_execute_marks_connection_failed_on_recoverable_adapter_errors(db):
     handler = CostIngestionHandler()
     job = BackgroundJob(tenant_id=uuid4(), payload={})
@@ -285,6 +373,108 @@ async def test_ingestion_execute_marks_connection_failed_on_recoverable_adapter_
 
 
 @pytest.mark.asyncio
+async def test_ingestion_execute_invalid_adapter_timestamp_bubbles(db):
+    handler = CostIngestionHandler()
+    job = BackgroundJob(tenant_id=uuid4(), payload={})
+    db.execute = AsyncMock(return_value=None)
+    db.add = MagicMock()
+
+    conn = MagicMock()
+    conn.id = uuid4()
+    conn.provider = "aws"
+    conn.tenant_id = job.tenant_id
+    conn.name = "aws-conn"
+
+    with (
+        patch(
+            "app.modules.governance.domain.jobs.handlers.costs.list_tenant_connections",
+            new=AsyncMock(return_value=[conn]),
+        ),
+        patch("app.shared.adapters.factory.AdapterFactory.get_adapter") as mock_factory,
+        patch(
+            "app.modules.reporting.domain.persistence.CostPersistenceService"
+        ) as persistence_cls,
+        patch(
+            "app.modules.reporting.domain.attribution_engine.AttributionEngine"
+        ) as mock_engine_cls,
+    ):
+        adapter = mock_factory.return_value
+
+        async def mock_stream(*args, **kwargs):
+            del args, kwargs
+            yield {"cost_usd": "10.0", "timestamp": "not-a-timestamp"}
+
+        adapter.stream_cost_and_usage = mock_stream
+        persistence = persistence_cls.return_value
+
+        async def mock_save_records(records, **kwargs):
+            del kwargs
+            count = 0
+            async for _ in records:
+                count += 1
+            return {"records_saved": count}
+
+        persistence.save_records_stream = AsyncMock(side_effect=mock_save_records)
+        mock_engine = AsyncMock()
+        mock_engine.apply_rules_to_tenant.return_value = None
+        mock_engine_cls.return_value = mock_engine
+
+        with pytest.raises(ValueError, match="ISO 8601"):
+            await handler.execute(job, db)
+
+
+@pytest.mark.asyncio
+async def test_ingestion_execute_invalid_adapter_cost_bubbles(db):
+    handler = CostIngestionHandler()
+    job = BackgroundJob(tenant_id=uuid4(), payload={})
+    db.execute = AsyncMock(return_value=None)
+    db.add = MagicMock()
+
+    conn = MagicMock()
+    conn.id = uuid4()
+    conn.provider = "aws"
+    conn.tenant_id = job.tenant_id
+    conn.name = "aws-conn"
+
+    with (
+        patch(
+            "app.modules.governance.domain.jobs.handlers.costs.list_tenant_connections",
+            new=AsyncMock(return_value=[conn]),
+        ),
+        patch("app.shared.adapters.factory.AdapterFactory.get_adapter") as mock_factory,
+        patch(
+            "app.modules.reporting.domain.persistence.CostPersistenceService"
+        ) as persistence_cls,
+        patch(
+            "app.modules.reporting.domain.attribution_engine.AttributionEngine"
+        ) as mock_engine_cls,
+    ):
+        adapter = mock_factory.return_value
+
+        async def mock_stream(*args, **kwargs):
+            del args, kwargs
+            yield {"cost_usd": "not-a-number", "timestamp": "2026-01-01T00:00:00Z"}
+
+        adapter.stream_cost_and_usage = mock_stream
+        persistence = persistence_cls.return_value
+
+        async def mock_save_records(records, **kwargs):
+            del kwargs
+            count = 0
+            async for _ in records:
+                count += 1
+            return {"records_saved": count}
+
+        persistence.save_records_stream = AsyncMock(side_effect=mock_save_records)
+        mock_engine = AsyncMock()
+        mock_engine.apply_rules_to_tenant.return_value = None
+        mock_engine_cls.return_value = mock_engine
+
+        with pytest.raises(ValueError, match="cost_usd must be numeric"):
+            await handler.execute(job, db)
+
+
+@pytest.mark.asyncio
 async def test_ingestion_execute_checkpoints_only_successful_connections_and_preserves_payload(db):
     handler = CostIngestionHandler()
     retained_connection_id = str(uuid4())
@@ -319,7 +509,7 @@ async def test_ingestion_execute_checkpoints_only_successful_connections_and_pre
 
     async def successful_stream(*args, **kwargs):
         del args, kwargs
-        yield {"cost_usd": 5.0}
+        yield {"cost_usd": 5.0, "timestamp": "2026-01-01T00:00:00Z"}
 
     successful_adapter.stream_cost_and_usage = successful_stream
 
@@ -420,7 +610,7 @@ async def test_ingestion_execute_logs_and_continues_on_recoverable_attribution_e
         adapter = mock_factory.return_value
 
         async def mock_stream(*args, **kwargs):
-            yield {"cost_usd": 12.0}
+            yield {"cost_usd": 12.0, "timestamp": "2026-01-01T00:00:00Z"}
 
         adapter.stream_cost_and_usage = mock_stream
         persistence = MockPersistence.return_value
@@ -477,7 +667,7 @@ async def test_ingestion_execute_does_not_swallow_fatal_attribution_errors(db):
         adapter = mock_factory.return_value
 
         async def mock_stream(*args, **kwargs):
-            yield {"cost_usd": 12.0}
+            yield {"cost_usd": 12.0, "timestamp": "2026-01-01T00:00:00Z"}
 
         adapter.stream_cost_and_usage = mock_stream
         persistence = MockPersistence.return_value
@@ -493,4 +683,54 @@ async def test_ingestion_execute_does_not_swallow_fatal_attribution_errors(db):
         mock_engine_cls.return_value = mock_engine
 
         with pytest.raises(_FatalTestSignal):
+            await handler.execute(job, db)
+
+
+@pytest.mark.asyncio
+async def test_ingestion_execute_invalid_attribution_contract_bubbles(db):
+    handler = CostIngestionHandler()
+    job = BackgroundJob(tenant_id=uuid4(), payload={})
+    db.execute = AsyncMock(return_value=None)
+    db.add = MagicMock()
+
+    conn = MagicMock()
+    conn.id = uuid4()
+    conn.provider = "aws"
+    conn.tenant_id = job.tenant_id
+    conn.name = "aws-conn"
+
+    with (
+        patch(
+            "app.modules.governance.domain.jobs.handlers.costs.list_tenant_connections",
+            new=AsyncMock(return_value=[conn]),
+        ),
+        patch("app.shared.adapters.factory.AdapterFactory.get_adapter") as mock_factory,
+        patch(
+            "app.modules.reporting.domain.persistence.CostPersistenceService"
+        ) as MockPersistence,
+        patch(
+            "app.modules.reporting.domain.attribution_engine.AttributionEngine"
+        ) as mock_engine_cls,
+    ):
+        adapter = mock_factory.return_value
+
+        async def mock_stream(*args, **kwargs):
+            yield {"cost_usd": 12.0, "timestamp": "2026-01-01T00:00:00Z"}
+
+        adapter.stream_cost_and_usage = mock_stream
+        persistence = MockPersistence.return_value
+
+        async def consume(records, **kwargs):
+            async for _ in records:
+                pass
+            return {"records_saved": 1}
+
+        persistence.save_records_stream = AsyncMock(side_effect=consume)
+        mock_engine = AsyncMock()
+        mock_engine.apply_rules_to_tenant.side_effect = ValueError(
+            "invalid attribution rule payload"
+        )
+        mock_engine_cls.return_value = mock_engine
+
+        with pytest.raises(ValueError, match="invalid attribution rule payload"):
             await handler.execute(job, db)

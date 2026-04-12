@@ -21,7 +21,6 @@ EMAIL_DELIVERY_RECOVERABLE_EXCEPTIONS = (
     smtplib.SMTPException,
     OSError,
     RuntimeError,
-    TypeError,
     ValueError,
 )
 SALES_INQUIRY_PRIMARY_RECIPIENT = "enterprise@valdrics.com"

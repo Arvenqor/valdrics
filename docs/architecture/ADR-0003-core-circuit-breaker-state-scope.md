@@ -1,7 +1,7 @@
 # ADR-0003: Core Circuit Breaker State Scope
 
 - Date: 2026-02-20
-- Status: Superseded by ADR-0007 on 2026-03-06
+- Status: Superseded by ADR-0007 on 2026-03-06; replaced for the supported runtime by the unified managed GCP contract on 2026-04-11
 
 ## Context
 
@@ -22,6 +22,10 @@ This fail-closed guard is implemented in `app/shared/core/config.py`.
 
 - This ADR remains useful as historical context for why the single-worker guard
   existed.
-- Production defaults now assume Redis-backed distributed breaker state instead
-  of a process-local constraint.
-- Use ADR-0007 as the current runtime authority.
+- The supported managed GCP runtime no longer exposes `WEB_CONCURRENCY`; Cloud
+  Run owns per-instance concurrency and the API container binds the injected
+  `PORT`.
+- Production defaults now keep `CIRCUIT_BREAKER_DISTRIBUTED_STATE=false` for
+  the supported managed GCP profile.
+- Use `docs/DEPLOYMENT.md` and `scheduler_orchestration_sequence.md` as the
+  current managed runtime authority.

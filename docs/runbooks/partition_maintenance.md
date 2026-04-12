@@ -41,10 +41,11 @@ Recommended cadence:
 - `create`: daily (or at least weekly)
 - `validate`: daily (or at least weekly) and alert if missing partitions are detected
 
-If you run this from the internal scheduler or external automation, ensure only
-one instance runs at a time. The script uses a Postgres advisory lock to
-prevent concurrent runs, and any internal API trigger should remain protected
-by `X-Internal-Job-Secret`.
+If you run this from managed automation, keep it under Cloud Scheduler or an
+equivalent single-owner control plane. The script uses a Postgres advisory lock
+to prevent concurrent runs, and any internal API trigger should require
+Google-signed identity for the Cloud Scheduler service account instead of a
+shared secret.
 
 ## Evidence Capture (Procurement / Scale Sign-off)
 

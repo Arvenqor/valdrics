@@ -151,6 +151,29 @@ async def test_leaderboard_populated_all_time_with_mapping_rows() -> None:
 
 
 @pytest.mark.asyncio
+async def test_leaderboard_rejects_non_finite_savings() -> None:
+    row = SimpleNamespace(
+        _mapping={
+            "user_email": "user1@valdrics.io",
+            "total_savings": float("nan"),
+            "remediation_count": 3,
+        }
+    )
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=_result([row]))
+    cache = _Cache(enabled=False, cached_payload=None)
+
+    with patch.object(leaderboards_api, "get_cache_service", return_value=cache):
+        with pytest.raises(ValueError, match="leaderboard savings must be finite"):
+            await leaderboards_api.get_leaderboard(
+                request=object(),
+                period="all",
+                current_user=_user(),
+                db=db,
+            )
+
+
+@pytest.mark.asyncio
 async def test_leaderboard_cache_hit_bypasses_db() -> None:
     cached_payload = {
         "period": "Last 30 Days",

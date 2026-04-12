@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.background_job import BackgroundJob
+from app.modules.governance.domain.jobs.errors import PermanentJobError
 from app.modules.governance.domain.jobs.handlers.base import BaseJobHandler
 from app.shared.core.remediation_results import (
     normalize_remediation_status,
@@ -66,7 +67,7 @@ class RemediationHandler(BaseJobHandler):
 
         tenant_id = job.tenant_id
         if not tenant_id:
-            raise ValueError("tenant_id required for remediation")
+            raise PermanentJobError("tenant_id required for remediation")
 
         payload = job.payload or {}
         request_id = payload.get("request_id")

@@ -183,26 +183,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cp .env.example .env
+          uv run python scripts/generate_local_compose_env.py --output-path .env.compose.dev --seed security-scan-dast-compose-v1
           python3 - <<'PY'
           from pathlib import Path
-          import base64
 
-          path = Path(".env")
+          path = Path(".env.compose.dev")
           lines = path.read_text(encoding="utf-8").splitlines()
           overrides = {
-              "ENVIRONMENT": "development",
-              "DEBUG": "False",
-              "CSRF_SECRET_KEY": "dast_csrf_secret_key_2026_0123456789abcdef",
-              "ENCRYPTION_KEY": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-              "GRAFANA_PASSWORD": "dast_grafana_admin_password_2026_0123456789abcdef",
-              "KDF_SALT": base64.b64encode(b"12345678901234567890123456789012").decode(),
-              "SUPABASE_JWT_SECRET": "dast_supabase_jwt_secret_2026_0123456789abcdef",
-              "ADMIN_API_KEY": "dast_admin_api_key_2026_0123456789abcdef",
-              "DATABASE_URL": "postgresql+asyncpg://postgres:local-dev-change-me@postgres:5432/valdrics",
-              "REDIS_URL": "redis://redis:6379",
+              "DEBUG": "false",
               "APP_RUNTIME_DATA_DIR": "/tmp/valdrics",
-              "CIRCUIT_BREAKER_DISTRIBUTED_STATE": "true",
+              "REDIS_URL": "",
+              "PUBLIC_API_RATE_LIMITING_BACKEND": "cloudflare",
+              "RATELIMIT_ENABLED": "false",
+              "CIRCUIT_BREAKER_DISTRIBUTED_STATE": "false",
               "CIRCUIT_BREAKER_DISTRIBUTED_KEY_PREFIX": "valdrics:circuit",
               "PAYSTACK_WEBHOOK_ALLOWED_IPS": "[\"52.31.139.75\",\"52.49.173.169\",\"52.214.14.220\"]",
           }
@@ -227,7 +220,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker compose up -d --build postgres redis api dashboard
+          docker compose --env-file .env.compose.dev up -d --build postgres api dashboard
 
       - name: Wait for QA readiness
         shell: bash
@@ -247,7 +240,7 @@ jobs:
             fi
             sleep 5
           done
-          docker compose ps
+          docker compose --env-file .env.compose.dev ps
           echo "Ephemeral QA stack did not become healthy in time."
           exit 1
 
@@ -263,4 +256,4 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker compose down -v
+          docker compose --env-file .env.compose.dev down -v

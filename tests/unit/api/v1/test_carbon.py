@@ -471,8 +471,10 @@ def test_carbon_helper_branches() -> None:
 
     user = MagicMock()
     user.tenant_id = None
-    with pytest.raises(HTTPException):
+    with pytest.raises(HTTPException) as exc_info:
         carbon_api._require_tenant_id(user)
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail == "Tenant context required."
 
 
 @pytest.mark.asyncio

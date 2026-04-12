@@ -31,8 +31,6 @@ logger = structlog.get_logger()
 TEAMS_DELIVERY_RECOVERABLE_EXCEPTIONS = (
     httpx.HTTPError,
     RuntimeError,
-    TypeError,
-    ValueError,
     OSError,
 )
 

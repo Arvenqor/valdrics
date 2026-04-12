@@ -78,3 +78,43 @@ async def test_hybrid_adapter_manual_requires_non_empty_feed() -> None:
 
     assert success is False
     assert "at least one record" in (adapter.last_error or "").lower()
+
+
+@pytest.mark.asyncio
+async def test_platform_adapter_stream_rejects_non_numeric_manual_cost() -> None:
+    conn = MagicMock()
+    conn.auth_method = "manual"
+    conn.spend_feed = [
+        {
+            "timestamp": "2026-02-10T00:00:00Z",
+            "service": "Shared Cluster",
+            "amount_usd": "bad",
+        }
+    ]
+    adapter = PlatformAdapter(conn)
+
+    with pytest.raises(ValueError, match="Spend feed entry #1 must include numeric cost_usd or amount_usd"):
+        await adapter.get_cost_and_usage(
+            start_date=datetime(2026, 2, 1, tzinfo=timezone.utc),
+            end_date=datetime(2026, 2, 28, tzinfo=timezone.utc),
+        )
+
+
+@pytest.mark.asyncio
+async def test_hybrid_adapter_stream_rejects_invalid_manual_timestamp() -> None:
+    conn = MagicMock()
+    conn.auth_method = "manual"
+    conn.spend_feed = [
+        {
+            "timestamp": "bad-ts",
+            "service": "Datacenter Core",
+            "cost_usd": 5120.0,
+        }
+    ]
+    adapter = HybridAdapter(conn)
+
+    with pytest.raises(ValueError, match="Spend feed entry #1 has invalid timestamp/date"):
+        await adapter.get_cost_and_usage(
+            start_date=datetime(2026, 2, 1, tzinfo=timezone.utc),
+            end_date=datetime(2026, 2, 28, tzinfo=timezone.utc),
+        )

@@ -4,7 +4,7 @@ import pytest
 
 from scripts.managed_deployment_contract import (
     DECLARED_EXTERNAL_VALUE_KEYS,
-    KOYEB_DASHBOARD_PUBLIC_ENV_KEYS,
+    CLOUDFLARE_PAGES_PUBLIC_ENV_KEYS,
     MIGRATION_BASE_REQUIRED_OPERATOR_INPUT_KEYS,
     RUNTIME_VALIDATION_OPERATOR_INPUT_KEYS,
     TERRAFORM_BASE_REQUIRED_INPUTS,
@@ -19,13 +19,22 @@ from scripts.managed_deployment_contract import (
 def test_runtime_contract_sets_are_stable() -> None:
     assert "API_URL" in DECLARED_EXTERNAL_VALUE_KEYS
     assert "SUPABASE_JWT_SECRET" in RUNTIME_VALIDATION_OPERATOR_INPUT_KEYS
-    assert KOYEB_DASHBOARD_PUBLIC_ENV_KEYS == (
-        "ORIGIN",
+    assert CLOUDFLARE_PAGES_PUBLIC_ENV_KEYS == (
         "PUBLIC_API_URL",
         "PUBLIC_SUPABASE_ANON_KEY",
         "PUBLIC_SUPABASE_URL",
     )
-    assert TERRAFORM_BASE_REQUIRED_INPUTS == ("external_id", "valdrics_account_id")
+    assert TERRAFORM_BASE_REQUIRED_INPUTS == (
+        "gcp_project_id",
+        "gcp_region",
+        "cloudflare_account_id",
+        "cloudflare_zone_id",
+        "cloudflare_pages_project_name",
+        "cloudflare_pages_production_branch",
+        "supabase_organization_id",
+        "supabase_project_name",
+        "supabase_region",
+    )
     assert MIGRATION_BASE_REQUIRED_OPERATOR_INPUT_KEYS == ("DATABASE_URL",)
 
 
@@ -53,13 +62,21 @@ def test_identify_runtime_unresolved_keys_respects_placeholders_and_provider_key
         "API_URL": "https://api.example.com",
         "FRONTEND_URL": "https://app.example.com",
         "DATABASE_URL": "postgresql+asyncpg://user:pass@db.example.com:5432/app",
-        "REDIS_URL": "redis://redis.example.com:6379/0",
+        "GCP_PROJECT_ID": "valdrics-prod",
+        "GCP_REGION": "us-central1",
+        "GCP_CLOUD_TASKS_QUEUE": "valdrics-managed-work",
+        "GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL": (
+            "tasks-invoker@valdrics-prod.iam.gserviceaccount.com"
+        ),
+        "GCP_CLOUD_RUN_SERVICE_NAME": "valdrics-api",
+        "GCP_CLOUD_RUN_BATCH_JOB_NAME": "valdrics-batch",
+        "GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS": (
+            '["tasks-invoker@valdrics-prod.iam.gserviceaccount.com",'
+            '"scheduler-invoker@valdrics-prod.iam.gserviceaccount.com"]'
+        ),
         "SUPABASE_JWT_SECRET": "REPLACE_WITH_SUPABASE_JWT_SECRET",
-        "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN": "arn:aws:iam::123456789012:role/control",
         "PAYSTACK_SECRET_KEY": "sk_live_123",
         "PAYSTACK_PUBLIC_KEY": "pk_live_123",
-        "SENTRY_DSN": "https://key@example.ingest.sentry.io/1",
-        "OTEL_EXPORTER_OTLP_ENDPOINT": "https://otel.example.com:4317",
         "TRUSTED_PROXY_CIDRS": '["10.0.0.0/8"]',
         "GOOGLE_API_KEY": "REPLACE_WITH_GOOGLE_API_KEY",
     }

@@ -14,6 +14,13 @@ logger = structlog.get_logger()
 REMEDIATION_ACTION_EXECUTION_RECOVERABLE_EXCEPTIONS = (
     remediation_action_recoverable_exceptions()
 )
+REMEDIATION_ACTION_PROGRAMMER_ERRORS: tuple[type[BaseException], ...] = (
+    AssertionError,
+    AttributeError,
+    KeyError,
+    LookupError,
+    NotImplementedError,
+)
 
 
 class ExecutionStatus(str, Enum):
@@ -133,6 +140,8 @@ class BaseRemediationAction(ABC):
                 action_taken=action_name,
                 error_message=str(e)
             )
+        except REMEDIATION_ACTION_PROGRAMMER_ERRORS:
+            raise
         except Exception as e:
             logger.error(
                 "remediation_action_unexpected_failure",

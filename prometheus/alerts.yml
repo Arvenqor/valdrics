@@ -100,14 +100,14 @@ groups:
           summary: "Audit log retention sweep failures detected"
           description: "{{ $value }} audit-log retention failures were recorded in the last hour"
 
-      - alert: SchedulerInlineFallbackActive
-        expr: sum(increase(valdrics_scheduler_inline_fallback_total[15m])) > 0
+      - alert: SchedulerDispatchFailClosedDetected
+        expr: sum by (job_name, work_item, runtime_profile) (increase(valdrics_scheduler_dispatch_fail_closed_total[15m])) > 0
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "Scheduler inline fallback is active"
-          description: "{{ $value }} scheduler dispatches used inline fallback in the last 15 minutes"
+          summary: "Scheduler dispatch is failing closed"
+          description: "{{ $value }} fail-closed scheduler dispatches were recorded for {{ $labels.job_name }} ({{ $labels.work_item }}, {{ $labels.runtime_profile }}) in the last 15 minutes"
 
   - name: valdrics-growth
     rules:

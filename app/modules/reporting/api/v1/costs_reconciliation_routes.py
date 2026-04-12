@@ -4,7 +4,6 @@ import csv
 import io
 from collections.abc import AsyncIterator, Callable
 from datetime import date
-from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
@@ -23,6 +22,25 @@ from app.modules.reporting.domain.focus_export import (
 )
 from app.modules.reporting.domain.reconciliation import CostReconciliationService
 from app.shared.core.auth import CurrentUser
+
+
+def _serialize_invoice_payload(
+    service: CostReconciliationService,
+    invoice: Any,
+) -> dict[str, Any]:
+    return {
+        "id": str(invoice.id),
+        "provider": invoice.provider,
+        "period_start": invoice.period_start.isoformat(),
+        "period_end": invoice.period_end.isoformat(),
+        "invoice_number": invoice.invoice_number,
+        "currency": invoice.currency,
+        "total_amount": service._to_float(invoice.total_amount),
+        "total_amount_usd": service._to_float(invoice.total_amount_usd),
+        "status": invoice.status,
+        "notes": invoice.notes,
+        "updated_at": invoice.updated_at.isoformat() if invoice.updated_at else None,
+    }
 
 
 async def get_reconciliation_close_package_impl(
@@ -176,19 +194,7 @@ async def list_provider_invoices_impl(
         end_date=end_date,
     )
     return [
-        {
-            "id": str(inv.id),
-            "provider": inv.provider,
-            "period_start": inv.period_start.isoformat(),
-            "period_end": inv.period_end.isoformat(),
-            "invoice_number": inv.invoice_number,
-            "currency": inv.currency,
-            "total_amount": float(inv.total_amount or 0),
-            "total_amount_usd": float(inv.total_amount_usd or 0),
-            "status": inv.status,
-            "notes": inv.notes,
-            "updated_at": inv.updated_at.isoformat() if inv.updated_at else None,
-        }
+        _serialize_invoice_payload(service, inv)
         for inv in invoices
     ]
 
@@ -213,7 +219,7 @@ async def upsert_provider_invoice_impl(
             start_date=payload.start_date,
             end_date=payload.end_date,
             currency=payload.currency,
-            total_amount=Decimal(str(payload.total_amount or 0)),
+            total_amount=payload.total_amount,
             invoice_number=payload.invoice_number,
             status=payload.status,
             notes=payload.notes,
@@ -236,7 +242,7 @@ async def upsert_provider_invoice_impl(
                 "period_start": invoice.period_start.isoformat(),
                 "period_end": invoice.period_end.isoformat(),
                 "currency": invoice.currency,
-                "total_amount_usd": float(invoice.total_amount_usd or 0),
+                "total_amount_usd": service._to_float(invoice.total_amount_usd),
                 "status": invoice.status,
             },
             request_method=request.method,
@@ -250,21 +256,7 @@ async def upsert_provider_invoice_impl(
 
     return {
         "status": "success",
-        "invoice": {
-            "id": str(invoice.id),
-            "provider": invoice.provider,
-            "period_start": invoice.period_start.isoformat(),
-            "period_end": invoice.period_end.isoformat(),
-            "invoice_number": invoice.invoice_number,
-            "currency": invoice.currency,
-            "total_amount": float(invoice.total_amount or 0),
-            "total_amount_usd": float(invoice.total_amount_usd or 0),
-            "status": invoice.status,
-            "notes": invoice.notes,
-            "updated_at": invoice.updated_at.isoformat()
-            if invoice.updated_at
-            else None,
-        },
+        "invoice": _serialize_invoice_payload(service, invoice),
     }
 
 

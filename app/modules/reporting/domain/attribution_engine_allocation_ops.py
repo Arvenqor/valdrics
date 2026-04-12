@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any, cast
 import uuid
 
@@ -26,6 +26,16 @@ __all__ = [
     "get_unallocated_analysis",
     "simulate_rule",
 ]
+
+
+def _coerce_finite_float(value: Any, *, field_name: str) -> float:
+    try:
+        amount = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError) as exc:
+        raise ValueError(f"{field_name} must be numeric") from exc
+    if not amount.is_finite():
+        raise ValueError(f"{field_name} must be finite")
+    return float(amount)
 
 
 def match_conditions(cost_record: CostRecord, conditions: dict[str, Any]) -> bool:
@@ -327,12 +337,18 @@ async def get_allocation_summary(
         "buckets": [
             {
                 "name": row.allocated_to,
-                "total_amount": float(row.total_amount),
+                "total_amount": _coerce_finite_float(
+                    row.total_amount,
+                    field_name="total_amount",
+                ),
                 "record_count": row.record_count,
             }
             for row in rows
         ],
-        "total": sum(float(row.total_amount) for row in rows),
+        "total": sum(
+            _coerce_finite_float(row.total_amount, field_name="total_amount")
+            for row in rows
+        ),
     }
 
 
@@ -358,7 +374,7 @@ async def get_allocation_coverage(
 
     total_result = await db.execute(total_query)
     total_row = total_result.one()
-    total_cost = float(total_row.total_cost or 0)
+    total_cost = _coerce_finite_float(total_row.total_cost or 0, field_name="total_cost")
     total_records = int(total_row.total_records or 0)
 
     allocated_query = (
@@ -383,7 +399,10 @@ async def get_allocation_coverage(
 
     allocated_result = await db.execute(allocated_query)
     allocated_row = allocated_result.one()
-    raw_allocated_cost = float(allocated_row.allocated_cost or 0)
+    raw_allocated_cost = _coerce_finite_float(
+        allocated_row.allocated_cost or 0,
+        field_name="allocated_cost",
+    )
     allocated_cost = min(raw_allocated_cost, total_cost) if total_cost > 0 else 0.0
     over_allocated_cost = max(raw_allocated_cost - total_cost, 0.0)
     coverage_percentage = (allocated_cost / total_cost * 100.0) if total_cost > 0 else 0.0
@@ -441,7 +460,10 @@ async def get_unallocated_analysis(
     return [
         {
             "service": row.service,
-            "amount": float(row.total_unallocated),
+            "amount": _coerce_finite_float(
+                row.total_unallocated,
+                field_name="total_unallocated",
+            ),
             "count": row.record_count,
             "recommendation": (
                 f"Create a DIRECT rule for service '{row.service}' to a specific team bucket."

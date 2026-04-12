@@ -1,9 +1,12 @@
-# Scheduler Orchestration Sequence (2026-03-06)
+# Managed Scheduler Orchestration Sequence (2026-04-11)
 
-This document captures the runtime orchestration flow spanning:
+This document captures the managed-runtime orchestration flow spanning:
 
-- `app/tasks/scheduler_tasks.py`
-- `app/modules/governance/domain/scheduler/orchestrator.py`
+- `app/modules/governance/api/v1/internal_orchestration.py`
+- `app/shared/orchestration/security.py`
+- `app/shared/orchestration/runtime.py`
+- `app/shared/orchestration/execution.py`
+- `app/shared/orchestration/managed_work_runners.py`
 - scheduler/job handlers and persistence boundaries
 
 ## Core Sequence
@@ -11,39 +14,54 @@ This document captures the runtime orchestration flow spanning:
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Beat as Celery Beat
-    participant Tasks as scheduler_tasks.py
-    participant Orch as orchestrator.py
-    participant Handler as Job Handler
+    participant Cron as Cloud Scheduler
+    participant Auth as Google OIDC
+    participant API as internal_orchestration.py
+    participant Dispatch as managed runtime dispatcher
+    participant Tasks as Cloud Tasks
+    participant Jobs as Cloud Run Jobs
+    participant Worker as repository-managed local worker loop
     participant DB as PostgreSQL
-    participant Redis as Redis
     participant Obs as Tracing/Logs
 
-    Beat->>Tasks: trigger scheduled sweep
-    Tasks->>Obs: start schedule span + metadata
-    Tasks->>Orch: enqueue or execute orchestration step
-    Orch->>Redis: acquire distributed guard / lock
-    Redis-->>Orch: lock status
-    alt lock acquired
-        Orch->>DB: read due jobs + tenant context
-        Orch->>Handler: execute job payload
-        Handler->>DB: persist state transition + evidence
-        Handler->>Obs: emit success/failure telemetry
-        Orch->>Redis: release lock/update breaker probes
-        Orch-->>Tasks: orchestration result
-        Tasks->>Obs: close span (success)
-    else lock not acquired
-        Orch->>Obs: emit contention event
-        Orch-->>Tasks: skip/defer result
-        Tasks->>Obs: close span (deferred)
+    Cron->>API: POST /api/v1/internal/scheduler/dispatch
+    API->>Auth: require_internal_platform_invocation()
+    Auth-->>API: google_oidc subject + email
+    API->>Dispatch: dispatch ManagedWorkRequest
+    alt task execution mode
+        Dispatch->>Tasks: enqueue /api/v1/internal/tasks/dispatch
+        Tasks->>API: POST /api/v1/internal/tasks/dispatch
+        API->>Worker: execute_managed_work_request()
+        Worker->>DB: read/write job state
+        Worker->>Obs: emit success/failure telemetry
+    else batch execution mode
+        Dispatch->>Jobs: launch Cloud Run job
+        Jobs->>Worker: run job container
+        Worker->>DB: read/write job state
+        Worker->>Obs: emit success/failure telemetry
     end
+    Dispatch-->>API: accepted/result metadata
+    API-->>Cron: response body
 ```
+
+## Repository-Managed Local Loop
+
+- Local verification uses the same managed work runners that the production
+  runtime calls through the dispatcher.
+- The local loop exercises `managed_work_runners.py` directly and does not rely
+  on broker-driven fallback behavior.
+- Production OIDC delivery targets the direct Cloud Run `run.app` URL while
+  validating the public `API_URL` audience through Cloud Run custom audiences.
+- The dispatch contract is fail-closed: missing Google identity auth, missing
+  Cloud Tasks configuration, or unavailable Cloud Run job metadata should abort
+  dispatch instead of degrading to a legacy execution path.
 
 ## Concurrency and Deterministic Replay
 
-- Lock/guard ownership is explicit at orchestration entry before mutable job
-  transitions.
-- Job handlers persist state transitions atomically to support deterministic replay.
+- Lock and deduplication ownership is explicit at orchestration entry before
+  mutable job transitions.
+- Job handlers persist state transitions atomically to support deterministic
+  replay.
 - Deferred paths must log deterministic reason codes (`contention`, `guard`, or
   `dependency_unavailable`) to make reruns reproducible.
 
@@ -58,12 +76,15 @@ sequenceDiagram
 
 ## Failure Modes and Operational Misconfiguration Guards
 
-- Redis unavailable:
-  - protected distributed flows fail closed with explicit telemetry.
+- Google OIDC auth failure:
+  - internal scheduler dispatch aborts before work acceptance.
+- Cloud Tasks unavailable:
+  - task-mode dispatch fails closed and emits explicit telemetry.
+- Cloud Run Jobs unavailable:
+  - batch-mode dispatch fails closed and emits explicit telemetry.
 - Database transaction failure:
-  - handler state changes roll back; orchestrator records failure reason and retry
-    eligibility.
+  - handler state changes roll back; orchestrator records failure reason and
+    retry eligibility.
 - Misconfigured queue/schedule:
-  - startup/config validation blocks unsafe runtime where required env controls are
-    missing.
-
+  - startup/config validation blocks unsafe runtime where required env controls
+    are missing.

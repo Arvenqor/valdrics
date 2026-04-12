@@ -2,11 +2,14 @@ import pytest
 from uuid import uuid4
 from unittest.mock import MagicMock, patch, AsyncMock
 from app.modules.governance.domain.jobs.handlers.billing import RecurringBillingHandler
-from app.modules.governance.domain.jobs.errors import PermanentJobError
+from app.modules.governance.domain.jobs.errors import JobExecutionError, PermanentJobError
 from app.models.background_job import BackgroundJob
 
 # We need to mock the imports logic inside the handler
 from app.modules.billing.domain.billing.paystack_billing import TenantSubscription
+from app.modules.billing.domain.billing.paystack_service_impl import (
+    RenewalOperationalError,
+)
 from app.models.pricing import PricingPlan
 
 
@@ -15,9 +18,19 @@ async def test_execute_missing_subscription_id(db):
     handler = RecurringBillingHandler()
     job = BackgroundJob(tenant_id=uuid4(), payload={})
 
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(PermanentJobError) as exc:
         await handler.execute(job, db)
     assert "subscription_id required" in str(exc.value)
+
+
+@pytest.mark.asyncio
+async def test_execute_invalid_subscription_id(db):
+    handler = RecurringBillingHandler()
+    job = BackgroundJob(tenant_id=uuid4(), payload={"subscription_id": "not-a-uuid"})
+
+    with pytest.raises(PermanentJobError) as exc:
+        await handler.execute(job, db)
+    assert "valid uuid" in str(exc.value).lower()
 
 
 @pytest.mark.asyncio
@@ -102,6 +115,33 @@ async def test_execute_charge_failed(db):
         service_instance = MockService.return_value
         service_instance.charge_renewal = AsyncMock(return_value=False)
 
-        with pytest.raises(Exception) as exc:
+        with pytest.raises(JobExecutionError) as exc:
             await handler.execute(job, db)
         assert "Paystack charge failed" in str(exc.value)
+
+
+@pytest.mark.asyncio
+async def test_execute_renewal_operational_failure_is_retryable(db):
+    handler = RecurringBillingHandler()
+    job = BackgroundJob(tenant_id=uuid4(), payload={"subscription_id": str(uuid4())})
+
+    sub = MagicMock(spec=TenantSubscription)
+    sub.status = "active"
+
+    db.execute = AsyncMock(
+        return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=sub))
+    )
+
+    with patch(
+        "app.modules.billing.domain.billing.paystack_billing.BillingService"
+    ) as MockService:
+        service_instance = MockService.return_value
+        service_instance.charge_renewal = AsyncMock(
+            side_effect=RenewalOperationalError(
+                "Subscription pricing unavailable for renewal"
+            )
+        )
+
+        with pytest.raises(JobExecutionError) as exc:
+            await handler.execute(job, db)
+        assert "Subscription pricing unavailable for renewal" in str(exc.value)

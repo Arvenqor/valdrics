@@ -214,6 +214,40 @@ async def test_saas_manual_feed_stream_skips_out_of_range_records() -> None:
 
 
 @pytest.mark.asyncio
+async def test_saas_manual_feed_stream_rejects_non_numeric_cost() -> None:
+    adapter = SaaSAdapter(
+        _saas_credentials(
+            spend_feed=[
+                {"timestamp": "2026-01-15T00:00:00Z", "cost_usd": "bad", "service": "Broken"}
+            ]
+        )
+    )
+
+    with pytest.raises(ValueError, match="Spend feed entry #1 must include numeric cost_usd or amount_usd"):
+        await adapter.get_cost_and_usage(
+            start_date=datetime(2026, 1, 1, tzinfo=timezone.utc),
+            end_date=datetime(2026, 1, 31, tzinfo=timezone.utc),
+        )
+
+
+@pytest.mark.asyncio
+async def test_saas_manual_feed_stream_rejects_invalid_timestamp() -> None:
+    adapter = SaaSAdapter(
+        _saas_credentials(
+            spend_feed=[
+                {"timestamp": "bad-ts", "cost_usd": 1.0, "service": "Broken"}
+            ]
+        )
+    )
+
+    with pytest.raises(ValueError, match="Spend feed entry #1 has invalid timestamp/date"):
+        await adapter.get_cost_and_usage(
+            start_date=datetime(2026, 1, 1, tzinfo=timezone.utc),
+            end_date=datetime(2026, 1, 31, tzinfo=timezone.utc),
+        )
+
+
+@pytest.mark.asyncio
 async def test_saas_verify_stripe_calls_balance_endpoint() -> None:
     adapter = SaaSAdapter(
         _saas_credentials(
@@ -279,6 +313,32 @@ async def test_saas_stream_stripe_branch_paths_non_dict_out_of_range_conversion_
 
 
 @pytest.mark.asyncio
+async def test_saas_stream_stripe_skips_invalid_timestamp_rows() -> None:
+    adapter = SaaSAdapter(
+        _saas_credentials(
+            platform="stripe",
+            auth_method="api_key",
+            api_key="example_stripe_api_key",
+        )
+    )
+    start = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    end = datetime(2026, 1, 31, tzinfo=timezone.utc)
+    payload = {
+        "data": [
+            {"id": "bad-ts", "created": "bad", "total": 1000, "currency": "usd"},
+            {"id": "live-1", "created": int((start + timedelta(days=1)).timestamp()), "total": 2500, "currency": "usd"},
+        ],
+        "has_more": False,
+    }
+
+    with patch("app.shared.adapters.saas.get_http_client", return_value=_FakeAsyncClient([_FakeResponse(payload)])):
+        rows = [row async for row in adapter._stream_stripe_cost_and_usage(start, end)]
+
+    assert len(rows) == 1
+    assert rows[0]["resource_id"] == "live-1"
+
+
+@pytest.mark.asyncio
 async def test_saas_stream_salesforce_missing_instance_url_raises() -> None:
     adapter = SaaSAdapter(
         _saas_credentials(platform="salesforce", auth_method="oauth", api_key="token", connector_config={})
@@ -337,6 +397,32 @@ async def test_saas_stream_salesforce_branch_paths_non_dict_out_of_range_convers
     assert len(rows) == 1
     assert rows[0]["service"] == "Salesforce Contract"
     warning.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_saas_stream_salesforce_skips_invalid_timestamp_rows() -> None:
+    adapter = SaaSAdapter(
+        _saas_credentials(
+            platform="salesforce",
+            auth_method="oauth",
+            api_key="token",
+            connector_config={"instance_url": "https://example.my.salesforce.com"},
+        )
+    )
+    start = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    end = datetime(2026, 1, 31, tzinfo=timezone.utc)
+    payload = {
+        "records": [
+            {"Id": "bad-ts", "ServiceDate": "not-a-date", "TotalPrice": "1", "CurrencyIsoCode": "USD"},
+            {"Id": "live-1", "ServiceDate": "2026-01-10", "TotalPrice": "92.0", "CurrencyIsoCode": "USD"},
+        ]
+    }
+
+    with patch("app.shared.adapters.saas.get_http_client", return_value=_FakeAsyncClient([_FakeResponse(payload)])):
+        rows = [row async for row in adapter._stream_salesforce_cost_and_usage(start, end)]
+
+    assert len(rows) == 1
+    assert rows[0]["resource_id"] == "live-1"
 
 
 @pytest.mark.asyncio

@@ -4,11 +4,13 @@ from datetime import datetime, timezone
 from typing import Any, Dict
 from uuid import UUID
 
+import httpx
 import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.background_job import BackgroundJob
+from app.modules.governance.domain.jobs.errors import JobExecutionError, PermanentJobError
 from app.modules.governance.domain.jobs.handlers.base import BaseJobHandler
 from app.shared.core.config import get_settings
 from app.shared.core.webhooks import sanitize_webhook_headers, validate_webhook_url
@@ -35,7 +37,7 @@ class NotificationHandler(BaseJobHandler):
         severity = payload.get("severity", "info")
 
         if not message:
-            raise ValueError("message required for notification")
+            raise PermanentJobError("message required for notification")
 
         service = None
         if job.tenant_id:
@@ -64,11 +66,11 @@ class NotificationHandler(BaseJobHandler):
 
         inquiry_id_raw = str(payload.get("inquiry_id", "") or "").strip()
         if not inquiry_id_raw:
-            raise ValueError("inquiry_id required for sales_intake_email")
+            raise PermanentJobError("inquiry_id required for sales_intake_email")
         try:
             inquiry_id = UUID(inquiry_id_raw)
         except ValueError as exc:
-            raise ValueError("inquiry_id must be a valid UUID") from exc
+            raise PermanentJobError("inquiry_id must be a valid UUID") from exc
 
         inquiry = (
             await db.execute(
@@ -107,7 +109,7 @@ class NotificationHandler(BaseJobHandler):
                 utm_medium=inquiry.utm_medium,
                 utm_campaign=inquiry.utm_campaign,
             )
-        except (RuntimeError, TypeError, ValueError, OSError) as exc:
+        except (RuntimeError, OSError) as exc:
             inquiry.delivery_status = "delivery_failed"
             inquiry.last_delivery_error = str(exc)
             await db.flush()
@@ -117,13 +119,13 @@ class NotificationHandler(BaseJobHandler):
                 email_hash=inquiry.email_hash,
                 error=str(exc),
             )
-            raise
+            raise JobExecutionError(str(exc)) from exc
 
         if not success:
             inquiry.delivery_status = "delivery_failed"
             inquiry.last_delivery_error = "sales_inquiry_email_delivery_failed"
             await db.flush()
-            raise RuntimeError("sales_inquiry_email_delivery_failed")
+            raise JobExecutionError("sales_inquiry_email_delivery_failed")
 
         inquiry.delivery_status = "delivered"
         inquiry.delivered_at = datetime.now(timezone.utc)
@@ -157,32 +159,38 @@ class WebhookRetryHandler(BaseJobHandler):
         headers = payload.get("headers", {})
 
         if not url:
-            raise ValueError("url required for generic webhook_retry")
+            raise PermanentJobError("url required for generic webhook_retry")
 
         settings = get_settings()
         allowlist = {d.lower() for d in settings.WEBHOOK_ALLOWED_DOMAINS if d}
         if not allowlist:
-            raise ValueError(
+            raise JobExecutionError(
                 "WEBHOOK_ALLOWED_DOMAINS must be configured for generic webhook retries"
             )
 
-        validate_webhook_url(
-            url=url,
-            allowlist=allowlist,
-            require_https=settings.WEBHOOK_REQUIRE_HTTPS,
-            block_private_ips=settings.WEBHOOK_BLOCK_PRIVATE_IPS,
-        )
+        try:
+            validate_webhook_url(
+                url=url,
+                allowlist=allowlist,
+                require_https=settings.WEBHOOK_REQUIRE_HTTPS,
+                block_private_ips=settings.WEBHOOK_BLOCK_PRIVATE_IPS,
+            )
+        except ValueError as exc:
+            raise PermanentJobError(str(exc)) from exc
 
         try:
             headers = sanitize_webhook_headers(headers)
         except ValueError as exc:
             logger.warning("webhook_headers_rejected", error=str(exc))
-            raise
+            raise PermanentJobError(str(exc)) from exc
 
         from app.shared.core.http import get_http_client
 
         client = get_http_client()
-        response = await client.post(url, json=data, headers=headers, timeout=30)
-        response.raise_for_status()
+        try:
+            response = await client.post(url, json=data, headers=headers, timeout=30)
+            response.raise_for_status()
+        except (httpx.HTTPError, RuntimeError, OSError) as exc:
+            raise JobExecutionError(str(exc)) from exc
 
         return {"status": "completed", "status_code": response.status_code}

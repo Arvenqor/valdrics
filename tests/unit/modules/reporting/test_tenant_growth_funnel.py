@@ -228,3 +228,22 @@ async def test_growth_funnel_preserves_highest_tier_and_advances_last_touch(
     assert refreshed.current_tier == PricingTier.PRO.value
     assert refreshed.last_touch_at == later_touch
     assert refreshed.first_touch_at == first_touch
+
+
+@pytest.mark.asyncio
+async def test_record_tenant_growth_funnel_stage_rejects_invalid_occurred_at_type(
+    growth_db_session: AsyncSession,
+) -> None:
+    tenant = Tenant(id=uuid4(), name="Invalid Timestamp Tenant", plan=PricingTier.FREE.value)
+    growth_db_session.add(tenant)
+    await growth_db_session.commit()
+
+    with pytest.raises(ValueError, match="occurred_at must be a timezone-aware or naive datetime"):
+        await record_tenant_growth_funnel_stage(
+            growth_db_session,
+            tenant_id=tenant.id,
+            stage="tenant_onboarded",
+            occurred_at="2026-03-01T00:00:00Z",  # type: ignore[arg-type]
+            current_tier=PricingTier.FREE,
+            commit=False,
+        )

@@ -10,7 +10,6 @@ from collections.abc import Awaitable
 import structlog
 from typing import Any, Dict, List
 from datetime import datetime, timezone, timedelta
-from httpx import HTTPError
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,12 +27,10 @@ from app.shared.core.health_check_ops import (
 from app.shared.core.circuit_breaker import get_all_circuit_breakers
 from app.shared.db.session import health_check as db_health_check
 from app.shared.core.cache import get_cache_service
-from app.shared.core.async_utils import maybe_await
 
 logger = structlog.get_logger()
 HEALTH_RECOVERABLE_ERRORS = (
     SQLAlchemyError,
-    HTTPError,
     RuntimeError,
     OSError,
     TimeoutError,
@@ -45,7 +42,7 @@ HEALTH_RECOVERABLE_ERRORS = (
 )
 HEALTH_FALLBACK_STATUSES: dict[str, str] = {
     "database": "down",
-    "cache": "unhealthy",
+    "cache": "degraded",
     "external_services": "degraded",
     "circuit_breakers": "unknown",
     "system_resources": "unknown",
@@ -107,17 +104,13 @@ class HealthService:
         """Run system health checks and return a lifecycle-friendly payload."""
         health = await self.comprehensive_health_check()
 
-        # Format for tests which expect specific keys at root
-        # and 'up'/'down' status for the database
         return {
             "status": health["status"],
             "timestamp": health["timestamp"],
             "database": health["checks"]["database"],
-            "redis": health["checks"]["cache"],  # Tests expect 'redis' key
-            "aws": health["checks"]["external_services"]["services"].get(
-                "aws_sts", {"status": "unknown"}
-            ),
-            "system": health["checks"]["system_resources"],
+            "cache": health["checks"]["cache"],
+            "external_services": health["checks"]["external_services"],
+            "system_resources": health["checks"]["system_resources"],
             "checks": health["checks"],
         }
 
@@ -125,49 +118,6 @@ class HealthService:
         """Public method for checking database status, return (is_healthy, details)."""
         status = await self._check_database()
         return status["status"] == "up", status
-
-    async def check_redis(self) -> tuple[bool, Dict[str, Any]]:
-        """Public method for checking redis status, return (is_healthy, details)."""
-        try:
-            from app.shared.core.rate_limit import get_redis_client
-
-            settings = get_settings()
-
-            if not settings.REDIS_URL:
-                return True, {"status": "skipped"}
-
-            client = get_redis_client()
-            if not client:
-                return False, {"error": "Redis client not available"}
-
-            await maybe_await(client.ping())
-            return True, {"latency_ms": 0}  # Could measure actual latency
-
-        except HEALTH_RECOVERABLE_ERRORS as e:
-            return False, {"error": str(e)}
-
-    async def check_aws(self) -> tuple[bool, Dict[str, Any]]:
-        """Public method for checking AWS connectivity, return (is_reachable, details)."""
-        try:
-            from app.shared.core.http import get_http_client
-
-            client = get_http_client()
-            response = await client.get(
-                "https://sts.amazonaws.com",
-                timeout=self._health_timeout_seconds(component="external_services"),
-            )
-
-            if response.status_code < 400:
-                return True, {"reachable": True}
-            elif response.status_code < 500:
-                # Client errors (4xx) still mean the service is reachable
-                return True, {"reachable": True}
-            else:
-                # Server errors (5xx) mean unreachable
-                return False, {"error": f"STS returned {response.status_code}"}
-
-        except HEALTH_RECOVERABLE_ERRORS as e:
-            return False, {"error": str(e)}
 
     async def comprehensive_health_check(self) -> Dict[str, Any]:
         """
@@ -203,14 +153,7 @@ class HealthService:
                     (
                         self._disabled_component_result(
                             message="External service health checks disabled in testing",
-                            services={
-                                "aws_sts": {
-                                    "status": "disabled",
-                                    "message": (
-                                        "External service health checks disabled in testing"
-                                    ),
-                                }
-                            },
+                            services={},
                         )
                         if testing_mode
                         else self._check_external_services()
@@ -413,12 +356,15 @@ class HealthService:
             return {"status": "down", "error": str(e), "component": "database"}
 
     async def _check_cache(self) -> Dict[str, Any]:
-        """Check cache service health."""
+        """Check optional cache service health."""
         try:
             cache = get_cache_service()
 
             if not cache.enabled:
-                return {"status": "disabled", "message": "Cache service not configured"}
+                return {
+                    "status": "disabled",
+                    "message": "Optional cache service not configured",
+                }
 
             # Simple cache health check
             test_key = f"health_check_{asyncio.get_event_loop().time()}"
@@ -436,42 +382,55 @@ class HealthService:
                     "latency_ms": 0,
                 }  # Could measure actual latency
             else:
-                return {"status": "unhealthy", "message": "Cache set/get failed"}
+                return {"status": "degraded", "message": "Cache set/get failed"}
 
         except HEALTH_RECOVERABLE_ERRORS as e:
             logger.error("cache_health_check_failed", error=str(e))
-            return {"status": "unhealthy", "error": str(e), "component": "cache"}
+            return {"status": "degraded", "error": str(e), "component": "cache"}
 
     async def _check_external_services(self) -> Dict[str, Any]:
-        """Check external service connectivity."""
-        services_status = {}
-
-        try:
-            from app.shared.core.http import get_http_client
-
-            client = get_http_client()
-            response = await client.get(
-                "https://sts.amazonaws.com",
-                timeout=self._health_timeout_seconds(component="external_services"),
-            )
-            services_status["aws_sts"] = {
-                "status": "healthy" if response.status_code < 500 else "unhealthy",
-                "response_code": response.status_code,
+        """Check only explicit external probes configured for this runtime."""
+        probes = self._external_service_probes()
+        if not probes:
+            return {
+                "status": "disabled",
+                "message": "No explicit external service health probes configured",
+                "services": {},
             }
-        except HEALTH_RECOVERABLE_ERRORS as e:
-            services_status["aws_sts"] = {"status": "unhealthy", "error": str(e)}
 
-        # Check other external services as needed
-        # Add checks for LLM providers, webhooks, etc.
+        from app.shared.core.http import get_http_client
+
+        services_status: dict[str, dict[str, Any]] = {}
+        client = get_http_client()
+        for service_name, service_url in probes.items():
+            try:
+                response = await client.get(
+                    service_url,
+                    timeout=self._health_timeout_seconds(component="external_services"),
+                )
+                services_status[service_name] = {
+                    "status": "healthy" if response.status_code < 500 else "unhealthy",
+                    "response_code": response.status_code,
+                    "url": service_url,
+                }
+            except HEALTH_RECOVERABLE_ERRORS as exc:
+                services_status[service_name] = {
+                    "status": "unhealthy",
+                    "error": str(exc),
+                    "url": service_url,
+                }
 
         all_healthy = all(
             service.get("status") == "healthy" for service in services_status.values()
         )
-
         return {
             "status": "healthy" if all_healthy else "degraded",
             "services": services_status,
         }
+
+    def _external_service_probes(self) -> Dict[str, str]:
+        """Return explicit probe URLs for optional external dependency checks."""
+        return {}
 
     async def _check_circuit_breakers(self) -> Dict[str, Any]:
         """Check circuit breaker status."""

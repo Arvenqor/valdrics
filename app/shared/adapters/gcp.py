@@ -3,6 +3,7 @@ import logging
 import re
 from json import JSONDecodeError
 from datetime import date, datetime, timezone
+from decimal import Decimal, InvalidOperation
 from typing import Any, AsyncGenerator, cast
 import structlog
 from google.api_core.exceptions import GoogleAPICallError, ServiceUnavailable, DeadlineExceeded
@@ -50,9 +51,6 @@ GCP_OPERATION_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     RuntimeError,
     OSError,
     TimeoutError,
-    TypeError,
-    ValueError,
-    AttributeError,
 )
 GCP_RESOURCE_USAGE_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     AdapterError,
@@ -62,9 +60,6 @@ GCP_RESOURCE_USAGE_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     RuntimeError,
     OSError,
     TimeoutError,
-    TypeError,
-    ValueError,
-    AttributeError,
 )
 
 
@@ -213,18 +208,45 @@ class GCPAdapter(BaseAdapter):
 
     def _parse_row(self, row: Any) -> dict[str, Any]:
         """Normalizes a single GCP BigQuery result row."""
+        timestamp = row.timestamp
+        if not isinstance(timestamp, datetime):
+            raise ValueError("GCP billing row timestamp must be a datetime")
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
+        else:
+            timestamp = timestamp.astimezone(timezone.utc)
+
+        try:
+            cost_amount = Decimal(str(row.cost_usd))
+        except (InvalidOperation, TypeError, ValueError) as exc:
+            raise ValueError("GCP billing row cost_usd must be numeric") from exc
+        if cost_amount.is_nan() or cost_amount.is_infinite():
+            raise ValueError("GCP billing row cost_usd must be finite")
+
+        credits_raw = row.total_credits
+        try:
+            credits_amount = (
+                Decimal("0")
+                if credits_raw in (None, "")
+                else Decimal(str(credits_raw))
+            )
+        except (InvalidOperation, TypeError, ValueError) as exc:
+            raise ValueError("GCP billing row total_credits must be numeric") from exc
+        if credits_amount.is_nan() or credits_amount.is_infinite():
+            raise ValueError("GCP billing row total_credits must be finite")
+
         return {
-            "timestamp": row.timestamp,
+            "timestamp": timestamp,
             "service": row.service,
-            "cost_usd": float(row.cost_usd),
-            "credits": float(row.total_credits) if row.total_credits else 0.0,
-            "amortized_cost": float(row.cost_usd) + float(row.total_credits or 0),
+            "cost_usd": float(cost_amount),
+            "credits": float(credits_amount),
+            "amortized_cost": float(cost_amount + credits_amount),
             "currency": row.currency,
             "region": "global",
             "source_adapter": "cur_billing_export",
             "usage_type": "subscription",  # Standardize for GCP row
             "tags": {},  # Expanded tag support can be added to the BigQuery SQL if needed
-            "amount_raw": float(row.cost_usd),
+            "amount_raw": float(cost_amount),
         }
 
     async def get_daily_costs(

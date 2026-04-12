@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from datetime import date, timedelta
+from decimal import Decimal, InvalidOperation
 from typing import Any
 from uuid import UUID
 
@@ -19,6 +20,16 @@ from app.shared.core.auth import CurrentUser
 from app.shared.core.notifications import NotificationDispatcher
 
 logger = structlog.get_logger()
+
+
+def _coerce_finite_float(value: Any, *, field_name: str) -> float:
+    try:
+        amount = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError) as exc:
+        raise ValueError(f"{field_name} must be numeric") from exc
+    if not amount.is_finite():
+        raise ValueError(f"{field_name} must be finite")
+    return float(amount)
 
 
 async def get_unit_economics_settings_impl(
@@ -83,10 +94,26 @@ async def get_unit_economics_impl(
         db, tenant_id, baseline_start, baseline_end, provider
     )
 
-    req_volume = float(request_volume or settings.default_request_volume)
-    wkl_volume = float(workload_volume or settings.default_workload_volume)
-    cst_volume = float(customer_volume or settings.default_customer_volume)
-    threshold = float(settings.anomaly_threshold_percent)
+    req_volume = _coerce_finite_float(
+        request_volume if request_volume is not None else settings.default_request_volume,
+        field_name="request_volume",
+    )
+    wkl_volume = _coerce_finite_float(
+        workload_volume
+        if workload_volume is not None
+        else settings.default_workload_volume,
+        field_name="workload_volume",
+    )
+    cst_volume = _coerce_finite_float(
+        customer_volume
+        if customer_volume is not None
+        else settings.default_customer_volume,
+        field_name="customer_volume",
+    )
+    threshold = _coerce_finite_float(
+        settings.anomaly_threshold_percent,
+        field_name="threshold_percent",
+    )
 
     metrics = build_unit_metrics(
         total_cost=total_cost,
@@ -124,8 +151,11 @@ async def get_unit_economics_impl(
     return UnitEconomicsResponse(
         start_date=start_date.isoformat(),
         end_date=end_date.isoformat(),
-        total_cost=float(total_cost),
-        baseline_total_cost=float(baseline_total_cost),
+        total_cost=_coerce_finite_float(total_cost, field_name="total_cost"),
+        baseline_total_cost=_coerce_finite_float(
+            baseline_total_cost,
+            field_name="baseline_total_cost",
+        ),
         threshold_percent=threshold,
         anomaly_count=len(anomalies),
         alert_dispatched=alert_dispatched,

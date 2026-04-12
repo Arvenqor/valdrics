@@ -56,11 +56,9 @@ class SecuritySettings:
     # Blind index key-stretching to slow offline guessing if key material is exposed.
     BLIND_INDEX_KDF_ITERATIONS: int = 50000
 
-    # Cache (Redis for production, in-memory for dev)
+    # Optional runtime cache / coordination backend.
     REDIS_URL: str | None = None  # e.g., redis://localhost:6379
-    REDIS_HOST: str | None = None
-    REDIS_PORT: str | None = "6379"
 
-    # Upstash Redis (Serverless - Free tier: 10K commands/day)
+    # Optional Upstash-backed cache service.
     UPSTASH_REDIS_URL: str | None = None  # e.g., https://xxx.upstash.io
     UPSTASH_REDIS_TOKEN: str | None = None

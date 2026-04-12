@@ -86,6 +86,42 @@ class _NonRecoverableAction(BaseRemediationAction):
         raise LookupError("non-recoverable provider error")
 
 
+class _AttributeDefectAction(BaseRemediationAction):
+    async def validate(self, resource_id: str, context: RemediationContext) -> bool:
+        del resource_id, context
+        return True
+
+    async def create_backup(
+        self, resource_id: str, context: RemediationContext
+    ) -> None:
+        del resource_id, context
+        return None
+
+    async def _perform_action(
+        self, resource_id: str, context: RemediationContext
+    ) -> object:
+        del resource_id, context
+        raise AttributeError("action attribute defect")
+
+
+class _KeyDefectAction(BaseRemediationAction):
+    async def validate(self, resource_id: str, context: RemediationContext) -> bool:
+        del resource_id, context
+        return True
+
+    async def create_backup(
+        self, resource_id: str, context: RemediationContext
+    ) -> None:
+        del resource_id, context
+        return None
+
+    async def _perform_action(
+        self, resource_id: str, context: RemediationContext
+    ) -> object:
+        del resource_id, context
+        raise KeyError("missing-action-key")
+
+
 @pytest.mark.asyncio
 async def test_license_base_methods_and_build_credentials_guards() -> None:
     action = LicenseReclaimSeatAction()
@@ -170,14 +206,27 @@ async def test_base_action_recoverable_runtime_error_returns_failed_status() -> 
 
 
 @pytest.mark.asyncio
-async def test_base_action_non_recoverable_exception_returns_failed_status() -> None:
+async def test_base_action_non_recoverable_exception_bubbles() -> None:
     action = _NonRecoverableAction()
 
-    result = await action.execute("vol-fail", _context())
+    with pytest.raises(LookupError, match="non-recoverable provider error"):
+        await action.execute("vol-fail", _context())
 
-    assert result.status == ExecutionStatus.FAILED
-    assert result.action_taken == "_NonRecoverableAction"
-    assert result.error_message == "non-recoverable provider error"
+
+@pytest.mark.asyncio
+async def test_base_action_attribute_error_bubbles() -> None:
+    action = _AttributeDefectAction()
+
+    with pytest.raises(AttributeError, match="action attribute defect"):
+        await action.execute("vol-fail", _context())
+
+
+@pytest.mark.asyncio
+async def test_base_action_key_error_bubbles() -> None:
+    action = _KeyDefectAction()
+
+    with pytest.raises(KeyError, match="missing-action-key"):
+        await action.execute("vol-fail", _context())
 
 
 @pytest.mark.asyncio

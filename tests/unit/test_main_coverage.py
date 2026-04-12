@@ -34,15 +34,11 @@ def mock_lifespan_deps():
     with (
         patch("os.makedirs") as mock_makedirs,
         patch("app.main.EmissionsTracker") as mock_tracker,
-        patch(
-            "app.modules.governance.domain.scheduler.SchedulerService"
-        ) as mock_scheduler,
         patch("app.main.get_engine", return_value=_EngineStub()),
     ):
         yield {
             "makedirs": mock_makedirs,
             "tracker": mock_tracker.return_value,
-            "scheduler": mock_scheduler.return_value,
             "dispose": mock_dispose,
         }
 
@@ -65,29 +61,6 @@ async def test_lifespan_flow(mock_lifespan_deps):
 
     mock_startup.assert_called_once_with()
     mock_lifespan_deps["dispose"].assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_lifespan_skips_scheduler_when_disabled(mock_lifespan_deps):
-    from app.main import lifespan, app
-
-    with patch("app.main.reload_settings_from_environment") as mock_reload:
-        from app.main import settings as live_settings
-
-        mock_reload.return_value = live_settings
-        live_settings.TESTING = False
-        live_settings.REDIS_URL = "redis://localhost:6379/0"
-        live_settings.ENABLE_SCHEDULER = False
-
-        with (
-            patch("app.main.should_bootstrap_local_sqlite", return_value=False),
-            patch("app.main.dispose_db_runtime", new_callable=AsyncMock),
-        ):
-            async with lifespan(app):
-                pass
-
-    mock_lifespan_deps["scheduler"].start.assert_not_called()
-
 
 @pytest.mark.asyncio
 async def test_lifespan_bootstraps_local_sqlite_when_enabled(mock_lifespan_deps):
@@ -121,8 +94,8 @@ async def test_health_check_healthy(ac_no_db):
     mock_health = {
         "status": "healthy",
         "database": {"status": "up"},
-        "redis": {"status": "up"},
-        "aws": {"status": "up"},
+        "cache": {"status": "healthy"},
+        "external_services": {"status": "disabled", "services": {}},
     }
     with patch(
         "app.shared.core.health.HealthService.check_all", new_callable=AsyncMock

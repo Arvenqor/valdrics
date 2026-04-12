@@ -75,8 +75,8 @@ async def test_health_detailed(lite_client: AsyncClient):
         mock_check.return_value = {
             "status": "healthy",
             "database": {"status": "up"},
-            "redis": {"status": "up"},
-            "aws": {"status": "up"},
+            "cache": {"status": "healthy"},
+            "external_services": {"status": "disabled", "services": {}},
         }
         response = await lite_client.get("/health")
         assert response.status_code == 200

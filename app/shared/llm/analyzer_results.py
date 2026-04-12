@@ -87,7 +87,7 @@ async def process_analysis_results(
             tenant_id=tenant_id,
             db=db,
         )
-    except (ValueError, TypeError, RuntimeError, KeyError) as exc:  # noqa: BLE001
+    except (ValueError, TypeError, RuntimeError) as exc:
         logger_obj.warning("llm_validation_failed", error=str(exc))
         try:
             llm_result = json.loads(strip_markdown_fn(content))

@@ -104,10 +104,10 @@ AUDIT_LOG_RETENTION_FAILURES_TOTAL = Counter(
     ["operation"],
 )
 
-SCHEDULER_INLINE_FALLBACK_TOTAL = Counter(
-    "valdrics_scheduler_inline_fallback_total",
-    "Total number of scheduler inline fallback executions by job and outcome",
-    ["job_name", "outcome"],
+SCHEDULER_DISPATCH_FAIL_CLOSED_TOTAL = Counter(
+    "valdrics_scheduler_dispatch_fail_closed_total",
+    "Total number of scheduler dispatch failures that fail closed",
+    ["job_name", "work_item", "runtime_profile"],
 )
 
 # --- Scan Performance Metrics ---
@@ -365,10 +365,16 @@ def record_audit_log_retention_failure(operation: str) -> None:
     ).inc()
 
 
-def record_scheduler_inline_fallback(job_name: str, *, outcome: str) -> None:
-    SCHEDULER_INLINE_FALLBACK_TOTAL.labels(
+def record_scheduler_dispatch_fail_closed(
+    job_name: str,
+    *,
+    work_item: str,
+    runtime_profile: str,
+) -> None:
+    SCHEDULER_DISPATCH_FAIL_CLOSED_TOTAL.labels(
         job_name=_normalize_metric_label(job_name),
-        outcome=_normalize_metric_label(outcome),
+        work_item=_normalize_metric_label(work_item),
+        runtime_profile=_normalize_metric_label(runtime_profile),
     ).inc()
 
 

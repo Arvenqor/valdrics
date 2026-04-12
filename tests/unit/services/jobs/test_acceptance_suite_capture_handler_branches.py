@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.background_job import BackgroundJob
 from app.modules.governance.domain.jobs.handlers import acceptance as acceptance_handler
+from app.modules.governance.domain.jobs.errors import PermanentJobError
 from app.modules.governance.domain.security.audit_log import AuditEventType
 from app.shared.core.pricing import FeatureFlag, PricingTier
 
@@ -162,12 +163,12 @@ def test_acceptance_handler_helpers_cover_edge_cases() -> None:
 
     missing = MagicMock(spec=BackgroundJob)
     missing.tenant_id = None
-    with pytest.raises(ValueError, match="tenant_id required"):
+    with pytest.raises(PermanentJobError, match="tenant_id required"):
         acceptance_handler._require_tenant_id(missing)
 
     assert acceptance_handler._iso_date("2026-02-01") == date(2026, 2, 1)
     assert acceptance_handler._iso_date(date(2026, 2, 2)) == date(2026, 2, 2)
-    with pytest.raises(ValueError, match="Expected ISO date string"):
+    with pytest.raises(PermanentJobError, match="Expected ISO date string"):
         acceptance_handler._iso_date(1234)
 
     assert acceptance_handler._tenant_tier(None) == PricingTier.FREE

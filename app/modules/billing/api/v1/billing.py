@@ -66,6 +66,12 @@ def _settings():
     return get_settings()
 
 
+def _require_tenant_id(user: CurrentUser) -> Any:
+    if user.tenant_id is None:
+        raise HTTPException(403, "Tenant context required.")
+    return user.tenant_id
+
+
 def _build_checkout_callback_url(raw_callback_url: Optional[str]) -> str:
     """
     Validate and normalize user-provided checkout callback URLs.
@@ -142,6 +148,7 @@ async def get_subscription(
     db: AsyncSession = Depends(get_db),
 ) -> SubscriptionResponse:
     """Get current subscription status for tenant."""
+    tenant_id = _require_tenant_id(user)
     try:
         from app.modules.billing.domain.billing.paystack_billing import (
             TenantSubscription,
@@ -149,7 +156,7 @@ async def get_subscription(
 
         result = await db.execute(
             select(TenantSubscription).where(
-                TenantSubscription.tenant_id == user.tenant_id
+                TenantSubscription.tenant_id == tenant_id
             )
         )
         sub = result.scalar_one_or_none()
@@ -219,10 +226,11 @@ async def get_billing_usage(
     """
     from app.shared.core.pricing import PricingTier
 
+    tenant_id = _require_tenant_id(user)
     tier = getattr(user, "tier", PricingTier.FREE)
     connections = await load_billing_usage(
         db,
-        tenant_id=user.tenant_id,
+        tenant_id=tenant_id,
         tier=tier,
     )
     from datetime import datetime, timezone
@@ -252,6 +260,8 @@ async def create_checkout(
         from app.modules.billing.domain.billing.paystack_billing import BillingService
         from app.shared.core.pricing import PricingTier
 
+        tenant_id = _require_tenant_id(user)
+
         # Validate tier
         try:
             tier = PricingTier(checkout_req.tier.lower())
@@ -262,11 +272,8 @@ async def create_checkout(
 
         callback = _build_checkout_callback_url(checkout_req.callback_url)
 
-        if not user.tenant_id:
-            raise HTTPException(400, "User has no tenant")
-
         result = await billing.create_checkout_session(
-            tenant_id=user.tenant_id,
+            tenant_id=tenant_id,
             tier=tier,
             email=user.email,
             callback_url=callback,
@@ -302,10 +309,9 @@ async def cancel_subscription(
     try:
         from app.modules.billing.domain.billing.paystack_billing import BillingService
 
+        tenant_id = _require_tenant_id(user)
         billing = BillingService(db)
-        if not user.tenant_id:
-            raise HTTPException(400, "User has no tenant")
-        await billing.cancel_subscription(user.tenant_id)
+        await billing.cancel_subscription(tenant_id)
 
         return {"status": "cancelled"}
 

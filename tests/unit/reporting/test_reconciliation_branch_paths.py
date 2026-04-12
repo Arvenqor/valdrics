@@ -53,6 +53,11 @@ def test_reconciliation_helper_paths() -> None:
     assert CostReconciliationService._compute_confidence(10, 5, 1000) == 0.7
     assert CostReconciliationService._compute_confidence(0, 0, 0) == 0.0
     assert CostReconciliationService._to_float(None) == 0.0
+    assert CostReconciliationService._to_decimal(None) == Decimal("0")
+    with pytest.raises(ValueError, match="numeric"):
+        CostReconciliationService._to_float("bad")
+    with pytest.raises(ValueError, match="finite"):
+        CostReconciliationService._to_float("NaN")
     assert CostReconciliationService._to_int(None) == 0
 
 
@@ -88,6 +93,52 @@ def test_reconciliation_csv_renderers_and_hash() -> None:
     assert CostReconciliationService._stable_hash(
         {"a": 1}
     ) == CostReconciliationService._stable_hash({"a": 1})
+
+
+def test_close_package_csv_rejects_non_finite_invoice_and_restatement_values() -> None:
+    with pytest.raises(ValueError, match="invoice_reconciliation.ledger_final_cost_usd must be finite"):
+        CostReconciliationService._render_close_package_csv(
+            tenant_id="t-1",
+            start_date=date(2026, 1, 1),
+            end_date=date(2026, 1, 31),
+            close_status="ready",
+            lifecycle_summary={"total_records": 1},
+            reconciliation_summary={"status": "healthy", "discrepancies": []},
+            invoice_reconciliation={
+                "status": "match",
+                "threshold_percent": 1.0,
+                "ledger_final_cost_usd": float("nan"),
+                "delta_usd": 0.0,
+                "absolute_delta_usd": 0.0,
+                "delta_percent": 0.0,
+            },
+            restatement_entries=[],
+        )
+
+    with pytest.raises(ValueError, match="restatements.delta_usd must be finite"):
+        CostReconciliationService._render_close_package_csv(
+            tenant_id="t-1",
+            start_date=date(2026, 1, 1),
+            end_date=date(2026, 1, 31),
+            close_status="ready",
+            lifecycle_summary={"total_records": 1},
+            reconciliation_summary={"status": "healthy", "discrepancies": []},
+            invoice_reconciliation=None,
+            restatement_entries=[
+                {
+                    "usage_date": "2026-01-01",
+                    "recorded_at": "2026-01-02T00:00:00+00:00",
+                    "service": "Compute",
+                    "region": "us-east-1",
+                    "old_cost": 10.0,
+                    "new_cost": 12.0,
+                    "delta_usd": float("inf"),
+                    "reason": "RE-INGESTION",
+                    "cost_record_id": "id-1",
+                    "ingestion_batch_id": "batch-1",
+                }
+            ],
+        )
 
 
 @pytest.mark.asyncio
@@ -268,6 +319,28 @@ async def test_compare_explorer_vs_cur_does_not_swallow_base_exceptions() -> Non
 
 
 @pytest.mark.asyncio
+async def test_compare_explorer_vs_cur_rejects_non_finite_aggregates() -> None:
+    db = MagicMock()
+    rows = [
+        SimpleNamespace(
+            service="Compute",
+            source_adapter="cur_parquet",
+            total_cost=Decimal("NaN"),
+            record_count=5,
+        ),
+    ]
+    db.execute = AsyncMock(return_value=SimpleNamespace(all=lambda: rows))
+    service = CostReconciliationService(db)
+
+    with pytest.raises(ValueError, match="finite"):
+        await service.compare_explorer_vs_cur(
+            tenant_id=uuid4(),
+            start_date=date(2026, 1, 1),
+            end_date=date(2026, 1, 31),
+        )
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("provider", "feed_source", "native_source"),
     [
@@ -427,6 +500,31 @@ async def test_get_restatement_runs_with_csv_export_and_provider_filter() -> Non
 
 
 @pytest.mark.asyncio
+async def test_get_restatement_history_rejects_non_finite_costs() -> None:
+    db = MagicMock()
+    row = SimpleNamespace(
+        audit_recorded_at=datetime(2026, 1, 2, tzinfo=timezone.utc),
+        cost_record_id=uuid4(),
+        old_cost=Decimal("NaN"),
+        new_cost=Decimal("13"),
+        reason="RECON",
+        ingestion_batch_id="batch-1",
+        service="S3",
+        region="us-east-1",
+        usage_date=date(2026, 1, 1),
+    )
+    db.execute = AsyncMock(return_value=SimpleNamespace(all=lambda: [row]))
+    service = CostReconciliationService(db)
+
+    with pytest.raises(ValueError, match="finite"):
+        await service.get_restatement_history(
+            tenant_id=uuid4(),
+            start_date=date(2026, 1, 1),
+            end_date=date(2026, 1, 31),
+        )
+
+
+@pytest.mark.asyncio
 async def test_generate_close_package_with_invoice_summary_and_restatement_truncation() -> (
     None
 ):
@@ -503,6 +601,56 @@ async def test_generate_close_package_with_invoice_summary_and_restatement_trunc
     assert package["invoice_reconciliation"]["status"] == "match"
     assert package["restatements"]["truncated"] is True
     assert package["restatements"]["included_count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_close_package_rejects_non_finite_final_cost_before_invoice_summary() -> None:
+    service = CostReconciliationService(AsyncMock())
+    lifecycle_row = SimpleNamespace(
+        total_records=1,
+        preliminary_records=0,
+        final_records=1,
+        total_cost_usd=Decimal("100"),
+        preliminary_cost_usd=Decimal("0"),
+        final_cost_usd=Decimal("NaN"),
+    )
+    lifecycle_result = MagicMock()
+    lifecycle_result.one.return_value = lifecycle_row
+    service.db.execute = AsyncMock(return_value=lifecycle_result)
+
+    with (
+        patch.object(
+            service,
+            "compare_explorer_vs_cur",
+            new=AsyncMock(return_value={"status": "healthy"}),
+        ),
+        patch.object(
+            service,
+            "get_invoice_reconciliation_summary",
+            new=AsyncMock(return_value={"status": "match"}),
+        ) as invoice_summary,
+        patch.object(
+            service,
+            "get_restatement_history",
+            new=AsyncMock(
+                return_value={
+                    "restatement_count": 0,
+                    "net_delta_usd": 0.0,
+                    "absolute_delta_usd": 0.0,
+                    "entries": [],
+                }
+            ),
+        ),
+    ):
+        with pytest.raises(ValueError, match="finite"):
+            await service.generate_close_package(
+                tenant_id=uuid4(),
+                start_date=date(2026, 1, 1),
+                end_date=date(2026, 1, 31),
+                provider="aws",
+            )
+
+    invoice_summary.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -691,6 +839,16 @@ async def test_invoice_exchange_rate_and_reconciliation_summary_paths(db) -> Non
         threshold_percent=1.0,
     )
     assert summary_mismatch["status"] == "mismatch"
+
+    with pytest.raises(ValueError, match="finite"):
+        await service.get_invoice_reconciliation_summary(
+            tenant_id=tenant.id,
+            provider="aws",
+            start_date=date(2026, 1, 1),
+            end_date=date(2026, 1, 31),
+            ledger_final_cost_usd=float("nan"),
+            threshold_percent=1.0,
+        )
 
     await db.execute(delete(ProviderInvoice))
     await db.execute(delete(ExchangeRate))

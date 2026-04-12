@@ -69,7 +69,6 @@ def test_generate_local_compose_env_derives_required_key_shapes(tmp_path: Path) 
                 "SUPABASE_JWT_SECRET=",
                 "KDF_SALT=",
                 "ADMIN_API_KEY=",
-                "INTERNAL_JOB_SECRET=",
                 "INTERNAL_METRICS_AUTH_TOKEN=",
                 "ENFORCEMENT_APPROVAL_TOKEN_SECRET=",
                 "ENFORCEMENT_EXPORT_SIGNING_SECRET=",
@@ -87,13 +86,11 @@ def test_generate_local_compose_env_derives_required_key_shapes(tmp_path: Path) 
     assert values["API_URL"] == "http://localhost:8000"
     assert values["FRONTEND_URL"] == "http://localhost:3000"
     assert values["ORIGIN"] == "http://localhost:3000"
-    assert values["REDIS_URL"] == "redis://redis:6379"
+    assert values["CIRCUIT_BREAKER_DISTRIBUTED_STATE"] == "false"
+    assert values["REDIS_URL"] == ""
     assert values["POSTGRES_DB"] == "valdrics"
     assert values["POSTGRES_USER"] == "postgres"
-    assert (
-        values["AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN"]
-        == "arn:aws:iam::000000000000:role/ValdricsLocalComposeControlPlane"
-    )
+    assert "AWS_ASSUME_ROLE_TRUST_PRINCIPAL_ARN" not in values
     assert values["DATABASE_URL"].startswith("postgresql+asyncpg://postgres:")
     assert values["DATABASE_URL"].endswith("@postgres:5432/valdrics")
     assert len(values["POSTGRES_PASSWORD"]) == 48
@@ -101,12 +98,14 @@ def test_generate_local_compose_env_derives_required_key_shapes(tmp_path: Path) 
     assert len(values["CSRF_SECRET_KEY"]) >= 32
     assert len(values["SUPABASE_JWT_SECRET"]) >= 32
     assert len(values["ADMIN_API_KEY"]) >= 32
-    assert len(values["INTERNAL_JOB_SECRET"]) >= 32
     assert len(values["INTERNAL_METRICS_AUTH_TOKEN"]) >= 32
     assert len(values["ENFORCEMENT_APPROVAL_TOKEN_SECRET"]) >= 32
     assert len(values["ENFORCEMENT_EXPORT_SIGNING_SECRET"]) >= 32
     assert len(values["ENCRYPTION_KEY"]) >= 32
     assert len(base64.b64decode(values["KDF_SALT"])) == 32
+    rendered = output.read_text(encoding="utf-8")
+    assert "make docker-up-redis" in rendered
+    assert "isolated Redis drill overlay" in rendered
 
 
 def test_generate_local_compose_env_changes_with_seed(tmp_path: Path) -> None:

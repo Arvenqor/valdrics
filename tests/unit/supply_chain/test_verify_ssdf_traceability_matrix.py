@@ -109,6 +109,26 @@ def test_validate_matrix_rejects_invalid_status(tmp_path: Path) -> None:
         )
 
 
+def test_ssdf_matrix_uses_active_managed_contract_evidence_for_environment_and_defaults() -> None:
+    matrix = load_matrix(REPO_ROOT / DEFAULT_MATRIX_PATH)
+    practices = {entry["practice_id"]: entry for entry in matrix["practices"]}
+
+    po5 = practices["PO.5"]["evidence"]
+    pw9 = practices["PW.9"]["evidence"]
+
+    assert "scripts/verify_documentation_runtime_contracts.py" in po5
+    assert "tests/unit/ops/test_documentation_runtime_contracts.py" in po5
+    assert "helm/valdrics/values.schema.json" not in po5
+    assert "tests/unit/ops/test_enforcement_webhook_helm_contract.py" not in po5
+
+    assert ".env.example" in pw9
+    assert "scripts/generate_managed_runtime_env.py" in pw9
+    assert "tests/unit/core/test_env_contract_templates.py" in pw9
+    assert "helm/valdrics/values.yaml" not in pw9
+    assert "helm/valdrics/values.schema.json" not in pw9
+    assert "tests/unit/ops/test_enforcement_webhook_helm_contract.py" not in pw9
+
+
 def test_resolve_matrix_path_rejects_relative_path_that_escapes_repo_root(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

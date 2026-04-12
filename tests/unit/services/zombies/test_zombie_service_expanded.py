@@ -38,7 +38,20 @@ class TestZombieServiceExpanded:
             "app.shared.core.notifications.NotificationDispatcher.notify_zombies",
             new_callable=AsyncMock,
         ) as mock_notify:
-            mock_notify.side_effect = Exception("Slack Down")
+            mock_notify.side_effect = RuntimeError("Slack Down")
 
             # Should not raise exception
             await zombie_service._send_notifications(zombies, tenant_id)
+
+    @pytest.mark.asyncio
+    async def test_send_notifications_unexpected_error_bubbles(self, zombie_service):
+        zombies = {"total_monthly_waste": 100.0}
+        tenant_id = uuid4()
+        with patch(
+            "app.shared.core.notifications.NotificationDispatcher.notify_zombies",
+            new_callable=AsyncMock,
+        ) as mock_notify:
+            mock_notify.side_effect = LookupError("unexpected notification bug")
+
+            with pytest.raises(LookupError, match="unexpected notification bug"):
+                await zombie_service._send_notifications(zombies, tenant_id)

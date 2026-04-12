@@ -132,7 +132,6 @@ ZOMBIE_NOTIFICATION_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     AttributeError,
     TypeError,
     ValueError,
-    Exception,
 )
 
 class ZombieService(BaseService):

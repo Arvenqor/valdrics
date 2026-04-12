@@ -32,8 +32,6 @@ _ROW_PARSE_RECOVERABLE_EXCEPTIONS = (
     InvalidOperation,
     ValueError,
     TypeError,
-    KeyError,
-    AttributeError,
 )
 
 
@@ -154,11 +152,11 @@ def iter_parquet_dataframes(
                 processed_batch = True
                 try:
                     yield batch.to_pandas()
-                except (ValueError, TypeError, RuntimeError, AttributeError) as exc:
+                except (ValueError, TypeError, RuntimeError) as exc:
                     logger.warning("cur_batch_to_pandas_failed", error=str(exc))
                     continue
             return
-        except (ValueError, TypeError, RuntimeError, AttributeError) as exc:
+        except (ValueError, TypeError, RuntimeError) as exc:
             logger.warning("cur_iter_batches_failed_fallback", error=str(exc))
             if processed_batch:
                 return
@@ -167,7 +165,7 @@ def iter_parquet_dataframes(
         try:
             table = parquet_file.read_row_group(row_group)
             yield table.to_pandas()
-        except (ValueError, TypeError, RuntimeError, AttributeError) as exc:
+        except (ValueError, TypeError, RuntimeError) as exc:
             logger.warning(
                 "cur_row_group_read_failed",
                 error=str(exc),
@@ -190,10 +188,10 @@ def parse_cur_row(
     else:
         try:
             raw_amount = Decimal(str(raw_value))
-        except (InvalidOperation, ValueError, TypeError):
-            raw_amount = Decimal("0")
+        except (InvalidOperation, ValueError, TypeError) as exc:
+            raise ValueError("CUR cost value must be numeric") from exc
     if raw_amount.is_nan() or raw_amount.is_infinite():
-        raw_amount = Decimal("0")
+        raise ValueError("CUR cost value must be finite")
 
     currency_key = col_map.get("currency")
     currency_value = row.get(currency_key, "USD") if currency_key else "USD"

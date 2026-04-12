@@ -6,6 +6,7 @@ import pytest
 
 from app.shared.adapters.resource_usage_projection import (
     discover_resources_from_cost_rows,
+    project_cost_rows_to_resource_usage,
 )
 
 
@@ -79,3 +80,114 @@ def test_discover_resources_from_cost_rows_aggregates_and_filters_region() -> No
     assert discovered[0]["metadata"]["record_count"] == 2
     assert discovered[0]["metadata"]["total_cost_usd"] == pytest.approx(10.0)
     assert discovered[0]["metadata"]["last_seen_at"] == "2026-01-11T00:00:00+00:00"
+
+
+def test_discover_resources_from_cost_rows_invalid_timestamp_bubbles() -> None:
+    rows = [
+        {
+            "timestamp": "bad-ts",
+            "provider": "saas",
+            "service": "GitHub",
+            "resource_id": "seat-1",
+            "cost_usd": 4.0,
+            "region": "us-east-1",
+        },
+    ]
+
+    with pytest.raises(ValueError, match="timestamp must be a valid datetime"):
+        discover_resources_from_cost_rows(
+            cost_rows=rows,
+            resource_type="saas",
+            supported_resource_types={"all", "saas"},
+            default_provider="saas",
+            default_resource_type="saas_subscription",
+        )
+
+
+def test_discover_resources_from_cost_rows_invalid_cost_bubbles() -> None:
+    rows = [
+        {
+            "timestamp": "2026-01-10T00:00:00Z",
+            "provider": "saas",
+            "service": "GitHub",
+            "resource_id": "seat-1",
+            "cost_usd": "bad-cost",
+            "region": "us-east-1",
+        },
+    ]
+
+    with pytest.raises(ValueError, match="cost_usd must be numeric"):
+        discover_resources_from_cost_rows(
+            cost_rows=rows,
+            resource_type="saas",
+            supported_resource_types={"all", "saas"},
+            default_provider="saas",
+            default_resource_type="saas_subscription",
+        )
+
+
+def test_project_cost_rows_to_resource_usage_invalid_timestamp_bubbles() -> None:
+    rows = [
+        {
+            "timestamp": "bad-ts",
+            "service": "GitHub",
+            "resource_id": "seat-1",
+            "cost_usd": 4.0,
+        },
+    ]
+
+    with pytest.raises(ValueError, match="timestamp must be a valid datetime"):
+        project_cost_rows_to_resource_usage(
+            cost_rows=rows,
+            service_name="GitHub",
+            resource_id="seat-1",
+            default_provider="saas",
+            default_source_adapter="saas_feed",
+        )
+
+
+def test_project_cost_rows_to_resource_usage_invalid_cost_bubbles() -> None:
+    rows = [
+        {
+            "timestamp": "2026-01-10T00:00:00Z",
+            "service": "GitHub",
+            "resource_id": "seat-1",
+            "cost_usd": "bad-cost",
+        },
+    ]
+
+    with pytest.raises(ValueError, match="cost_usd must be numeric"):
+        project_cost_rows_to_resource_usage(
+            cost_rows=rows,
+            service_name="GitHub",
+            resource_id="seat-1",
+            default_provider="saas",
+            default_source_adapter="saas_feed",
+        )
+
+
+def test_project_cost_rows_to_resource_usage_skips_missing_optional_timestamp_and_cost() -> None:
+    rows = [
+        {
+            "service": "GitHub",
+            "resource_id": "seat-1",
+        },
+        {
+            "timestamp": "2026-01-11T00:00:00Z",
+            "service": "GitHub",
+            "resource_id": "seat-1",
+            "cost_usd": 6.0,
+        },
+    ]
+
+    usage_rows = project_cost_rows_to_resource_usage(
+        cost_rows=rows,
+        service_name="GitHub",
+        resource_id="seat-1",
+        default_provider="saas",
+        default_source_adapter="saas_feed",
+    )
+
+    assert len(usage_rows) == 1
+    assert usage_rows[0]["cost_usd"] == pytest.approx(6.0)
+    assert usage_rows[0]["timestamp"] == datetime(2026, 1, 11, tzinfo=timezone.utc)

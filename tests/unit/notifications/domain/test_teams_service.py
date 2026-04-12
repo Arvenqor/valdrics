@@ -131,6 +131,48 @@ async def test_send_alert_handles_invalid_webhook_non_2xx_and_exception() -> Non
             await service.send_alert(title="a", message="b", severity="warning") is False
         )
 
+
+@pytest.mark.asyncio
+async def test_send_alert_does_not_swallow_broken_client_contracts() -> None:
+    service = TeamsService(
+        webhook_url="https://outlook.office.com/webhook/test", timeout_seconds=3.0
+    )
+    client = SimpleNamespace(post=AsyncMock(side_effect=TypeError("broken post signature")))
+
+    with (
+        patch(
+            "app.modules.notifications.domain.teams.get_settings",
+            return_value=_settings(),
+        ),
+        patch(
+            "app.shared.core.http.get_http_client",
+            return_value=client,
+        ),
+    ):
+        with pytest.raises(TypeError, match="broken post signature"):
+            await service.send_alert(title="a", message="b", severity="warning")
+
+
+@pytest.mark.asyncio
+async def test_send_alert_value_error_bubbles() -> None:
+    service = TeamsService(
+        webhook_url="https://outlook.office.com/webhook/test", timeout_seconds=3.0
+    )
+    client = SimpleNamespace(post=AsyncMock(side_effect=ValueError("bad payload shape")))
+
+    with (
+        patch(
+            "app.modules.notifications.domain.teams.get_settings",
+            return_value=_settings(),
+        ),
+        patch(
+            "app.shared.core.http.get_http_client",
+            return_value=client,
+        ),
+    ):
+        with pytest.raises(ValueError, match="bad payload shape"):
+            await service.send_alert(title="a", message="b", severity="warning")
+
     bad_resp = SimpleNamespace(status_code=429, text="rate limited")
     client = SimpleNamespace(post=AsyncMock(return_value=bad_resp))
     with (

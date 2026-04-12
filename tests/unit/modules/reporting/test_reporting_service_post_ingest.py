@@ -31,12 +31,13 @@ async def test_ingest_syncs_cloud_account_registry(
         patch(
             "app.modules.reporting.domain.service.CostPersistenceService"
         ) as mock_persistence,
-        patch("app.modules.reporting.domain.service.AttributionEngine"),
+        patch("app.modules.reporting.domain.service.AttributionEngine") as mock_attribution,
     ):
         attach_stream(mock_adapter, {"cost_usd": "50.0"})
 
         mock_persistence_instance = make_persistence_stub(records_saved=1)
         mock_persistence.return_value = mock_persistence_instance
+        mock_attribution.return_value = AsyncMock()
 
         await service.ingest_costs_for_tenant(tenant_id)
 
@@ -112,6 +113,74 @@ async def test_ingest_handles_attribution_failure(
 
 
 @pytest.mark.asyncio
+async def test_ingest_does_not_swallow_fatal_attribution_errors(
+    mock_db,
+    mock_aws_connection: MagicMock,
+    configure_connection_queries,
+    attach_stream,
+    make_persistence_stub,
+) -> None:
+    tenant_id = mock_aws_connection.tenant_id
+    configure_connection_queries(aws=[mock_aws_connection])
+    mock_adapter = AsyncMock()
+    service = _service_with_adapter(mock_db, mock_adapter)
+
+    with (
+        patch(
+            "app.modules.reporting.domain.service.CostPersistenceService"
+        ) as mock_persistence,
+        patch("app.modules.reporting.domain.service.AttributionEngine") as mock_attribution,
+    ):
+        attach_stream(mock_adapter, {"cost_usd": "50.0"})
+
+        mock_persistence_instance = make_persistence_stub(records_saved=1)
+        mock_persistence.return_value = mock_persistence_instance
+
+        mock_attribution_instance = AsyncMock()
+        mock_attribution_instance.apply_rules_to_tenant.side_effect = AttributeError(
+            "missing attribution dependency"
+        )
+        mock_attribution.return_value = mock_attribution_instance
+
+        with pytest.raises(AttributeError, match="missing attribution dependency"):
+            await service.ingest_costs_for_tenant(tenant_id)
+
+
+@pytest.mark.asyncio
+async def test_ingest_does_not_swallow_valueerror_attribution_contract_errors(
+    mock_db,
+    mock_aws_connection: MagicMock,
+    configure_connection_queries,
+    attach_stream,
+    make_persistence_stub,
+) -> None:
+    tenant_id = mock_aws_connection.tenant_id
+    configure_connection_queries(aws=[mock_aws_connection])
+    mock_adapter = AsyncMock()
+    service = _service_with_adapter(mock_db, mock_adapter)
+
+    with (
+        patch(
+            "app.modules.reporting.domain.service.CostPersistenceService"
+        ) as mock_persistence,
+        patch("app.modules.reporting.domain.service.AttributionEngine") as mock_attribution,
+    ):
+        attach_stream(mock_adapter, {"cost_usd": "50.0"})
+
+        mock_persistence_instance = make_persistence_stub(records_saved=1)
+        mock_persistence.return_value = mock_persistence_instance
+
+        mock_attribution_instance = AsyncMock()
+        mock_attribution_instance.apply_rules_to_tenant.side_effect = ValueError(
+            "invalid attribution contract"
+        )
+        mock_attribution.return_value = mock_attribution_instance
+
+        with pytest.raises(ValueError, match="invalid attribution contract"):
+            await service.ingest_costs_for_tenant(tenant_id)
+
+
+@pytest.mark.asyncio
 async def test_ingest_aggregates_costs(
     mock_db,
     mock_aws_connection: MagicMock,
@@ -128,7 +197,7 @@ async def test_ingest_aggregates_costs(
         patch(
             "app.modules.reporting.domain.service.CostPersistenceService"
         ) as mock_persistence,
-        patch("app.modules.reporting.domain.service.AttributionEngine"),
+        patch("app.modules.reporting.domain.service.AttributionEngine") as mock_attribution,
     ):
         attach_stream(
             mock_adapter,
@@ -142,6 +211,7 @@ async def test_ingest_aggregates_costs(
             consume_records=True,
         )
         mock_persistence.return_value = mock_persistence_instance
+        mock_attribution.return_value = AsyncMock()
 
         result = await service.ingest_costs_for_tenant(tenant_id)
 
@@ -166,7 +236,7 @@ async def test_ingest_handles_null_costs(
         patch(
             "app.modules.reporting.domain.service.CostPersistenceService"
         ) as mock_persistence,
-        patch("app.modules.reporting.domain.service.AttributionEngine"),
+        patch("app.modules.reporting.domain.service.AttributionEngine") as mock_attribution,
     ):
         attach_stream(
             mock_adapter,
@@ -175,12 +245,53 @@ async def test_ingest_handles_null_costs(
             {"cost_usd": "20.0"},
         )
 
-        mock_persistence_instance = make_persistence_stub(records_saved=3)
+        mock_persistence_instance = make_persistence_stub(
+            records_saved=3,
+            consume_records=True,
+        )
         mock_persistence.return_value = mock_persistence_instance
+        mock_attribution.return_value = AsyncMock()
 
         result = await service.ingest_costs_for_tenant(tenant_id)
 
     assert result["status"] == "completed"
+
+
+@pytest.mark.asyncio
+async def test_ingest_rejects_non_finite_costs(
+    mock_db,
+    mock_aws_connection: MagicMock,
+    configure_connection_queries,
+    attach_stream,
+    make_persistence_stub,
+) -> None:
+    tenant_id = mock_aws_connection.tenant_id
+    configure_connection_queries(aws=[mock_aws_connection])
+    mock_adapter = AsyncMock()
+    service = _service_with_adapter(mock_db, mock_adapter)
+
+    with (
+        patch(
+            "app.modules.reporting.domain.service.CostPersistenceService"
+        ) as mock_persistence,
+        patch("app.modules.reporting.domain.service.AttributionEngine") as mock_attribution,
+    ):
+        attach_stream(
+            mock_adapter,
+            {"cost_usd": "10.0"},
+            {"cost_usd": "NaN"},
+            {"cost_usd": "20.0"},
+        )
+
+        mock_persistence_instance = make_persistence_stub(
+            records_saved=3,
+            consume_records=True,
+        )
+        mock_persistence.return_value = mock_persistence_instance
+        mock_attribution.return_value = AsyncMock()
+
+        with pytest.raises(ValueError, match="cost_usd must be finite"):
+            await service.ingest_costs_for_tenant(tenant_id)
 
 
 @pytest.mark.asyncio
@@ -200,12 +311,13 @@ async def test_ingest_updates_connection_last_ingested_at(
         patch(
             "app.modules.reporting.domain.service.CostPersistenceService"
         ) as mock_persistence,
-        patch("app.modules.reporting.domain.service.AttributionEngine"),
+        patch("app.modules.reporting.domain.service.AttributionEngine") as mock_attribution,
     ):
         attach_stream(mock_adapter, {"cost_usd": "100.0"})
 
         mock_persistence_instance = make_persistence_stub(records_saved=1)
         mock_persistence.return_value = mock_persistence_instance
+        mock_attribution.return_value = AsyncMock()
 
         await service.ingest_costs_for_tenant(tenant_id)
 
@@ -229,12 +341,13 @@ async def test_ingest_respects_days_parameter(
         patch(
             "app.modules.reporting.domain.service.CostPersistenceService"
         ) as mock_persistence,
-        patch("app.modules.reporting.domain.service.AttributionEngine"),
+        patch("app.modules.reporting.domain.service.AttributionEngine") as mock_attribution,
     ):
         attach_stream(mock_adapter, {"cost_usd": "1.0"})
 
         mock_persistence_instance = make_persistence_stub(records_saved=1)
         mock_persistence.return_value = mock_persistence_instance
+        mock_attribution.return_value = AsyncMock()
 
         await service.ingest_costs_for_tenant(tenant_id, days=30)
 
@@ -261,12 +374,13 @@ async def test_ingest_response_has_required_fields(
         patch(
             "app.modules.reporting.domain.service.CostPersistenceService"
         ) as mock_persistence,
-        patch("app.modules.reporting.domain.service.AttributionEngine"),
+        patch("app.modules.reporting.domain.service.AttributionEngine") as mock_attribution,
     ):
         attach_stream(mock_adapter, {"cost_usd": "50.0"})
 
         mock_persistence_instance = make_persistence_stub(records_saved=1)
         mock_persistence.return_value = mock_persistence_instance
+        mock_attribution.return_value = AsyncMock()
 
         result = await service.ingest_costs_for_tenant(tenant_id)
 

@@ -81,7 +81,9 @@ async def generate_close_package_impl(
             provider=normalized_provider,
             start_date=start_date,
             end_date=end_date,
-            ledger_final_cost_usd=float(lifecycle_summary.get("final_cost_usd") or 0.0),
+            ledger_final_cost_usd=service._to_float(
+                lifecycle_summary.get("final_cost_usd") or 0.0
+            ),
         )
     restatement_payload = await service.get_restatement_history(
         tenant_id=tenant_id,

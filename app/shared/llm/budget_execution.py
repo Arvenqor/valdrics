@@ -37,8 +37,6 @@ BUDGET_EXECUTION_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     TimeoutError,
     TypeError,
     ValueError,
-    AttributeError,
-    KeyError,
 )
 BUDGET_METRIC_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     SQLAlchemyError,
@@ -47,7 +45,6 @@ BUDGET_METRIC_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     TimeoutError,
     TypeError,
     ValueError,
-    AttributeError,
 )
 BUDGET_ROLLBACK_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     RuntimeError,
@@ -55,7 +52,6 @@ BUDGET_ROLLBACK_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     TimeoutError,
     TypeError,
     ValueError,
-    AttributeError,
 )
 BUDGET_CACHE_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     RuntimeError,
@@ -63,17 +59,13 @@ BUDGET_CACHE_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     TimeoutError,
     TypeError,
     ValueError,
-    AttributeError,
-    KeyError,
     LookupError,
-    Exception,
 )
 BUDGET_ALERT_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     RuntimeError,
     OSError,
     TimeoutError,
     ImportError,
-    AttributeError,
     TypeError,
     ValueError,
 )

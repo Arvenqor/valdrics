@@ -355,3 +355,34 @@ async def test_get_unit_economics_alert_failure_is_non_fatal(
         assert response.json()["anomaly_count"] >= 1
     finally:
         app.dependency_overrides.pop(get_current_user, None)
+
+
+@pytest.mark.asyncio
+async def test_get_unit_economics_rejects_non_finite_settings_values(
+    async_client: AsyncClient, app, member_user
+) -> None:
+    app.dependency_overrides[get_current_user] = lambda: member_user
+    try:
+        with patch(
+            "app.modules.reporting.api.v1.costs._get_unit_settings_snapshot",
+            new=AsyncMock(
+                return_value=SimpleNamespace(
+                    default_request_volume=float("nan"),
+                    default_workload_volume=10.0,
+                    default_customer_volume=5.0,
+                    anomaly_threshold_percent=20.0,
+                )
+            ),
+        ):
+            response = await async_client.get(
+                "/api/v1/costs/unit-economics",
+                params={
+                    "start_date": "2026-02-01",
+                    "end_date": "2026-02-07",
+                },
+        )
+        assert response.status_code == 400
+        assert response.json()["error"]["message"] == "request_volume must be finite"
+        assert response.json()["error"]["code"] == "value_error"
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)

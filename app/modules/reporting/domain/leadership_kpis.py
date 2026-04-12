@@ -15,7 +15,7 @@ from __future__ import annotations
 import csv
 import io
 from datetime import date, datetime, time, timedelta, timezone
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any, Optional
 from uuid import UUID
 
@@ -38,6 +38,18 @@ from app.shared.core.pricing import (
 )
 
 logger = structlog.get_logger()
+
+
+def _coerce_finite_float(value: object, *, field_name: str) -> float:
+    try:
+        amount = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError) as exc:
+        raise ValueError(f"{field_name} must be numeric") from exc
+    if not amount.is_finite():
+        raise ValueError(f"{field_name} must be finite")
+    return float(amount)
+
+
 LEADERSHIP_SAVINGS_PROOF_RECOVERABLE_EXCEPTIONS: tuple[type[Exception], ...] = (
     ExternalAPIError,
     SQLAlchemyError,
@@ -306,6 +318,26 @@ class LeadershipKpiService:
     def render_csv(payload: LeadershipKpisResponse) -> str:
         out = io.StringIO()
         writer = csv.writer(out)
+        total_cost_usd = _coerce_finite_float(
+            payload.total_cost_usd,
+            field_name="total_cost_usd",
+        )
+        carbon_total_kgco2e = _coerce_finite_float(
+            payload.carbon_total_kgco2e,
+            field_name="carbon_total_kgco2e",
+        )
+        carbon_coverage_percent = _coerce_finite_float(
+            payload.carbon_coverage_percent,
+            field_name="carbon_coverage_percent",
+        )
+        savings_opportunity_monthly_usd = _coerce_finite_float(
+            payload.savings_opportunity_monthly_usd,
+            field_name="savings_opportunity_monthly_usd",
+        )
+        savings_realized_monthly_usd = _coerce_finite_float(
+            payload.savings_realized_monthly_usd,
+            field_name="savings_realized_monthly_usd",
+        )
 
         writer.writerow(
             [
@@ -325,11 +357,11 @@ class LeadershipKpiService:
             [
                 sanitize_csv_cell(payload.start_date),
                 sanitize_csv_cell(payload.end_date),
-                f"{payload.total_cost_usd:.4f}",
-                f"{payload.carbon_total_kgco2e:.4f}",
-                f"{payload.carbon_coverage_percent:.4f}",
-                f"{payload.savings_opportunity_monthly_usd:.2f}",
-                f"{payload.savings_realized_monthly_usd:.2f}",
+                f"{total_cost_usd:.4f}",
+                f"{carbon_total_kgco2e:.4f}",
+                f"{carbon_coverage_percent:.4f}",
+                f"{savings_opportunity_monthly_usd:.2f}",
+                f"{savings_realized_monthly_usd:.2f}",
                 payload.security_high_risk_decisions,
                 payload.security_approval_required_decisions,
                 payload.security_anomaly_signal_decisions,
@@ -343,11 +375,21 @@ class LeadershipKpiService:
             key=lambda item: item[1],
             reverse=True,
         ):
-            writer.writerow([sanitize_csv_cell(provider), f"{cost:.4f}"])
+            writer.writerow(
+                [
+                    sanitize_csv_cell(provider),
+                    f"{_coerce_finite_float(cost, field_name='cost_by_provider'):.4f}",
+                ]
+            )
         writer.writerow([])
 
         writer.writerow(["service", "cost_usd"])
         for item in payload.top_services:
-            writer.writerow([sanitize_csv_cell(item.service), f"{item.cost_usd:.4f}"])
+            writer.writerow(
+                [
+                    sanitize_csv_cell(item.service),
+                    f"{_coerce_finite_float(item.cost_usd, field_name='top_service_cost_usd'):.4f}",
+                ]
+            )
 
         return out.getvalue()
