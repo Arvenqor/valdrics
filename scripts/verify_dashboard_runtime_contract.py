@@ -7,9 +7,11 @@ import argparse
 from contextlib import contextmanager
 import os
 from pathlib import Path
+import shutil
 import socket
 import subprocess
 import sys
+import uuid
 import time
 from typing import Callable
 from urllib.error import URLError
@@ -117,67 +119,98 @@ def _reserve_local_port() -> int:
         return int(sock.getsockname()[1])
 
 
+@contextmanager
+def _prepared_dashboard_runtime_root(root: Path):
+    dashboard_root = root / "dashboard"
+    output_root = dashboard_root / ".svelte-kit" / "output"
+    build_root = dashboard_root / "build"
+    runtime_tmp_root = root / ".runtime" / "tmp"
+    runtime_tmp_root.mkdir(parents=True, exist_ok=True)
+    backup_root: Path | None = None
+
+    if build_root.exists() or build_root.is_symlink():
+        backup_root = runtime_tmp_root / f"dashboard-build-backup-{uuid.uuid4().hex}"
+        build_root.rename(backup_root)
+
+    try:
+        try:
+            build_root.symlink_to(output_root.resolve(), target_is_directory=True)
+        except OSError:
+            shutil.copytree(output_root, build_root)
+        yield dashboard_root
+    finally:
+        if build_root.is_symlink():
+            build_root.unlink()
+        elif build_root.exists():
+            shutil.rmtree(build_root, ignore_errors=True)
+
+        if backup_root is not None and backup_root.exists():
+            backup_root.rename(build_root)
+
+
 def smoke_dashboard_runtime(
     root: Path,
     *,
     timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
 ) -> str | None:
-    dashboard_root = root / "dashboard"
-    port = _reserve_local_port()
-    origin = f"http://127.0.0.1:{port}"
-    env = os.environ.copy()
-    env.update(
-        {
-            "HOST": "127.0.0.1",
-            "PORT": str(port),
-            "ORIGIN": origin,
-            "NODE_ENV": "production",
-        }
-    )
+    with _prepared_dashboard_runtime_root(root) as dashboard_root:
+        port = _reserve_local_port()
+        origin = f"http://127.0.0.1:{port}"
+        env = os.environ.copy()
+        env.update(
+            {
+                "HOST": "127.0.0.1",
+                "PORT": str(port),
+                "ORIGIN": origin,
+                "NODE_ENV": "production",
+            }
+        )
 
-    process = subprocess.Popen(
-        ["node", "server.node.mjs"],
-        cwd=dashboard_root,
-        env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-    )
+        process = subprocess.Popen(
+            ["node", "server.node.mjs"],
+            cwd=dashboard_root,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
 
-    response_preview = ""
-    last_error = ""
-    deadline = time.monotonic() + timeout_seconds
+        response_preview = ""
+        last_error = ""
+        deadline = time.monotonic() + timeout_seconds
 
-    try:
-        while time.monotonic() < deadline:
-            if process.poll() is not None:
-                break
+        try:
+            while time.monotonic() < deadline:
+                if process.poll() is not None:
+                    break
 
-            try:
-                with urlopen(f"{origin}/", timeout=2) as response:
-                    body = response.read(4096).decode("utf-8", errors="replace")
-                    response_preview = body[:200]
-                    if response.status == 200 and "<html" in body.lower():
-                        return None
+                try:
+                    with urlopen(f"{origin}/", timeout=2) as response:
+                        body = response.read(4096).decode("utf-8", errors="replace")
+                        response_preview = body[:200]
+                        if response.status == 200 and "<html" in body.lower():
+                            return None
+                        last_error = (
+                            f"unexpected dashboard response status={response.status} "
+                            f"body_preview={response_preview!r}"
+                        )
+                except URLError as exc:
+                    last_error = str(exc.reason)
+                except OSError as exc:
+                    last_error = str(exc)
+
+                time.sleep(0.25)
+
+            if not last_error:
+                if process.poll() is not None:
                     last_error = (
-                        f"unexpected dashboard response status={response.status} "
-                        f"body_preview={response_preview!r}"
+                        f"dashboard runtime exited early with code {process.returncode}"
                     )
-            except URLError as exc:
-                last_error = str(exc.reason)
-            except OSError as exc:
-                last_error = str(exc)
-
-            time.sleep(0.25)
-
-        if not last_error:
-            if process.poll() is not None:
-                last_error = f"dashboard runtime exited early with code {process.returncode}"
-            else:
-                last_error = "dashboard runtime did not become ready before timeout"
-        return _format_smoke_failure(process, last_error)
-    finally:
-        _stop_process(process)
+                else:
+                    last_error = "dashboard runtime did not become ready before timeout"
+            return _format_smoke_failure(process, last_error)
+        finally:
+            _stop_process(process)
 
 
 def _stop_process(process: subprocess.Popen[str]) -> None:
