@@ -20,6 +20,7 @@ from app.models.remediation import (
 )
 from app.modules.optimization.domain.remediation import RemediationService
 from app.shared.core.exceptions import BudgetExceededError, KillSwitchTriggeredError
+from app.shared.core.exceptions import ExternalAPIError
 
 
 @pytest.fixture
@@ -317,7 +318,9 @@ class TestRemediationIntegration:
             mock_ec2_client = AsyncMock()
             mock_get_client.return_value.__aenter__.return_value = mock_ec2_client
             mock_ec2_client.describe_volumes.return_value = {"Volumes": []}
-            mock_ec2_client.delete_volume.side_effect = Exception("AWS API Error")
+            mock_ec2_client.delete_volume.side_effect = ExternalAPIError(
+                "AWS API Error"
+            )
 
             # Execute remediation - should handle failure gracefully
             service = RemediationService(db)
@@ -727,7 +730,7 @@ class TestErrorHandlingIntegration:
             nonlocal call_count
             call_count += 1
             if call_count == 2:
-                raise Exception("AWS temporary failure")
+                raise ExternalAPIError("AWS temporary failure")
             return {"StoppingInstances": [{"InstanceId": kwargs["InstanceIds"][0]}]}
 
         with patch(

@@ -14,7 +14,6 @@ from app.shared.adapters.feed_utils import (
     as_float,
     is_number,
     parse_required_timestamp,
-    parse_timestamp,
 )
 from app.shared.adapters.http_retry import execute_with_http_retry
 from app.shared.adapters.platform_native_mixin import PlatformNativeConnectorMixin
@@ -37,7 +36,15 @@ _RETRYABLE_STATUS_CODES = {408, 429, 500, 502, 503, 504}
 _LEDGER_HTTP_VENDOR_ALIASES = {"ledger_http", "cmdb_ledger", "cmdb-ledger", "ledger"}
 _DATADOG_VENDOR = "datadog"
 _NEWRELIC_VENDOR_ALIASES = {"newrelic", "new_relic", "new-relic"}
-_DISCOVERY_RESOURCE_TYPE_ALIASES = {"all", "platform", "service", "services", "shared_service", "shared_services", "tooling"}
+_DISCOVERY_RESOURCE_TYPE_ALIASES = {
+    "all",
+    "platform",
+    "service",
+    "services",
+    "shared_service",
+    "shared_services",
+    "tooling",
+}
 PLATFORM_RESOURCE_USAGE_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     ExternalAPIError,
     httpx.HTTPError,
@@ -47,6 +54,8 @@ PLATFORM_RESOURCE_USAGE_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
     ValueError,
     KeyError,
 )
+
+
 async def _platform_get_request(
     *,
     url: str,
@@ -55,7 +64,12 @@ async def _platform_get_request(
     verify_ssl: bool,
 ) -> httpx.Response:
     client = get_http_client(verify=verify_ssl)
-    return await client.get(url, headers=headers, params=params, timeout=_NATIVE_TIMEOUT_SECONDS)
+    return await client.get(
+        url,
+        headers=headers,
+        params=params,
+        timeout=_NATIVE_TIMEOUT_SECONDS,
+    )
 
 async def _platform_post_request(
     *,
@@ -69,6 +83,7 @@ async def _platform_post_request(
     return await client.post(
         url, headers=headers, params=params, json=json, timeout=_NATIVE_TIMEOUT_SECONDS
     )
+
 
 class PlatformAdapter(PlatformNativeConnectorMixin, BaseAdapter):
     """Cloud+ adapter for internal platform/shared-services spend."""

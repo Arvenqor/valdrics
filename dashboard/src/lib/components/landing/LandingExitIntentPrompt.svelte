@@ -113,8 +113,7 @@
 
 		const supportsDesktopExitIntent = () =>
 			!(
-				typeof window.matchMedia === 'function' &&
-				window.matchMedia('(max-width: 1023px)').matches
+				typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 1023px)').matches
 			);
 
 		const handleMouseOut = (event: MouseEvent) => {
@@ -310,10 +309,14 @@
 		color: var(--color-ink-100);
 	}
 
-	:global(.public-site-shell[data-public-theme='dark']) .landing-exit-panel :global(.landing-proof-k),
+	:global(.public-site-shell[data-public-theme='dark'])
+		.landing-exit-panel
+		:global(.landing-proof-k),
 	:global(.public-site-shell[data-public-theme='dark']) .landing-exit-panel :global(.landing-p),
 	:global(.public-site-shell[data-public-theme='dark']) .landing-exit-panel :global(.landing-h3),
-	:global(.public-site-shell[data-public-theme='dark']) .landing-exit-panel :global(.landing-roi-label) {
+	:global(.public-site-shell[data-public-theme='dark'])
+		.landing-exit-panel
+		:global(.landing-roi-label) {
 		color: var(--color-ink-100);
 	}
 </style>

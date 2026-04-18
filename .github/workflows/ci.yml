@@ -158,7 +158,7 @@ jobs:
         run: uv run python3 scripts/verify_reports_archive_hygiene.py
 
       - name: Verify Codebase Audit Report
-        run: uv run python3 scripts/verify_codebase_audit_report.py --report .runtime/staging.audit.report.json
+        run: uv run python3 scripts/verify_codebase_audit_report.py --report reports/audit/staging.audit.report.json
 
       - name: Verify Frontend API Contracts
         run: uv run python scripts/check_frontend_api_contracts.py
@@ -240,7 +240,7 @@ jobs:
       AWS_DEFAULT_REGION: "us-east-1"
       GROQ_API_KEY: "testing"
       CODECARBON_LOG_LEVEL: "info"
-      COVERAGE_FILE: "reports/coverage/.coverage.${{ matrix.shard_id }}"
+      COVERAGE_FILE: "${{ github.workspace }}/reports/coverage/.coverage.${{ matrix.shard_id }}"
     steps:
       - name: Checkout Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

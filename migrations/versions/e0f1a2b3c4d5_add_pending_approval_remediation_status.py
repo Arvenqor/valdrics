@@ -18,7 +18,14 @@ depends_on = None
 def upgrade() -> None:
     # SQLAlchemy persists Enum member names for this type (for example, PENDING),
     # so add the new member name and avoid positional AFTER dependency.
-    op.execute("ALTER TYPE remediationstatus ADD VALUE IF NOT EXISTS 'PENDING_APPROVAL'")
+    #
+    # PostgreSQL requires the enum-value addition to be committed before later
+    # statements in the migration chain can use the new label inside indexes,
+    # constraints, or defaults.
+    with op.get_context().autocommit_block():
+        op.execute(
+            "ALTER TYPE remediationstatus ADD VALUE IF NOT EXISTS 'PENDING_APPROVAL'"
+        )
 
 
 def downgrade() -> None:

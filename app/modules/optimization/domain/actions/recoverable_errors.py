@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+from app.shared.core.exceptions import AdapterError, ExternalAPIError
+
 
 def remediation_action_recoverable_exceptions() -> tuple[type[Exception], ...]:
     base_exceptions: list[type[Exception]] = [
+        ExternalAPIError,
+        AdapterError,
         OSError,
         RuntimeError,
         TypeError,

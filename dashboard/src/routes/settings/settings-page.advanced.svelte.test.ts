@@ -37,7 +37,13 @@ describe('settings page integration wiring (advanced)', () => {
 			);
 		});
 
-		const openAiKey = screen.getByLabelText('OpenAI API Key') as HTMLInputElement;
+		const openAiKey = (await screen.findByLabelText(
+			'OpenAI API Key',
+			{},
+			{
+				timeout: 5000
+			}
+		)) as HTMLInputElement;
 		await fireEvent.input(openAiKey, { target: { value: 'sk-test-key-with-valid-length-12345' } });
 		await fireEvent.click(screen.getByRole('button', { name: /Save AI Strategy/i }));
 		await waitFor(() => {

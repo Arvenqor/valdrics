@@ -82,7 +82,6 @@
 	justify-content: flex-start;
 }
 
-
 .landing-cookie-settings {
 	position: fixed;
 	left: max(0.9rem, env(safe-area-inset-left));

@@ -4,6 +4,7 @@ import csv
 import io
 from collections.abc import AsyncIterator, Callable
 from datetime import date
+from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
@@ -219,7 +220,7 @@ async def upsert_provider_invoice_impl(
             start_date=payload.start_date,
             end_date=payload.end_date,
             currency=payload.currency,
-            total_amount=payload.total_amount,
+            total_amount=Decimal(str(payload.total_amount)),
             invoice_number=payload.invoice_number,
             status=payload.status,
             notes=payload.notes,

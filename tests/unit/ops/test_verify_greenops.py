@@ -33,7 +33,7 @@ async def test_verify_greenops_returns_failure_without_auth_in_production(
 ) -> None:
     monkeypatch.setattr(
         greenops_verifier,
-        "get_settings",
+        "get_greenops_settings",
         lambda: SimpleNamespace(ENVIRONMENT="production", ADMIN_API_KEY=""),
     )
     monkeypatch.delenv("VERIFICATION_TOKEN", raising=False)
@@ -54,7 +54,7 @@ async def test_verify_greenops_returns_success_when_both_checks_pass(
     )
     monkeypatch.setattr(
         greenops_verifier,
-        "get_settings",
+        "get_greenops_settings",
         lambda: SimpleNamespace(ENVIRONMENT="staging", ADMIN_API_KEY="admin-key"),
     )
     monkeypatch.setattr(greenops_verifier.httpx, "AsyncClient", lambda timeout: fake_client)
@@ -75,7 +75,7 @@ async def test_verify_greenops_returns_failure_when_endpoint_auth_fails(
     )
     monkeypatch.setattr(
         greenops_verifier,
-        "get_settings",
+        "get_greenops_settings",
         lambda: SimpleNamespace(ENVIRONMENT="staging", ADMIN_API_KEY=""),
     )
     monkeypatch.setenv("VERIFICATION_TOKEN", "bearer-token")
@@ -96,10 +96,23 @@ async def test_verify_greenops_returns_failure_on_connection_exception(
     )
     monkeypatch.setattr(
         greenops_verifier,
-        "get_settings",
+        "get_greenops_settings",
         lambda: SimpleNamespace(ENVIRONMENT="staging", ADMIN_API_KEY=""),
     )
     monkeypatch.setenv("VERIFICATION_TOKEN", "bearer-token")
     monkeypatch.setattr(greenops_verifier.httpx, "AsyncClient", lambda timeout: fake_client)
 
     assert await greenops_verifier.verify_greenops_api() == 1
+
+
+def test_greenops_settings_ignore_unrelated_runtime_env_values(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ENVIRONMENT", "staging")
+    monkeypatch.setenv("ADMIN_API_KEY", "admin-key")
+    monkeypatch.setenv("DEBUG", "release")
+
+    settings = greenops_verifier.get_greenops_settings()
+
+    assert settings.ENVIRONMENT == "staging"
+    assert settings.ADMIN_API_KEY == "admin-key"

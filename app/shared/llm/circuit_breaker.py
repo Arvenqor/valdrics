@@ -158,6 +158,8 @@ class LLMCircuitBreaker:
                 if circuit.last_failure_monotonic is not None:
                     elapsed = _monotonic_time() - circuit.last_failure_monotonic
                 else:
+                    if circuit.last_failure_time is None:
+                        return False
                     elapsed = (now - circuit.last_failure_time).total_seconds()
                 if elapsed < circuit.recovery_timeout:
                     return False

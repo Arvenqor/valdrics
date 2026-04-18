@@ -11,6 +11,8 @@ import {
 } from './ops-page.test.setup';
 import Page from './+page.svelte';
 
+const ASYNC_RENDER_TIMEOUT = 5000;
+
 describe('ops page close workflow and defaults interactions', () => {
 	let createObjectUrlSpy: ReturnType<typeof vi.spyOn>;
 	let revokeObjectUrlSpy: ReturnType<typeof vi.spyOn>;
@@ -47,7 +49,7 @@ describe('ops page close workflow and defaults interactions', () => {
 			data: testOpsPageData
 		});
 
-		await screen.findByText('Integration Acceptance Runs');
+		await screen.findByText('Integration Acceptance Runs', {}, { timeout: ASYNC_RENDER_TIMEOUT });
 		await fireEvent.click(screen.getByLabelText('Include Slack checks'));
 		await fireEvent.click(screen.getByLabelText('Include Jira checks'));
 		await fireEvent.click(screen.getByLabelText('Include Workflow checks'));

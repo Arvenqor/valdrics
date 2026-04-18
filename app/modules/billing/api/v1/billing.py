@@ -7,13 +7,14 @@ Provides:
 - POST /billing/webhook - Handle Paystack webhooks
 """
 
-from typing import Annotated, Optional, Dict, Any, List
-from urllib.parse import urlparse, urljoin, urlunparse
+from uuid import UUID
+from typing import TYPE_CHECKING, Annotated, Any, Dict, List, Optional
+from urllib.parse import urljoin, urlparse, urlunparse
 from fastapi import APIRouter, Depends, HTTPException, Request
 from httpx import HTTPError
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 import structlog
 
 from app.modules.billing.api.v1.billing_models import (
@@ -37,6 +38,9 @@ from app.shared.core.config import get_settings
 from app.shared.core.proxy_headers import resolve_client_ip
 from app.shared.core.rate_limit import auth_limit, standard_limit
 from app.shared.core.currency import ExchangeRateUnavailableError
+
+if TYPE_CHECKING:
+    from app.shared.core.config import Settings
 
 logger = structlog.get_logger()
 BILLING_RUNTIME_RECOVERABLE_ERRORS: tuple[type[Exception], ...] = (
@@ -62,11 +66,11 @@ __all__ = [
 router = APIRouter(tags=["Billing"])
 
 
-def _settings():
+def _settings() -> "Settings":
     return get_settings()
 
 
-def _require_tenant_id(user: CurrentUser) -> Any:
+def _require_tenant_id(user: CurrentUser) -> UUID:
     if user.tenant_id is None:
         raise HTTPException(403, "Tenant context required.")
     return user.tenant_id

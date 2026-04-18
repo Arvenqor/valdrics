@@ -161,15 +161,8 @@ async def trigger_analysis(
 
     attempted = len(results)
     dispatched = sum(1 for item in results if item["dispatched"])
-    summary = {
-        "attempted": attempted,
-        "dispatched": dispatched,
-        "all_dispatched": dispatched == attempted,
-        "results": results,
-    }
-    if not bool(summary.get("all_dispatched")):
-        attempted = int(summary.get("attempted", 0) or 0)
-        dispatched = int(summary.get("dispatched", 0) or 0)
+    all_dispatched = dispatched == attempted
+    if not all_dispatched:
         raise HTTPException(
             status_code=503,
             detail=(

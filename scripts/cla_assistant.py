@@ -24,6 +24,9 @@ from urllib.error import HTTPError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from scripts.env_generation_common import repo_root_for, resolve_cli_path_from_root
 
 DEFAULT_SIGN_PHRASE = "I have read the CLA Document and I hereby sign the CLA"

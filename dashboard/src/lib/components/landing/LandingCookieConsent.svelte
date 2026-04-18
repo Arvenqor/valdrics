@@ -123,7 +123,9 @@
 		color: var(--color-ink-100);
 	}
 
-	:global(.public-site-shell[data-public-theme='dark']) .landing-cookie-banner :global(.landing-proof-k) {
+	:global(.public-site-shell[data-public-theme='dark'])
+		.landing-cookie-banner
+		:global(.landing-proof-k) {
 		color: var(--color-ink-100);
 	}
 

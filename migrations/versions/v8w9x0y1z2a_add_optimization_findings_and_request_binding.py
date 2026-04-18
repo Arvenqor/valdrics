@@ -18,8 +18,17 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
-finding_source_enum = sa.Enum("ZOMBIE_SCAN", name="findingsource")
-finding_status_enum = sa.Enum("OPEN", "RESOLVED", name="findingstatus")
+finding_source_enum = postgresql.ENUM(
+    "ZOMBIE_SCAN",
+    name="findingsource",
+    create_type=False,
+)
+finding_status_enum = postgresql.ENUM(
+    "OPEN",
+    "RESOLVED",
+    name="findingstatus",
+    create_type=False,
+)
 
 
 def upgrade() -> None:

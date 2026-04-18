@@ -22,8 +22,8 @@ async def test_budget_reproduction_fail_closed(db):
     with patch("app.shared.llm.budget_manager.get_cache_service") as mock_cache_service:
         cache_mock = MagicMock()
         cache_mock.enabled = True
-        cache_mock.client.get = AsyncMock(
-            side_effect=Exception("Redis Connection Time-out")
+        cache_mock.get_raw = AsyncMock(
+            side_effect=RuntimeError("Redis Connection Time-out")
         )
         mock_cache_service.return_value = cache_mock
 
@@ -52,7 +52,7 @@ async def test_budget_allowed_when_healthy(db):
     with patch("app.shared.llm.budget_manager.get_cache_service") as mock_cache_service:
         cache_mock = MagicMock()
         cache_mock.enabled = True
-        cache_mock.client.get = AsyncMock(return_value=None)
+        cache_mock.get_raw = AsyncMock(return_value=None)
         mock_cache_service.return_value = cache_mock
 
         # Should not raise any error if no budget is set (default)

@@ -22,6 +22,7 @@
 		type OnboardingProvider
 	} from './onboardingTypesUtils';
 	import {
+		buildOnboardingConnectionVerifiedEvent,
 		canUseCloudPlusFeaturesForView,
 		canUseIdpDeepScanForView,
 		canUseMultiCloudFeaturesForView,
@@ -92,11 +93,18 @@
 	const canUseMultiCloudFeatures = (): boolean => canUseMultiCloudFeaturesForView(data);
 	const canUseCloudPlusFeatures = (): boolean => canUseCloudPlusFeaturesForView(data);
 	const canUseIdpDeepScan = (): boolean => canUseIdpDeepScanForView(data);
-	const applyDiscoveryCandidateLocally = (updated: DiscoveryCandidate): void =>
-		(discoveryCandidates = applyDiscoveryCandidateLocallyHelper(discoveryCandidates, updated));
-	const upsertDiscoveryCandidates = (candidates: DiscoveryCandidate[]): void =>
-		(discoveryCandidates = upsertDiscoveryCandidatesHelper(discoveryCandidates, candidates));
-	function applyDiscoveryFlowResult(result: { info?: string; domain: string; warnings: string[]; candidates: DiscoveryCandidate[] }): void {
+	const applyDiscoveryCandidateLocally = (updated: DiscoveryCandidate): void => {
+		discoveryCandidates = applyDiscoveryCandidateLocallyHelper(discoveryCandidates, updated);
+	};
+	const upsertDiscoveryCandidates = (candidates: DiscoveryCandidate[]): void => {
+		discoveryCandidates = upsertDiscoveryCandidatesHelper(discoveryCandidates, candidates);
+	};
+	function applyDiscoveryFlowResult(result: {
+		info?: string;
+		domain: string;
+		warnings: string[];
+		candidates: DiscoveryCandidate[];
+	}): void {
 		if (!result.info) return;
 		discoveryDomain = result.domain;
 		discoveryWarnings = result.warnings;
@@ -311,7 +319,6 @@
 		copied = true;
 		setTimeout(() => (copied = false), 2000);
 	}
-
 	async function downloadTemplate() {
 		const { getCloudPlusTemplateForTab, downloadOnboardingTemplate } =
 			await loadOnboardingUiActionsModule();
@@ -360,14 +367,9 @@
 			currentStep = result.currentStep;
 			success = result.success;
 			if (result.success) {
-				trackOnboardingConnectionVerified({
-					accessToken: data.session?.access_token,
-					tenantId: resolveOnboardingTenantId(data),
-					url: $page.url,
-					currentTier: data.subscription?.tier,
-					persona: String(data?.profile?.persona ?? ''),
-					provider: selectedProvider
-				});
+				trackOnboardingConnectionVerified(
+					buildOnboardingConnectionVerifiedEvent(data, $page.url, selectedProvider)
+				);
 			}
 		} catch (e) {
 			const err = e as Error;
@@ -393,14 +395,9 @@
 			});
 			success = true;
 			currentStep = 3;
-			trackOnboardingConnectionVerified({
-				accessToken: data.session?.access_token,
-				tenantId: resolveOnboardingTenantId(data),
-				url: $page.url,
-				currentTier: data.subscription?.tier,
-				persona: String(data?.profile?.persona ?? ''),
-				provider: 'aws'
-			});
+			trackOnboardingConnectionVerified(
+				buildOnboardingConnectionVerifiedEvent(data, $page.url, 'aws')
+			);
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Unknown error';
 		} finally {

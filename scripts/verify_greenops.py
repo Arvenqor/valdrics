@@ -2,7 +2,10 @@ import asyncio
 import httpx
 import os
 import structlog
-from app.shared.core.config import get_settings
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.shared.core.runtime_paths import DEFAULT_ENV_FILE
 
 logger = structlog.get_logger()
 GREENOPS_VERIFY_RECOVERABLE_EXCEPTIONS = (
@@ -12,6 +15,34 @@ GREENOPS_VERIFY_RECOVERABLE_EXCEPTIONS = (
     TypeError,
     ValueError,
 )
+_ALLOWED_ENVIRONMENTS = {"development", "staging", "production", "test", "local"}
+
+
+class GreenOpsVerificationSettings(BaseSettings):
+    """Minimal runtime contract for GreenOps verification."""
+
+    ENVIRONMENT: str = "development"
+    ADMIN_API_KEY: str | None = None
+
+    model_config = SettingsConfigDict(
+        env_file=str(DEFAULT_ENV_FILE),
+        env_ignore_empty=True,
+        extra="ignore",
+    )
+
+    @field_validator("ENVIRONMENT", mode="before")
+    @classmethod
+    def normalize_environment(cls, value: object) -> str:
+        normalized = str(value or "development").strip().lower()
+        if normalized not in _ALLOWED_ENVIRONMENTS:
+            raise ValueError(
+                "ENVIRONMENT must be one of: development, staging, production, test, local."
+            )
+        return normalized
+
+
+def get_greenops_settings() -> GreenOpsVerificationSettings:
+    return GreenOpsVerificationSettings()
 
 
 async def verify_greenops_api():
@@ -19,13 +50,13 @@ async def verify_greenops_api():
     Performs authenticated API-level verification for GreenOps.
     Standardizes BE-OPS-01: Authenticated Verification.
     """
-    settings = get_settings()
+    settings = get_greenops_settings()
     base_url = os.getenv("API_URL", "http://localhost:8000").rstrip("/")
     failed = False
 
     # Require real auth in production; allow dev defaults ONLY if not in prod
     token = os.getenv("VERIFICATION_TOKEN")
-    admin_key = os.getenv("ADMIN_API_KEY") or settings.ADMIN_API_KEY
+    admin_key = settings.ADMIN_API_KEY or os.getenv("ADMIN_API_KEY")
 
     if not token and not admin_key and settings.ENVIRONMENT == "production":
         print(

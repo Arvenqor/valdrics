@@ -9,10 +9,13 @@ from app.modules.optimization.adapters.common.credentials import (
     resolve_gcp_credentials,
 )
 from app.shared.adapters.aws_utils import map_aws_credentials
+from app.shared.core.exceptions import AdapterError, ExternalAPIError
 
 
 def remediation_action_recoverable_exceptions() -> tuple[type[Exception], ...]:
     base_exceptions: list[type[Exception]] = [
+        ExternalAPIError,
+        AdapterError,
         OSError,
         RuntimeError,
         TypeError,
@@ -72,4 +75,3 @@ def create_gcp_instances_client(raw_credentials: Any) -> Any:
 
     credentials = create_gcp_action_credentials(raw_credentials)
     return compute_v1.InstancesClient(credentials=credentials)
-

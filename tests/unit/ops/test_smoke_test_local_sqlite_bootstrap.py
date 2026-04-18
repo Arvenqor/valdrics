@@ -18,8 +18,8 @@ def test_run_local_sqlite_bootstrap_smoke_reaches_healthy_app(tmp_path: Path) ->
     assert result["status"] == "healthy"
     assert result["database_status"] == "up"
     assert result["database_engine"] == "sqlite"
-    assert result["cache_status"] == "disabled"
-    assert result["aws_status"] == "healthy"
+    assert result["cache_status"] == "healthy"
+    assert result["external_services_status"] == "disabled"
     assert result["background_jobs_status"] == "healthy"
 
 

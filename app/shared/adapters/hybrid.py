@@ -14,7 +14,6 @@ from app.shared.adapters.feed_utils import (
     as_float,
     is_number,
     parse_required_timestamp,
-    parse_timestamp,
 )
 from app.shared.adapters.http_retry import execute_with_http_retry
 from app.shared.adapters.hybrid_native_mixin import HybridNativeConnectorMixin

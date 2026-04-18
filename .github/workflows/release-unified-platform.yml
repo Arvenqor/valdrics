@@ -138,7 +138,7 @@ jobs:
           set -euo pipefail
           mkdir -p .runtime
           uv run python3 scripts/refresh_codebase_audit_report.py \
-            --report ".runtime/staging.audit.report.json"
+            --report "reports/audit/staging.audit.report.json"
 
       - name: Verify managed release readiness
         shell: bash
@@ -146,7 +146,7 @@ jobs:
           set -euo pipefail
           uv run python3 scripts/verify_managed_release_readiness.py \
             --environment staging \
-            --audit-report .runtime/staging.audit.report.json \
+            --audit-report reports/audit/staging.audit.report.json \
             --runtime-report .runtime/staging.report.json \
             --migration-report .runtime/staging.migrate.report.json \
             --deployment-report .runtime/deploy/staging/deployment.report.json \

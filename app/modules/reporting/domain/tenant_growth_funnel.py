@@ -290,12 +290,15 @@ async def record_tenant_growth_funnel_stage(
     source: str | None = None,
     commit: bool = False,
 ) -> TenantGrowthFunnelSnapshot:
+    normalized_time: datetime
     if occurred_at is None:
         normalized_time = datetime.now(timezone.utc)
     else:
-        normalized_time = _normalize_timestamp(occurred_at)
-        if normalized_time is None:
+        normalized_occurred_at = _normalize_timestamp(occurred_at)
+        if normalized_occurred_at is None:
             raise ValueError("occurred_at must be a timezone-aware or naive datetime")
+        assert normalized_occurred_at is not None
+        normalized_time = normalized_occurred_at
     normalized_tier = normalize_tier(current_tier)
 
     await _ensure_snapshot_row(db, tenant_id)

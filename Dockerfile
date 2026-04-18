@@ -1,8 +1,8 @@
 # ============================================================
 # STAGE 1: Build dependencies
 # ============================================================
-# python:3.12-slim as of 2026-02-28
-FROM python:3.12-slim@sha256:f3fa41d74a768c2fce8016b98c191ae8c1bacd8f1152870a3f9f87d350920b7c AS builder
+# python:3.12-slim as of 2026-04-17
+FROM python:3.12-slim@sha256:804ddf3251a60bbf9c92e73b7566c40428d54d0e79d3428194edf40da6521286 AS builder
 
 # Labels for OCI compliance
 LABEL org.opencontainers.image.source="https://github.com/valdrics/valdrics"
@@ -32,13 +32,20 @@ RUN uv sync --frozen --no-dev --no-editable
 # ============================================================
 # STAGE 2: Runtime (minimal image)
 # ============================================================
-FROM python:3.12-slim@sha256:f3fa41d74a768c2fce8016b98c191ae8c1bacd8f1152870a3f9f87d350920b7c AS runtime
+FROM python:3.12-slim@sha256:804ddf3251a60bbf9c92e73b7566c40428d54d0e79d3428194edf40da6521286 AS runtime
 
 WORKDIR /app
 
 # Install only the probe/runtime tools required by shipped container contracts.
+# Explicitly refresh OpenSSL runtime packages so the final image does not inherit
+# stale vulnerable patch levels from the upstream base digest.
 RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y curl procps && \
+    DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
+    curl \
+    procps \
+    openssl \
+    libssl3t64 \
+    openssl-provider-legacy && \
     rm -rf /var/lib/apt/lists/* && \
     useradd --create-home --shell /bin/bash appuser && \
     chown -R appuser:appuser /app

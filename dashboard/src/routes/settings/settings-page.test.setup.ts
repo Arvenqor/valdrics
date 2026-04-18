@@ -49,6 +49,10 @@ export function jsonResponse(payload: unknown, status = 200): Response {
 	});
 }
 
+function cloneResponse(response: Response): Response {
+	return response.clone();
+}
+
 const EDGE_BASE = '/api/edge/api/v1';
 export const endpoint = (path: string): string => `${EDGE_BASE}${path}`;
 export const directApiEndpoint = (path: string): string => `https://api.test/api/v1${path}`;
@@ -285,9 +289,15 @@ export function setupApiMocks({
 	const putMap = { ...putDefaults, ...putOverrides };
 	const postMap = { ...postDefaults, ...postOverrides };
 
-	getMock.mockImplementation(async (url: string) => getMap[String(url)] ?? jsonResponse({}, 404));
-	putMock.mockImplementation(async (url: string) => putMap[String(url)] ?? jsonResponse({}, 404));
-	postMock.mockImplementation(async (url: string) => postMap[String(url)] ?? jsonResponse({}, 404));
+	getMock.mockImplementation(async (url: string) =>
+		cloneResponse(getMap[String(url)] ?? jsonResponse({}, 404))
+	);
+	putMock.mockImplementation(async (url: string) =>
+		cloneResponse(putMap[String(url)] ?? jsonResponse({}, 404))
+	);
+	postMock.mockImplementation(async (url: string) =>
+		cloneResponse(postMap[String(url)] ?? jsonResponse({}, 404))
+	);
 }
 
 export function renderPage(tier: string = 'enterprise') {

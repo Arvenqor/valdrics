@@ -1,6 +1,7 @@
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from uuid import UUID, uuid4
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -140,18 +141,19 @@ async def test_unit_economics_settings_rejects_non_finite_persisted_values(
 ):
     app.dependency_overrides[get_current_user] = lambda: admin_user
     try:
-        db.add(
-            UnitEconomicsSettings(
-                tenant_id=admin_user.tenant_id,
-                default_request_volume=Decimal("NaN"),
-                default_workload_volume=Decimal("80.0"),
-                default_customer_volume=Decimal("25.0"),
-                anomaly_threshold_percent=Decimal("30.0"),
-            )
+        invalid_settings = SimpleNamespace(
+            id=uuid4(),
+            tenant_id=admin_user.tenant_id,
+            default_request_volume=Decimal("NaN"),
+            default_workload_volume=Decimal("80.0"),
+            default_customer_volume=Decimal("25.0"),
+            anomaly_threshold_percent=Decimal("30.0"),
         )
-        await db.commit()
-
-        response = await async_client.get("/api/v1/costs/unit-economics/settings")
+        with patch(
+            "app.modules.reporting.api.v1.costs._get_unit_settings_snapshot",
+            new=AsyncMock(return_value=invalid_settings),
+        ):
+            response = await async_client.get("/api/v1/costs/unit-economics/settings")
 
         assert response.status_code == 400
         assert response.json()["error"]["message"] == (

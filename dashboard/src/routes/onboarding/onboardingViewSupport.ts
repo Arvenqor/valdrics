@@ -4,12 +4,14 @@ import {
 	canUseIdpDeepScanForTier,
 	canUseMultiCloudFeaturesForTier
 } from './onboardingTierAccess';
+import type { OnboardingProvider } from './onboardingTypesUtils';
 
 type SessionTenantInput = Parameters<typeof resolveSessionTenantId>[0];
 
 export type OnboardingViewData =
 	| (SessionTenantInput & {
 			subscription?: { tier?: string | null } | null;
+			profile?: { persona?: string | null } | null;
 	  })
 	| null
 	| undefined;
@@ -63,4 +65,26 @@ export function canUseIdpDeepScanForView(data: OnboardingViewData): boolean {
 
 export function resolveOnboardingTenantId(data: OnboardingViewData): string | undefined {
 	return resolveSessionTenantId({ session: data?.session, user: data?.user });
+}
+
+export function buildOnboardingConnectionVerifiedEvent(
+	data: OnboardingViewData,
+	pageUrl: URL,
+	provider: OnboardingProvider
+): {
+	accessToken: string | null | undefined;
+	tenantId: string | undefined;
+	url: URL;
+	currentTier: string | undefined;
+	persona: string;
+	provider: OnboardingProvider;
+} {
+	return {
+		accessToken: data?.session?.access_token,
+		tenantId: resolveOnboardingTenantId(data),
+		url: pageUrl,
+		currentTier: data?.subscription?.tier ?? undefined,
+		persona: String(data?.profile?.persona ?? ''),
+		provider
+	};
 }

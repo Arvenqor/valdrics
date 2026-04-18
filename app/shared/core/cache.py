@@ -10,7 +10,7 @@ import asyncio
 from fnmatch import fnmatchcase
 import hashlib
 import json
-from collections.abc import Callable
+from collections.abc import AsyncGenerator, Callable
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from typing import Any, Optional
@@ -131,7 +131,7 @@ class _InMemoryAsyncCacheClient:
         )
         return True
 
-    async def scan_iter(self, *, match: str):
+    async def scan_iter(self, *, match: str) -> AsyncGenerator[str, None]:
         for key in self._matching_keys(match):
             yield key
 

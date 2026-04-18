@@ -9,6 +9,7 @@ from app.modules.governance.api.v1.settings.notification_diagnostics_ops import 
     to_slack_policy_diagnostics,
 )
 from app.modules.governance.api.v1.settings.notification_settings_ops import (
+    apply_notification_settings_update,
     enforce_jira_integration_access,
     enforce_slack_integration_access,
 )
@@ -136,3 +137,59 @@ def test_to_slack_policy_diagnostics_missing_rows_fail_closed() -> None:
     assert diagnostics.enabled_in_notifications is False
     assert "missing_remediation_settings" in diagnostics.reasons
     assert "missing_notification_settings" in diagnostics.reasons
+
+
+def test_apply_notification_settings_update_handles_secret_set_clear_and_normalization() -> None:
+    settings = SimpleNamespace(
+        slack_enabled=False,
+        slack_channel_override=None,
+        jira_enabled=False,
+        jira_base_url=None,
+        jira_email="old@example.com",
+        jira_project_key=None,
+        jira_issue_type=None,
+        jira_api_token="old-token",
+        teams_enabled=False,
+        teams_webhook_url="old-webhook",
+        digest_schedule="daily",
+        digest_hour=9,
+        digest_minute=0,
+        alert_on_budget_warning=False,
+        alert_on_budget_exceeded=False,
+        alert_on_zombie_detected=False,
+        workflow_github_enabled=False,
+        workflow_github_owner=None,
+        workflow_github_repo=None,
+        workflow_github_workflow_id=None,
+        workflow_github_ref=None,
+        workflow_github_token="old-gh-token",
+        workflow_gitlab_enabled=False,
+        workflow_gitlab_base_url=None,
+        workflow_gitlab_project_id=None,
+        workflow_gitlab_ref=None,
+        workflow_gitlab_trigger_token="old-gl-token",
+        workflow_webhook_enabled=False,
+        workflow_webhook_url=None,
+        workflow_webhook_bearer_token="old-webhook-token",
+    )
+
+    apply_notification_settings_update(
+        settings=settings,
+        updates={
+            "slack_enabled": True,
+            "jira_email": None,
+            "clear_jira_api_token": True,
+            "teams_webhook_url": "https://teams.example.test/webhook",
+            "workflow_github_token": "new-gh-token",
+            "clear_workflow_gitlab_trigger_token": True,
+            "clear_workflow_webhook_bearer_token": True,
+        },
+    )
+
+    assert settings.slack_enabled is True
+    assert settings.jira_email is None
+    assert settings.jira_api_token is None
+    assert settings.teams_webhook_url == "https://teams.example.test/webhook"
+    assert settings.workflow_github_token == "new-gh-token"
+    assert settings.workflow_gitlab_trigger_token is None
+    assert settings.workflow_webhook_bearer_token is None

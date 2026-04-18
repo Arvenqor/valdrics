@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from app.shared.adapters.feed_utils import as_float, is_number, parse_timestamp
+from app.shared.adapters.feed_utils import as_float, is_number
 
 _DEFAULT_LOOKBACK_DAYS = 30
 _MAX_LOOKBACK_DAYS = 365
@@ -106,7 +106,9 @@ def discover_resources_from_cost_rows(
             metadata["last_seen_at"] = observed_at.isoformat()
 
     resources = list(aggregated.values())
-    resources.sort(key=lambda row: (str(row.get("id") or ""), str(row.get("region") or "")))
+    resources.sort(
+        key=lambda row: (str(row.get("id") or ""), str(row.get("region") or ""))
+    )
     return resources
 
 

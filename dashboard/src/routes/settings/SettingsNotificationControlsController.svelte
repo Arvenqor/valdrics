@@ -66,7 +66,9 @@
 		const runtime = await loadNotificationRuntime();
 		const result = await runtime.loadNotificationSettings(data.session?.access_token, settings);
 		settings = result.settings;
-		error = result.error;
+		if (result.error) {
+			error = result.error;
+		}
 	}
 
 	async function saveSettings() {
