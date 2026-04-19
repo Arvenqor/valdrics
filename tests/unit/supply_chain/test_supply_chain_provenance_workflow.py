@@ -113,9 +113,20 @@ def test_ci_workflow_has_enterprise_tdd_quality_gate_job() -> None:
 def test_ci_workflow_shards_backend_pytest_and_combines_coverage() -> None:
     text = (REPO_ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
 
+    assert "classify-changes:" in text
+    assert "name: Classify CI Surfaces" in text
+    assert "backend_ci: ${{ steps.classify.outputs.backend_ci }}" in text
+    assert "dashboard_ci: ${{ steps.classify.outputs.dashboard_ci }}" in text
+    assert "quality_ci: ${{ steps.classify.outputs.quality_ci }}" in text
+    assert "github.event_name != 'pull_request' || needs.classify-changes.outputs.backend_ci == 'true'" in text
+    assert "github.event_name != 'pull_request' || needs.classify-changes.outputs.dashboard_ci == 'true'" in text
+    assert "github.event_name != 'pull_request' || needs.classify-changes.outputs.quality_ci == 'true'" in text
     assert "pytest:" in text
     assert "Backend Pytest Shard ${{ matrix.shard_id }}" in text
     assert "name: Run Unit Tests" in text
+    assert "if: always() && (github.event_name != 'pull_request' || needs.classify-changes.outputs.backend_ci == 'true')" in text
+    assert "Require Successful Backend Pytest Shards" in text
+    assert "needs.pytest.result != 'success'" in text
     assert "backend-coverage-${{ matrix.shard_id }}" in text
     assert "pattern: backend-coverage-*" in text
     assert "merge-multiple: true" in text

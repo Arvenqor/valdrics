@@ -23,9 +23,86 @@ env:
   TRIVY_IMAGE: "docker.io/aquasec/trivy:0.69.3"
 
 jobs:
+  classify-changes:
+    name: Classify CI Surfaces
+    runs-on: ubuntu-24.04
+    outputs:
+      backend_ci: ${{ steps.classify.outputs.backend_ci }}
+      dashboard_ci: ${{ steps.classify.outputs.dashboard_ci }}
+      quality_ci: ${{ steps.classify.outputs.quality_ci }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Classify changed files
+        id: classify
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          backend_ci=false
+          dashboard_ci=false
+          quality_ci=false
+
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            base_sha="${{ github.event.pull_request.base.sha }}"
+            head_sha="${{ github.sha }}"
+          elif [[ "${GITHUB_EVENT_NAME}" == "push" && "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]]; then
+            base_sha="${{ github.event.before }}"
+            head_sha="${{ github.sha }}"
+          else
+            base_sha=""
+            head_sha=""
+          fi
+
+          if [[ -z "${base_sha}" || -z "${head_sha}" ]]; then
+            backend_ci=true
+            dashboard_ci=true
+            quality_ci=true
+          else
+            mapfile -t changed_files < <(git diff --name-only "${base_sha}" "${head_sha}")
+
+            if [[ ${#changed_files[@]} -eq 0 ]]; then
+              backend_ci=true
+              dashboard_ci=true
+              quality_ci=true
+            else
+              for path in "${changed_files[@]}"; do
+                case "${path}" in
+                  .github/workflows/ci.yml)
+                    backend_ci=true
+                    dashboard_ci=true
+                    quality_ci=true
+                    ;;
+                  app/*|tests/*|migrations/*|alembic.ini|pyproject.toml|uv.lock)
+                    backend_ci=true
+                    quality_ci=true
+                    ;;
+                  dashboard/*|scripts/check_frontend_api_contracts.py|scripts/check_frontend_hygiene.py|scripts/verify_dashboard_runtime_contract.py|scripts/verify_frontend_module_size_budget.py)
+                    dashboard_ci=true
+                    quality_ci=true
+                    ;;
+                  scripts/*|reports/audit/staging.audit.report.json)
+                    quality_ci=true
+                    ;;
+                esac
+              done
+            fi
+          fi
+
+          {
+            echo "backend_ci=${backend_ci}"
+            echo "dashboard_ci=${dashboard_ci}"
+            echo "quality_ci=${quality_ci}"
+          } >> "${GITHUB_OUTPUT}"
+
   # JOB 1: QUALITY ASSURANCE
   quality:
     name: Backend Quality Checks
+    needs: [classify-changes]
+    if: github.event_name != 'pull_request' || needs.classify-changes.outputs.quality_ci == 'true'
     runs-on: ubuntu-24.04
     env:
       # Default test-runtime contract (step-level env can override as needed).
@@ -171,6 +248,8 @@ jobs:
 
   pytest:
     name: Backend Pytest Shard ${{ matrix.shard_id }}
+    needs: [classify-changes]
+    if: github.event_name != 'pull_request' || needs.classify-changes.outputs.backend_ci == 'true'
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -279,8 +358,15 @@ jobs:
     # Keep this name aligned with the required branch-protection check.
     name: Run Unit Tests
     runs-on: ubuntu-24.04
-    needs: [pytest]
+    needs: [classify-changes, pytest]
+    if: always() && (github.event_name != 'pull_request' || needs.classify-changes.outputs.backend_ci == 'true')
     steps:
+      - name: Require Successful Backend Pytest Shards
+        if: needs.pytest.result != 'success'
+        run: |
+          echo "Backend pytest shards did not complete successfully."
+          exit 1
+
       - name: Checkout Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -336,6 +422,8 @@ jobs:
   # JOB 1A: ALEMBIC FORWARD/ROLLBACK SMOKE
   migration-smoke:
     name: Alembic Upgrade/Downgrade Smoke
+    needs: [classify-changes]
+    if: github.event_name != 'pull_request' || needs.classify-changes.outputs.backend_ci == 'true'
     runs-on: ubuntu-24.04
     services:
       postgres:
@@ -392,6 +480,8 @@ jobs:
   # JOB 1C: TYPE SAFETY (2026 Strict Standards)
   type-check:
     name: Backend Type Check (Mypy)
+    needs: [classify-changes]
+    if: github.event_name != 'pull_request' || needs.classify-changes.outputs.backend_ci == 'true'
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout Code
@@ -417,6 +507,8 @@ jobs:
   # JOB 1B: DASHBOARD QUALITY (2026 Frontend Standards)
   dashboard-quality:
     name: Dashboard Lint / Typecheck / Unit
+    needs: [classify-changes]
+    if: github.event_name != 'pull_request' || needs.classify-changes.outputs.dashboard_ci == 'true'
     runs-on: ubuntu-24.04
     env:
       # Required so `$env/static/public` exports are available during
@@ -475,7 +567,8 @@ jobs:
   dashboard-public-browser-gates:
     name: Dashboard Public ${{ matrix.label }}
     runs-on: ubuntu-24.04
-    needs: [dashboard-quality]
+    needs: [classify-changes, dashboard-quality]
+    if: github.event_name != 'pull_request' || needs.classify-changes.outputs.dashboard_ci == 'true'
     env:
       PUBLIC_API_URL: "https://api.example.com/api/v1"
       PUBLIC_SUPABASE_URL: "https://example.supabase.co"
