@@ -293,6 +293,15 @@ def test_security_scan_uses_hermetic_compose_env_for_dast() -> None:
         encoding="utf-8"
     )
 
+    assert "classify-changes:" in text
+    assert "Terraform Validate / Lint / Security" in text
+    assert "hashicorp/setup-terraform@" in text
+    assert "terraform -chdir=terraform init -backend=false" in text
+    assert "terraform -chdir=terraform validate -no-color" in text
+    assert "cache-from: type=gha,scope=backend-image" in text
+    assert "cache-from: type=gha,scope=dashboard-image" in text
+    assert "needs.classify-changes.outputs.backend_container == 'true'" in text
+    assert "needs.classify-changes.outputs.dashboard_container == 'true'" in text
     assert "github.event_name != 'pull_request'" in text
     assert (
         "scripts/generate_local_compose_env.py --output-path .env.compose.dev" in text
@@ -310,9 +319,14 @@ def test_security_scan_uses_hermetic_compose_env_for_dast() -> None:
 
 def test_ci_workflow_pins_tflint_setup_version() -> None:
     ci_text = (REPO_ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    security_text = (REPO_ROOT / ".github/workflows/security-scan.yml").read_text(
+        encoding="utf-8"
+    )
 
     assert "tflint_version: latest" not in ci_text
     assert "tflint_version: v0.61.0" in ci_text
+    assert "tflint_version: latest" not in security_text
+    assert "tflint_version: v0.61.0" in security_text
 
 
 def test_cla_workflow_uses_in_repo_python_implementation() -> None:
