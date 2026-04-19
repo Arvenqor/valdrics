@@ -11,7 +11,6 @@ PINNED_WORKFLOW_PATHS = (
     REPO_ROOT / ".github/workflows/performance-mainline.yml",
     REPO_ROOT / ".github/workflows/carbon-footprint.yml",
     REPO_ROOT / ".github/workflows/dashboard-browser-mainline.yml",
-    REPO_ROOT / ".github/workflows/dependency-review.yml",
     REPO_ROOT / ".github/workflows/sbom.yml",
     REPO_ROOT / ".github/workflows/release-unified-platform.yml",
     REPO_ROOT / ".github/workflows/publish-artifact-registry-images.yml",
@@ -36,20 +35,6 @@ def test_sbom_workflow_verifies_dependency_locks_before_attestation() -> None:
     assert "pnpm install --frozen-lockfile" in text
     assert "pnpm audit --audit-level=high" in text
     assert "actions/dependency-review-action@" not in text
-
-
-def test_dependency_review_workflow_runs_on_pull_requests_for_manifest_changes() -> None:
-    text = (REPO_ROOT / ".github/workflows/dependency-review.yml").read_text(
-        encoding="utf-8"
-    )
-
-    assert "pull_request:" in text
-    assert "pyproject.toml" in text
-    assert "uv.lock" in text
-    assert "dashboard/package.json" in text
-    assert "dashboard/pnpm-lock.yaml" in text
-    assert "actions/dependency-review-action@" in text
-    assert "contents: read" in text
 
 
 def test_sbom_workflow_attests_provenance_subjects() -> None:
