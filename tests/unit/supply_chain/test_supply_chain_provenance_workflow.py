@@ -8,6 +8,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 PINNED_WORKFLOW_PATHS = (
     REPO_ROOT / ".github/workflows/ci.yml",
     REPO_ROOT / ".github/workflows/security-scan.yml",
+    REPO_ROOT / ".github/workflows/enterprise-tdd-mainline.yml",
     REPO_ROOT / ".github/workflows/performance-mainline.yml",
     REPO_ROOT / ".github/workflows/carbon-footprint.yml",
     REPO_ROOT / ".github/workflows/dashboard-browser-mainline.yml",
@@ -102,12 +103,19 @@ def test_ci_workflow_uses_strict_module_size_gate_and_non_live_fixtures() -> Non
     assert "example_paystack_public_ci_validation_only" in text
 
 
-def test_ci_workflow_has_enterprise_tdd_quality_gate_job() -> None:
-    text = (REPO_ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+def test_enterprise_tdd_mainline_workflow_hosts_the_enterprise_gate() -> None:
+    ci_text = (REPO_ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    enterprise_text = (
+        REPO_ROOT / ".github/workflows/enterprise-tdd-mainline.yml"
+    ).read_text(encoding="utf-8")
 
-    assert "enterprise-tdd-quality-gate:" in text
-    assert "Enterprise TDD Quality Gate" in text
-    assert "scripts/run_enterprise_tdd_gate.py" in text
+    assert "enterprise-tdd-quality-gate:" not in ci_text
+    assert "Enterprise TDD Quality Gate" not in ci_text
+    assert "enterprise-tdd-quality-gate:" in enterprise_text
+    assert "Enterprise TDD Quality Gate" in enterprise_text
+    assert "scripts/run_enterprise_tdd_gate.py" in enterprise_text
+    assert 'branches: [main]' in enterprise_text
+    assert "workflow_dispatch:" in enterprise_text
 
 
 def test_ci_workflow_shards_backend_pytest_and_combines_coverage() -> None:
@@ -147,6 +155,7 @@ def test_workflows_pin_uv_bootstrap_version() -> None:
         REPO_ROOT / ".github/workflows/ci.yml",
         REPO_ROOT / ".github/workflows/sbom.yml",
         REPO_ROOT / ".github/workflows/security-scan.yml",
+        REPO_ROOT / ".github/workflows/enterprise-tdd-mainline.yml",
         REPO_ROOT / ".github/workflows/performance-gate.yml",
     )
 
@@ -309,7 +318,7 @@ def test_local_postgres_service_workflows_disable_db_ssl() -> None:
     assert 'DB_SSL_MODE: "disable"' in dr_text
 
 
-def test_ci_and_security_workflows_fail_on_high_or_critical_infra_and_container_findings() -> (
+def test_security_scan_workflow_fails_on_high_or_critical_infra_and_container_findings() -> (
     None
 ):
     ci_text = (REPO_ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
@@ -317,11 +326,10 @@ def test_ci_and_security_workflows_fail_on_high_or_critical_infra_and_container_
         encoding="utf-8"
     )
 
-    assert "--severity CRITICAL,HIGH" in ci_text
-    assert "--exit-code 1" in ci_text
-    assert "--minimum-severity HIGH" in ci_text
+    assert "Security Audits" not in ci_text
     assert "--severity CRITICAL,HIGH" in security_text
     assert "--exit-code 1" in security_text
+    assert "--minimum-severity HIGH" in security_text
 
 
 def test_security_scan_uses_hermetic_compose_env_for_dast() -> None:
@@ -353,14 +361,11 @@ def test_security_scan_uses_hermetic_compose_env_for_dast() -> None:
     assert "docker compose up -d --build postgres redis api dashboard" not in text
 
 
-def test_ci_workflow_pins_tflint_setup_version() -> None:
-    ci_text = (REPO_ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+def test_security_scan_workflow_pins_tflint_setup_version() -> None:
     security_text = (REPO_ROOT / ".github/workflows/security-scan.yml").read_text(
         encoding="utf-8"
     )
 
-    assert "tflint_version: latest" not in ci_text
-    assert "tflint_version: v0.61.0" in ci_text
     assert "tflint_version: latest" not in security_text
     assert "tflint_version: v0.61.0" in security_text
 

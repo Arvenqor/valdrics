@@ -3,6 +3,17 @@ name: Security Scan
 on:
   push:
     branches: [ main, develop ]
+    paths:
+      - "app/**"
+      - "dashboard/**"
+      - "terraform/**"
+      - "Dockerfile"
+      - "Dockerfile.dashboard"
+      - ".dockerignore"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/security-scan.yml"
+      - ".github/workflows/ci.yml"
   pull_request:
     branches: [ main ]
     paths:

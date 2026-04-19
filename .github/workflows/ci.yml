@@ -115,21 +115,25 @@ jobs:
       GROQ_API_KEY: "testing"
       CODECARBON_LOG_LEVEL: "info"
     steps:
-      - name: Checkout Code
+      - &checkout_code_step
+        name: Checkout Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Setup Python
+      - &setup_python_step
+        name: Setup Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install uv
+      - &install_uv_step
+        name: Install uv
         uses: astral-sh/setup-uv@e06108dd0aef18192324c70427afc47652e63a82 # v7.5.0
         with:
           enable-cache: true
           version: ${{ env.UV_VERSION }}
 
-      - name: Install Dependencies
+      - &install_backend_dev_dependencies_step
+        name: Install Dependencies
         run: uv sync --locked --dev
 
       - name: Runtime Env Preflight (Strict Contract)
@@ -245,10 +249,8 @@ jobs:
         include:
           - shard_id: "1"
             paths: >-
-              tests/api
               tests/billing
               tests/contract
-              tests/core
               tests/integration
               tests/security
               tests/unit/api
@@ -257,7 +259,6 @@ jobs:
               tests/unit/lead_gen
               tests/unit/models
               tests/unit/ops
-              tests/unit/reporting
               tests/unit/schemas
               tests/unit/scripts
               tests/unit/test_hard_cap_service.py
@@ -266,6 +267,9 @@ jobs:
               tests/unit/test_pricing_phase36.py
           - shard_id: "2"
             paths: >-
+              tests/api
+              tests/core
+              tests/unit/reporting
               tests/unit/analysis
               tests/unit/core
               tests/unit/notifications
@@ -310,22 +314,10 @@ jobs:
       COVERAGE_DIR: "/tmp/coverage/${{ matrix.shard_id }}"
       COVERAGE_FILE: "/tmp/coverage/${{ matrix.shard_id }}/.coverage.${{ matrix.shard_id }}"
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Setup Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@e06108dd0aef18192324c70427afc47652e63a82 # v7.5.0
-        with:
-          enable-cache: true
-          version: ${{ env.UV_VERSION }}
-
-      - name: Install Dependencies
-        run: uv sync --locked --dev
+      - *checkout_code_step
+      - *setup_python_step
+      - *install_uv_step
+      - *install_backend_dev_dependencies_step
 
       - name: Run Pytest Shard with Coverage Data
         run: |
@@ -355,19 +347,9 @@ jobs:
           echo "Backend pytest shards did not complete successfully."
           exit 1
 
-      - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Setup Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@e06108dd0aef18192324c70427afc47652e63a82 # v7.5.0
-        with:
-          enable-cache: true
-          version: ${{ env.UV_VERSION }}
+      - *checkout_code_step
+      - *setup_python_step
+      - *install_uv_step
 
       - name: Download Coverage Data
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -439,22 +421,10 @@ jobs:
       PAYSTACK_SECRET_KEY: "sk_test_ci"
       PAYSTACK_PUBLIC_KEY: "pk_test_ci"
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Setup Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@e06108dd0aef18192324c70427afc47652e63a82 # v7.5.0
-        with:
-          enable-cache: true
-          version: ${{ env.UV_VERSION }}
-
-      - name: Install Dependencies
-        run: uv sync --locked --dev
+      - *checkout_code_step
+      - *setup_python_step
+      - *install_uv_step
+      - *install_backend_dev_dependencies_step
 
       - name: Run Alembic Forward/Rollback Smoke
         run: |
@@ -469,22 +439,10 @@ jobs:
     if: github.event_name != 'pull_request' || needs.classify-changes.outputs.backend_ci == 'true'
     runs-on: ubuntu-24.04
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Setup Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@e06108dd0aef18192324c70427afc47652e63a82 # v7.5.0
-        with:
-          enable-cache: true
-          version: ${{ env.UV_VERSION }}
-
-      - name: Install Dependencies
-        run: uv sync --locked --dev
+      - *checkout_code_step
+      - *setup_python_step
+      - *install_uv_step
+      - *install_backend_dev_dependencies_step
 
       - name: Run Mypy
         run: uv run mypy app
@@ -502,27 +460,30 @@ jobs:
       PUBLIC_SUPABASE_URL: "https://example.supabase.co"
       PUBLIC_SUPABASE_ANON_KEY: "ci-public-anon-key"
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - *checkout_code_step
 
-      - name: Setup Node
+      - &setup_node_step
+        name: Setup Node
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Setup pnpm via Corepack
+      - &setup_pnpm_step
+        name: Setup pnpm via Corepack
         run: |
           corepack enable
           corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
 
-      - name: Cache pnpm dependencies
+      - &cache_pnpm_dependencies_step
+        name: Cache pnpm dependencies
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ~/.pnpm-store
           key: pnpm-${{ runner.os }}-${{ hashFiles('dashboard/pnpm-lock.yaml') }}
           restore-keys: pnpm-${{ runner.os }}-
 
-      - name: Install Dashboard Dependencies
+      - &install_dashboard_dependencies_step
+        name: Install Dashboard Dependencies
         working-directory: ./dashboard
         run: pnpm install --frozen-lockfile
 
@@ -591,29 +552,11 @@ jobs:
             spec: e2e/public-progressive-enhancement.spec.ts
             artifact: playwright-report-public-progressive
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Setup Node
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Setup pnpm via Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
-
-      - name: Cache pnpm dependencies
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
-        with:
-          path: ~/.pnpm-store
-          key: pnpm-${{ runner.os }}-${{ hashFiles('dashboard/pnpm-lock.yaml') }}
-          restore-keys: pnpm-${{ runner.os }}-
-
-      - name: Install Dashboard Dependencies
-        working-directory: ./dashboard
-        run: pnpm install --frozen-lockfile
+      - *checkout_code_step
+      - *setup_node_step
+      - *setup_pnpm_step
+      - *cache_pnpm_dependencies_step
+      - *install_dashboard_dependencies_step
 
       - name: Download Dashboard Preview Build
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -654,204 +597,3 @@ jobs:
           name: ${{ matrix.artifact }}
           path: dashboard/playwright-report/
           retention-days: 7
-
-  # JOB 2: SECURITY CHECKS
-  security:
-    name: Security Audits
-    runs-on: ubuntu-24.04
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0 # Required for secret scanning
-
-      - name: Setup Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@e06108dd0aef18192324c70427afc47652e63a82 # v7.5.0
-        with:
-          enable-cache: true
-          version: ${{ env.UV_VERSION }}
-
-      - name: Install Dependencies
-        run: uv sync --locked --group dev
-
-      - name: Build API Image (for CVE scan)
-        run: docker build -t valdrics-api-ci:${{ github.sha }} .
-
-      - name: Scan API Image for CVEs (Trivy)
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p .cache/trivy
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v "$PWD/.cache/trivy:/root/.cache/trivy" \
-            -e TRIVY_CACHE_DIR=/root/.cache/trivy \
-            "${TRIVY_IMAGE}" image \
-            --scanners vuln \
-            --ignore-unfixed \
-            --severity CRITICAL,HIGH \
-            --format table \
-            --skip-version-check \
-            --exit-code 1 \
-            valdrics-api-ci:${{ github.sha }}
-
-      - name: Terraform Security Scan (tfsec)
-        uses: aquasecurity/tfsec-action@b466648d6e39e7c75324f25d83891162a721f2d6 # v1.0.3
-        with:
-          working_directory: ./terraform
-          soft_fail: false
-          additional_args: --minimum-severity HIGH
-
-      - name: Terraform Lint (tflint)
-        uses: terraform-linters/setup-tflint@4cb9feea73331a35b422df102992a03a44a3bb33 # v6.2.1
-        with:
-          tflint_version: v0.61.0
-      - name: Run TFLint
-        run: |
-          cd terraform
-          tflint --init
-          tflint --minimum-failure-severity=error -f compact
-
-      - name: Setup Node
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Setup pnpm via Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
-
-      - name: Cache pnpm dependencies
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
-        with:
-          path: ~/.pnpm-store
-          key: pnpm-${{ runner.os }}-${{ hashFiles('dashboard/pnpm-lock.yaml') }}
-          restore-keys: pnpm-${{ runner.os }}-
-
-      - name: Frontend Security Audit
-        working-directory: ./dashboard
-        run: pnpm install --frozen-lockfile && pnpm audit --audit-level=high
-
-  # JOB 3: ENTERPRISE TDD RELEASE GATE
-  enterprise-tdd-quality-gate:
-    name: Enterprise TDD Quality Gate
-    runs-on: ubuntu-24.04
-    needs: [quality, test, migration-smoke, type-check, security]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Setup Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@e06108dd0aef18192324c70427afc47652e63a82 # v7.5.0
-        with:
-          enable-cache: true
-          version: ${{ env.UV_VERSION }}
-
-      - name: Install Dependencies
-        run: uv sync --locked --dev
-
-      - name: Generate Runtime Release Evidence
-        run: |
-          set -euo pipefail
-
-          EVIDENCE_DIR="${RUNNER_TEMP}/enterprise-gate-evidence"
-          mkdir -p "${EVIDENCE_DIR}"
-
-          DEBUG=false uv run python3 scripts/generate_enforcement_stress_evidence.py \
-            --output "${EVIDENCE_DIR}/enforcement_stress_artifact.json" \
-            --duration-seconds 30 \
-            --concurrent-users 10 \
-            --ramp-seconds 5 \
-            --rounds 3 \
-            --max-p95-seconds 2.0 \
-            --max-error-rate-percent 1.0 \
-            --min-throughput-rps 0.5
-
-          DEBUG=false uv run python3 scripts/generate_enforcement_failure_injection_evidence.py \
-            --output "${EVIDENCE_DIR}/enforcement_failure_injection.json" \
-            --executed-by "ci.enforcement.executor@valdrics.local" \
-            --approved-by "ci.enforcement.approver@valdrics.local"
-
-          DEBUG=false uv run python3 scripts/generate_finance_telemetry_snapshot.py \
-            --output "${EVIDENCE_DIR}/finance_telemetry_snapshot.json"
-
-          DEBUG=false uv run python3 scripts/generate_finance_committee_packet_assumptions.py \
-            --output "${EVIDENCE_DIR}/finance_committee_packet_assumptions.json" \
-            --telemetry-path "${EVIDENCE_DIR}/finance_telemetry_snapshot.json"
-
-          DEBUG=false uv run python3 scripts/generate_finance_committee_packet.py \
-            --telemetry-path "${EVIDENCE_DIR}/finance_telemetry_snapshot.json" \
-            --assumptions-path "${EVIDENCE_DIR}/finance_committee_packet_assumptions.json" \
-            --output-dir "${EVIDENCE_DIR}"
-
-          DEBUG=false uv run python3 scripts/generate_pricing_benchmark_register.py \
-            --output "${EVIDENCE_DIR}/pricing_benchmark_register.json" \
-            --max-source-age-days 120
-
-          DEBUG=false uv run python3 scripts/generate_pkg_fin_policy_decisions.py \
-            --output "${EVIDENCE_DIR}/pkg_fin_policy_decisions.json" \
-            --telemetry-snapshot-path "${EVIDENCE_DIR}/finance_telemetry_snapshot.json"
-
-          DEBUG=false uv run python3 scripts/generate_key_rotation_drill_evidence.py \
-            --output "${EVIDENCE_DIR}/key_rotation_drill.md" \
-            --max-drill-age-days 120
-
-          DEBUG=false uv run python3 scripts/generate_valdrics_disposition_register.py \
-            --output "${EVIDENCE_DIR}/valdrics_disposition_register.json" \
-            --max-artifact-age-days 45 \
-            --max-review-window-days 120
-
-          FINANCE_GUARDRAILS_PATH="$(ls "${EVIDENCE_DIR}"/finance_guardrails_*.json | sort | tail -n 1)"
-
-          {
-            echo "ENFORCEMENT_RUNTIME_EVIDENCE_ONLY=true"
-            echo "ENFORCEMENT_STRESS_EVIDENCE_PATH=${EVIDENCE_DIR}/enforcement_stress_artifact.json"
-            echo "ENFORCEMENT_STRESS_EVIDENCE_REQUIRED=true"
-            echo "ENFORCEMENT_STRESS_EVIDENCE_MAX_AGE_HOURS=48"
-            echo "ENFORCEMENT_FAILURE_INJECTION_EVIDENCE_PATH=${EVIDENCE_DIR}/enforcement_failure_injection.json"
-            echo "ENFORCEMENT_FAILURE_INJECTION_EVIDENCE_REQUIRED=true"
-            echo "ENFORCEMENT_FAILURE_INJECTION_EVIDENCE_MAX_AGE_HOURS=48"
-            echo "ENFORCEMENT_FINANCE_GUARDRAILS_EVIDENCE_PATH=${FINANCE_GUARDRAILS_PATH}"
-            echo "ENFORCEMENT_FINANCE_GUARDRAILS_EVIDENCE_REQUIRED=true"
-            echo "ENFORCEMENT_FINANCE_GUARDRAILS_EVIDENCE_MAX_AGE_HOURS=744"
-            echo "ENFORCEMENT_FINANCE_TELEMETRY_SNAPSHOT_PATH=${EVIDENCE_DIR}/finance_telemetry_snapshot.json"
-            echo "ENFORCEMENT_FINANCE_TELEMETRY_SNAPSHOT_REQUIRED=true"
-            echo "ENFORCEMENT_FINANCE_TELEMETRY_SNAPSHOT_MAX_AGE_HOURS=744"
-            echo "ENFORCEMENT_PRICING_BENCHMARK_REGISTER_PATH=${EVIDENCE_DIR}/pricing_benchmark_register.json"
-            echo "ENFORCEMENT_PRICING_BENCHMARK_REGISTER_REQUIRED=true"
-            echo "ENFORCEMENT_PRICING_BENCHMARK_MAX_SOURCE_AGE_DAYS=120"
-            echo "ENFORCEMENT_PKG_FIN_POLICY_DECISIONS_PATH=${EVIDENCE_DIR}/pkg_fin_policy_decisions.json"
-            echo "ENFORCEMENT_PKG_FIN_POLICY_DECISIONS_REQUIRED=true"
-            echo "ENFORCEMENT_PKG_FIN_POLICY_DECISIONS_MAX_AGE_HOURS=744"
-            echo "ENFORCEMENT_KEY_ROTATION_DRILL_PATH=${EVIDENCE_DIR}/key_rotation_drill.md"
-            echo "ENFORCEMENT_KEY_ROTATION_DRILL_MAX_AGE_DAYS=120"
-            echo "ENFORCEMENT_VALDRICS_DISPOSITION_REGISTER_PATH=${EVIDENCE_DIR}/valdrics_disposition_register.json"
-            echo "ENFORCEMENT_VALDRICS_DISPOSITION_MAX_AGE_DAYS=45"
-            echo "ENFORCEMENT_VALDRICS_DISPOSITION_MAX_REVIEW_WINDOW_DAYS=120"
-            echo "ENFORCEMENT_MONTHLY_FINANCE_REFRESH_MAX_AGE_DAYS=35"
-            echo "ENFORCEMENT_MONTHLY_FINANCE_REFRESH_MAX_CAPTURE_SPREAD_DAYS=14"
-          } >> "${GITHUB_ENV}"
-
-      - name: Run Enterprise TDD Gate
-        run: uv run python3 scripts/run_enterprise_tdd_gate.py
-
-      - name: Upload Enterprise Gate Coverage Artifact
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
-        if: always() && hashFiles('coverage-enterprise-gate.xml') != ''
-        with:
-          name: enterprise-tdd-gate-coverage
-          path: coverage-enterprise-gate.xml
-          retention-days: 30
