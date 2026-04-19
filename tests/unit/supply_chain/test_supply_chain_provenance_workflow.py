@@ -20,6 +20,10 @@ PINNED_WORKFLOW_PATHS = (
     REPO_ROOT / ".github/workflows/disaster-recovery-drill.yml",
     REPO_ROOT / ".github/workflows/cla.yml",
 )
+PINNED_COMPOSITE_ACTION_PATHS = (
+    REPO_ROOT / ".github/actions/setup-python-uv/action.yml",
+    REPO_ROOT / ".github/actions/setup-dashboard/action.yml",
+)
 
 
 def test_sbom_workflow_has_attestation_permissions() -> None:
@@ -163,6 +167,26 @@ def test_workflows_pin_uv_bootstrap_version() -> None:
         text = workflow_path.read_text(encoding="utf-8")
         assert 'version: "latest"' not in text
         assert "${{ env.UV_VERSION }}" in text
+
+
+def test_ci_related_workflows_use_local_setup_composite_actions() -> None:
+    ci_text = (REPO_ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    security_text = (REPO_ROOT / ".github/workflows/security-scan.yml").read_text(
+        encoding="utf-8"
+    )
+    browser_text = (
+        REPO_ROOT / ".github/workflows/dashboard-browser-mainline.yml"
+    ).read_text(encoding="utf-8")
+    enterprise_text = (
+        REPO_ROOT / ".github/workflows/enterprise-tdd-mainline.yml"
+    ).read_text(encoding="utf-8")
+
+    assert "uses: ./.github/actions/setup-python-uv" in ci_text
+    assert "uses: ./.github/actions/setup-dashboard" in ci_text
+    assert "uses: ./.github/actions/setup-python-uv" in security_text
+    assert "uses: ./.github/actions/setup-python-uv" in browser_text
+    assert "uses: ./.github/actions/setup-dashboard" in browser_text
+    assert "uses: ./.github/actions/setup-python-uv" in enterprise_text
 
 
 def test_performance_gate_supports_reuse_and_ci_automation() -> None:
@@ -391,4 +415,17 @@ def test_critical_workflows_use_immutable_action_shas_and_fixed_runner_images() 
         for _, ref in uses_pattern.findall(text):
             assert re.fullmatch(r"[0-9a-f]{40}", ref), (
                 f"{workflow_path.name} uses non-immutable action ref {ref!r}"
+            )
+
+
+def test_local_composite_actions_use_immutable_action_shas() -> None:
+    uses_pattern = re.compile(
+        r"uses:\s+([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)?)@([^\s#]+)"
+    )
+
+    for action_path in PINNED_COMPOSITE_ACTION_PATHS:
+        text = action_path.read_text(encoding="utf-8")
+        for _, ref in uses_pattern.findall(text):
+            assert re.fullmatch(r"[0-9a-f]{40}", ref), (
+                f"{action_path.name} uses non-immutable action ref {ref!r}"
             )

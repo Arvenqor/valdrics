@@ -119,22 +119,12 @@ jobs:
         name: Checkout Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - &setup_python_step
-        name: Setup Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+      - name: Setup Backend Toolchain
+        uses: ./.github/actions/setup-python-uv
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
-      - &install_uv_step
-        name: Install uv
-        uses: astral-sh/setup-uv@e06108dd0aef18192324c70427afc47652e63a82 # v7.5.0
-        with:
-          enable-cache: true
-          version: ${{ env.UV_VERSION }}
-
-      - &install_backend_dev_dependencies_step
-        name: Install Dependencies
-        run: uv sync --locked --dev
+          uv-version: ${{ env.UV_VERSION }}
+          dependency-install-command: uv sync --locked --dev
 
       - name: Runtime Env Preflight (Strict Contract)
         env:
@@ -315,9 +305,12 @@ jobs:
       COVERAGE_FILE: "/tmp/coverage/${{ matrix.shard_id }}/.coverage.${{ matrix.shard_id }}"
     steps:
       - *checkout_code_step
-      - *setup_python_step
-      - *install_uv_step
-      - *install_backend_dev_dependencies_step
+      - name: Setup Backend Toolchain
+        uses: ./.github/actions/setup-python-uv
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          uv-version: ${{ env.UV_VERSION }}
+          dependency-install-command: uv sync --locked --dev
 
       - name: Run Pytest Shard with Coverage Data
         run: |
@@ -348,8 +341,12 @@ jobs:
           exit 1
 
       - *checkout_code_step
-      - *setup_python_step
-      - *install_uv_step
+      - name: Setup Coverage Toolchain
+        uses: ./.github/actions/setup-python-uv
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          uv-version: ${{ env.UV_VERSION }}
+          dependency-install-command: ""
 
       - name: Download Coverage Data
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -422,9 +419,12 @@ jobs:
       PAYSTACK_PUBLIC_KEY: "pk_test_ci"
     steps:
       - *checkout_code_step
-      - *setup_python_step
-      - *install_uv_step
-      - *install_backend_dev_dependencies_step
+      - name: Setup Backend Toolchain
+        uses: ./.github/actions/setup-python-uv
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          uv-version: ${{ env.UV_VERSION }}
+          dependency-install-command: uv sync --locked --dev
 
       - name: Run Alembic Forward/Rollback Smoke
         run: |
@@ -440,9 +440,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - *checkout_code_step
-      - *setup_python_step
-      - *install_uv_step
-      - *install_backend_dev_dependencies_step
+      - name: Setup Backend Toolchain
+        uses: ./.github/actions/setup-python-uv
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          uv-version: ${{ env.UV_VERSION }}
+          dependency-install-command: uv sync --locked --dev
 
       - name: Run Mypy
         run: uv run mypy app
@@ -461,31 +464,11 @@ jobs:
       PUBLIC_SUPABASE_ANON_KEY: "ci-public-anon-key"
     steps:
       - *checkout_code_step
-
-      - &setup_node_step
-        name: Setup Node
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+      - name: Setup Dashboard Toolchain
+        uses: ./.github/actions/setup-dashboard
         with:
           node-version: ${{ env.NODE_VERSION }}
-
-      - &setup_pnpm_step
-        name: Setup pnpm via Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
-
-      - &cache_pnpm_dependencies_step
-        name: Cache pnpm dependencies
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
-        with:
-          path: ~/.pnpm-store
-          key: pnpm-${{ runner.os }}-${{ hashFiles('dashboard/pnpm-lock.yaml') }}
-          restore-keys: pnpm-${{ runner.os }}-
-
-      - &install_dashboard_dependencies_step
-        name: Install Dashboard Dependencies
-        working-directory: ./dashboard
-        run: pnpm install --frozen-lockfile
+          pnpm-version: ${{ env.PNPM_VERSION }}
 
       - name: Dashboard Lint
         working-directory: ./dashboard
@@ -553,10 +536,11 @@ jobs:
             artifact: playwright-report-public-progressive
     steps:
       - *checkout_code_step
-      - *setup_node_step
-      - *setup_pnpm_step
-      - *cache_pnpm_dependencies_step
-      - *install_dashboard_dependencies_step
+      - name: Setup Dashboard Toolchain
+        uses: ./.github/actions/setup-dashboard
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          pnpm-version: ${{ env.PNPM_VERSION }}
 
       - name: Download Dashboard Preview Build
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
