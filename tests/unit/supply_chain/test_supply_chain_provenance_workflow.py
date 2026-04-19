@@ -117,10 +117,9 @@ def test_ci_workflow_shards_backend_pytest_and_combines_coverage() -> None:
     assert "name: Classify CI Surfaces" in text
     assert "backend_ci: ${{ steps.classify.outputs.backend_ci }}" in text
     assert "dashboard_ci: ${{ steps.classify.outputs.dashboard_ci }}" in text
-    assert "quality_ci: ${{ steps.classify.outputs.quality_ci }}" in text
     assert "github.event_name != 'pull_request' || needs.classify-changes.outputs.backend_ci == 'true'" in text
     assert "github.event_name != 'pull_request' || needs.classify-changes.outputs.dashboard_ci == 'true'" in text
-    assert "github.event_name != 'pull_request' || needs.classify-changes.outputs.quality_ci == 'true'" in text
+    assert "app/*|tests/*|migrations/*|alembic.ini|pyproject.toml|uv.lock|scripts/*" in text
     assert "pytest:" in text
     assert "Backend Pytest Shard ${{ matrix.shard_id }}" in text
     assert "name: Run Unit Tests" in text
