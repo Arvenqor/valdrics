@@ -63,11 +63,15 @@ def _verify_google_identity_token(token: str, settings_obj: object) -> InternalI
             detail="google-auth runtime dependencies are not installed.",
         ) from exc
     try:
-        from google.auth.exceptions import GoogleAuthError
+        from google.auth.exceptions import GoogleAuthError as imported_google_auth_error
     except (AttributeError, ImportError):  # pragma: no cover - test shims
 
-        class GoogleAuthError(ValueError):
+        class FallbackGoogleAuthError(ValueError):
             """Fallback used when test shims do not expose google.auth.exceptions."""
+
+        google_auth_error_cls: type[Exception] = FallbackGoogleAuthError
+    else:
+        google_auth_error_cls = imported_google_auth_error
 
     audience = _internal_google_audience(settings_obj)
     if not audience:
@@ -82,7 +86,7 @@ def _verify_google_identity_token(token: str, settings_obj: object) -> InternalI
             GoogleAuthRequest(),
             audience=audience,
         )
-    except (GoogleAuthError, ValueError) as exc:
+    except (google_auth_error_cls, ValueError) as exc:
         raise HTTPException(
             status_code=403, detail="Invalid Google identity token."
         ) from exc

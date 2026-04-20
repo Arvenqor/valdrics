@@ -3,11 +3,11 @@
 # If marker_regex is omitted, all markers on that path are allowed.
 
 # Guard self-text includes marker regex literals by design.
-^.*/scripts/verify_enterprise_placeholder_guards\.py$
-^.*/scripts/verify_documentation_runtime_contracts\.py$::TODO|FIXME|HACK
-^.*/scripts/verify_architecture_decision_records\.py$::TODO
-^.*/scripts/verify_valdrics_disposition_freshness\.py$::TODO
-^.*/scripts/pkg_fin_policy_decisions_constants\.py$::TODO
+^scripts/verify_enterprise_placeholder_guards\.py$
+^scripts/verify_documentation_runtime_contracts\.py$::TODO|FIXME|HACK
+^scripts/verify_architecture_decision_records\.py$::TODO
+^scripts/verify_valdrics_disposition_freshness\.py$::TODO
+^scripts/pkg_fin_policy_decisions_constants\.py$::TODO
 
 # Synthetic marker fixture file used to verify guard behavior.
-^.*/tests/unit/supply_chain/test_enterprise_placeholder_guards\.py$::TODO|NotImplementedError
+^tests/unit/supply_chain/test_enterprise_placeholder_guards\.py$::TODO|NotImplementedError

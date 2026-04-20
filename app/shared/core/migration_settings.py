@@ -23,6 +23,7 @@ class MigrationSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=str(DEFAULT_ENV_FILE),
         env_ignore_empty=True,
+        extra="ignore",
     )
 
     @model_validator(mode="after")

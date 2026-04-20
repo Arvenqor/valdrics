@@ -14,7 +14,7 @@ import structlog
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.shared.core.config import get_settings
+from app.shared.core.config import Settings, get_settings
 from app.shared.core.exceptions import KillSwitchTriggeredError
 from app.shared.core.notifications import NotificationDispatcher
 from app.models.remediation import RemediationRequest, RemediationStatus
@@ -27,7 +27,7 @@ class SafetyGuardrailService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    def _get_settings(self):
+    def _get_settings(self) -> Settings:
         return get_settings()
 
     async def check_all_guards(

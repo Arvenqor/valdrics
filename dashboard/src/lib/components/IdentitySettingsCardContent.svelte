@@ -1,11 +1,15 @@
 <script lang="ts">
 	/* eslint-disable svelte/no-navigation-without-resolve */
 	import { onMount } from 'svelte';
+	import { env as publicEnv } from '$env/dynamic/public';
 	import { base } from '$app/paths';
 	import IdentitySsoSection from '$lib/components/identity/IdentitySsoSection.svelte';
 	import { createLazyComponent } from '$lib/lazyComponent';
 	import { getUpgradePrompt } from '$lib/pricing/upgradePrompt';
-	import { isGrowthPlus } from '$lib/components/identity/identitySettingsHelpers';
+	import {
+		isGrowthPlus,
+		scimBaseUrlFromPublicApiUrl
+	} from '$lib/components/identity/identitySettingsHelpers';
 	import {
 		IDENTITY_REQUEST_TIMEOUT_MS,
 		uniqueScimMappingsOrThrow
@@ -41,6 +45,7 @@
 		accessToken?: string | null;
 		tier?: string | null;
 		settings: IdentitySettings;
+		scimBaseUrl: string;
 	};
 
 	const loadIdentityDiagnosticsSection = createLazyComponent<IdentityDiagnosticsSectionProps>(
@@ -129,6 +134,9 @@
 	});
 
 	const upgradePrompt = getUpgradePrompt('growth', 'identity controls');
+	const scimBaseUrl = $derived(
+		scimBaseUrlFromPublicApiUrl(String(publicEnv.PUBLIC_API_URL || '').trim())
+	);
 </script>
 
 <div
@@ -208,7 +216,7 @@
 					</div>
 				{:then module}
 					{@const IdentityScimSection = module.default}
-					<IdentityScimSection {accessToken} {tier} bind:settings />
+					<IdentityScimSection {accessToken} {tier} {scimBaseUrl} bind:settings />
 				{:catch}
 					<div class="rounded-xl border border-ink-800/60 bg-ink-950/30 p-4">
 						<p class="text-xs text-ink-500">SCIM controls are temporarily unavailable.</p>

@@ -59,6 +59,13 @@ def _resolve_repo_path(path: Path) -> Path:
     return resolve_cli_path_from_root(_repo_root(), path, field_name="root")
 
 
+def _label_file_path(path: Path) -> str:
+    try:
+        return path.resolve().relative_to(_repo_root().resolve()).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
 @dataclass(frozen=True)
 class MarkerViolation:
     path: str
@@ -119,7 +126,7 @@ def scan_paths_for_disallowed_markers(
                     if match is None:
                         continue
                     violation = MarkerViolation(
-                        path=file_path.as_posix(),
+                        path=_label_file_path(file_path),
                         line_number=line_number,
                         pattern=pattern.pattern,
                         matched_text=match.group(0),

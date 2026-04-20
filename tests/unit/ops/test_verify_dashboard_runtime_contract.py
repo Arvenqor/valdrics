@@ -11,6 +11,7 @@ except ImportError:  # pragma: no cover - non-POSIX fallback
     fcntl = None
 
 from scripts.verify_dashboard_runtime_contract import (
+    _prepared_dashboard_runtime_root,
     main,
     verify_dashboard_runtime_contract,
 )
@@ -68,6 +69,21 @@ def test_verify_dashboard_runtime_contract_reports_smoke_failure(tmp_path: Path)
     )
 
     assert errors == ["dashboard runtime smoke failed: refused connection"]
+
+
+def test_prepared_dashboard_runtime_root_replaces_stale_build_with_current_output(
+    tmp_path: Path,
+) -> None:
+    _seed_dashboard_runtime_layout(tmp_path)
+    stale_build = tmp_path / "dashboard" / "build"
+    _write(stale_build / "server" / "index.js", "export const stale = true;\n")
+
+    with _prepared_dashboard_runtime_root(tmp_path) as dashboard_root:
+        staged_index = dashboard_root / "build" / "server" / "index.js"
+        assert staged_index.read_text(encoding="utf-8") == "export {};\n"
+
+    restored_index = tmp_path / "dashboard" / "build" / "server" / "index.js"
+    assert restored_index.read_text(encoding="utf-8") == "export const stale = true;\n"
 
 
 @pytest.mark.skipif(fcntl is None, reason="requires POSIX file locking")

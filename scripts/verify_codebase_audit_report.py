@@ -26,7 +26,7 @@ from scripts.env_generation_common import (
 )
 
 DEFAULT_ROOT = repo_root_for(__file__)
-DEFAULT_REPORT = Path(".runtime/staging.audit.report.json")
+DEFAULT_REPORT = Path("reports/audit/staging.audit.report.json")
 EXPECTED_ARTIFACT_TYPE = "codebase_audit_validation"
 ALLOWED_VALIDATION_STATUSES = frozenset(
     {"accurate", "partially_accurate", "inaccurate"}

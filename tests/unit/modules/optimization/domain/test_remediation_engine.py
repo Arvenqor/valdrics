@@ -4,6 +4,7 @@ from app.models.remediation import RemediationAction
 from app.modules.optimization.domain.actions.base import RemediationContext, ExecutionStatus
 from app.modules.optimization.domain.actions.factory import RemediationActionFactory
 from app.modules.optimization.domain.actions.aws.ec2 import AWSStopInstanceAction, AWSTerminateInstanceAction
+from app.shared.core.exceptions import ExternalAPIError
 
 
 class AsyncContextManagerMock:
@@ -69,7 +70,7 @@ async def test_aws_stop_instance_failure(mock_context):
     
     with patch.object(strategy, "_get_client", new=AsyncMock()) as mock_get_client:
         mock_ec2 = MagicMock()
-        mock_ec2.stop_instances = AsyncMock(side_effect=Exception("API Error"))
+        mock_ec2.stop_instances = AsyncMock(side_effect=ExternalAPIError("API Error"))
         mock_get_client.return_value = AsyncContextManagerMock(mock_ec2)
         
         result = await strategy.execute("i-12345", mock_context)

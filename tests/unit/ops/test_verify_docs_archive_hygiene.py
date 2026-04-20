@@ -343,6 +343,7 @@ def test_repo_archives_q2_change_categorization_snapshots_out_of_active_ops_tree
         "all_changes_categorization_2026-04-06.md",
         "all_changes_categorization_2026-04-06_followup.md",
         "all_changes_categorization_2026-04-12.md",
+        "all_changes_categorization_2026-04-17.md",
     } <= archived_q2
 
 

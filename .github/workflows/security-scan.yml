@@ -3,6 +3,19 @@ name: Security Scan
 on:
   push:
     branches: [ main, develop ]
+    paths:
+      - "app/**"
+      - "dashboard/**"
+      - "terraform/**"
+      - "Dockerfile"
+      - "Dockerfile.dashboard"
+      - ".dockerignore"
+      - "scripts/docker-entrypoint.sh"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/security-scan.yml"
+      - ".github/workflows/ci.yml"
+      - ".github/actions/**"
   pull_request:
     branches: [ main ]
     paths:
@@ -11,10 +24,13 @@ on:
       - "terraform/**"
       - "Dockerfile"
       - "Dockerfile.dashboard"
+      - ".dockerignore"
+      - "scripts/docker-entrypoint.sh"
       - "pyproject.toml"
       - "uv.lock"
       - ".github/workflows/security-scan.yml"
       - ".github/workflows/ci.yml"
+      - ".github/actions/**"
   schedule:
     - cron: '0 0 * * *' # Daily at midnight
 
@@ -29,31 +45,100 @@ permissions:
 
 env:
   PYTHON_VERSION: "3.12"
+  TERRAFORM_VERSION: "1.14.8"
   UV_VERSION: "0.10.9"
   TRIVY_IMAGE: "docker.io/aquasec/trivy:0.69.3"
 
 jobs:
-  security-scan:
+  classify-changes:
+    name: Classify Security Scan Surfaces
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      backend_container: ${{ steps.classify.outputs.backend_container }}
+      dashboard_container: ${{ steps.classify.outputs.dashboard_container }}
+      terraform: ${{ steps.classify.outputs.terraform }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+
+      - name: Classify changed files
+        id: classify
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          backend_container=false
+          dashboard_container=false
+          terraform=false
+
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            base_sha="${{ github.event.pull_request.base.sha }}"
+            head_sha="${{ github.sha }}"
+          elif [[ "${GITHUB_EVENT_NAME}" == "push" && "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]]; then
+            base_sha="${{ github.event.before }}"
+            head_sha="${{ github.sha }}"
+          else
+            base_sha=""
+            head_sha=""
+          fi
+
+          if [[ -z "${base_sha}" || -z "${head_sha}" ]]; then
+            backend_container=true
+            dashboard_container=true
+            terraform=true
+          else
+            mapfile -t changed_files < <(git diff --name-only "${base_sha}" "${head_sha}")
+
+            if [[ ${#changed_files[@]} -eq 0 ]]; then
+              backend_container=true
+              dashboard_container=true
+              terraform=true
+            else
+              for path in "${changed_files[@]}"; do
+                case "${path}" in
+                  .github/workflows/security-scan.yml|.github/workflows/ci.yml|.github/actions/*/action.yml|.dockerignore)
+                    backend_container=true
+                    dashboard_container=true
+                    terraform=true
+                    ;;
+                  Dockerfile|pyproject.toml|uv.lock|app/*|scripts/docker-entrypoint.sh)
+                    backend_container=true
+                    ;;
+                  Dockerfile.dashboard|dashboard/*)
+                    dashboard_container=true
+                    ;;
+                  terraform/*)
+                    terraform=true
+                    ;;
+                esac
+              done
+            fi
+          fi
+
+          {
+            echo "backend_container=${backend_container}"
+            echo "dashboard_container=${dashboard_container}"
+            echo "terraform=${terraform}"
+          } >> "${GITHUB_OUTPUT}"
+
+  security-scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Security Toolchain
+        uses: ./.github/actions/setup-python-uv
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          
-      - name: Install uv
-        uses: astral-sh/setup-uv@e06108dd0aef18192324c70427afc47652e63a82 # v7.5.0
-        with:
-          enable-cache: true
-          version: ${{ env.UV_VERSION }}
-          
-      - name: Install dependencies
-        run: uv sync --locked --group dev
+          uv-version: ${{ env.UV_VERSION }}
+          dependency-install-command: uv sync --locked --group dev
         
       - name: Run Bandit SAST
         run: uv run bandit -r app/ -ll
@@ -81,8 +166,51 @@ jobs:
           docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.24.2 \
             git --redact --exit-code 1 --no-banner --log-opts="${LOG_OPTS}" /repo
 
+  terraform-quality:
+    name: Terraform Validate / Lint / Security
+    runs-on: ubuntu-24.04
+    needs: [classify-changes]
+    if: needs.classify-changes.outputs.terraform == 'true'
+    timeout-minutes: 20
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@5e8dbf3c6d9deaf4193ca7a8fb23f2ac83bb6c85 # v4.0.0
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        run: terraform -chdir=terraform init -backend=false
+
+      - name: Terraform Validate
+        run: terraform -chdir=terraform validate -no-color
+
+      - name: Terraform Security Scan (tfsec)
+        uses: aquasecurity/tfsec-action@b466648d6e39e7c75324f25d83891162a721f2d6 # v1.0.3
+        with:
+          working_directory: ./terraform
+          soft_fail: false
+          additional_args: --minimum-severity HIGH
+
+      - name: Terraform Lint (tflint)
+        uses: terraform-linters/setup-tflint@4cb9feea73331a35b422df102992a03a44a3bb33 # v6.2.1
+        with:
+          tflint_version: v0.61.0
+
+      - name: Run TFLint
+        run: |
+          cd terraform
+          tflint --init
+          tflint --minimum-failure-severity=error -f compact
+
   container-scan:
     runs-on: ubuntu-24.04
+    needs: [classify-changes]
+    if: needs.classify-changes.outputs.backend_container == 'true' || needs.classify-changes.outputs.dashboard_container == 'true'
+    timeout-minutes: 40
     steps:
       - name: Checkout Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -91,16 +219,18 @@ jobs:
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
 
       - name: Build Backend Docker Image
+        if: needs.classify-changes.outputs.backend_container == 'true'
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         with:
           context: .
           push: false
           load: true
           tags: valdrics-backend:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=backend-image
+          cache-to: type=gha,scope=backend-image,mode=max
 
       - name: Build Dashboard Docker Image
+        if: needs.classify-changes.outputs.dashboard_container == 'true'
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         with:
           context: .
@@ -108,13 +238,14 @@ jobs:
           push: false
           load: true
           tags: valdrics-dashboard:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=dashboard-image
+          cache-to: type=gha,scope=dashboard-image,mode=max
 
       - name: Prepare Trivy cache
         run: mkdir -p .cache/trivy
 
       - name: Run Trivy vulnerability scanner (Backend)
+        if: needs.classify-changes.outputs.backend_container == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -136,6 +267,7 @@ jobs:
             valdrics-backend:${{ github.sha }}
 
       - name: Run Trivy vulnerability scanner (Dashboard)
+        if: needs.classify-changes.outputs.dashboard_container == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -174,6 +306,8 @@ jobs:
     name: DAST (OWASP ZAP Baseline)
     runs-on: ubuntu-24.04
     needs: [container-scan]
+    # Keep PR security feedback fast; run browser DAST on mainline and schedules.
+    if: github.event_name != 'pull_request'
     timeout-minutes: 35
     steps:
       - name: Checkout Code
@@ -183,7 +317,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          uv run python scripts/generate_local_compose_env.py --output-path .env.compose.dev --seed security-scan-dast-compose-v1
+          python3 scripts/generate_local_compose_env.py --output-path .env.compose.dev --seed security-scan-dast-compose-v1
           python3 - <<'PY'
           from pathlib import Path
 
@@ -253,4 +387,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker compose --env-file .env.compose.dev down -v
+          if [ -f .env.compose.dev ]; then
+            docker compose --env-file .env.compose.dev down -v
+          fi

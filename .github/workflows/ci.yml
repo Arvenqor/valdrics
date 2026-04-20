@@ -20,13 +20,80 @@ env:
   NODE_VERSION: "24.14.0"
   PNPM_VERSION: "10.32.1"
   UV_VERSION: "0.10.9"
+  COVERAGE_VERSION: "7.13.4"
   TRIVY_IMAGE: "docker.io/aquasec/trivy:0.69.3"
 
 jobs:
+  classify-changes:
+    name: Classify CI Surfaces
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      backend_ci: ${{ steps.classify.outputs.backend_ci }}
+      dashboard_ci: ${{ steps.classify.outputs.dashboard_ci }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Classify changed files
+        id: classify
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          backend_ci=false
+          dashboard_ci=false
+
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            base_sha="${{ github.event.pull_request.base.sha }}"
+            head_sha="${{ github.sha }}"
+          elif [[ "${GITHUB_EVENT_NAME}" == "push" && "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]]; then
+            base_sha="${{ github.event.before }}"
+            head_sha="${{ github.sha }}"
+          else
+            base_sha=""
+            head_sha=""
+          fi
+
+          if [[ -z "${base_sha}" || -z "${head_sha}" ]]; then
+            backend_ci=true
+            dashboard_ci=true
+          else
+            mapfile -t changed_files < <(git diff --name-only "${base_sha}" "${head_sha}")
+
+            if [[ ${#changed_files[@]} -eq 0 ]]; then
+              backend_ci=true
+              dashboard_ci=true
+            else
+              for path in "${changed_files[@]}"; do
+                case "${path}" in
+                  .github/workflows/ci.yml)
+                    backend_ci=true
+                    dashboard_ci=true
+                    ;;
+                  app/*|tests/*|migrations/*|alembic.ini|pyproject.toml|uv.lock|scripts/*)
+                    backend_ci=true
+                    ;;
+                  dashboard/*|scripts/check_frontend_api_contracts.py|scripts/check_frontend_hygiene.py|scripts/verify_dashboard_runtime_contract.py|scripts/verify_frontend_module_size_budget.py)
+                    dashboard_ci=true
+                    ;;
+                esac
+              done
+            fi
+          fi
+
+          {
+            echo "backend_ci=${backend_ci}"
+            echo "dashboard_ci=${dashboard_ci}"
+          } >> "${GITHUB_OUTPUT}"
+
   # JOB 1: QUALITY ASSURANCE
   quality:
     name: Backend Quality Checks
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     env:
       # Default test-runtime contract (step-level env can override as needed).
       ENVIRONMENT: "development"
@@ -50,22 +117,16 @@ jobs:
       GROQ_API_KEY: "testing"
       CODECARBON_LOG_LEVEL: "info"
     steps:
-      - name: Checkout Code
+      - &checkout_code_step
+        name: Checkout Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Setup Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+      - name: Setup Backend Toolchain
+        uses: ./.github/actions/setup-python-uv
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@e06108dd0aef18192324c70427afc47652e63a82 # v7.5.0
-        with:
-          enable-cache: true
-          version: ${{ env.UV_VERSION }}
-
-      - name: Install Dependencies
-        run: uv sync --locked --dev
+          uv-version: ${{ env.UV_VERSION }}
+          dependency-install-command: uv sync --locked --dev
 
       - name: Runtime Env Preflight (Strict Contract)
         env:
@@ -158,7 +219,7 @@ jobs:
         run: uv run python3 scripts/verify_reports_archive_hygiene.py
 
       - name: Verify Codebase Audit Report
-        run: uv run python3 scripts/verify_codebase_audit_report.py --report .runtime/staging.audit.report.json
+        run: uv run python3 scripts/verify_codebase_audit_report.py --report reports/audit/staging.audit.report.json
 
       - name: Verify Frontend API Contracts
         run: uv run python scripts/check_frontend_api_contracts.py
@@ -171,17 +232,18 @@ jobs:
 
   pytest:
     name: Backend Pytest Shard ${{ matrix.shard_id }}
+    needs: [classify-changes]
+    if: github.event_name != 'pull_request' || needs.classify-changes.outputs.backend_ci == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
         include:
           - shard_id: "1"
             paths: >-
-              tests/api
               tests/billing
               tests/contract
-              tests/core
               tests/integration
               tests/security
               tests/unit/api
@@ -190,7 +252,6 @@ jobs:
               tests/unit/lead_gen
               tests/unit/models
               tests/unit/ops
-              tests/unit/reporting
               tests/unit/schemas
               tests/unit/scripts
               tests/unit/test_hard_cap_service.py
@@ -199,6 +260,9 @@ jobs:
               tests/unit/test_pricing_phase36.py
           - shard_id: "2"
             paths: >-
+              tests/api
+              tests/core
+              tests/unit/reporting
               tests/unit/analysis
               tests/unit/core
               tests/unit/notifications
@@ -240,28 +304,20 @@ jobs:
       AWS_DEFAULT_REGION: "us-east-1"
       GROQ_API_KEY: "testing"
       CODECARBON_LOG_LEVEL: "info"
-      COVERAGE_FILE: "reports/coverage/.coverage.${{ matrix.shard_id }}"
+      COVERAGE_DIR: "/tmp/coverage/${{ matrix.shard_id }}"
+      COVERAGE_FILE: "/tmp/coverage/${{ matrix.shard_id }}/.coverage.${{ matrix.shard_id }}"
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Setup Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+      - *checkout_code_step
+      - name: Setup Backend Toolchain
+        uses: ./.github/actions/setup-python-uv
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@e06108dd0aef18192324c70427afc47652e63a82 # v7.5.0
-        with:
-          enable-cache: true
-          version: ${{ env.UV_VERSION }}
-
-      - name: Install Dependencies
-        run: uv sync --locked --dev
+          uv-version: ${{ env.UV_VERSION }}
+          dependency-install-command: uv sync --locked --dev
 
       - name: Run Pytest Shard with Coverage Data
         run: |
-          mkdir -p reports/coverage
+          mkdir -p "$COVERAGE_DIR"
           uv run pytest -q --cov=app --cov-report= ${{ matrix.paths }}
 
       - name: Upload Coverage Data
@@ -269,32 +325,32 @@ jobs:
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: backend-coverage-${{ matrix.shard_id }}
-          path: ${{ env.COVERAGE_FILE }}
+          path: ${{ env.COVERAGE_DIR }}
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 7
 
   test:
-    name: Backend Test Aggregate / Coverage
+    # Keep this name aligned with the required branch-protection check.
+    name: Run Unit Tests
     runs-on: ubuntu-24.04
-    needs: [pytest]
+    needs: [classify-changes, pytest]
+    if: always() && (github.event_name != 'pull_request' || needs.classify-changes.outputs.backend_ci == 'true')
+    timeout-minutes: 20
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Require Successful Backend Pytest Shards
+        if: needs.pytest.result != 'success'
+        run: |
+          echo "Backend pytest shards did not complete successfully."
+          exit 1
 
-      - name: Setup Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+      - *checkout_code_step
+      - name: Setup Coverage Toolchain
+        uses: ./.github/actions/setup-python-uv
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@e06108dd0aef18192324c70427afc47652e63a82 # v7.5.0
-        with:
-          enable-cache: true
-          version: ${{ env.UV_VERSION }}
-
-      - name: Install Dependencies
-        run: uv sync --locked --dev
+          uv-version: ${{ env.UV_VERSION }}
+          dependency-install-command: ""
 
       - name: Download Coverage Data
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -305,22 +361,22 @@ jobs:
 
       - name: Combine Coverage Data
         run: |
-          uv run coverage combine reports/coverage/shards
-          uv run coverage xml -o coverage.xml
+          uvx --from "coverage[toml]==${{ env.COVERAGE_VERSION }}" coverage combine reports/coverage/shards
+          uvx --from "coverage[toml]==${{ env.COVERAGE_VERSION }}" coverage xml -o coverage.xml
 
       - name: Enforce Global Coverage Gate (90%)
         run: |
-          uv run coverage report --include="app/*" --fail-under=90
+          uvx --from "coverage[toml]==${{ env.COVERAGE_VERSION }}" coverage report --include="app/*" --fail-under=90
 
       - name: Run Focused Coverage Gate (Optimization/Reporting/LLM Scheduler)
         run: |
-          uv run coverage report \
+          uvx --from "coverage[toml]==${{ env.COVERAGE_VERSION }}" coverage report \
             --include="*/app/modules/optimization/domain/remediation*.py,*/app/modules/optimization/domain/cloud_api_budget.py" \
             --fail-under=80
-          uv run coverage report \
+          uvx --from "coverage[toml]==${{ env.COVERAGE_VERSION }}" coverage report \
             --include="*/app/modules/reporting/domain/anomaly_detection.py,*/app/modules/reporting/domain/budget_alerts.py,*/app/modules/reporting/domain/calculator.py,*/app/modules/reporting/domain/leadership_kpis.py,*/app/modules/reporting/domain/service.py" \
             --fail-under=85
-          uv run coverage report \
+          uvx --from "coverage[toml]==${{ env.COVERAGE_VERSION }}" coverage report \
             --include="*/app/shared/llm/hybrid_scheduler.py" \
             --fail-under=95
 
@@ -334,7 +390,10 @@ jobs:
   # JOB 1A: ALEMBIC FORWARD/ROLLBACK SMOKE
   migration-smoke:
     name: Alembic Upgrade/Downgrade Smoke
+    needs: [classify-changes]
+    if: github.event_name != 'pull_request' || needs.classify-changes.outputs.backend_ci == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:16.13-alpine
@@ -364,22 +423,13 @@ jobs:
       PAYSTACK_SECRET_KEY: "sk_test_ci"
       PAYSTACK_PUBLIC_KEY: "pk_test_ci"
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Setup Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+      - *checkout_code_step
+      - name: Setup Backend Toolchain
+        uses: ./.github/actions/setup-python-uv
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@e06108dd0aef18192324c70427afc47652e63a82 # v7.5.0
-        with:
-          enable-cache: true
-          version: ${{ env.UV_VERSION }}
-
-      - name: Install Dependencies
-        run: uv sync --locked --dev
+          uv-version: ${{ env.UV_VERSION }}
+          dependency-install-command: uv sync --locked --dev
 
       - name: Run Alembic Forward/Rollback Smoke
         run: |
@@ -390,24 +440,18 @@ jobs:
   # JOB 1C: TYPE SAFETY (2026 Strict Standards)
   type-check:
     name: Backend Type Check (Mypy)
+    needs: [classify-changes]
+    if: github.event_name != 'pull_request' || needs.classify-changes.outputs.backend_ci == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Setup Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+      - *checkout_code_step
+      - name: Setup Backend Toolchain
+        uses: ./.github/actions/setup-python-uv
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@e06108dd0aef18192324c70427afc47652e63a82 # v7.5.0
-        with:
-          enable-cache: true
-          version: ${{ env.UV_VERSION }}
-
-      - name: Install Dependencies
-        run: uv sync --locked --dev
+          uv-version: ${{ env.UV_VERSION }}
+          dependency-install-command: uv sync --locked --dev
 
       - name: Run Mypy
         run: uv run mypy app
@@ -415,7 +459,10 @@ jobs:
   # JOB 1B: DASHBOARD QUALITY (2026 Frontend Standards)
   dashboard-quality:
     name: Dashboard Lint / Typecheck / Unit
+    needs: [classify-changes]
+    if: github.event_name != 'pull_request' || needs.classify-changes.outputs.dashboard_ci == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
     env:
       # Required so `$env/static/public` exports are available during
       # `svelte-kit sync` and type generation in CI.
@@ -423,29 +470,12 @@ jobs:
       PUBLIC_SUPABASE_URL: "https://example.supabase.co"
       PUBLIC_SUPABASE_ANON_KEY: "ci-public-anon-key"
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Setup Node
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+      - *checkout_code_step
+      - name: Setup Dashboard Toolchain
+        uses: ./.github/actions/setup-dashboard
         with:
           node-version: ${{ env.NODE_VERSION }}
-
-      - name: Setup pnpm via Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
-
-      - name: Cache pnpm dependencies
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
-        with:
-          path: ~/.pnpm-store
-          key: pnpm-${{ runner.os }}-${{ hashFiles('dashboard/pnpm-lock.yaml') }}
-          restore-keys: pnpm-${{ runner.os }}-
-
-      - name: Install Dashboard Dependencies
-        working-directory: ./dashboard
-        run: pnpm install --frozen-lockfile
+          pnpm-version: ${{ env.PNPM_VERSION }}
 
       - name: Dashboard Lint
         working-directory: ./dashboard
@@ -463,6 +493,19 @@ jobs:
         working-directory: ./dashboard
         run: pnpm run build
 
+      - name: Package Dashboard Preview Build
+        working-directory: ./dashboard
+        run: |
+          tar -czf "${RUNNER_TEMP}/dashboard-preview-output.tar.gz" .svelte-kit/output
+
+      - name: Upload Dashboard Preview Build
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: dashboard-preview-output
+          path: ${{ runner.temp }}/dashboard-preview-output.tar.gz
+          if-no-files-found: error
+          retention-days: 3
+
       - name: Verify Dashboard Managed Runtime Contract
         run: python3 scripts/verify_dashboard_runtime_contract.py
 
@@ -473,7 +516,9 @@ jobs:
   dashboard-public-browser-gates:
     name: Dashboard Public ${{ matrix.label }}
     runs-on: ubuntu-24.04
-    needs: [dashboard-quality]
+    needs: [classify-changes, dashboard-quality]
+    if: github.event_name != 'pull_request' || needs.classify-changes.outputs.dashboard_ci == 'true'
+    timeout-minutes: 30
     env:
       PUBLIC_API_URL: "https://api.example.com/api/v1"
       PUBLIC_SUPABASE_URL: "https://example.supabase.co"
@@ -498,29 +543,24 @@ jobs:
             spec: e2e/public-progressive-enhancement.spec.ts
             artifact: playwright-report-public-progressive
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Setup Node
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+      - *checkout_code_step
+      - name: Setup Dashboard Toolchain
+        uses: ./.github/actions/setup-dashboard
         with:
           node-version: ${{ env.NODE_VERSION }}
+          pnpm-version: ${{ env.PNPM_VERSION }}
 
-      - name: Setup pnpm via Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
-
-      - name: Cache pnpm dependencies
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+      - name: Download Dashboard Preview Build
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          path: ~/.pnpm-store
-          key: pnpm-${{ runner.os }}-${{ hashFiles('dashboard/pnpm-lock.yaml') }}
-          restore-keys: pnpm-${{ runner.os }}-
+          name: dashboard-preview-output
+          path: ${{ runner.temp }}/dashboard-preview-output
 
-      - name: Install Dashboard Dependencies
+      - name: Restore Dashboard Preview Build
         working-directory: ./dashboard
-        run: pnpm install --frozen-lockfile
+        run: |
+          rm -rf .svelte-kit/output
+          tar -xzf "${RUNNER_TEMP}/dashboard-preview-output/dashboard-preview-output.tar.gz"
 
       - name: Cache Playwright Browsers
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
@@ -539,396 +579,10 @@ jobs:
         run: pnpm exec playwright test ${{ matrix.spec }} --reporter=html
         env:
           PLAYWRIGHT_PUBLIC_ONLY: "1"
+          PLAYWRIGHT_USE_PREBUILT_PREVIEW: "1"
           DASHBOARD_URL: http://localhost:4173
 
       - name: Upload Public Playwright Report
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
-        if: always()
-        with:
-          name: ${{ matrix.artifact }}
-          path: dashboard/playwright-report/
-          retention-days: 7
-
-  performance-health-gate:
-    name: Performance Gate - Health
-    needs: [quality, test]
-    uses: ./.github/workflows/performance-gate.yml
-    with:
-      url: "http://127.0.0.1:8000"
-      profile: "health_deep"
-      duration: "15"
-      users: "5"
-      ramp: "2"
-      p95_target: "1.25"
-      max_error_rate: "0.0"
-      start_local_api: true
-
-  performance-dashboard-gate:
-    name: Performance Gate - Dashboard
-    needs: [quality, test, dashboard-quality]
-    uses: ./.github/workflows/performance-gate.yml
-    with:
-      url: "http://127.0.0.1:8000"
-      profile: "dashboard"
-      duration: "12"
-      users: "4"
-      ramp: "2"
-      p95_target: "2.0"
-      max_error_rate: "0.0"
-      min_throughput: "1.0"
-      start_local_api: true
-      bootstrap_tenant: true
-
-  performance-ops-gate:
-    name: Performance Gate - Ops
-    needs: [quality, test]
-    uses: ./.github/workflows/performance-gate.yml
-    with:
-      url: "http://127.0.0.1:8000"
-      profile: "ops"
-      duration: "12"
-      users: "4"
-      ramp: "2"
-      p95_target: "2.0"
-      max_error_rate: "0.0"
-      min_throughput: "1.0"
-      start_local_api: true
-      bootstrap_tenant: true
-      bootstrap_tier: "starter"
-
-  # JOB 2: CARBON EMISSIONS (GreenOps 2.0)
-  emissions:
-    name: Carbon Footprint Report
-    runs-on: ubuntu-24.04
-    needs: [quality, test]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Setup Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@e06108dd0aef18192324c70427afc47652e63a82 # v7.5.0
-        with:
-          enable-cache: true
-          version: ${{ env.UV_VERSION }}
-
-      - name: Install Dependencies
-        run: uv sync --locked --dev
-
-      - name: Run CodeCarbon Benchmark
-        env:
-          CODECARBON_LOG_LEVEL: "info"
-        run: |
-          uv run python -c "
-          from codecarbon import EmissionsTracker
-          tracker = EmissionsTracker(project_name='Valdrics-CI', output_dir='.')
-          tracker.start()
-          import subprocess
-          subprocess.run(['uv', 'run', 'pytest', 'tests/', '-x', '--no-cov'], check=False)
-          emissions = tracker.stop()
-          print(f'🌍 Carbon Emissions: {emissions:.6f} kgCO2eq')
-          print(f'📊 Emissions saved to emissions.csv')
-          "
-
-      - name: Upload Emissions Report
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
-        with:
-          name: carbon-emissions-report
-          path: emissions.csv
-          retention-days: 30
-
-  # JOB 3: SECURITY CHECKS
-  security:
-    name: Security Audits
-    runs-on: ubuntu-24.04
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0 # Required for secret scanning
-
-      - name: Setup Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@e06108dd0aef18192324c70427afc47652e63a82 # v7.5.0
-        with:
-          enable-cache: true
-          version: ${{ env.UV_VERSION }}
-
-      - name: Install Dependencies
-        run: uv sync --locked --group dev
-
-      - name: Build API Image (for CVE scan)
-        run: docker build -t valdrics-api-ci:${{ github.sha }} .
-
-      - name: Scan API Image for CVEs (Trivy)
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p .cache/trivy
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v "$PWD/.cache/trivy:/root/.cache/trivy" \
-            -e TRIVY_CACHE_DIR=/root/.cache/trivy \
-            "${TRIVY_IMAGE}" image \
-            --scanners vuln \
-            --ignore-unfixed \
-            --severity CRITICAL,HIGH \
-            --format table \
-            --skip-version-check \
-            --exit-code 1 \
-            valdrics-api-ci:${{ github.sha }}
-
-      - name: Terraform Security Scan (tfsec)
-        uses: aquasecurity/tfsec-action@b466648d6e39e7c75324f25d83891162a721f2d6 # v1.0.3
-        with:
-          working_directory: ./terraform
-          soft_fail: false
-          additional_args: --minimum-severity HIGH
-
-      - name: Terraform Lint (tflint)
-        uses: terraform-linters/setup-tflint@4cb9feea73331a35b422df102992a03a44a3bb33 # v6.2.1
-        with:
-          tflint_version: v0.61.0
-      - name: Run TFLint
-        run: |
-          cd terraform
-          tflint --init
-          tflint --minimum-failure-severity=error -f compact
-
-      - name: Setup Node
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Setup pnpm via Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
-
-      - name: Cache pnpm dependencies
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
-        with:
-          path: ~/.pnpm-store
-          key: pnpm-${{ runner.os }}-${{ hashFiles('dashboard/pnpm-lock.yaml') }}
-          restore-keys: pnpm-${{ runner.os }}-
-
-      - name: Frontend Security Audit
-        working-directory: ./dashboard
-        run: pnpm install --frozen-lockfile && pnpm audit --audit-level=high
-
-  # JOB 4: ENTERPRISE TDD RELEASE GATE
-  enterprise-tdd-quality-gate:
-    name: Enterprise TDD Quality Gate
-    runs-on: ubuntu-24.04
-    needs: [quality, test, migration-smoke, type-check, security]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Setup Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@e06108dd0aef18192324c70427afc47652e63a82 # v7.5.0
-        with:
-          enable-cache: true
-          version: ${{ env.UV_VERSION }}
-
-      - name: Install Dependencies
-        run: uv sync --locked --dev
-
-      - name: Generate Runtime Release Evidence
-        run: |
-          set -euo pipefail
-
-          EVIDENCE_DIR="${RUNNER_TEMP}/enterprise-gate-evidence"
-          mkdir -p "${EVIDENCE_DIR}"
-
-          DEBUG=false uv run python3 scripts/generate_enforcement_stress_evidence.py \
-            --output "${EVIDENCE_DIR}/enforcement_stress_artifact.json" \
-            --duration-seconds 30 \
-            --concurrent-users 10 \
-            --ramp-seconds 5 \
-            --rounds 3 \
-            --max-p95-seconds 2.0 \
-            --max-error-rate-percent 1.0 \
-            --min-throughput-rps 0.5
-
-          DEBUG=false uv run python3 scripts/generate_enforcement_failure_injection_evidence.py \
-            --output "${EVIDENCE_DIR}/enforcement_failure_injection.json" \
-            --executed-by "ci.enforcement.executor@valdrics.local" \
-            --approved-by "ci.enforcement.approver@valdrics.local"
-
-          DEBUG=false uv run python3 scripts/generate_finance_telemetry_snapshot.py \
-            --output "${EVIDENCE_DIR}/finance_telemetry_snapshot.json"
-
-          DEBUG=false uv run python3 scripts/generate_finance_committee_packet_assumptions.py \
-            --output "${EVIDENCE_DIR}/finance_committee_packet_assumptions.json" \
-            --telemetry-path "${EVIDENCE_DIR}/finance_telemetry_snapshot.json"
-
-          DEBUG=false uv run python3 scripts/generate_finance_committee_packet.py \
-            --telemetry-path "${EVIDENCE_DIR}/finance_telemetry_snapshot.json" \
-            --assumptions-path "${EVIDENCE_DIR}/finance_committee_packet_assumptions.json" \
-            --output-dir "${EVIDENCE_DIR}"
-
-          DEBUG=false uv run python3 scripts/generate_pricing_benchmark_register.py \
-            --output "${EVIDENCE_DIR}/pricing_benchmark_register.json" \
-            --max-source-age-days 120
-
-          DEBUG=false uv run python3 scripts/generate_pkg_fin_policy_decisions.py \
-            --output "${EVIDENCE_DIR}/pkg_fin_policy_decisions.json" \
-            --telemetry-snapshot-path "${EVIDENCE_DIR}/finance_telemetry_snapshot.json"
-
-          DEBUG=false uv run python3 scripts/generate_key_rotation_drill_evidence.py \
-            --output "${EVIDENCE_DIR}/key_rotation_drill.md" \
-            --max-drill-age-days 120
-
-          DEBUG=false uv run python3 scripts/generate_valdrics_disposition_register.py \
-            --output "${EVIDENCE_DIR}/valdrics_disposition_register.json" \
-            --max-artifact-age-days 45 \
-            --max-review-window-days 120
-
-          FINANCE_GUARDRAILS_PATH="$(ls "${EVIDENCE_DIR}"/finance_guardrails_*.json | sort | tail -n 1)"
-
-          {
-            echo "ENFORCEMENT_RUNTIME_EVIDENCE_ONLY=true"
-            echo "ENFORCEMENT_STRESS_EVIDENCE_PATH=${EVIDENCE_DIR}/enforcement_stress_artifact.json"
-            echo "ENFORCEMENT_STRESS_EVIDENCE_REQUIRED=true"
-            echo "ENFORCEMENT_STRESS_EVIDENCE_MAX_AGE_HOURS=48"
-            echo "ENFORCEMENT_FAILURE_INJECTION_EVIDENCE_PATH=${EVIDENCE_DIR}/enforcement_failure_injection.json"
-            echo "ENFORCEMENT_FAILURE_INJECTION_EVIDENCE_REQUIRED=true"
-            echo "ENFORCEMENT_FAILURE_INJECTION_EVIDENCE_MAX_AGE_HOURS=48"
-            echo "ENFORCEMENT_FINANCE_GUARDRAILS_EVIDENCE_PATH=${FINANCE_GUARDRAILS_PATH}"
-            echo "ENFORCEMENT_FINANCE_GUARDRAILS_EVIDENCE_REQUIRED=true"
-            echo "ENFORCEMENT_FINANCE_GUARDRAILS_EVIDENCE_MAX_AGE_HOURS=744"
-            echo "ENFORCEMENT_FINANCE_TELEMETRY_SNAPSHOT_PATH=${EVIDENCE_DIR}/finance_telemetry_snapshot.json"
-            echo "ENFORCEMENT_FINANCE_TELEMETRY_SNAPSHOT_REQUIRED=true"
-            echo "ENFORCEMENT_FINANCE_TELEMETRY_SNAPSHOT_MAX_AGE_HOURS=744"
-            echo "ENFORCEMENT_PRICING_BENCHMARK_REGISTER_PATH=${EVIDENCE_DIR}/pricing_benchmark_register.json"
-            echo "ENFORCEMENT_PRICING_BENCHMARK_REGISTER_REQUIRED=true"
-            echo "ENFORCEMENT_PRICING_BENCHMARK_MAX_SOURCE_AGE_DAYS=120"
-            echo "ENFORCEMENT_PKG_FIN_POLICY_DECISIONS_PATH=${EVIDENCE_DIR}/pkg_fin_policy_decisions.json"
-            echo "ENFORCEMENT_PKG_FIN_POLICY_DECISIONS_REQUIRED=true"
-            echo "ENFORCEMENT_PKG_FIN_POLICY_DECISIONS_MAX_AGE_HOURS=744"
-            echo "ENFORCEMENT_KEY_ROTATION_DRILL_PATH=${EVIDENCE_DIR}/key_rotation_drill.md"
-            echo "ENFORCEMENT_KEY_ROTATION_DRILL_MAX_AGE_DAYS=120"
-            echo "ENFORCEMENT_VALDRICS_DISPOSITION_REGISTER_PATH=${EVIDENCE_DIR}/valdrics_disposition_register.json"
-            echo "ENFORCEMENT_VALDRICS_DISPOSITION_MAX_AGE_DAYS=45"
-            echo "ENFORCEMENT_VALDRICS_DISPOSITION_MAX_REVIEW_WINDOW_DAYS=120"
-            echo "ENFORCEMENT_MONTHLY_FINANCE_REFRESH_MAX_AGE_DAYS=35"
-            echo "ENFORCEMENT_MONTHLY_FINANCE_REFRESH_MAX_CAPTURE_SPREAD_DAYS=14"
-          } >> "${GITHUB_ENV}"
-
-      - name: Run Enterprise TDD Gate
-        run: uv run python3 scripts/run_enterprise_tdd_gate.py
-
-      - name: Upload Enterprise Gate Coverage Artifact
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
-        if: always() && hashFiles('coverage-enterprise-gate.xml') != ''
-        with:
-          name: enterprise-tdd-gate-coverage
-          path: coverage-enterprise-gate.xml
-          retention-days: 30
-
-  # JOB 5: DASHBOARD BROWSER GATES (split e2e/a11y/perf)
-  dashboard-browser-gates:
-    name: Dashboard ${{ matrix.label }}
-    runs-on: ubuntu-24.04
-    needs: [quality, test]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    env:
-      PUBLIC_API_URL: "https://api.example.com/api/v1"
-      PUBLIC_SUPABASE_URL: "https://example.supabase.co"
-      PUBLIC_SUPABASE_ANON_KEY: "ci-public-anon-key"
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - label: Authenticated Shell
-            spec: e2e/authenticated-shell.spec.ts
-            artifact: playwright-report-authenticated-shell
-          - label: E2E Critical Paths
-            spec: e2e/critical-paths.spec.ts
-            artifact: playwright-report-critical
-          - label: Accessibility Gate
-            spec: e2e/a11y.spec.ts
-            artifact: playwright-report-a11y
-          - label: Performance Gate
-            spec: e2e/performance.spec.ts
-            artifact: playwright-report-perf
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Setup Python (for backend)
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@e06108dd0aef18192324c70427afc47652e63a82 # v7.5.0
-        with:
-          enable-cache: true
-          version: ${{ env.UV_VERSION }}
-
-      - name: Install Backend Dependencies
-        run: uv sync --locked --dev
-
-      - name: Setup Node
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Setup pnpm via Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
-
-      - name: Cache pnpm dependencies
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
-        with:
-          path: ~/.pnpm-store
-          key: pnpm-${{ runner.os }}-${{ hashFiles('dashboard/pnpm-lock.yaml') }}
-          restore-keys: pnpm-${{ runner.os }}-
-
-      - name: Install Dashboard Dependencies
-        working-directory: ./dashboard
-        run: pnpm install --frozen-lockfile
-
-      - name: Cache Playwright Browsers
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('dashboard/pnpm-lock.yaml') }}
-
-      - name: Install Playwright Browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        working-directory: ./dashboard
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: Run Playwright Suite
-        working-directory: ./dashboard
-        run: pnpm exec playwright test ${{ matrix.spec }} --reporter=html
-        env:
-          # Playwright webServer config boots `vite preview` on 4173
-          DASHBOARD_URL: http://localhost:4173
-          API_URL: http://127.0.0.1:8000
-
-      - name: Upload Playwright Report
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:

@@ -22,6 +22,23 @@ def test_migration_settings_accepts_minimal_database_contract() -> None:
     assert settings.DB_SSL_CA_CERT_PATH is None
 
 
+def test_migration_settings_ignores_unrelated_runtime_env_values() -> None:
+    with patch.dict(
+        "os.environ",
+        {
+            "DATABASE_URL": "postgresql+asyncpg://postgres:postgres@db.example.com:5432/postgres",
+            "DEBUG": "true",
+            "APP_NAME": "Valdrics",
+            "FRONTEND_URL": "http://localhost:5174",
+        },
+        clear=True,
+    ):
+        settings = MigrationSettings(_env_file=None)
+
+    assert settings.DATABASE_URL.startswith("postgresql+asyncpg://postgres:")
+    assert settings.DB_SSL_MODE == "require"
+
+
 def test_migration_settings_requires_database_url() -> None:
     with patch.dict("os.environ", {}, clear=True):
         with pytest.raises(ValueError, match="DATABASE_URL is required for Alembic migrations."):

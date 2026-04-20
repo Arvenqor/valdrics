@@ -9,7 +9,7 @@ from urllib.parse import urljoin
 import httpx
 import structlog
 
-from app.shared.adapters.feed_utils import as_float, is_number, parse_timestamp
+from app.shared.adapters.feed_utils import as_float, is_number
 from app.shared.core.currency import ExchangeRateUnavailableError
 from app.shared.core.exceptions import ExternalAPIError
 

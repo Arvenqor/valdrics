@@ -36,7 +36,7 @@ def _coerce_monthly_cost(item: dict[str, Any]) -> float | None:
     if raw_value in (None, ""):
         return 0.0
     try:
-        amount = float(raw_value)
+        amount = float(str(raw_value))
     except (TypeError, ValueError):
         return None
     if not math.isfinite(amount):
@@ -120,7 +120,12 @@ class ZombieScanState:
                     self.payload["errors"].append(
                         {
                             "provider": provider_name,
-                            "region": region_override or item.get("region") or item.get("zone") or "global",
+                            "region": (
+                                region_override
+                                or item.get("region")
+                                or item.get("zone")
+                                or "global"
+                            ),
                             "error": "Zombie finding monthly cost must be numeric and finite",
                             "error_type": "InvalidMonthlyCost",
                             "connection_id": connection_id,
@@ -129,7 +134,9 @@ class ZombieScanState:
                         }
                     )
                     continue
-                normalized_region = region_override or item.get("region") or item.get("zone")
+                normalized_region = (
+                    region_override or item.get("region") or item.get("zone")
+                )
                 item.update(
                     {
                         "provider": provider_name,

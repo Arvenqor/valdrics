@@ -1,0 +1,38 @@
+name: Setup Python And uv
+description: Bootstrap Python, uv, and optional project dependencies for repository workflows.
+
+inputs:
+  python-version:
+    description: Python version to activate via actions/setup-python.
+    required: true
+  uv-version:
+    description: uv version to install.
+    required: true
+  dependency-install-command:
+    description: Command used to install dependencies after uv is available. Leave empty to skip dependency installation.
+    required: false
+    default: uv sync --locked --dev
+  working-directory:
+    description: Working directory for the dependency installation command.
+    required: false
+    default: .
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Python
+      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@e06108dd0aef18192324c70427afc47652e63a82 # v7.5.0
+      with:
+        enable-cache: true
+        version: ${{ inputs.uv-version }}
+
+    - name: Install Dependencies
+      if: ${{ inputs.dependency-install-command != '' }}
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: ${{ inputs.dependency-install-command }}

@@ -144,7 +144,7 @@ async def test_azure_adapter_discover_resources_success(azure_adapter):
 @pytest.mark.asyncio
 async def test_azure_adapter_discover_resources_error(azure_adapter):
     with patch.object(
-        azure_adapter, "_get_resource_client", side_effect=RuntimeError("Limit Exceeded")
+        azure_adapter, "_get_compute_client", side_effect=RuntimeError("Limit Exceeded")
     ):
         resources = await azure_adapter.discover_resources("compute")
         assert resources == []

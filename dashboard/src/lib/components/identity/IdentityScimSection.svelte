@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { env as publicEnv } from '$env/dynamic/public';
 	import { api } from '$lib/api';
 	import { edgeApiPath } from '$lib/edgeProxy';
 	import { formatValidationIssues } from '$lib/validation/clientZod';
@@ -8,15 +7,16 @@
 		RotateTokenResponseSchema,
 		ScimTokenTestResponseSchema
 	} from './identitySettingsModel';
-	import { scimBaseUrlFromPublicApiUrl } from './identitySettingsHelpers';
 	import type { IdentitySettings } from './identitySettingsTypes';
 
 	let {
 		accessToken,
+		scimBaseUrl,
 		tier,
 		settings = $bindable()
 	}: {
 		accessToken?: string | null;
+		scimBaseUrl: string;
 		tier?: string | null;
 		settings: IdentitySettings;
 	} = $props();
@@ -32,11 +32,6 @@
 
 	function isEnterprise(currentTier: string | null | undefined): boolean {
 		return (currentTier ?? '').toLowerCase() === 'enterprise';
-	}
-
-	function scimBaseUrl(): string {
-		const publicApiUrl = String(publicEnv.PUBLIC_API_URL || '').trim();
-		return scimBaseUrlFromPublicApiUrl(publicApiUrl);
 	}
 
 	function setFeedback(message: string, tone: 'success' | 'error') {
@@ -152,7 +147,7 @@
 		<div>
 			<p class="font-medium">SCIM Provisioning</p>
 			<p class="text-xs text-ink-500 mt-1">
-				Enterprise-only. Base URL: <span class="font-mono">{scimBaseUrl()}</span>
+				Enterprise-only. Base URL: <span class="font-mono">{scimBaseUrl}</span>
 			</p>
 		</div>
 		{#if !isEnterprise(tier)}

@@ -105,6 +105,7 @@ describe('dashboard page lazy sections', () => {
 
 		expect(screen.getByText(/loading engineering insights/i)).toBeTruthy();
 
+		await vi.dynamicImportSettled();
 		await screen.findByRole('heading', { name: /ai insights/i });
 		expect(
 			screen.getByText(/review idle instances before the next deployment window/i)
@@ -121,6 +122,7 @@ describe('dashboard page lazy sections', () => {
 
 		expect(screen.getByText(/loading finance insights/i)).toBeTruthy();
 
+		await vi.dynamicImportSettled();
 		await screen.findByText(/greenops sustainability/i);
 		expect(screen.getByRole('heading', { name: /unit economics/i })).toBeTruthy();
 		expect(await screen.findByRole('heading', { name: /12-month roa/i })).toBeTruthy();

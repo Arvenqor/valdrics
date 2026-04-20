@@ -245,8 +245,8 @@ async def close_http_client() -> None:
         seen.add(client_id)
         clients_to_close.append((client, label))
 
-    for client, label in clients_to_close:
-        await _close_one(client, label)
+    for client_to_close, label in clients_to_close:
+        await _close_one(client_to_close, label)
 
     _client = None
     _insecure_client = None

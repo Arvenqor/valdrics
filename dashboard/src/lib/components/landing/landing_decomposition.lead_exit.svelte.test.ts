@@ -188,11 +188,7 @@ describe('Landing decomposition lead capture and exit intent', () => {
 		expect(
 			screen.getByRole('heading', { name: /want a weekly spend-control brief instead/i })
 		).toBeTruthy();
-		expect(onTrackCta).not.toHaveBeenCalledWith(
-			'cta_view',
-			'exit_prompt',
-			'desktop_exit_intent'
-		);
+		expect(onTrackCta).not.toHaveBeenCalledWith('cta_view', 'exit_prompt', 'desktop_exit_intent');
 	});
 
 	it('stays suppressed while disabled for cookie consent priority', async () => {

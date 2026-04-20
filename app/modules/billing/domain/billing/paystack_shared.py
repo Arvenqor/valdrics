@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 
 import structlog
 
@@ -24,10 +24,10 @@ decrypt_string = _decrypt_string
 class _SettingsProxy:
     """Resolve Paystack runtime settings lazily so config refreshes are honored."""
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> Any:
         return getattr(get_settings(), name)
 
-    def __setattr__(self, name: str, value) -> None:
+    def __setattr__(self, name: str, value: Any) -> None:
         setattr(get_settings(), name, value)
 
     def __delattr__(self, name: str) -> None:

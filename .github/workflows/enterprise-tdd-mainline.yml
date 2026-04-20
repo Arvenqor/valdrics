@@ -1,0 +1,134 @@
+name: Enterprise TDD Mainline Gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "scripts/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/enterprise-tdd-mainline.yml"
+      - ".github/actions/**"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+  UV_VERSION: "0.10.9"
+
+jobs:
+  enterprise-tdd-quality-gate:
+    name: Enterprise TDD Quality Gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Backend Toolchain
+        uses: ./.github/actions/setup-python-uv
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          uv-version: ${{ env.UV_VERSION }}
+          dependency-install-command: uv sync --locked --dev
+
+      - name: Generate Runtime Release Evidence
+        run: |
+          set -euo pipefail
+
+          EVIDENCE_DIR="${RUNNER_TEMP}/enterprise-gate-evidence"
+          mkdir -p "${EVIDENCE_DIR}"
+
+          DEBUG=false uv run python3 scripts/generate_enforcement_stress_evidence.py \
+            --output "${EVIDENCE_DIR}/enforcement_stress_artifact.json" \
+            --duration-seconds 30 \
+            --concurrent-users 10 \
+            --ramp-seconds 5 \
+            --rounds 3 \
+            --max-p95-seconds 2.0 \
+            --max-error-rate-percent 1.0 \
+            --min-throughput-rps 0.5
+
+          DEBUG=false uv run python3 scripts/generate_enforcement_failure_injection_evidence.py \
+            --output "${EVIDENCE_DIR}/enforcement_failure_injection.json" \
+            --executed-by "ci.enforcement.executor@valdrics.local" \
+            --approved-by "ci.enforcement.approver@valdrics.local"
+
+          DEBUG=false uv run python3 scripts/generate_finance_telemetry_snapshot.py \
+            --output "${EVIDENCE_DIR}/finance_telemetry_snapshot.json"
+
+          DEBUG=false uv run python3 scripts/generate_finance_committee_packet_assumptions.py \
+            --output "${EVIDENCE_DIR}/finance_committee_packet_assumptions.json" \
+            --telemetry-path "${EVIDENCE_DIR}/finance_telemetry_snapshot.json"
+
+          DEBUG=false uv run python3 scripts/generate_finance_committee_packet.py \
+            --telemetry-path "${EVIDENCE_DIR}/finance_telemetry_snapshot.json" \
+            --assumptions-path "${EVIDENCE_DIR}/finance_committee_packet_assumptions.json" \
+            --output-dir "${EVIDENCE_DIR}"
+
+          DEBUG=false uv run python3 scripts/generate_pricing_benchmark_register.py \
+            --output "${EVIDENCE_DIR}/pricing_benchmark_register.json" \
+            --max-source-age-days 120
+
+          DEBUG=false uv run python3 scripts/generate_pkg_fin_policy_decisions.py \
+            --output "${EVIDENCE_DIR}/pkg_fin_policy_decisions.json" \
+            --telemetry-snapshot-path "${EVIDENCE_DIR}/finance_telemetry_snapshot.json"
+
+          DEBUG=false uv run python3 scripts/generate_key_rotation_drill_evidence.py \
+            --output "${EVIDENCE_DIR}/key_rotation_drill.md" \
+            --max-drill-age-days 120
+
+          DEBUG=false uv run python3 scripts/generate_valdrics_disposition_register.py \
+            --output "${EVIDENCE_DIR}/valdrics_disposition_register.json" \
+            --max-artifact-age-days 45 \
+            --max-review-window-days 120
+
+          FINANCE_GUARDRAILS_PATH="$(ls "${EVIDENCE_DIR}"/finance_guardrails_*.json | sort | tail -n 1)"
+
+          {
+            echo "ENFORCEMENT_RUNTIME_EVIDENCE_ONLY=true"
+            echo "ENFORCEMENT_STRESS_EVIDENCE_PATH=${EVIDENCE_DIR}/enforcement_stress_artifact.json"
+            echo "ENFORCEMENT_STRESS_EVIDENCE_REQUIRED=true"
+            echo "ENFORCEMENT_STRESS_EVIDENCE_MAX_AGE_HOURS=48"
+            echo "ENFORCEMENT_FAILURE_INJECTION_EVIDENCE_PATH=${EVIDENCE_DIR}/enforcement_failure_injection.json"
+            echo "ENFORCEMENT_FAILURE_INJECTION_EVIDENCE_REQUIRED=true"
+            echo "ENFORCEMENT_FAILURE_INJECTION_EVIDENCE_MAX_AGE_HOURS=48"
+            echo "ENFORCEMENT_FINANCE_GUARDRAILS_EVIDENCE_PATH=${FINANCE_GUARDRAILS_PATH}"
+            echo "ENFORCEMENT_FINANCE_GUARDRAILS_EVIDENCE_REQUIRED=true"
+            echo "ENFORCEMENT_FINANCE_GUARDRAILS_EVIDENCE_MAX_AGE_HOURS=744"
+            echo "ENFORCEMENT_FINANCE_TELEMETRY_SNAPSHOT_PATH=${EVIDENCE_DIR}/finance_telemetry_snapshot.json"
+            echo "ENFORCEMENT_FINANCE_TELEMETRY_SNAPSHOT_REQUIRED=true"
+            echo "ENFORCEMENT_FINANCE_TELEMETRY_SNAPSHOT_MAX_AGE_HOURS=744"
+            echo "ENFORCEMENT_PRICING_BENCHMARK_REGISTER_PATH=${EVIDENCE_DIR}/pricing_benchmark_register.json"
+            echo "ENFORCEMENT_PRICING_BENCHMARK_REGISTER_REQUIRED=true"
+            echo "ENFORCEMENT_PRICING_BENCHMARK_MAX_SOURCE_AGE_DAYS=120"
+            echo "ENFORCEMENT_PKG_FIN_POLICY_DECISIONS_PATH=${EVIDENCE_DIR}/pkg_fin_policy_decisions.json"
+            echo "ENFORCEMENT_PKG_FIN_POLICY_DECISIONS_REQUIRED=true"
+            echo "ENFORCEMENT_PKG_FIN_POLICY_DECISIONS_MAX_AGE_HOURS=744"
+            echo "ENFORCEMENT_KEY_ROTATION_DRILL_PATH=${EVIDENCE_DIR}/key_rotation_drill.md"
+            echo "ENFORCEMENT_KEY_ROTATION_DRILL_MAX_AGE_DAYS=120"
+            echo "ENFORCEMENT_VALDRICS_DISPOSITION_REGISTER_PATH=${EVIDENCE_DIR}/valdrics_disposition_register.json"
+            echo "ENFORCEMENT_VALDRICS_DISPOSITION_MAX_AGE_DAYS=45"
+            echo "ENFORCEMENT_VALDRICS_DISPOSITION_MAX_REVIEW_WINDOW_DAYS=120"
+            echo "ENFORCEMENT_MONTHLY_FINANCE_REFRESH_MAX_AGE_DAYS=35"
+            echo "ENFORCEMENT_MONTHLY_FINANCE_REFRESH_MAX_CAPTURE_SPREAD_DAYS=14"
+          } >> "${GITHUB_ENV}"
+
+      - name: Run Enterprise TDD Gate
+        run: uv run python3 scripts/run_enterprise_tdd_gate.py
+
+      - name: Upload Enterprise Gate Coverage Artifact
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        if: always() && hashFiles('coverage-enterprise-gate.xml') != ''
+        with:
+          name: enterprise-tdd-gate-coverage
+          path: coverage-enterprise-gate.xml
+          retention-days: 30
