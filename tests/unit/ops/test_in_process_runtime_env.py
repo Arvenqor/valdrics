@@ -15,6 +15,8 @@ def test_configure_isolated_test_environment_restores_environment(monkeypatch) -
         assert os.environ["DATABASE_URL"] == overrides["DATABASE_URL"]
         assert os.environ["TESTING"] == "true"
         assert os.environ["ALLOW_TEST_DATABASE_URL"] == "true"
+        assert len(os.environ["ENFORCEMENT_APPROVAL_TOKEN_SECRET"]) >= 32
+        assert len(os.environ["ENFORCEMENT_EXPORT_SIGNING_SECRET"]) >= 32
 
     assert os.environ == original_environment
 
@@ -29,3 +31,4 @@ def test_configure_isolated_test_environment_allows_explicit_postgres_runtime(mo
         assert overrides["ALLOW_TEST_DATABASE_URL"] == "true"
         assert os.environ["DATABASE_URL"] == overrides["DATABASE_URL"]
         assert os.environ["ALLOW_TEST_DATABASE_URL"] == "true"
+        assert os.environ["ENFORCEMENT_EXPORT_SIGNING_SECRET"] == overrides["ENFORCEMENT_EXPORT_SIGNING_SECRET"]

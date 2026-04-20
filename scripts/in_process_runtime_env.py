@@ -29,6 +29,8 @@ def build_isolated_test_environment_values(*, database_url: str) -> dict[str, st
         "DB_SSL_MODE": "disable",
         "DEBUG": "false",
         "ENCRYPTION_KEY": _build_synthetic_secret("encryption-key"),
+        "ENFORCEMENT_APPROVAL_TOKEN_SECRET": _build_synthetic_secret("enforcement-approval-token"),
+        "ENFORCEMENT_EXPORT_SIGNING_SECRET": _build_synthetic_secret("enforcement-export-signing"),
         "ENVIRONMENT": "local",
         "KDF_SALT": "S0RGX1NBTFRfRk9SX1RFU1RJTkdfMzJfQllURVNfT0s=",
         "PGSSLMODE": "disable",
