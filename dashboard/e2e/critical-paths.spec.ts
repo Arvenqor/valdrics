@@ -120,7 +120,9 @@ test.describe('Dashboard Flow (Authenticated)', () => {
 		await waitForPageLoad(page);
 
 		await expect(page.locator('h1:has-text("Preferences")')).toBeVisible();
-		await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'instant' }));
+		await page.evaluate(() =>
+			window.scrollTo({ top: document.body.scrollHeight, behavior: 'instant' })
+		);
 		await expect(page.getByLabel(/preferred ai provider/i)).toBeVisible();
 		await expect(page.getByRole('button', { name: /save ai strategy settings/i })).toBeVisible();
 	});
