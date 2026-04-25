@@ -2,6 +2,9 @@
 
 Use this checklist before every production rollout.
 
+For the consolidated source map of every required value, artifact, and provider
+console location, also use `docs/runbooks/managed_cutover_operator_packet.md`.
+
 ## 0. Runtime toolchain contract
 
 - Backend operator tooling and runtime validation are pinned to Python 3.12.x.

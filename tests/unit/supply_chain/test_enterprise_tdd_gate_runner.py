@@ -203,12 +203,12 @@ def test_build_gate_commands_includes_required_test_targets() -> None:
     ]
     assert "--doc-path" in sanity_cmd
     assert "docs/ops/enforcement_post_closure_sanity.md" in sanity_cmd
-    assert "--gap-register" in sanity_cmd
-    assert "docs/ops/enforcement_control_plane_gap_register_2026-02-23.md" in sanity_cmd
+    assert "--contract-path" in sanity_cmd
+    assert "docs/ops/enforcement_release_gate_contract.json" in sanity_cmd
 
     assert pkg015_cmd[:4] == ["uv", "run", "python3", "scripts/verify_pkg015_launch_gate.py"]
-    assert "--gap-register" in pkg015_cmd
-    assert "docs/ops/enforcement_control_plane_gap_register_2026-02-23.md" in pkg015_cmd
+    assert "--contract-path" in pkg015_cmd
+    assert "docs/ops/enforcement_release_gate_contract.json" in pkg015_cmd
     assert "--matrix-path" in pkg015_cmd
     assert "docs/ops/feature_enforceability_matrix.json" in pkg015_cmd
 

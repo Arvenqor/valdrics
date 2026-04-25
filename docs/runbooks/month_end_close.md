@@ -1,12 +1,16 @@
 # Month-End Close (Operator Runbook)
 
-Valdrics “month-end close” is a deterministic reconciliation package meant for finance/procurement sign-off:
+Valdrics “month-end close” is a deterministic reconciliation package meant for
+finance and audit review:
 
 - Close status (ready / not-ready reasons)
 - Lifecycle counts (preliminary vs final)
 - Discrepancy detection summary
 - Restatement history snapshot
 - Integrity hash for tamper-evident evidence
+
+This is not a production cutover packet. Deployment cutover remains on
+`docs/runbooks/unified_platform_release.md`.
 
 ## Prerequisites
 
@@ -36,7 +40,7 @@ Valdrics “month-end close” is a deterministic reconciliation package meant f
 
 ## Evidence Bundle (Recommended)
 
-Capture an audit-safe bundle under `reports/acceptance/`:
+Capture supplemental finance evidence under `reports/acceptance/`:
 
 ```bash
 export VALDRICS_API_URL="http://127.0.0.1:8000"
@@ -52,6 +56,10 @@ This produces (among other artifacts):
 - `close_package.json`
 - `close_package.csv`
 - `restatements.csv`
+
+This bundle supports finance/procurement review. It does not replace the
+managed deployment bundle or the cutover evidence path in
+`docs/runbooks/unified_platform_release.md`.
 
 ## Notes
 

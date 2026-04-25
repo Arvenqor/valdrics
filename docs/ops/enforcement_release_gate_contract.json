@@ -1,0 +1,56 @@
+{
+  "metadata": {
+    "contract_version": "2026-04-21",
+    "purpose": "Canonical undated release-gate contract for enforcement post-closure sanity and PKG-015 launch readiness."
+  },
+  "post_closure_sanity": {
+    "required_snapshot_tokens": [
+      "CI-EVID-001",
+      "BENCH-DOC-001",
+      "BSAFE-009",
+      "BSAFE-010",
+      "BSAFE-011",
+      "BSAFE-013",
+      "BSAFE-014",
+      "BSAFE-015",
+      "BSAFE-016",
+      "PKG-001..PKG-032",
+      "FIN-001..FIN-008",
+      "post-closure sanity check gate",
+      "Binary Artifact Closure Checklist (release packet)",
+      "docs/ops/evidence/enforcement_stress_artifact_YYYY-MM-DD.json",
+      "docs/ops/evidence/enforcement_failure_injection_YYYY-MM-DD.json",
+      "docs/archive/evidence/<quarter>/ci-green-YYYY-MM-DD.md"
+    ],
+    "forbidden_snapshot_tokens": [
+      "test_enforcement_webhook_helm_contract",
+      "Kubernetes webhook production guidance profile",
+      "deployable webhook template + explicit failure-policy profiles via chart values and runbook contract"
+    ]
+  },
+  "pkg015_launch_gate": {
+    "documentation_tokens": [
+      "PKG-015",
+      "analytics-led",
+      "economic-control-plane",
+      "Recommended decision gate"
+    ],
+    "required_item_status": {
+      "ECP-002": "DONE",
+      "ECP-003": "DONE",
+      "ECP-004": "DONE",
+      "ECP-005": "DONE",
+      "ECP-012": "DONE",
+      "PKG-003": "DONE",
+      "PKG-006": "DONE",
+      "PKG-007": "DONE"
+    },
+    "required_runtime_gated_features": [
+      "auto_remediation",
+      "api_access",
+      "policy_configuration",
+      "escalation_workflow",
+      "incident_integrations"
+    ]
+  }
+}

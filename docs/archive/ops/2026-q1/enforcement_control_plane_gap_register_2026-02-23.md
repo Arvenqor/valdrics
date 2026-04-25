@@ -2,9 +2,13 @@
 
 This document converts the three requirement sets provided in the current review thread into a code-backed gap register and execution tracker.
 
-## Current Open Items (Canonical, 2026-02-27)
+## Current Open Items (Domain Snapshot, 2026-02-27)
 
-This is the single source of truth for what is still open. Historical sections below may contain older `Partial`/transition notes and should not override this list.
+This section is the last code-backed snapshot of open enforcement-control-plane
+items inside this domain. `PLAN.md` remains the canonical product, phase, and
+ship-gate source of truth. Historical sections below may contain older
+`Partial`/transition notes and should not override the current managed-platform
+plan.
 
 1. `PKG-*` (`OPEN`): packaging/commercial backlog remains active (`PKG-001..PKG-032`), with `PKG-003`, `PKG-006`, `PKG-007`, `PKG-008`, `PKG-010`, `PKG-014`, `PKG-015`, and `PKG-020` now implemented baseline.
 2. `FIN-*` (`OPEN`): financial model/guardrail backlog remains active (`FIN-001..FIN-008` + `FIN-GATE-*`).
@@ -2182,7 +2186,7 @@ Treat this checklist as release-blocking closure evidence. Completion is binary 
 4. One-pass release evidence gate executed against staged artifacts:
    - `uv run python3 scripts/run_enforcement_release_evidence_gate.py --stress-evidence-path docs/ops/evidence/enforcement_stress_artifact_YYYY-MM-DD.json --failure-evidence-path docs/ops/evidence/enforcement_failure_injection_YYYY-MM-DD.json --stress-max-age-hours 24 --failure-max-age-hours 48 --stress-min-duration-seconds 30 --stress-min-concurrent-users 10`
 5. Post-closure sanity validator confirms artifact checklist contract:
-   - `uv run python3 scripts/verify_enforcement_post_closure_sanity.py --doc-path docs/ops/enforcement_post_closure_sanity.md --gap-register docs/ops/enforcement_control_plane_gap_register_2026-02-23.md`
+   - `uv run python3 scripts/verify_enforcement_post_closure_sanity.py --doc-path docs/ops/enforcement_post_closure_sanity.md --contract-path docs/ops/enforcement_release_gate_contract.json`
 
 ## LLM free-tier feedback audit (2026-02-24, operator pass)
 
@@ -4088,7 +4092,7 @@ Result:
 Validation:
 1. `uv run ruff check scripts/verify_enforcement_post_closure_sanity.py tests/unit/ops/test_verify_enforcement_post_closure_sanity.py tests/unit/enforcement/test_enforcement_endpoint_wrapper_coverage.py scripts/run_enterprise_tdd_gate.py tests/unit/supply_chain/test_enterprise_tdd_gate_runner.py`
 2. `uv run pytest --no-cov -q tests/unit/ops/test_verify_enforcement_post_closure_sanity.py tests/unit/enforcement/test_enforcement_endpoint_wrapper_coverage.py tests/unit/supply_chain/test_enterprise_tdd_gate_runner.py`
-3. `uv run python scripts/verify_enforcement_post_closure_sanity.py --doc-path docs/ops/enforcement_post_closure_sanity.md --gap-register docs/ops/enforcement_control_plane_gap_register_2026-02-23.md`
+3. `uv run python scripts/verify_enforcement_post_closure_sanity.py --doc-path docs/ops/enforcement_post_closure_sanity.md --contract-path docs/ops/enforcement_release_gate_contract.json`
 4. `uv run python scripts/run_enterprise_tdd_gate.py` (`402 passed`)
 
 ## Execution update (2026-02-26): LLM guardrail coverage margin lift + XML threshold fallback for enterprise gate
@@ -4434,7 +4438,7 @@ Validation:
 1. `uv run ruff check scripts/verify_enforcement_post_closure_sanity.py tests/unit/ops/test_verify_enforcement_post_closure_sanity.py scripts/run_enterprise_tdd_gate.py tests/unit/supply_chain/test_enterprise_tdd_gate_runner.py`
 2. `uv run mypy scripts/verify_enforcement_post_closure_sanity.py scripts/run_enterprise_tdd_gate.py`
 3. `uv run pytest --no-cov -q tests/unit/ops/test_verify_enforcement_post_closure_sanity.py tests/unit/supply_chain/test_enterprise_tdd_gate_runner.py`
-4. `uv run python scripts/verify_enforcement_post_closure_sanity.py --doc-path docs/ops/enforcement_post_closure_sanity.md --gap-register docs/ops/enforcement_control_plane_gap_register_2026-02-23.md`
+4. `uv run python scripts/verify_enforcement_post_closure_sanity.py --doc-path docs/ops/enforcement_post_closure_sanity.md --contract-path docs/ops/enforcement_release_gate_contract.json`
 
 ## Execution update (2026-02-26): enterprise gate LLM coverage target normalization
 

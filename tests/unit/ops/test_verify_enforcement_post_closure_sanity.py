@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
@@ -10,10 +11,8 @@ from scripts.verify_enforcement_post_closure_sanity import (
     ARTIFACT_TEMPLATE_TOKENS,
     DIMENSION_TOKENS,
     EvidenceToken,
-    GAP_REGISTER_FORBIDDEN_TOKENS,
-    GAP_REGISTER_REQUIRED_TOKENS,
     main,
-    validate_gap_register_contract,
+    validate_release_gate_contract,
     validate_tokens,
     verify_post_closure_sanity,
 )
@@ -43,8 +42,7 @@ def test_validate_tokens_fails_for_missing_token(tmp_path: Path) -> None:
 def test_verify_post_closure_sanity_passes_against_repo_contracts() -> None:
     exit_code = verify_post_closure_sanity(
         doc_path=REPO_ROOT / "docs/ops/enforcement_post_closure_sanity.md",
-        gap_register_path=REPO_ROOT
-        / "docs/ops/enforcement_control_plane_gap_register_2026-02-23.md",
+        contract_path=REPO_ROOT / "docs/ops/enforcement_release_gate_contract.json",
         repo_root=REPO_ROOT,
     )
     assert exit_code == 0
@@ -117,62 +115,52 @@ def test_artifact_template_contract_tokens_cover_release_packet_templates() -> N
     ) in artifact_tokens
 
 
-def test_gap_register_required_tokens_include_canonical_open_items_header() -> None:
-    required = set(GAP_REGISTER_REQUIRED_TOKENS)
-    assert "Current Open Items (Canonical, 2026-02-27)" in required
+def test_release_gate_contract_snapshot_tokens_include_required_closure_markers() -> None:
+    contract = (
+        REPO_ROOT / "docs/ops/enforcement_release_gate_contract.json"
+    ).read_text(encoding="utf-8")
+    required = set(json.loads(contract)["post_closure_sanity"]["required_snapshot_tokens"])
     assert "CI-EVID-001" in required
     assert "BENCH-DOC-001" in required
     assert "docs/archive/evidence/<quarter>/ci-green-YYYY-MM-DD.md" in required
     assert "docs/evidence/ci-green-YYYY-MM-DD.md" not in required
 
 
-def test_gap_register_forbidden_tokens_reject_removed_active_helm_contract_refs(
+def test_release_gate_contract_accepts_forbidden_token_allowlist_values(
     tmp_path: Path,
 ) -> None:
-    payload = tmp_path / "gap.md"
+    payload = tmp_path / "contract.json"
     payload.write_text(
-        "\n".join(
-            (
-                *GAP_REGISTER_REQUIRED_TOKENS,
-                GAP_REGISTER_FORBIDDEN_TOKENS[0],
-            )
-        )
-        + "\n",
+        json.dumps(
+            {
+                "post_closure_sanity": {
+                    "required_snapshot_tokens": ["CI-EVID-001"],
+                    "forbidden_snapshot_tokens": [
+                        "test_enforcement_webhook_helm_contract"
+                    ],
+                }
+            }
+        ),
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="forbidden token"):
-        validate_gap_register_contract(gap_register_path=payload)
+    validate_release_gate_contract(contract_path=payload)
 
 
-def test_live_gap_register_scopes_remaining_helm_evidence_as_archived_reference() -> None:
+def test_live_release_gate_contract_scopes_removed_helm_refs_out_of_active_surface() -> None:
     raw = (
-        REPO_ROOT / "docs/ops/enforcement_control_plane_gap_register_2026-02-23.md"
+        REPO_ROOT / "docs/ops/enforcement_release_gate_contract.json"
     ).read_text(encoding="utf-8")
+    contract = json.loads(raw)
+    forbidden = contract["post_closure_sanity"]["forbidden_snapshot_tokens"]
 
-    assert "Kubernetes webhook production guidance profile" not in raw
+    assert "Kubernetes webhook production guidance profile" in forbidden
     assert (
         "deployable webhook template + explicit failure-policy profiles via chart values and runbook contract"
-        not in raw
+        in forbidden
     )
-    assert "### Follow-up gaps opened at that point in time" in raw
-    assert "`ECP-016` (P1, historical): K8s webhook deployment contract pack." in raw
-    assert (
-        "Validation recorded for the archived self-managed reference and active operator path:"
-        in raw
-    )
-    assert (
-        "Archived self-managed reference file: `docs/archive/reference/2026-q2/helm/valdrics/values.schema.json`"
-        in raw
-    )
-    assert "active operator-path evidence:" in raw
     assert "docs/archive/evidence/<quarter>/ci-green-YYYY-MM-DD.md" in raw
     assert "docs/evidence/ci-green-YYYY-MM-DD.md" not in raw
-    assert "deployment template still open" not in raw
-    assert (
-        "repo lacks deployment manifests/templates for cluster operators"
-        not in raw
-    )
 
 
 def test_main_resolves_relative_paths_from_repo_root_when_run_outside_repo(
@@ -182,15 +170,25 @@ def test_main_resolves_relative_paths_from_repo_root_when_run_outside_repo(
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
     doc_path = repo_root / "docs" / "ops" / "sanity.md"
-    gap_path = repo_root / "docs" / "ops" / "gap.md"
+    contract_path = repo_root / "docs" / "ops" / "contract.json"
     doc_path.parent.mkdir(parents=True, exist_ok=True)
     doc_path.write_text("sanity", encoding="utf-8")
-    gap_path.write_text("gap", encoding="utf-8")
+    contract_path.write_text(
+        json.dumps(
+            {
+                "post_closure_sanity": {
+                    "required_snapshot_tokens": ["CI-EVID-001"],
+                    "forbidden_snapshot_tokens": ["forbidden-token"]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
     captured: dict[str, Path] = {}
 
-    def _capture(*, doc_path: Path, gap_register_path: Path, repo_root: Path) -> int:
+    def _capture(*, doc_path: Path, contract_path: Path, repo_root: Path) -> int:
         captured["doc"] = doc_path
-        captured["gap"] = gap_register_path
+        captured["contract"] = contract_path
         captured["repo_root"] = repo_root
         return 0
 
@@ -198,9 +196,12 @@ def test_main_resolves_relative_paths_from_repo_root_when_run_outside_repo(
     monkeypatch.setattr(post_closure_verifier, "verify_post_closure_sanity", _capture)
     monkeypatch.chdir(tmp_path)
 
-    assert main(["--doc-path", "docs/ops/sanity.md", "--gap-register", "docs/ops/gap.md"]) == 0
+    assert (
+        main(["--doc-path", "docs/ops/sanity.md", "--contract-path", "docs/ops/contract.json"])
+        == 0
+    )
     assert captured["doc"] == doc_path
-    assert captured["gap"] == gap_path
+    assert captured["contract"] == contract_path
     assert captured["repo_root"] == repo_root
 
 
@@ -215,10 +216,21 @@ def test_main_rejects_relative_repo_escape(
     assert main(["--doc-path", os.path.join("..", "escape.md")]) == 2
 
 
+def test_main_rejects_relative_contract_path_that_escapes_repo_root(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    monkeypatch.setattr(post_closure_verifier, "_repo_root", lambda: repo_root)
+
+    assert main(["--contract-path", os.path.join("..", "escape.json")]) == 2
+
+
 def test_main_rejects_directory_inputs(tmp_path: Path) -> None:
     doc_dir = tmp_path / "doc-dir"
-    gap_dir = tmp_path / "gap-dir"
+    gap_dir = tmp_path / "contract-dir"
     doc_dir.mkdir()
     gap_dir.mkdir()
 
-    assert main(["--doc-path", str(doc_dir), "--gap-register", str(gap_dir)]) == 2
+    assert main(["--doc-path", str(doc_dir), "--contract-path", str(gap_dir)]) == 2

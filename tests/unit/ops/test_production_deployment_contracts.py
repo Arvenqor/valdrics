@@ -156,6 +156,49 @@ def test_unsupported_regional_failover_operator_artifacts_are_removed() -> None:
     assert not (REPO_ROOT / ".github/workflows/regional-failover.yml").exists()
     assert not (REPO_ROOT / "scripts/run_regional_failover.py").exists()
     assert not (REPO_ROOT / "scripts/configure_github_oidc_aws_credentials.py").exists()
+    assert not (REPO_ROOT / "scripts/disable_cloudfront.py").exists()
+    assert not (REPO_ROOT / "scripts/delete_cloudfront.py").exists()
+    assert not (REPO_ROOT / "scripts/dev_bearer_token.py").exists()
+    assert not (REPO_ROOT / "scripts/simple_token.py").exists()
+
+
+def test_one_off_debug_and_refactor_scripts_are_removed() -> None:
+    assert not (REPO_ROOT / "scripts/seed_final.py").exists()
+    assert not (REPO_ROOT / "scripts/test_tenant_import.py").exists()
+    assert not (REPO_ROOT / "scripts/stress_test.py").exists()
+    assert not (REPO_ROOT / "scripts/find_minimal_heads.py").exists()
+    assert not (REPO_ROOT / "scripts/diag_migrations.py").exists()
+    assert not (REPO_ROOT / "scripts/fix_scan_signature.py").exists()
+    assert not (REPO_ROOT / "scripts/verify_rls_simple.py").exists()
+
+
+def test_unsupported_db_maintenance_and_seed_scripts_are_removed() -> None:
+    assert not (REPO_ROOT / "scripts/audit_schema.py").exists()
+    assert not (REPO_ROOT / "scripts/check_partitions.py").exists()
+    assert not (REPO_ROOT / "scripts/cleanup_partitions.py").exists()
+    assert not (REPO_ROOT / "scripts/create_partitions.py").exists()
+    assert not (REPO_ROOT / "scripts/list_partitions.py").exists()
+    assert not (REPO_ROOT / "scripts/list_tables.py").exists()
+    assert not (REPO_ROOT / "scripts/list_zombies.py").exists()
+    assert not (REPO_ROOT / "scripts/seed_dev_data.py").exists()
+    assert not (REPO_ROOT / "scripts/seed_pricing_plans.py").exists()
+    assert not (REPO_ROOT / "scripts/supabase_cleanup.py").exists()
+    assert not (REPO_ROOT / "scripts/run_rls_optimization.py").exists()
+    assert not (REPO_ROOT / "scripts/truncate_cost_records.py").exists()
+    assert not (REPO_ROOT / "scripts/verify_rls.py").exists()
+    assert not (REPO_ROOT / "scripts/verify_rls_detailed.py").exists()
+    assert not (REPO_ROOT / "scripts/optimize_performance_and_security.sql").exists()
+    assert not (REPO_ROOT / "scripts/optimize_rls_performance.sql").exists()
+
+
+def test_historical_enforcement_gap_register_is_archived() -> None:
+    assert not (
+        REPO_ROOT / "docs/ops/enforcement_control_plane_gap_register_2026-02-23.md"
+    ).exists()
+    assert (
+        REPO_ROOT
+        / "docs/archive/ops/2026-q1/enforcement_control_plane_gap_register_2026-02-23.md"
+    ).exists()
 
 
 def test_archived_helm_contract_test_is_removed_from_active_ops_surface() -> None:

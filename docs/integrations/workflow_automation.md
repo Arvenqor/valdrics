@@ -33,7 +33,7 @@ Primary (SaaS multi-tenant):
 - Configure per-tenant integrations in **Settings -> Slack Notifications -> Workflow Automation**
 - Secrets are stored encrypted in tenant notification settings.
 - Validate connectivity from **Settings -> Send Test Workflow Event** (calls `POST /api/v1/settings/notifications/test-workflow`).
-- Capture acceptance evidence for audits/sign-off with:
+- Capture integration acceptance evidence for audits and customer review with:
   - `POST /api/v1/settings/notifications/acceptance-evidence/capture`
   - `GET /api/v1/settings/notifications/acceptance-evidence`
 - Ops Center supports the same capture flow with per-run controls:

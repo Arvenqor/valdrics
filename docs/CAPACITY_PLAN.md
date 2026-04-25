@@ -10,8 +10,9 @@ The current supported operating profile is the unified platform:
 - Cloudflare Pages for the dashboard edge
 - Supabase for PostgreSQL, Auth, and Storage
 
-The repository still retains a future scale path for deeper platform control,
-but that is not the active runtime contract.
+Archived reference material may still exist in-repo for historical or design
+context, but there is no parallel capacity track outside the supported runtime
+contract and the canonical phase sequence in `PLAN.md`.
 
 ## 1. Metric Targets
 

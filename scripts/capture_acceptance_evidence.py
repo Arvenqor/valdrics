@@ -1,5 +1,5 @@
 """
-Capture acceptance evidence artifacts for operator sign-off.
+Capture acceptance evidence artifacts for audit, procurement, and product review.
 
 This script is intentionally operator-safe:
 - It never writes bearer tokens to disk.
@@ -114,7 +114,10 @@ async def capture_acceptance_evidence(
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Capture Valdrics acceptance evidence artifacts."
+        description=(
+            "Capture Valdrics acceptance evidence artifacts for audit, "
+            "procurement, and product-operations review."
+        )
     )
     parser.add_argument(
         "--url", default=os.environ.get("VALDRICS_API_URL", "http://127.0.0.1:8000")

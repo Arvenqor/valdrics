@@ -107,7 +107,7 @@ def _bootstrap_payload(
                     "Live cutover evidence and final operator sign-off remain environment "
                     "events outside source control."
                 ),
-                "evidence": [{"path": "PLAN.md", "line": 11}],
+                "evidence": [{"path": "PLAN.md", "line": 57}],
             }
         ],
         "incorrect_claims": [
@@ -246,6 +246,28 @@ def refresh_audit_report(
             replacement={
                 "claim": f"Frontend stack includes {stack_phrase}.",
                 "evidence": [{"path": "dashboard/package.json", "line": 1}],
+            },
+        )
+
+    partial_claims = payload.get("partial_or_overstated_claims")
+    if isinstance(partial_claims, list):
+        payload["partial_or_overstated_claims"] = _replace_claim(
+            [claim for claim in partial_claims if isinstance(claim, dict)],
+            match_claim=(
+                "Repository source alone proves live staging and production cutover "
+                "completion."
+            ),
+            replacement={
+                "claim": (
+                    "Repository source alone proves live staging and production cutover "
+                    "completion."
+                ),
+                "status": "partial",
+                "correction": (
+                    "Live cutover evidence and final operator sign-off remain "
+                    "environment events outside source control."
+                ),
+                "evidence": [{"path": "PLAN.md", "line": 57}],
             },
         )
 

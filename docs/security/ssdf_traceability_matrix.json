@@ -19,7 +19,7 @@
       "status": "implemented_baseline",
       "summary": "Release-critical enforcement and supply-chain controls are tracked as explicit engineering requirements with binary closure criteria.",
       "evidence": [
-        "docs/ops/enforcement_control_plane_gap_register_2026-02-23.md",
+        "docs/ops/enforcement_release_gate_contract.json",
         "scripts/run_enterprise_tdd_gate.py",
         "tests/unit/supply_chain/test_enterprise_tdd_gate_runner.py"
       ]
@@ -76,7 +76,7 @@
       "evidence": [
         ".github/workflows/ci.yml",
         "scripts/verify_enterprise_placeholder_guards.py",
-        "docs/ops/enforcement_control_plane_gap_register_2026-02-23.md"
+        "docs/ops/enforcement_release_gate_contract.json"
       ]
     },
     {
@@ -98,7 +98,7 @@
       "evidence": [
         ".github/workflows/sbom.yml",
         "docs/ops/alert-evidence.md",
-        "docs/ops/enforcement_control_plane_gap_register_2026-02-23.md"
+        "docs/ops/enforcement_release_gate_contract.json"
       ]
     },
     {
@@ -120,7 +120,7 @@
       "evidence": [
         "tests/contract/test_openapi_contract.py",
         "tests/unit/enforcement/test_enforcement_api.py",
-        "docs/ops/enforcement_control_plane_gap_register_2026-02-23.md"
+        "docs/ops/enforcement_release_gate_contract.json"
       ]
     },
     {
@@ -197,7 +197,7 @@
       "evidence": [
         ".github/workflows/ci.yml",
         "scripts/security_audit.sh",
-        "docs/ops/enforcement_control_plane_gap_register_2026-02-23.md"
+        "docs/ops/enforcement_release_gate_contract.json"
       ]
     },
     {
@@ -206,7 +206,7 @@
       "status": "implemented_baseline",
       "summary": "Risk and remediation priorities are tracked in the hardening gap register with closure evidence.",
       "evidence": [
-        "docs/ops/enforcement_control_plane_gap_register_2026-02-23.md",
+        "docs/ops/enforcement_release_gate_contract.json",
         "docs/runbooks/enforcement_incident_response.md",
         "tests/unit/ops/test_enforcement_slo_runbook.py"
       ]
@@ -219,7 +219,7 @@
       "evidence": [
         "docs/runbooks/enforcement_incident_response.md",
         "docs/ops/alert-evidence.md",
-        "docs/ops/enforcement_control_plane_gap_register_2026-02-23.md"
+        "docs/ops/enforcement_release_gate_contract.json"
       ]
     }
   ]

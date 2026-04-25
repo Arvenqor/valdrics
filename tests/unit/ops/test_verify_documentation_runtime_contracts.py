@@ -34,19 +34,56 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
     )
     _write(
         tmp_path / "docs/CAPACITY_PLAN.md",
-        "current supported operating profile is the unified platform\nfuture scale path\nGoogle Cloud Run\nCloud Tasks\nCloud Run Jobs\nCloudflare Pages\nSupabase\n",
+        "current supported operating profile is the unified platform\nthere is no parallel capacity track\nGoogle Cloud Run\nCloud Tasks\nCloud Run Jobs\nCloudflare Pages\nSupabase\n",
     )
     _write(
         tmp_path / "docs/roadmap.md",
-        "active planning document\nreports/roadmap/\nCurrent Focus\nbootstrap-only sqlite dev\nmanaged bundle verification\n",
+        "redirect only\nphase, and ship-gate source of\nreports/roadmap/\n",
     )
     _write(
-        tmp_path / "docs/ops/enforcement_control_plane_gap_register_2026-02-23.md",
-        "terraform/main.tf\ngoogle_project_iam_member\ngoogle_service_account_iam_member\n",
+        tmp_path / "docs/ops/README.md",
+        "active operational material only\n"
+        "Persistent operational contracts should use undated canonical paths.\n"
+        "docs/ops/enforcement_release_gate_contract.json\n"
+        "docs/ops/key-rotation-drill-2026-02-27.md\n",
+    )
+    _write(
+        tmp_path / "docs/ops/acceptance_evidence_capture.md",
+        "not the managed deployment release path\n"
+        "docs/runbooks/unified_platform_release.md\n"
+        "managed-deployment-bundle-<environment>-<release-tag>\n",
+    )
+    _write(
+        tmp_path / "docs/ops/enforcement_release_gate_contract.json",
+        '{\n'
+        '  "post_closure_sanity": {\n'
+        '    "required_snapshot_tokens": ["CI-EVID-001"],\n'
+        '    "forbidden_snapshot_tokens": ["legacy-helm-token"]\n'
+        "  },\n"
+        '  "pkg015_launch_gate": {\n'
+        '    "required_item_status": {"PKG-015": "DONE"},\n'
+        '    "required_runtime_gated_features": ["auto_remediation"]\n'
+        "  }\n"
+        "}\n",
+    )
+    _write(
+        tmp_path / "docs/product/external_feedback_validation.md",
+        "Status: Supporting evidence\nPLAN.md\nnot the canonical shipping plan\n"
+        "phase tracker\nship-gate source of truth\n",
+    )
+    _write(
+        tmp_path / "docs/compliance/compliance_pack.md",
+        "supplemental evidence\ndocs/runbooks/unified_platform_release.md\n"
+        "managed-deployment-bundle-<environment>-<release-tag>\n",
     )
     _write(
         tmp_path / "docs/architecture/tiering-2026.md",
         "Permanent public proof lane\ndashboard/src/lib/pricing/publicPlans.ts\napp/shared/core/pricing.py\n",
+    )
+    _write(
+        tmp_path / "docs/runbooks/month_end_close.md",
+        "finance and audit review\nnot a production cutover packet\n"
+        "docs/runbooks/unified_platform_release.md\nsupplemental finance evidence\n",
     )
     _write(
         tmp_path / "docs/ROLLBACK_PLAN.md",
@@ -78,7 +115,14 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
     )
     _write(
         tmp_path / "docs/runbooks/unified_platform_release.md",
-        "Google Cloud Run\nCloud Tasks\nCloud Scheduler\nCloud Run Jobs\nArtifact Registry\nCloudflare Pages\nSupabase\nCloudflare Pages/DNS/WAF\nGCP runtime + API load balancer\nrelease-unified-platform.yml\npublish-artifact-registry-images.yml\ndeploy-unified-platform.yml\nmanaged-release-blocker-summary-<release-tag>\npromote_production=true\nREPLACE_WITH_REAL_STAGING_FRONTEND\nmake render-managed-release-blockers NON_SECRET_BUNDLE=true\napi_promotion_ref\nbatch_promotion_ref\nverify_managed_release_readiness.py\n",
+        "Google Cloud Run\nCloud Tasks\nCloud Scheduler\nCloud Run Jobs\nArtifact Registry\nCloudflare Pages\nSupabase\nCloudflare Pages/DNS/WAF\nGCP runtime + API load balancer\nrelease-unified-platform.yml\npublish-artifact-registry-images.yml\ndeploy-unified-platform.yml\nmanaged-release-blocker-summary-<release-tag>\npromote_production=true\nREPLACE_WITH_REAL_STAGING_FRONTEND\nmake render-managed-release-blockers NON_SECRET_BUNDLE=true\nsupplemental procurement/audit artifacts only\nmanaged-deployment-bundle-<environment>-<release-tag>\nmanaged_cutover_operator_packet.md\napi_promotion_ref\nbatch_promotion_ref\nverify_managed_release_readiness.py\n",
+    )
+    _write(
+        tmp_path / "docs/runbooks/managed_cutover_operator_packet.md",
+        "RUNTIME_PLAIN_ENV_JSON\nRUNTIME_SECRET_ENV_JSON\nartifact-registry-release-<release-tag>\n"
+        "managed-deployment-bundle-staging-<release-tag>\n"
+        "managed-release-blocker-summary-<release-tag>\n"
+        "Settings -> Environments\nWorkload Identity Federation\nWorkers & Pages\nSupabase\n",
     )
     _write(
         tmp_path / "docs/integrations/workflow_automation.md",
@@ -138,14 +182,50 @@ def test_verify_contracts_reports_missing_and_forbidden_phrases(tmp_path: Path) 
         DocumentationContract(
             path="docs/CAPACITY_PLAN.md",
             required_phrases=("Google Cloud Run",),
+            forbidden_phrases=("future scale path",),
         ),
         DocumentationContract(
             path="docs/roadmap.md",
-            required_phrases=("Current Focus",),
+            required_phrases=("redirect only",),
+        ),
+        DocumentationContract(
+            path="docs/ops/README.md",
+            required_phrases=(
+                "active operational material only",
+                "docs/ops/enforcement_release_gate_contract.json",
+            ),
+        ),
+        DocumentationContract(
+            path="docs/ops/acceptance_evidence_capture.md",
+            required_phrases=(
+                "not the managed deployment release path",
+                "managed-deployment-bundle-<environment>-<release-tag>",
+            ),
+            forbidden_phrases=("production sign-off",),
+        ),
+        DocumentationContract(
+            path="docs/ops/enforcement_release_gate_contract.json",
+            required_phrases=("post_closure_sanity", "required_runtime_gated_features"),
+        ),
+        DocumentationContract(
+            path="docs/product/external_feedback_validation.md",
+            required_phrases=("Status: Supporting evidence", "phase tracker"),
+        ),
+        DocumentationContract(
+            path="docs/compliance/compliance_pack.md",
+            required_phrases=(
+                "supplemental evidence",
+                "managed-deployment-bundle-<environment>-<release-tag>",
+            ),
         ),
         DocumentationContract(
             path="docs/architecture/tiering-2026.md",
             required_phrases=("dashboard/src/lib/pricing/publicPlans.ts",),
+        ),
+        DocumentationContract(
+            path="docs/runbooks/month_end_close.md",
+            required_phrases=("not a production cutover packet",),
+            forbidden_phrases=("finance/procurement sign-off",),
         ),
         DocumentationContract(
             path="docs/ROLLBACK_PLAN.md",
@@ -183,7 +263,17 @@ def test_verify_contracts_reports_missing_and_forbidden_phrases(tmp_path: Path) 
         ),
         DocumentationContract(
             path="docs/runbooks/unified_platform_release.md",
-            required_phrases=("release-unified-platform.yml",),
+            required_phrases=(
+                "release-unified-platform.yml",
+                "supplemental procurement/audit artifacts only",
+            ),
+        ),
+        DocumentationContract(
+            path="docs/runbooks/managed_cutover_operator_packet.md",
+            required_phrases=(
+                "RUNTIME_PLAIN_ENV_JSON",
+                "managed-release-blocker-summary-<release-tag>",
+            ),
         ),
         DocumentationContract(
             path="docs/integrations/workflow_automation.md",

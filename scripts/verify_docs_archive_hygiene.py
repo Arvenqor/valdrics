@@ -50,7 +50,6 @@ SKIP_DIRECTORIES = {
     ".mypy_cache",
 }
 REGISTERED_ACTIVE_DATED_DOCS = {
-    "docs/ops/enforcement_control_plane_gap_register_2026-02-23.md",
     "docs/ops/evidence/enforcement_failure_injection_2026-02-27.json",
     "docs/ops/evidence/enforcement_stress_artifact_2026-02-27.json",
     "docs/ops/evidence/finance_committee_packet_assumptions_2026-02-28.json",

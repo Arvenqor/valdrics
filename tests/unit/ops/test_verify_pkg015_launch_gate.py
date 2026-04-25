@@ -15,32 +15,39 @@ def _write(path: Path, payload: str) -> None:
     path.write_text(payload, encoding="utf-8")
 
 
-def _gap_register_payload(*, ecp004_status: str = "DONE", include_doc_tokens: bool = True) -> str:
-    header = [
-        "# Enforcement Control Plane Gap Register",
-        "## Recommended decision gate",
-    ]
+def _contract_payload(
+    *, ecp004_status: str = "DONE", include_doc_tokens: bool = True
+) -> dict[str, object]:
+    documentation_tokens: list[str] = []
     if include_doc_tokens:
-        header.extend(
-            [
-                "`PKG-015`",
-                "Use analytics-led messaging before gate closure.",
-                "Use economic-control-plane messaging after gate closure.",
-            ]
-        )
-    table = [
-        "| ID | Priority | Status | Required | Notes |",
-        "|---|---|---|---|---|",
-        "| ECP-002 | P0 | DONE | Yes | Entitlement waterfall |",
-        "| ECP-003 | P0 | DONE | Yes | Approval routing |",
-        f"| ECP-004 | P0 | {ecp004_status} | Yes | Credit lifecycle |",
-        "| ECP-005 | P0 | DONE | Yes | Fail-mode controls |",
-        "| ECP-012 | P0 | DONE | Yes | Concurrency safety |",
-        "| PKG-003 | P0 | DONE | Yes | Tier gates |",
-        "| PKG-006 | P0 | DONE | Yes | Enforceability matrix |",
-        "| PKG-007 | P0 | DONE | Yes | Curated enterprise entitlements |",
-    ]
-    return "\n".join([*header, *table]) + "\n"
+        documentation_tokens = [
+            "PKG-015",
+            "analytics-led",
+            "economic-control-plane",
+            "Recommended decision gate",
+        ]
+    return {
+        "pkg015_launch_gate": {
+            "documentation_tokens": documentation_tokens,
+            "required_item_status": {
+                "ECP-002": "DONE",
+                "ECP-003": "DONE",
+                "ECP-004": ecp004_status,
+                "ECP-005": "DONE",
+                "ECP-012": "DONE",
+                "PKG-003": "DONE",
+                "PKG-006": "DONE",
+                "PKG-007": "DONE",
+            },
+            "required_runtime_gated_features": [
+                "auto_remediation",
+                "api_access",
+                "policy_configuration",
+                "escalation_workflow",
+                "incident_integrations",
+            ],
+        }
+    }
 
 
 def _matrix_payload(*, policy_configuration_status: str = "runtime_gated") -> dict[str, object]:
@@ -66,14 +73,14 @@ def _matrix_payload(*, policy_configuration_status: str = "runtime_gated") -> di
 
 
 def test_verify_pkg015_launch_gate_accepts_valid_inputs(tmp_path: Path) -> None:
-    gap_path = tmp_path / "gap.md"
+    contract_path = tmp_path / "contract.json"
     matrix_path = tmp_path / "matrix.json"
-    _write(gap_path, _gap_register_payload())
+    contract_path.write_text(json.dumps(_contract_payload()), encoding="utf-8")
     matrix_path.write_text(json.dumps(_matrix_payload()), encoding="utf-8")
 
     assert (
         verify_pkg015_launch_gate(
-            gap_register_path=gap_path,
+            contract_path=contract_path,
             matrix_path=matrix_path,
         )
         == 0
@@ -81,14 +88,16 @@ def test_verify_pkg015_launch_gate_accepts_valid_inputs(tmp_path: Path) -> None:
 
 
 def test_verify_pkg015_launch_gate_rejects_not_done_required_item(tmp_path: Path) -> None:
-    gap_path = tmp_path / "gap.md"
+    contract_path = tmp_path / "contract.json"
     matrix_path = tmp_path / "matrix.json"
-    _write(gap_path, _gap_register_payload(ecp004_status="IN_PROGRESS"))
+    contract_path.write_text(
+        json.dumps(_contract_payload(ecp004_status="IN_PROGRESS")), encoding="utf-8"
+    )
     matrix_path.write_text(json.dumps(_matrix_payload()), encoding="utf-8")
 
     with pytest.raises(ValueError, match="required items not DONE"):
         verify_pkg015_launch_gate(
-            gap_register_path=gap_path,
+            contract_path=contract_path,
             matrix_path=matrix_path,
         )
 
@@ -96,14 +105,16 @@ def test_verify_pkg015_launch_gate_rejects_not_done_required_item(tmp_path: Path
 def test_verify_pkg015_launch_gate_rejects_missing_documentation_tokens(
     tmp_path: Path,
 ) -> None:
-    gap_path = tmp_path / "gap.md"
+    contract_path = tmp_path / "contract.json"
     matrix_path = tmp_path / "matrix.json"
-    _write(gap_path, _gap_register_payload(include_doc_tokens=False))
+    contract_path.write_text(
+        json.dumps(_contract_payload(include_doc_tokens=False)), encoding="utf-8"
+    )
     matrix_path.write_text(json.dumps(_matrix_payload()), encoding="utf-8")
 
-    with pytest.raises(ValueError, match="missing PKG-015 documentation token"):
+    with pytest.raises(ValueError, match="documentation_tokens"):
         verify_pkg015_launch_gate(
-            gap_register_path=gap_path,
+            contract_path=contract_path,
             matrix_path=matrix_path,
         )
 
@@ -111,9 +122,9 @@ def test_verify_pkg015_launch_gate_rejects_missing_documentation_tokens(
 def test_verify_pkg015_launch_gate_rejects_non_runtime_gated_features(
     tmp_path: Path,
 ) -> None:
-    gap_path = tmp_path / "gap.md"
+    contract_path = tmp_path / "contract.json"
     matrix_path = tmp_path / "matrix.json"
-    _write(gap_path, _gap_register_payload())
+    contract_path.write_text(json.dumps(_contract_payload()), encoding="utf-8")
     matrix_path.write_text(
         json.dumps(_matrix_payload(policy_configuration_status="catalog_only")),
         encoding="utf-8",
@@ -121,22 +132,22 @@ def test_verify_pkg015_launch_gate_rejects_non_runtime_gated_features(
 
     with pytest.raises(ValueError, match="must be runtime_gated"):
         verify_pkg015_launch_gate(
-            gap_register_path=gap_path,
+            contract_path=contract_path,
             matrix_path=matrix_path,
         )
 
 
 def test_main_accepts_valid_inputs(tmp_path: Path) -> None:
-    gap_path = tmp_path / "gap.md"
+    contract_path = tmp_path / "contract.json"
     matrix_path = tmp_path / "matrix.json"
-    _write(gap_path, _gap_register_payload())
+    contract_path.write_text(json.dumps(_contract_payload()), encoding="utf-8")
     matrix_path.write_text(json.dumps(_matrix_payload()), encoding="utf-8")
 
     assert (
         main(
             [
-                "--gap-register",
-                str(gap_path),
+                "--contract-path",
+                str(contract_path),
                 "--matrix-path",
                 str(matrix_path),
             ]
@@ -151,9 +162,10 @@ def test_main_resolves_relative_paths_from_repo_root_when_run_outside_repo(
 ) -> None:
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
-    gap_path = repo_root / "docs" / "ops" / "gap.md"
+    contract_path = repo_root / "docs" / "ops" / "contract.json"
     matrix_path = repo_root / "docs" / "ops" / "matrix.json"
-    _write(gap_path, _gap_register_payload())
+    contract_path.parent.mkdir(parents=True, exist_ok=True)
+    contract_path.write_text(json.dumps(_contract_payload()), encoding="utf-8")
     matrix_path.write_text(json.dumps(_matrix_payload()), encoding="utf-8")
 
     monkeypatch.setattr(pkg015_verifier, "_repo_root", lambda: repo_root)
@@ -164,8 +176,8 @@ def test_main_resolves_relative_paths_from_repo_root_when_run_outside_repo(
         assert (
             main(
                 [
-                    "--gap-register",
-                    "docs/ops/gap.md",
+                    "--contract-path",
+                    "docs/ops/contract.json",
                     "--matrix-path",
                     "docs/ops/matrix.json",
                 ]
@@ -184,15 +196,18 @@ def test_main_rejects_relative_repo_escape(
     repo_root.mkdir()
     monkeypatch.setattr(pkg015_verifier, "_repo_root", lambda: repo_root)
 
-    assert main(["--gap-register", "../escape/gap.md"]) == 2
+    assert main(["--contract-path", "../escape/contract.json"]) == 2
 
 
 def test_main_rejects_directory_inputs(
     tmp_path: Path,
 ) -> None:
-    gap_dir = tmp_path / "gap-dir"
-    gap_dir.mkdir()
+    contract_dir = tmp_path / "contract-dir"
+    contract_dir.mkdir()
     matrix_dir = tmp_path / "matrix-dir"
     matrix_dir.mkdir()
 
-    assert main(["--gap-register", str(gap_dir), "--matrix-path", str(matrix_dir)]) == 2
+    assert (
+        main(["--contract-path", str(contract_dir), "--matrix-path", str(matrix_dir)])
+        == 2
+    )
