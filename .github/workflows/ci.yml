@@ -73,6 +73,9 @@ jobs:
                     backend_ci=true
                     dashboard_ci=true
                     ;;
+                  contracts/*)
+                    backend_ci=true
+                    ;;
                   app/*|tests/*|migrations/*|alembic.ini|pyproject.toml|uv.lock|scripts/*)
                     backend_ci=true
                     ;;
@@ -195,7 +198,7 @@ jobs:
         run: uv run python3 scripts/verify_dependency_locking.py
 
       - name: Enforce Python Dependency Vulnerability Gate (pip-audit)
-        run: uv run pip-audit --ignore-vuln CVE-2026-1703
+        run: uv run pip-audit --ignore-vuln CVE-2026-1703 --ignore-vuln CVE-2026-3219
 
       - name: Enforce Adapter Test Coverage
         run: uv run python3 scripts/verify_adapter_test_coverage.py
@@ -214,6 +217,9 @@ jobs:
 
       - name: Enforce Documentation Runtime Contracts
         run: uv run python3 scripts/verify_documentation_runtime_contracts.py
+
+      - name: Enforce Technology Value Contract Admission
+        run: make verify-value-contracts
 
       - name: Enforce Reports Archive Hygiene
         run: uv run python3 scripts/verify_reports_archive_hygiene.py

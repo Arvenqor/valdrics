@@ -150,6 +150,7 @@ Expected posture:
 ## Related Runbooks
 
 - `docs/runbooks/unified_platform_release.md`
+- `docs/runbooks/managed_cutover_operator_packet.md`
 - `docs/runbooks/production_env_checklist.md`
 - `docs/ROLLBACK_PLAN.md`
 - `docs/runbooks/disaster_recovery.md`

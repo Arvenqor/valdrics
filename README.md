@@ -24,7 +24,7 @@
   <strong><a href="#-the-solution">The Solution</a></strong> · 
   <strong><a href="#-features">Features</a></strong> · 
   <strong><a href="#-get-started">Get Started</a></strong> · 
-  <strong><a href="#-roadmap">Roadmap</a></strong>
+  <strong><a href="#-plan">Plan</a></strong>
 </p>
 
 ---
@@ -361,34 +361,28 @@ Archived reference only:
 
 ---
 
-## 🗺️ Roadmap
+## 🗺️ Plan
 
-We're in **active development**. Here's where we are:
+Valdrics now uses one canonical plan and phase sequence:
 
-### ✅ Done
+- `PLAN.md` is the source of truth for:
+  - what already exists on ground
+  - the active phase
+  - queued phases
+  - strategy labels (`core disruption`, `moat expansion`, `frontier bet`)
+  - phase exit rules
 
-- [x] Multi-tenant AWS onboarding (CloudFormation + Terraform)
-- [x] Broad zombie detection coverage across providers
-- [x] Multi-LLM analysis (OpenAI, Claude, Gemini, Groq)
-- [x] Carbon footprint calculator with regional intensity
-- [x] Slack integration (alerts, digests, leaderboards)
-- [x] SvelteKit dashboard with dark mode
-- [x] Human-in-the-loop remediation workflow
-- [x] **Azure & GCP support** (Adapters complete)
-- [x] **ML-based forecasting** (Prophet-integrated)
-- [x] **ActiveOps** (Autonomous Remediation Engine)
+Current headline:
 
-### 🔨 In Progress
+- active phase: managed-platform live cutover
+- core disruption path after cutover:
+  - unified technology spend ledger
+  - governed action loop
+  - Technology Value Contract standard
+  - shift-left cost/carbon/policy control
+  - unit economics and opportunity-cost decisions
 
-- [ ] FinOps-as-Code (GitHub Action to preview cost changes on PRs)
-- [ ] Real-time WebSocket updates
-- [ ] Production deployment profile hardening and capacity validation
-
-### 🔮 Coming Soon
-
-- [ ] ClickHouse migration (for 100M+ scaling)
-- [ ] Stripe billing & usage metering
-- [ ] Virtual tagging (LLM infers team ownership)
+Do not treat this README as a second roadmap.
 
 ---
 

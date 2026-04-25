@@ -7,13 +7,9 @@ import pytest
 from app.shared.db.base import Base
 from scripts import (
     deactivate_aws,
-    delete_cloudfront,
-    dev_bearer_token,
-    disable_cloudfront,
     emergency_disconnect,
     purge_simulation_data,
     rls_tooling,
-    simple_token,
     update_exchange_rates,
 )
 
@@ -23,8 +19,6 @@ from scripts import (
     [
         deactivate_aws,
         emergency_disconnect,
-        disable_cloudfront,
-        delete_cloudfront,
         purge_simulation_data,
     ],
 )
@@ -50,8 +44,6 @@ def test_legacy_destructive_scripts_accept_explicit_confirmation(
     [
         deactivate_aws,
         emergency_disconnect,
-        disable_cloudfront,
-        delete_cloudfront,
         purge_simulation_data,
     ],
 )
@@ -71,20 +63,6 @@ def test_legacy_destructive_scripts_require_environment_match(
             operator="ops@valdrics.io",
             reason="Emergency maintenance during an approved drill.",
         )
-
-
-def test_dev_bearer_token_is_retired(capsys: pytest.CaptureFixture[str]) -> None:
-    exit_code = dev_bearer_token.main()
-
-    assert exit_code == 2
-    assert "retired" in capsys.readouterr().err.lower()
-
-
-def test_simple_token_is_retired(capsys: pytest.CaptureFixture[str]) -> None:
-    exit_code = simple_token.main()
-
-    assert exit_code == 2
-    assert "retired" in capsys.readouterr().err.lower()
 
 
 def test_collect_purge_targets_covers_tenant_and_user_scoped_tables() -> None:
@@ -111,20 +89,6 @@ def test_rls_candidate_filter_excludes_rls_exempt_tables() -> None:
 def test_purge_main_requires_explicit_tenant_ids() -> None:
     exit_code = purge_simulation_data.main([])
     assert exit_code == 2
-
-
-def test_disable_cloudfront_main_returns_failure_when_action_fails(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(disable_cloudfront, "disable_cloudfront", lambda **_: False)
-    assert disable_cloudfront.main(["--distribution-id", "dist-123"]) == 1
-
-
-def test_delete_cloudfront_main_returns_failure_when_action_fails(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(delete_cloudfront, "delete_cloudfront", lambda **_: False)
-    assert delete_cloudfront.main(["--distribution-id", "dist-123"]) == 1
 
 
 def test_deactivate_aws_main_returns_failure_when_action_fails(

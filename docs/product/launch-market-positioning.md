@@ -1,8 +1,10 @@
 # Launch Market Positioning
 
 - Date: 2026-03-21
-- Status: Active
+- Status: Supporting decision record
 - Owners: Product, Marketing, Founder
+
+`PLAN.md` remains the canonical product, phase, and ship-gate source of truth.
 
 ## Public Posture
 

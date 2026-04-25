@@ -19,14 +19,16 @@ sufficient.
 
 The current intentionally live dated surface is a closed, verifier-enforced set
 covering:
-- current enforcement control/release-gate docs under `docs/ops/`
 - current dated release-gate evidence artifacts under `docs/ops/evidence/` and
   `docs/security/`
+- the current dated key-rotation drill report:
+  `docs/ops/key-rotation-drill-2026-02-27.md`
 
 Persistent operational contracts should use undated canonical paths. Example:
 - `docs/ops/landing_funnel_alerting.md`
 - `docs/ops/alert-evidence.md`
 - `docs/ops/feature_enforceability_matrix.json`
+- `docs/ops/enforcement_release_gate_contract.json`
 - `docs/ops/enforcement_stress_evidence.md`
 - `docs/ops/enforcement_post_closure_sanity.md`
 - `docs/ops/enforcement_failure_injection_matrix.md`

@@ -1,20 +1,10 @@
 {
-  "generated_at_utc": "2026-04-02T17:47:56.098502+00:00",
+  "generated_at_utc": "2026-04-25T05:31:42.510502+00:00",
   "roots": [
     "app",
     "scripts"
   ],
   "sites": [
-    {
-      "path": "app/modules/optimization/domain/actions/base.py",
-      "line": 136,
-      "kind": "exception"
-    },
-    {
-      "path": "app/shared/core/health.py",
-      "line": 330,
-      "kind": "exception"
-    },
     {
       "path": "scripts/generate_enforcement_failure_injection_evidence.py",
       "line": 307,
@@ -43,6 +33,11 @@
     {
       "path": "scripts/generate_valdrics_disposition_register.py",
       "line": 303,
+      "kind": "exception"
+    },
+    {
+      "path": "scripts/verify_technology_value_contract.py",
+      "line": 90,
       "kind": "exception"
     }
   ]

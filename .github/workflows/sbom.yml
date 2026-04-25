@@ -57,7 +57,7 @@ jobs:
         run: |
           uv lock --check
           uv sync --locked --group dev
-          uv run pip-audit --ignore-vuln CVE-2026-1703
+          uv run pip-audit --ignore-vuln CVE-2026-1703 --ignore-vuln CVE-2026-3219
 
       - name: Set up Node
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0

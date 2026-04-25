@@ -1,5 +1,13 @@
 # Post-Quantum Cryptography (PQC) Roadmap
 
+Archived from the active tree on 2026-04-21.
+
+Reason:
+
+- `PLAN.md` is now the only canonical planning and phase-sequencing document.
+- This file is retained as historical security strategy reference, not as an
+  active roadmap.
+
 ## Strategic Vision
 Valdrics is committed to future-proofing tenant data against the "Harvest Now, Decrypt Later" threat. This roadmap outlines the transition from classical asymmetric cryptography (RSA, ECC) to NIST-standardized quantum-resistant algorithms.
 

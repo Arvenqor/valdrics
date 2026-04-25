@@ -1,267 +1,634 @@
-# Valdrics Unified Platform Redesign Plan
+# Valdrics Source of Truth Plan
 
-## Summary
+Last reviewed: 2026-04-21
+Status: Canonical
+Owner: Product + Engineering
 
-Redesign Valdrics to a single managed operating model built around:
+This file is the single source of truth for:
 
-- frontend on Cloudflare Pages/Workers
-- database, auth, and storage on Supabase
-- backend API, async execution, scheduling, secrets, and release artifacts on GCP
+- what Valdrics is building
+- what is active now
+- what ships next
+- what is only research
+- what must be live before a phase is considered done
 
-## Current Status (Updated 2026-04-16)
+If another document disagrees with this file on planning, sequencing, or phase
+scope, this file wins.
 
-- Phase 0: Complete. The repo now centers on the unified GCP + Cloudflare + Supabase contract, with Terraform/deployment artifacts and managed-runtime docs aligned to that target.
-- Phase 1: Complete. Backend orchestration is abstracted behind managed-runtime ports/adapters instead of direct Celery/APScheduler ownership in the supported path.
-- Phase 2: Complete in the repo. Cloud Tasks, Cloud Scheduler, and Cloud Run Jobs execution paths, internal handlers, and deployment generators are implemented and covered.
-- Phase 3: In progress. Active Celery/Koyeb production dependencies have been removed from the supported profile, the repo-owned enforcement release packet is green, the enterprise TDD/release gate is green, and the repo-owned managed release readiness verifier is green for both `staging` and `production`, but live staging/production cutover evidence and final release-operations sign-off are environment events that are not yet recorded here as completed facts, so they remain the only open completion gates for this phase.
-- Phase 4: Complete in the repo. The supported managed GCP profile no longer exposes the retired shared-state Redis and distributed-breaker knobs, active env templates/generators/workflows/Terraform defaults emit only the supported Cloudflare-fronted contract, public rate limiting is normalized to the Cloudflare-only posture, active docs now use current Cloudflare WAF terminology and describe breaker state as an internal process-local detail instead of a runtime toggle, managed runtime logging now follows the Cloud Run integrated structured stdout/stderr path instead of a separate client-library export branch, the active cache surface has been simplified to managed-profile cacheless behavior plus process-local memory outside that profile rather than an external Upstash/Redis contract, the Python runtime dependency set, currency-cache internals, and live status UI no longer carry a Redis-specific contract, ElastiCache analysis paths no longer silently assume Redis when engine metadata is absent, the release pipeline now refreshes the codebase audit report and runs `verify_managed_release_readiness.py` from the reusable deploy workflow, the managed deployment artifact generator now preserves only the supported release bundle plus operator handoff outputs instead of carrying retired runtime-specific filename contracts, the last live self-managed Helm/Kubernetes reference, legacy AWS/EKS/Redis Terraform modules, provider-specific AWS tenant smoke flow, stale dated audit/production-fixes report packs, duplicate incident-response docs, unreferenced legacy AWS/CI-CD guide docs, non-canonical identity/discovery/persona notes, and generated change-categorization/inventory archive noise have been archived out of the active tree or removed, and the remaining compliance/evidence cleanup has been consolidated onto canonical undated paths with archive guardrails for historical material.
+## Strategy Labels
 
-## What Is Actually Left
+Every major idea in this file is assigned one strategy label:
 
-The remaining work is now environment-side rather than repo-side:
+- `core disruption`: the primary standard-setting moves that can redefine the
+  category if executed well
+- `moat expansion`: high-value differentiators that deepen the product’s
+  defensibility once the core disruption engine is live
+- `frontier bet`: strategically interesting, market-adjacent, or novel ideas
+  that may become category-shaping later but are weaker first wedges
 
-- deploy `staging` on the managed GCP + Cloudflare + Supabase stack
-- run parity smoke, workload, and rollback validation against that live staging environment
+## Non-Negotiable Rules
+
+1. One active phase at a time.
+2. A phase is not complete until it is live in production and usable by real
+   users.
+3. No overlap between phases. If work does not directly serve the active phase,
+   it stays out unless it is required for a production incident, security fix,
+   or release-blocking defect.
+4. Cleanup is part of the phase exit. Superseded docs, files, directories,
+   configuration, and code paths must be removed or archived before the phase
+   closes.
+5. Every phase must be independently shippable. We do not leave a phase
+   partially live.
+6. Every strategically relevant idea must be captured in a named phase in this
+   file. Later phases exist because they depend on earlier foundations, not
+   because they are ignored.
+
+## Current Position
+
+- The supported operating model is:
+  - backend on Google Cloud Run
+  - async work on Cloud Tasks
+  - scheduled work on Cloud Scheduler
+  - long-running work on Cloud Run Jobs
+  - frontend on Cloudflare Pages
+  - database, auth, and storage on Supabase
+- The repo already contains the managed-platform foundation, deployment
+  contracts, release workflows, TVC draft artifacts, and verification surfaces.
+- The main unfinished work is not repo plumbing. It is live cutover evidence and
+  real production use on the supported managed stack.
+
+## What Valdrics Is Building
+
+Valdrics is not just a cloud cost dashboard. The product standard is:
+
+1. A unified technology spend ledger across cloud, AI, SaaS, licensing,
+   platform, and hybrid signals.
+2. Deterministic accounting, allocation, reconciliation, and savings logic.
+3. Governed action, not dashboards-only visibility.
+4. Shift-left cost, carbon, and policy control in delivery workflows.
+5. Unit economics and opportunity-cost decision support, not just raw spend.
+6. AI, Cloud+, and GreenOps as first-class operating domains.
+7. Enterprise-grade policy for security, compliance, residency, and operating
+   control.
+8. Open, API-first extension points instead of closed black-box workflows.
+
+## Market Validation Basis
+
+As of 2026-04-21, the current market signals supporting this plan are:
+
+- Unified technology ledger is market-worthy because FinOps has already expanded
+  beyond public cloud into AI, SaaS, licensing, private cloud, and data center,
+  while FOCUS 1.3 now explicitly positions itself as normalization across cloud,
+  SaaS, data center, and contract commitments.
+- Shift-left delivery controls and TVC are market-worthy because the FinOps
+  Foundation now treats pre-deployment architecture guidance, executive strategy
+  alignment, and unit economics as core maturity areas. Inference from the
+  standards reviewed: there is still no open standard that binds design-time
+  intent, runtime evidence, and business-value reconciliation into one portable
+  artifact.
+- Unit economics and opportunity-cost analysis are market-worthy because the
+  official Unit Economics and Planning & Estimating capabilities now frame
+  technology decisions in terms of business unit metrics, cost per token, and
+  time to achieve business value.
+- AI, Cloud+, and GreenOps controls are market-worthy because the 2026 State of
+  FinOps shows AI at 98%, SaaS at 90%, licensing at 64%, private cloud at 57%,
+  and data center at 48%, while the Sustainability capability now expects
+  allocatable, near-real-time carbon-aware reporting across technology domains.
+- Sovereignty, adversarial FinOps, and enterprise policy are market-worthy
+  because the 2026 Framework elevates executive strategy and converging
+  disciplines, while sovereign-cloud economics now have clear price premiums and
+  policy implications in the market.
+- Commitment intelligence, claims automation, and recovery are market-worthy
+  because adjacent markets already exist: insured cloud commitments, official
+  AWS RI resale for eligible Standard RIs, and parametric cloud outage
+  insurance.
+- Portable execution and capacity-market features are market-worthy because
+  multi-cloud, cheapest-infra scheduling and GPU capacity marketplaces are now
+  commercially visible, especially for AI, batch, and inference workloads.
+- Provider-price intelligence, verifiable receipts, and code-native economics
+  are weaker but still worth capturing because the next competitive standard may
+  emerge at the boundary between financial intelligence, software delivery, and
+  machine-readable trust.
+
+Primary validation sources reviewed:
+
+- State of FinOps 2026: https://data.finops.org/
+- FinOps mission update: https://www.finops.org/insights/mission-update/
+- FinOps Framework 2026: https://www.finops.org/insights/2026-finops-framework/
+- Unit Economics capability: https://www.finops.org/framework/capabilities/unit-economics/
+- Planning & Estimating capability: https://www.finops.org/framework/capabilities/planning-estimating/
+- Sustainability capability: https://www.finops.org/framework/capabilities/sustainability/
+- FOCUS 1.3: https://focus.finops.org/focus-specification/
+- OpenCost: https://opencost.io/
+- AWS RI Marketplace: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ri-market-general.html
+- Archera insured commitments: https://www.archera.ai/insured-commitments/
+- Parametrix cloud outage insurance: https://www.parametrixinsurance.com/solutions-cloud
+- SkyPilot docs: https://docs.skypilot.co/en/stable/docs/
+- Compute Exchange: https://compute.exchange/
+- BCG sovereign cloud economics: https://www.bcg.com/publications/2025/cloud-cover-price-sovereignty-demands-waste
+- Ternary forecasting baseline: https://docs.ternary.app/docs/forecasting
+
+## Completed Foundations
+
+These are already materially established in the repo and should not be reopened
+unless they block an active phase:
+
+- supported managed platform contract on GCP + Cloudflare + Supabase
+- Cloud Tasks, Cloud Scheduler, and Cloud Run Jobs execution model
+- immutable release pipeline using Artifact Registry promotion refs
+- managed deployment bundle verification and operator handoff generation
+- FOCUS-aligned export and reporting foundations
+- chargeback/showback and reconciliation foundations
+- governed remediation and approval workflow foundations
+- TVC draft schemas, examples, verifier, and admission receipt wiring
+
+## What We Already Have On Ground
+
+The following foundations already exist materially in the repo today:
+
+- managed-platform operating model on GCP + Cloudflare + Supabase
+- immutable release pipeline and managed deployment bundle verification
+- Cloud Tasks, Cloud Scheduler, and Cloud Run Jobs execution surfaces
+- FOCUS-aligned export and normalized reporting foundations
+- chargeback, showback, reconciliation, and close workflow foundations
+- governed remediation, approvals, and enforcement ledger foundations
+- carbon, GreenOps, and sustainability-control foundations
+- AI usage telemetry and budget-control foundations
+- TVC draft schemas, examples, verifier, and deployment admission receipt
+  surfaces
+
+The following high-value ideas are only partial or missing today and still need
+shipping work:
+
+- mature unified technology spend ledger across all target domains
+- PR-native and IaC-native shift-left cost, carbon, and policy enforcement
+- runtime TVC execution receipts and reconciliation views
+- opportunity-cost and business-outcome integrations
+- deeper AI outcome attribution and Cloud+ control loops
+- sovereign placement policy, adversarial FinOps, and enterprise policy engine
+- commitment intelligence, claims recovery, and frontier market features
+
+## Supporting Documents
+
+This file owns planning and sequencing. Supporting docs exist for execution or
+evidence only:
+
+- deployment and release operations:
+  - `docs/runbooks/unified_platform_release.md`
+  - `docs/DEPLOYMENT.md`
+  - `docs/runbooks/production_env_checklist.md`
+- rollback and recovery:
+  - `docs/ROLLBACK_PLAN.md`
+  - `docs/runbooks/disaster_recovery.md`
+- product research and market validation:
+  - `docs/product/external_feedback_validation.md`
+- shipping helpers and progress snapshots:
+  - `docs/runbooks/phased_shipping.md`
+  - `docs/roadmap.md`
+  - `reports/roadmap/*`
+
+None of the documents above should introduce a second roadmap.
+
+## Phase Map For All Strategic Ideas
+
+Every major idea currently in scope or under serious consideration is assigned
+to a shipping phase here:
+
+- managed-platform live cutover -> Phase 1 -> `core disruption`
+- unified technology spend ledger -> Phase 2 -> `core disruption`
+- tag-less and shared-cost attribution -> Phase 2 -> `core disruption`
+- audit-grade close and reconciliation -> Phase 3 -> `moat expansion`
+- governed action and remediation loop -> Phase 4 -> `core disruption`
+- Technology Value Contract standard -> Phase 5 -> `core disruption`
+- shift-left PR and IaC cost/carbon/policy control -> Phase 5 -> `core disruption`
+- unit economics -> Phase 6 -> `core disruption`
+- opportunity-cost decisions -> Phase 6 -> `core disruption`
+- AI token economics and Cloud+ controls -> Phase 7 -> `moat expansion`
+- GreenOps and carbon-aware controls -> Phase 7 -> `moat expansion`
+- sovereign and residency-aware optimization -> Phase 8 -> `moat expansion`
+- adversarial FinOps -> Phase 8 -> `moat expansion`
+- regret-aware commitments -> Phase 9 -> `moat expansion`
+- SLA and outage claims recovery -> Phase 9 -> `moat expansion`
+- secondary markets and reverse FinOps -> Phase 10 -> `frontier bet`
+- portable-batch arbitrage and capacity exchange -> Phase 10 -> `frontier bet`
+- provider-price market intelligence -> Phase 11 -> `frontier bet`
+- trustless or cryptographically signed receipts -> Phase 11 -> `frontier bet`
+- cost-aware compiler and code-native economics -> Phase 11 -> `frontier bet`
+
+## Current Ground Truth By Phase
+
+| Phase | Strategy | Ground truth now | Ship state |
+| --- | --- | --- | --- |
+| Phase 1: Managed Platform Live Cutover | `core disruption` | Repo foundations are present; live staging and production cutover evidence are still incomplete | Active |
+| Phase 2: Unified Technology Spend Ledger | `core disruption` | Partial foundations exist through FOCUS-aligned export, normalized reporting, and Cloud+ connectors | Not shipped |
+| Phase 3: Audit-Grade Close | `moat expansion` | Reconciliation and close foundations exist, but live end-to-end close proof as the canonical customer path is not established here | Not shipped |
+| Phase 4: Governed Action Loop | `core disruption` | Approvals, enforcement, and remediation foundations exist, but the full action loop is not yet the closed customer operating standard | Not shipped |
+| Phase 5: Technology Value Contract Standard | `core disruption` | Draft TVC schemas, examples, verifier, CI admission checks, and deployment admission receipts exist; runtime receipts and reconciliation views do not | Not shipped |
+| Phase 6: Unit Economics and Opportunity Cost | `core disruption` | Unit-economics primitives and leadership KPIs exist, but business-outcome integrations and true opportunity-cost decisions do not | Not shipped |
+| Phase 7: AI and Cloud+ Operating Controls | `moat expansion` | AI usage telemetry, budget controls, carbon, and Cloud+ connector foundations exist; mature domain control loops do not | Not shipped |
+| Phase 8: Enterprise Policy and Resilience | `moat expansion` | Residency, security, and enforcement foundations exist in part; sovereign placement and adversarial FinOps are not yet production features | Not shipped |
+| Phase 9: Commitment Intelligence and Recovery | `moat expansion` | Commitment optimization foundations exist, but regret-aware guidance and claims recovery workflows do not | Not shipped |
+| Phase 10: Capacity Markets and Portable Execution | `frontier bet` | Only adjacent primitives exist today; no active marketplace or portable-execution product surface is shipped | Not shipped |
+| Phase 11: Market Intelligence and Verifiable Economics | `frontier bet` | Forecasting and pricing baselines exist, but provider-price intelligence, verifiable receipts, and code-native economics are not shipped | Not shipped |
+
+## Active Phase
+
+### Phase 1: Managed Platform Live Cutover
+
+Status: Active
+Strategy label: `core disruption`
+
+Outcome:
+
+- Valdrics runs live for users on the supported managed platform only.
+
+In scope:
+
+- deploy `staging` on the managed stack
+- run parity smoke, workload, and rollback validation
 - cut staging traffic fully to the managed stack
-- promote the same immutable artifact/process to `production`
-- capture staging/production cutover evidence in the canonical operator packet
+- promote the exact same immutable artifact to `production`
+- capture operator evidence packets for staging and production
 - obtain final release-operations sign-off
+- archive or remove any remaining unsupported operational paths that would
+  confuse release ownership
 
-Non-blocking repo hygiene may still be done opportunistically, but it is no longer a plan completion gate. Candidate examples include archiving non-contract product/reference docs that are not used by runtime, verification, or operator workflows.
+Not in scope:
 
-The plan optimizes for the constraints you called out:
+- new product surface area
+- new R&D experiments
+- new pricing or packaging work
 
-- one source of truth for infra
-- one deployment pipeline
-- one environment model
-- one observability model
-- one runbook set
+Ship gate:
 
-The target state is a **single modular-monolith backend** with managed platform primitives, not a microservices split:
+- staging is live and validated
+- production is live on the supported stack
+- release evidence is complete
+- the supported runbooks match reality
 
-- Cloud Run service for the API
-- Cloud Tasks for queued async work
-- Cloud Scheduler for cron/scheduled triggers
-- Cloud Run Jobs for long-running scans/sweeps/batch work
-- Artifact Registry for backend images
-- Secret Manager for runtime secrets
-- Terraform as the infrastructure control plane
-- GitHub Actions as the only deployment pipeline
+Cleanup gate:
 
-## Key Changes
+- no active docs or release helpers imply a parallel production path
+- no retired deployment path is described as supported
 
-### 1. Operating model and source of truth
+## Queued Shipping Phases
 
-- Make **Terraform** the only source of truth for cloud infrastructure across GCP, Cloudflare, and Supabase project/settings where the provider supports them.
-- Keep **Alembic + SQL migrations** as the only source of truth for database schema, RLS, indexes, and data migrations.
-- Remove Koyeb as the supported runtime target; move Helm/EKS to archived reference material because it is not part of the active delivery plan.
-- Replace GHCR-based backend promotion with **Artifact Registry** image promotion on GCP.
-- Standardize environments to:
-  - `local`
-  - `staging`
-  - `production`
-- Use separate projects/accounts per environment boundary:
-  - separate GCP projects for `staging` and `production`
-  - separate Supabase projects for `staging` and `production`
-  - Cloudflare Pages preview/staging and production environments mapped explicitly
+### Phase 2: Unified Technology Spend Ledger
 
-### 2. One deployment pipeline
+Status: Queued
+Strategy label: `core disruption`
 
-- Use **GitHub Actions** as the only release pipeline for both frontend and backend.
-- Pipeline stages:
-  - validate + test
-  - build backend image once
-  - push backend image to Artifact Registry
-  - build/deploy frontend to Cloudflare
-  - run Terraform plan/apply for environment infra
-  - deploy Cloud Run service + Cloud Run Jobs revision
-  - apply migrations
-  - run staging smoke checks
-  - promote the exact same backend artifact to production
-- Do not allow branch-tracked deploys or manual dashboard-driven infra drift.
-- Keep release promotion immutable: one build artifact promoted through environments.
+Outcome:
 
-### 3. One backend runtime model
+- users can see technology spend in one canonical ledger, not separate clouds
+  and side systems
 
-- Retain the backend as a modular monolith in `app/modules`, but replace runtime orchestration primitives:
-  - Celery -> Cloud Tasks / Cloud Run Jobs
-  - Redis-backed async queue -> Cloud Tasks
-  - API-embedded APScheduler -> Cloud Scheduler
-  - Koyeb service topology -> Cloud Run + Cloud Run Jobs
-- Introduce explicit orchestration ports in the backend:
-  - `AsyncTaskDispatcher`
-  - `ScheduledTriggerDispatcher`
-  - `BatchJobLauncher`
-- Provide two adapter layers during migration:
-  - current adapter set: Celery / Redis / APScheduler
-  - target adapter set: Cloud Tasks / Cloud Scheduler / Cloud Run Jobs
-- Migrate modules to call the ports instead of calling Celery or scheduler primitives directly.
-- Remove Redis as a required production dependency in the target state unless a later, narrowly-scoped need remains after migration.
-- Keep the current public API shape stable during migration, especially:
-  - `/api/v1/jobs`
-  - `/api/v1/zombies`
-  - `/api/v1/savings`
-  - `/api/v1/settings/*`
-- Keep the existing SSE jobs stream initially for compatibility; do not redesign job UX to Realtime in phase 1.
+In scope:
 
-### 4. One environment model
+- normalized ledger across cloud, AI, SaaS, licensing, platform, and hybrid
+  signals
+- FOCUS-native schema ownership and explicit allocation model
+- shared-cost and tag-less allocation for multi-tenant services
+- canonical ledger API and export contract
 
-- `local`:
-  - local Python/uv workflow
-  - local or ephemeral database as currently used for tests/dev
-  - no production-like cloud orchestration requirements
-- `staging`:
-  - same topology as production
-  - lower quotas and smaller Cloud Run settings
-  - same auth/storage/database model as production
-- `production`:
-  - identical topology and deployment mechanics as staging
-  - only scale knobs differ
-- No separate “special” deploy path per environment. Same pipeline, same artifact model, same service graph.
+Not in scope:
 
-### 5. One observability model
+- month-end close workflow
+- remediation workflows
+- pre-deployment delivery controls
 
-- Use **OpenTelemetry** as the single instrumentation standard across backend code.
-- Use **Google Cloud Operations** as the single primary production observability backend:
-  - Cloud Logging
-  - Cloud Monitoring
-  - Cloud Trace
-  - alerting policies
-- Remove the strict requirement for an external OTLP collector endpoint in the GCP-managed profile; switch to a GCP-native telemetry sink for the target state.
-- Treat Sentry as migration-only if retained temporarily; target state is one operational pane, not parallel alerting systems.
-- Keep internal metrics semantics, but align them to the Cloud Run/GCP model instead of Koyeb/Helm assumptions.
-- Standardize structured event names, task IDs, job IDs, and request correlation across API, task handlers, and batch jobs.
+Ship gate:
 
-## Important API / Interface / Type Changes
+- at least one live tenant can ingest, allocate, and export unified spend from
+  the ledger in production
 
-- Add internal-only task endpoints for Cloud Tasks delivery, authenticated by Google-signed identity:
-  - `/internal/tasks/...`
-- Add internal-only scheduler trigger endpoints for Cloud Scheduler where direct job invocation is not used:
-  - `/internal/scheduler/...`
-- Add batch job entrypoints for Cloud Run Jobs execution:
-  - CLI or command-based entrypoints for scans, sweeps, retention, reconciliation, and reporting jobs
-- Replace deployment/runtime config contracts:
-  - remove Koyeb-specific deploy bundle outputs from the active contract
-  - add Terraform outputs and environment manifests for:
-    - Cloud Run service
-    - Cloud Run Jobs
-    - Cloud Tasks queues
-    - Cloud Scheduler jobs
-    - Secret Manager bindings
-    - Artifact Registry repositories
-    - Cloudflare Pages config
-    - Supabase project/settings references
-- Update config validation so the target GCP profile requires:
-  - GCP project/service-account settings
-  - Secret Manager access
-  - Supabase runtime settings
-  - Cloudflare public frontend settings
-- Remove strict production dependence on:
-  - Redis
-  - Celery broker/result backend
-  - API-startup APScheduler
+Cleanup gate:
 
-## Migration Plan
+- duplicate ledger semantics or conflicting spend models are removed or archived
 
-### Phase 0: Platform contract and IaC foundation
+### Phase 3: Audit-Grade Close
 
-- Add Terraform modules for:
-  - GCP project/runtime
-  - Artifact Registry
-  - Cloud Run service
-  - Cloud Run Jobs
-  - Cloud Tasks
-  - Cloud Scheduler
-  - Secret Manager
-  - service accounts and IAM
-  - Cloudflare Pages/DNS bindings
-  - Supabase project/settings resources where supported
-- Freeze Koyeb as legacy path in docs only; do not extend it further.
-- Replace deployment docs/runbooks with a single GCP + Cloudflare + Supabase runbook set.
+Status: Queued
+Strategy label: `moat expansion`
 
-### Phase 1: Runtime abstraction inside the backend
+Outcome:
 
-- Introduce orchestration interfaces and move all direct Celery/scheduler usage behind adapters.
-- Separate work into three categories:
-  - synchronous request-path work
-  - queued async work
-  - long-running batch work
-- Classify all current Celery tasks and APScheduler jobs into those categories.
-- Make the internal orchestration transport swappable without changing module business logic.
+- finance and platform teams can reconcile and close from Valdrics without
+  external spreadsheet assembly
 
-### Phase 2: GCP execution adapters
+In scope:
 
-- Implement Cloud Tasks adapter for request-adjacent async work.
-- Implement Cloud Scheduler adapter for scheduled invocations.
-- Implement Cloud Run Jobs adapter for heavy scans, sweeps, and long-running jobs.
-- Add authenticated internal handlers for Cloud Tasks and scheduler requests.
-- Keep public API behavior stable while swapping the execution backend underneath.
+- reconciliation workflow hardening
+- month-end close lifecycle
+- audit-grade export integrity
+- operator-usable evidence packets for close
 
-### Phase 3: Cutover and removal
+Not in scope:
 
-- Deploy staging on the new stack.
-- Run parity smoke and workload checks.
-- Cut staging traffic fully to the GCP-managed backend.
-- Promote the same artifact/process to production.
-- Remove active Celery/Redis/Koyeb production dependencies from the supported profile.
-- Archive or delete obsolete deployment generators and runbooks after successful production cutover.
+- remediation and approval loop
+- shift-left engineering controls
 
-### Phase 4: Cleanup and simplification
+Ship gate:
 
-- Remove dead config keys and legacy runtime validators.
-- Remove legacy Koyeb deployment artifacts from the active operator flow.
-- Remove Redis/Celery operational docs if no remaining production dependency exists.
-- Consolidate docs to one architecture overview, one deploy guide, one rollback guide, and one disaster-recovery guide.
+- at least one live close cycle can be run end to end in production
 
-## Test Plan
+Cleanup gate:
 
-- Unit tests for orchestration ports and both adapter families.
-- Integration tests for:
-  - authenticated Cloud Tasks delivery
-  - scheduler-triggered job dispatch
-  - Cloud Run Job launch request generation
-  - idempotent task replay and duplicate suppression
-- Regression tests proving public APIs remain stable during migration:
-  - jobs endpoints
-  - zombie/remediation flow
-  - savings flow
-  - auth/session flows
-- Staging validation:
-  - provider onboarding and remediation smoke flows still pass end to end
-  - background execution works without Redis/Celery
-  - scheduled sweeps run through Cloud Scheduler / Cloud Run Jobs
-  - observability signals land in the new single telemetry backend
-- Deployment validation:
-  - Terraform plan clean for each environment
-  - one GitHub Actions pipeline can deploy both frontend and backend
-  - immutable artifact promotion from staging to production
-- Operational tests:
-  - rollback to prior Cloud Run revision
-  - failed task replay
-  - failed job retry
-  - migration rollback/forward compatibility
-  - secret rotation through Secret Manager
-  - environment drift detection
+- stale close docs, overlapping export paths, and redundant close surfaces are
+  removed
 
-## Acceptance Criteria
+### Phase 4: Governed Action Loop
 
-- One Terraform-based infra control plane is active for supported environments.
-- One GitHub Actions deployment pipeline is the only supported deploy path.
-- Staging and production use the same topology and deployment mechanics.
-- Backend no longer relies on Koyeb, Celery, or Redis in the supported production profile.
-- OpenTelemetry + Google Cloud Operations is the single production observability path.
-- Public API behavior remains compatible for dashboard and tenant workflows during migration.
-- provider onboarding and remediation flows pass on the new stack before production cutover.
+Status: Queued
+Strategy label: `core disruption`
 
-## Assumptions and Defaults
+Outcome:
 
-- Chosen target stack is fixed:
-  - Cloudflare for frontend
-  - Supabase for Postgres/Auth/Storage
-  - GCP for backend runtime and operational platform
-- The backend remains a modular monolith, not a microservices decomposition.
-- Supabase Auth remains the auth model; no auth-provider replacement is included.
-- Supabase Storage remains the file/object storage model; no GCS migration is included.
-- SSE job streaming remains in scope for compatibility in the first migration; no Realtime rewrite in phase 1.
-- Terraform is the infrastructure source of truth; Alembic/SQL migrations are the schema source of truth.
-- GitHub Actions remains the one deployment pipeline.
+- users can act on financial findings inside Valdrics with ownership, approval,
+  execution, and auditability
+
+In scope:
+
+- owner routing
+- approvals
+- remediation workflow execution
+- workflow automation into ticketing and messaging systems
+- action ledger and outcome tracking
+
+Not in scope:
+
+- pre-deployment policy in developer workflows
+- business-outcome modeling
+
+Ship gate:
+
+- at least one live tenant can detect, assign, approve, execute, and audit a
+  cost-control action in production
+
+Cleanup gate:
+
+- dashboards-only duplicate action surfaces are removed or clearly demoted
+
+### Phase 5: Technology Value Contract Standard
+
+Status: Queued
+Strategy label: `core disruption`
+
+Outcome:
+
+- Valdrics defines a new standard for pre-deployment intent plus post-deployment
+  evidence
+
+In scope:
+
+- first-class `technology-value-contract` ownership
+- PR and IaC admission checks for cost, carbon, and policy
+- runtime execution receipt emission
+- intent-versus-actual reconciliation
+- developer-facing shift-left workflows
+
+Not in scope:
+
+- opportunity-cost and revenue trade-off modeling
+- frontier market-structure bets
+
+Ship gate:
+
+- at least one engineering team uses TVC checks in CI/CD and receives live
+  runtime receipts in production
+
+Cleanup gate:
+
+- overlapping ad hoc preflight policies and duplicate contract drafts are
+  removed
+
+### Phase 6: Unit Economics and Opportunity Cost
+
+Status: Queued
+Strategy label: `core disruption`
+
+Outcome:
+
+- users can make product and architecture decisions using unit economics and
+  value trade-offs, not just raw spend
+
+In scope:
+
+- unit-cost metrics
+- revenue and usage-source integrations
+- leadership KPI surfaces
+- opportunity-cost framing for major decisions
+- decision records linked to outcomes
+
+Not in scope:
+
+- sovereign policy engines
+- advanced autonomous market strategies
+
+Ship gate:
+
+- at least one live customer-facing or internal business unit can use Valdrics
+  to evaluate cost per unit and a documented trade-off decision in production
+
+Cleanup gate:
+
+- stale KPI or reporting paths that duplicate the canonical unit-economics model
+  are removed
+
+### Phase 7: AI and Cloud+ Operating Controls
+
+Status: Queued
+Strategy label: `moat expansion`
+
+Outcome:
+
+- AI, SaaS, licensing, platform, hybrid, and carbon are governed as first-class
+  spend domains
+
+In scope:
+
+- AI token telemetry and budget control
+- per-team and per-feature AI allocation
+- SaaS, license, platform, and hybrid control loops
+- carbon budgets and intensity-aware guidance
+
+Not in scope:
+
+- full enterprise sovereignty engine
+- adversarial-spend incident controls
+
+Ship gate:
+
+- at least one live tenant can attribute and govern AI plus one non-IaaS domain
+  in production
+
+Cleanup gate:
+
+- domain-specific side logic that bypasses the canonical ledger or control model
+  is removed
+
+### Phase 8: Enterprise Policy and Resilience
+
+Status: Queued
+Strategy label: `moat expansion`
+
+Outcome:
+
+- Valdrics becomes enterprise-safe for compliance, residency, threat-aware
+  spend control, and downside-managed optimization
+
+In scope:
+
+- sovereign and residency policy
+- compliance-aware workload placement guidance
+- adversarial FinOps and spend-as-threat-signal controls
+- human-in-the-loop autonomous controls
+- regret-aware commitment guidance
+
+Not in scope:
+
+- experimental secondary markets
+- provider price oracles
+- blockchain attribution
+
+Ship gate:
+
+- at least one live enterprise tenant can enforce residency or threat-aware
+  spend control in production
+
+Cleanup gate:
+
+- overlapping policy logic and unofficial break-glass paths are removed
+
+### Phase 9: Commitment Intelligence and Recovery
+
+Status: Queued
+Strategy label: `moat expansion`
+
+Outcome:
+
+- Valdrics helps customers make commitment decisions with bounded downside and
+  recover value when providers or commitments underperform.
+
+In scope:
+
+- regret-aware commitment guidance
+- insured-commitment decision support
+- AWS and multi-provider commitment-transfer intelligence where provider terms
+  permit it
+- SLA, outage-credit, and claims-evidence workflows
+- financial recovery surfaces tied to runtime and reliability signals
+
+Not in scope:
+
+- open marketplace brokering across all cloud products
+- hyperscaler price trading strategies
+
+Ship gate:
+
+- at least one live tenant can use Valdrics in production to evaluate commitment
+  downside risk or execute a claims or credit-recovery workflow tied to real
+  provider events
+
+Cleanup gate:
+
+- overlapping commitment reports, ad hoc credit-recovery playbooks, and
+  duplicate recovery logic are removed
+
+### Phase 10: Capacity Markets and Portable Execution
+
+Status: Queued
+Strategy label: `frontier bet`
+
+Outcome:
+
+- Valdrics helps customers source, reserve, compare, and place bounded portable
+  workloads and capacity across a fragmented provider market.
+
+In scope:
+
+- reverse FinOps and secondary-market workflows where legally and contractually
+  supported
+- portable batch, inference, and training placement
+- GPU and reserved-capacity marketplace integrations
+- supplier comparison across cost, SLA, capacity, and region
+- capacity reservation planning for portable workloads
+
+Not in scope:
+
+- generic workload migration for every application class
+- unsupported resale of provider commitments
+
+Ship gate:
+
+- at least one live tenant can use Valdrics in production to compare, source,
+  reserve, or place a bounded portable workload or capacity plan through the
+  product
+
+Cleanup gate:
+
+- disconnected capacity-planning helpers, stale marketplace assumptions, and
+  one-off placement logic are removed
+
+### Phase 11: Market Intelligence and Verifiable Economics
+
+Status: Queued
+Strategy label: `frontier bet`
+
+Outcome:
+
+- Valdrics becomes the economic intelligence layer for next-generation
+  technology decisions, including verifiable receipts and code-native economics
+  surfaces.
+
+In scope:
+
+- provider-price market intelligence
+- buy-now versus wait decision support
+- cryptographically signed or otherwise verifiable usage-receipt models
+- cost-aware developer feedback that can evolve toward compiler or AST-assisted
+  economics
+- empirical experimentation framework for new financial-control primitives
+
+Not in scope:
+
+- broad autonomous trading of provider capacity
+- promises of universal cost-aware compilation across all stacks
+
+Ship gate:
+
+- at least one live tenant can use a production Valdrics feature for provider
+  price intelligence, verifiable receipts, or code-native economics guidance
+
+Cleanup gate:
+
+- ad hoc experimental economics docs, duplicate receipt drafts, and temporary
+  market-intelligence scaffolds are removed or consolidated
+
+## Sequencing Rule
+
+All major ideas are captured above. They are later phases because they depend on
+earlier ledger, control, policy, and evidence foundations, not because they are
+out of scope.
+
+## Phase Exit Checklist
+
+Every phase closes only when all items below are true:
+
+1. the scoped outcome is live in production
+2. at least one real user or tenant can use it
+3. tests and verification are green for the shipped surface
+4. runbooks and docs match the live behavior
+5. obsolete docs, code, directories, and configuration are cleaned up
+6. the next phase is not opened until the current phase is explicitly closed in
+   this file
+
+## Working Rule for the Repo
+
+When deciding what to do next:
+
+1. look here first
+2. confirm the active phase
+3. reject out-of-phase work unless it is a production blocker
+4. ship the phase fully
+5. clean up before moving on

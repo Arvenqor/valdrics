@@ -106,35 +106,78 @@ DOCUMENTATION_CONTRACTS: tuple[DocumentationContract, ...] = (
         path="docs/CAPACITY_PLAN.md",
         required_phrases=(
             "current supported operating profile is the unified platform",
-            "future scale path",
+            "there is no parallel capacity track",
             "Google Cloud Run",
             "Cloud Tasks",
             "Cloud Run Jobs",
             "Cloudflare Pages",
             "Supabase",
         ),
+        forbidden_phrases=("future scale path",),
     ),
     DocumentationContract(
         path="docs/roadmap.md",
         required_phrases=(
-            "active planning document",
+            "redirect only",
+            "phase, and ship-gate source of",
             "reports/roadmap/",
-            "Current Focus",
-            "bootstrap-only sqlite dev",
-            "managed bundle verification",
-        ),
-        forbidden_phrases=("Latest Sprint Shipped", "Sprint Status (Current)"),
-    ),
-    DocumentationContract(
-        path="docs/ops/enforcement_control_plane_gap_register_2026-02-23.md",
-        required_phrases=(
-            "terraform/main.tf",
-            "google_project_iam_member",
-            "google_service_account_iam_member",
         ),
         forbidden_phrases=(
-            "terraform/modules/iam/main.tf",
-            "terraform/modules/iam/variables.tf",
+            "Latest Sprint Shipped",
+            "Sprint Status (Current)",
+            "Current Focus",
+            "active planning document",
+        ),
+    ),
+    DocumentationContract(
+        path="docs/ops/README.md",
+        required_phrases=(
+            "active operational material only",
+            "Persistent operational contracts should use undated canonical paths.",
+            "docs/ops/enforcement_release_gate_contract.json",
+            "docs/ops/key-rotation-drill-2026-02-27.md",
+        ),
+    ),
+    DocumentationContract(
+        path="docs/ops/acceptance_evidence_capture.md",
+        required_phrases=(
+            "not the managed deployment release path",
+            "docs/runbooks/unified_platform_release.md",
+            "managed-deployment-bundle-<environment>-<release-tag>",
+        ),
+        forbidden_phrases=(
+            "rollout/procurement sign-off",
+            "production sign-off",
+            "staging/prod sign-off",
+        ),
+    ),
+    DocumentationContract(
+        path="docs/ops/enforcement_release_gate_contract.json",
+        required_phrases=(
+            "post_closure_sanity",
+            "required_snapshot_tokens",
+            "forbidden_snapshot_tokens",
+            "pkg015_launch_gate",
+            "required_item_status",
+            "required_runtime_gated_features",
+        ),
+    ),
+    DocumentationContract(
+        path="docs/product/external_feedback_validation.md",
+        required_phrases=(
+            "Status: Supporting evidence",
+            "PLAN.md",
+            "not the canonical shipping plan",
+            "phase tracker",
+            "ship-gate source of truth",
+        ),
+    ),
+    DocumentationContract(
+        path="docs/compliance/compliance_pack.md",
+        required_phrases=(
+            "supplemental evidence",
+            "docs/runbooks/unified_platform_release.md",
+            "managed-deployment-bundle-<environment>-<release-tag>",
         ),
     ),
     DocumentationContract(
@@ -144,6 +187,16 @@ DOCUMENTATION_CONTRACTS: tuple[DocumentationContract, ...] = (
             "dashboard/src/lib/pricing/publicPlans.ts",
             "app/shared/core/pricing.py",
         ),
+    ),
+    DocumentationContract(
+        path="docs/runbooks/month_end_close.md",
+        required_phrases=(
+            "finance and audit review",
+            "not a production cutover packet",
+            "docs/runbooks/unified_platform_release.md",
+            "supplemental finance evidence",
+        ),
+        forbidden_phrases=("finance/procurement sign-off",),
     ),
     DocumentationContract(
         path="docs/ROLLBACK_PLAN.md",
@@ -300,6 +353,23 @@ DOCUMENTATION_CONTRACTS: tuple[DocumentationContract, ...] = (
             "promote_production=true",
             "REPLACE_WITH_REAL_STAGING_FRONTEND",
             "make render-managed-release-blockers NON_SECRET_BUNDLE=true",
+            "supplemental procurement/audit artifacts only",
+            "managed-deployment-bundle-<environment>-<release-tag>",
+            "managed_cutover_operator_packet.md",
+        ),
+    ),
+    DocumentationContract(
+        path="docs/runbooks/managed_cutover_operator_packet.md",
+        required_phrases=(
+            "RUNTIME_PLAIN_ENV_JSON",
+            "RUNTIME_SECRET_ENV_JSON",
+            "artifact-registry-release-<release-tag>",
+            "managed-deployment-bundle-staging-<release-tag>",
+            "managed-release-blocker-summary-<release-tag>",
+            "Settings -> Environments",
+            "Workload Identity Federation",
+            "Workers & Pages",
+            "Supabase",
         ),
     ),
     DocumentationContract(

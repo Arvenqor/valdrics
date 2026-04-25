@@ -5,9 +5,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 EVIDENCE_DIR = REPO_ROOT / "docs" / "ops" / "evidence"
-GAP_REGISTER = (
-    REPO_ROOT / "docs" / "ops" / "enforcement_control_plane_gap_register_2026-02-23.md"
-)
+OPERATING_CONTRACT = REPO_ROOT / "docs" / "ops" / "pkg_fin_operating_contract.md"
 
 
 def test_pricing_benchmark_register_artifacts_exist() -> None:
@@ -22,8 +20,9 @@ def test_pricing_benchmark_register_artifacts_exist() -> None:
 
 def test_pricing_benchmark_register_docs_include_required_contracts() -> None:
     readme_raw = (EVIDENCE_DIR / "README.md").read_text(encoding="utf-8")
-    gap_raw = GAP_REGISTER.read_text(encoding="utf-8")
+    contract_raw = OPERATING_CONTRACT.read_text(encoding="utf-8")
 
     assert "pricing_benchmark_register_YYYY-MM-DD.json" in readme_raw
     assert "scripts/verify_pricing_benchmark_register.py" in readme_raw
-    assert "PKG-020" in gap_raw
+    assert "pricing_benchmark_register_2026-02-27.json" in contract_raw
+    assert "scripts/verify_pricing_benchmark_register.py" in contract_raw

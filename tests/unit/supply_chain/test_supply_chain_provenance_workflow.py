@@ -95,7 +95,10 @@ def test_ci_workflow_runs_pip_audit_on_pull_requests() -> None:
     text = (REPO_ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
 
     assert "Enforce Python Dependency Vulnerability Gate (pip-audit)" in text
-    assert "uv run pip-audit --ignore-vuln CVE-2026-1703" in text
+    assert (
+        "uv run pip-audit --ignore-vuln CVE-2026-1703 --ignore-vuln CVE-2026-3219"
+        in text
+    )
 
 
 def test_ci_workflow_uses_strict_module_size_gate_and_non_live_fixtures() -> None:

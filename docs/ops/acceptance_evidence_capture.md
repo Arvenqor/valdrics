@@ -1,6 +1,7 @@
 # Acceptance Evidence Capture (Operator)
 
-This runbook captures repeatable evidence artifacts for rollout/procurement sign-off:
+This runbook captures repeatable evidence artifacts for tenant-facing audit,
+procurement, and product-operations review:
 
 - Acceptance KPI Evidence (JSON + CSV)
 - Leadership KPI export (JSON + CSV)
@@ -18,6 +19,12 @@ This runbook captures repeatable evidence artifacts for rollout/procurement sign
 - Identity IdP smoke-test evidence (JSON, audit-log snapshots)
 - Tenant isolation verification evidence (JSON, audit-log snapshots)
 - Carbon assurance evidence (JSON, audit-log snapshots)
+
+This is supplemental evidence. It is not the managed deployment release path.
+For staging/production cutover, use
+`docs/runbooks/unified_platform_release.md` and keep the environment-specific
+`managed-deployment-bundle-<environment>-<release-tag>` artifact as the
+canonical operator packet.
 
 Artifacts are written under `reports/acceptance/` (gitignored by default).
 
@@ -106,7 +113,9 @@ Valdrics also runs a daily, tenant-scoped acceptance capture sweep via the sched
   - `acceptance.kpis_captured`
   - `integration_test.*` in **passive** mode (connectivity checks only; no Slack messages / Jira issues created).
 
-This gives you continuous “production sign-off” evidence without manual operator steps.
+This gives you continuous audit and operational evidence without manual
+operator steps. It does not replace the managed deployment bundle or
+`scripts/verify_managed_release_readiness.py`.
 
 ## Performance Evidence (Optional)
 
@@ -153,7 +162,8 @@ Preflight controls:
 
 ### GitHub Actions Performance Gate (Manual) (Recommended)
 
-If you want a repeatable, reviewable performance check for staging/prod sign-off, use the manual workflow:
+If you want a repeatable, reviewable performance check for staging/prod workload
+evidence after the managed deployment bundle exists, use the manual workflow:
 
 - Workflow: `Performance Gate (Manual)`
 - File: `.github/workflows/performance-gate.yml`
@@ -164,7 +174,8 @@ Published performance evidence is included in the compliance pack:
 
 - `GET /api/v1/audit/compliance-pack` (contains `performance_load_test_evidence.json`)
 
-DB partitioning validation evidence can also be captured (useful for “10x readiness” sign-off on Postgres):
+DB partitioning validation evidence can also be captured (useful for Postgres
+capacity and readiness review):
 
 - `POST /api/v1/audit/performance/partitioning/evidence`
 - `GET /api/v1/audit/performance/partitioning/evidence`

@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
+import json
 from pathlib import Path
 from scripts.env_generation_common import (
     repo_root_for as _repo_root_for,
     resolve_cli_path_from_root,
 )
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -126,6 +128,8 @@ DIMENSION_TOKENS: dict[str, tuple[EvidenceToken, ...]] = {
     ),
 }
 
+REQUIRED_CONTRACT_SECTION = "post_closure_sanity"
+
 DOC_REQUIRED_TOKENS: tuple[str, ...] = (
     "Whenever a control, feature, or gap is marked DONE",
     "concurrency",
@@ -136,33 +140,6 @@ DOC_REQUIRED_TOKENS: tuple[str, ...] = (
     "failure modes",
     "operational misconfiguration risks",
     "release-critical",
-)
-
-GAP_REGISTER_REQUIRED_TOKENS: tuple[str, ...] = (
-    "Current Open Items (Canonical, 2026-02-27)",
-    "BSAFE-009",
-    "BSAFE-010",
-    "CI-EVID-001",
-    "PKG-001..PKG-032",
-    "FIN-001..FIN-008",
-    "BENCH-DOC-001",
-    "post-closure sanity check gate",
-    "BSAFE-013",
-    "BSAFE-014",
-    "BSAFE-010",
-    "BSAFE-011",
-    "BSAFE-015",
-    "BSAFE-016",
-    "Binary Artifact Closure Checklist (release packet)",
-    "docs/ops/evidence/enforcement_stress_artifact_YYYY-MM-DD.json",
-    "docs/ops/evidence/enforcement_failure_injection_YYYY-MM-DD.json",
-    "docs/archive/evidence/<quarter>/ci-green-YYYY-MM-DD.md",
-)
-
-GAP_REGISTER_FORBIDDEN_TOKENS: tuple[str, ...] = (
-    "test_enforcement_webhook_helm_contract",
-    "Kubernetes webhook production guidance profile",
-    "deployable webhook template + explicit failure-policy profiles via chart values and runbook contract",
 )
 
 ARTIFACT_TEMPLATE_TOKENS: tuple[EvidenceToken, ...] = (
@@ -218,6 +195,18 @@ def _read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def _load_contract_section(contract_path: Path) -> dict[str, Any]:
+    payload = json.loads(_read_text(contract_path))
+    if not isinstance(payload, dict):
+        raise ValueError("Release gate contract payload must be an object")
+    section = payload.get(REQUIRED_CONTRACT_SECTION)
+    if not isinstance(section, dict):
+        raise ValueError(
+            f"Release gate contract must include object section: {REQUIRED_CONTRACT_SECTION}"
+        )
+    return section
+
+
 def validate_tokens(tokens: tuple[EvidenceToken, ...], *, repo_root: Path) -> None:
     for entry in tokens:
         full_path = repo_root / entry.path
@@ -243,14 +232,25 @@ def validate_doc_contract(*, doc_path: Path) -> None:
             )
 
 
-def validate_gap_register_contract(*, gap_register_path: Path) -> None:
-    raw = _read_text(gap_register_path)
-    for token in GAP_REGISTER_REQUIRED_TOKENS:
-        if token not in raw:
-            raise ValueError(f"Gap register missing required token: {token!r}")
-    for token in GAP_REGISTER_FORBIDDEN_TOKENS:
-        if token in raw:
-            raise ValueError(f"Gap register contains forbidden token: {token!r}")
+def validate_release_gate_contract(*, contract_path: Path) -> None:
+    section = _load_contract_section(contract_path)
+    required_tokens = section.get("required_snapshot_tokens")
+    if not isinstance(required_tokens, list) or not required_tokens:
+        raise ValueError(
+            "Release gate contract missing post_closure_sanity.required_snapshot_tokens"
+        )
+    for token in required_tokens:
+        if not isinstance(token, str) or not token.strip():
+            raise ValueError("Release gate contract contains invalid required snapshot token")
+
+    forbidden_tokens = section.get("forbidden_snapshot_tokens")
+    if not isinstance(forbidden_tokens, list) or not forbidden_tokens:
+        raise ValueError(
+            "Release gate contract missing post_closure_sanity.forbidden_snapshot_tokens"
+        )
+    for token in forbidden_tokens:
+        if not isinstance(token, str) or not token.strip():
+            raise ValueError("Release gate contract contains invalid forbidden snapshot token")
 
 
 def validate_artifact_template_contract(*, repo_root: Path) -> None:
@@ -260,13 +260,13 @@ def validate_artifact_template_contract(*, repo_root: Path) -> None:
 def verify_post_closure_sanity(
     *,
     doc_path: Path,
-    gap_register_path: Path,
+    contract_path: Path,
     repo_root: Path,
 ) -> int:
     validate_dimension_tokens(repo_root=repo_root)
     validate_artifact_template_contract(repo_root=repo_root)
     validate_doc_contract(doc_path=doc_path)
-    validate_gap_register_contract(gap_register_path=gap_register_path)
+    validate_release_gate_contract(contract_path=contract_path)
     print(
         "Enforcement post-closure sanity checks verified "
         f"(dimensions={len(DIMENSION_TOKENS)})."
@@ -284,9 +284,9 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Post-closure sanity policy document path.",
     )
     parser.add_argument(
-        "--gap-register",
-        default="docs/ops/enforcement_control_plane_gap_register_2026-02-23.md",
-        help="Gap register path that must include post-closure sanity closure evidence.",
+        "--contract-path",
+        default="docs/ops/enforcement_release_gate_contract.json",
+        help="Release gate contract path that must include post-closure sanity closure evidence.",
     )
     return parser.parse_args(argv)
 
@@ -301,10 +301,10 @@ def main(argv: list[str] | None = None) -> int:
                 path=Path(str(args.doc_path)),
                 label="doc_path",
             ),
-            gap_register_path=_resolve_repo_relative_file(
+            contract_path=_resolve_repo_relative_file(
                 repo_root=repo_root,
-                path=Path(str(args.gap_register)),
-                label="gap_register",
+                path=Path(str(args.contract_path)),
+                label="contract_path",
             ),
             repo_root=repo_root,
         )

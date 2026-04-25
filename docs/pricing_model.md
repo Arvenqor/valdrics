@@ -1,6 +1,10 @@
 # Pricing Metric Model
 
 Last updated: March 10, 2026
+Status: Supporting pricing reference
+
+This file records the current packaging and pricing model reference. `PLAN.md`
+remains the canonical product, phase, and ship-gate source of truth.
 
 ## Default Value Metric
 

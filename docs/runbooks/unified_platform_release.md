@@ -15,6 +15,7 @@ This runbook defines the target operating model for the unified platform:
 Use:
 
 - `.github/workflows/release-unified-platform.yml`
+- `docs/runbooks/managed_cutover_operator_packet.md`
 
 Required workflow inputs:
 
@@ -205,6 +206,10 @@ artifact bundle.
 - Keep Cloud Run scheduler ownership external. Do not re-enable the in-process scheduler in the API.
 - Keep internal task and scheduler endpoints authenticated with Google-signed identity tokens.
 - Treat this runbook as the only supported release path for staging and production.
+- `scripts/capture_acceptance_evidence.py` and `GET /api/v1/audit/compliance-pack`
+  are supplemental procurement/audit artifacts only. They do not replace the
+  environment-specific `managed-deployment-bundle-<environment>-<release-tag>`
+  or `scripts/verify_managed_release_readiness.py`.
 
 ## 6. Post-release checks
 

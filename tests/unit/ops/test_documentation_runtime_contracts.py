@@ -92,11 +92,32 @@ def test_rollback_and_recovery_docs_match_supported_platforms() -> None:
     deployment = (REPO_ROOT / "docs/DEPLOYMENT.md").read_text(encoding="utf-8")
     capacity = (REPO_ROOT / "docs/CAPACITY_PLAN.md").read_text(encoding="utf-8")
     roadmap = (REPO_ROOT / "docs/roadmap.md").read_text(encoding="utf-8")
+    external_feedback = (
+        REPO_ROOT / "docs/product/external_feedback_validation.md"
+    ).read_text(encoding="utf-8")
+    ops_readme = (
+        REPO_ROOT / "docs/ops/README.md"
+    ).read_text(encoding="utf-8")
+    acceptance_evidence = (
+        REPO_ROOT / "docs/ops/acceptance_evidence_capture.md"
+    ).read_text(encoding="utf-8")
+    release_gate_contract = (
+        REPO_ROOT / "docs/ops/enforcement_release_gate_contract.json"
+    ).read_text(encoding="utf-8")
     tiering = (REPO_ROOT / "docs/architecture/tiering-2026.md").read_text(
         encoding="utf-8"
     )
+    compliance_pack = (
+        REPO_ROOT / "docs/compliance/compliance_pack.md"
+    ).read_text(encoding="utf-8")
     db_overview = (
         REPO_ROOT / "docs/architecture/database_schema_overview.md"
+    ).read_text(encoding="utf-8")
+    month_end_close = (
+        REPO_ROOT / "docs/runbooks/month_end_close.md"
+    ).read_text(encoding="utf-8")
+    managed_cutover_packet = (
+        REPO_ROOT / "docs/runbooks/managed_cutover_operator_packet.md"
     ).read_text(encoding="utf-8")
 
     assert "backup/restore" in rollback.lower()
@@ -144,23 +165,63 @@ def test_rollback_and_recovery_docs_match_supported_platforms() -> None:
     assert "make render-managed-release-blockers NON_SECRET_BUNDLE=true" in deployment
 
     assert "current supported operating profile is the unified platform" in capacity
+    assert "there is no parallel capacity track" in capacity
     assert "Google Cloud Run" in capacity
     assert "Cloud Tasks" in capacity
     assert "Cloud Run Jobs" in capacity
     assert "Cloudflare Pages" in capacity
     assert "Supabase" in capacity
+    assert "future scale path" not in capacity
 
-    assert "active planning document" in roadmap
+    assert "redirect only" in roadmap
+    assert "phase, and ship-gate source of" in roadmap
     assert "reports/roadmap/" in roadmap
-    assert "Current Focus" in roadmap
-    assert "bootstrap-only sqlite dev" in roadmap
-    assert "managed bundle verification" in roadmap
+    assert "Current Focus" not in roadmap
+    assert "active planning document" not in roadmap
+    assert "Status: Supporting evidence" in external_feedback
+    assert "PLAN.md" in external_feedback
+    assert "not the canonical shipping plan" in external_feedback
+    assert "phase tracker" in external_feedback
+    assert "ship-gate source of truth" in external_feedback
+    assert "active operational material only" in ops_readme
+    assert "Persistent operational contracts should use undated canonical paths." in ops_readme
+    assert "docs/ops/enforcement_release_gate_contract.json" in ops_readme
+    assert "docs/ops/key-rotation-drill-2026-02-27.md" in ops_readme
+    assert "not the managed deployment release path" in acceptance_evidence
+    assert "docs/runbooks/unified_platform_release.md" in acceptance_evidence
+    assert "managed-deployment-bundle-<environment>-<release-tag>" in acceptance_evidence
+    assert "rollout/procurement sign-off" not in acceptance_evidence
+    assert "production sign-off" not in acceptance_evidence
+    assert "staging/prod sign-off" not in acceptance_evidence
+    assert "post_closure_sanity" in release_gate_contract
+    assert "required_snapshot_tokens" in release_gate_contract
+    assert "forbidden_snapshot_tokens" in release_gate_contract
+    assert "pkg015_launch_gate" in release_gate_contract
+    assert "required_item_status" in release_gate_contract
+    assert "required_runtime_gated_features" in release_gate_contract
 
     assert "Permanent public proof lane" in tiering
     assert "dashboard/src/lib/pricing/publicPlans.ts" in tiering
     assert "app/shared/core/pricing.py" in tiering
+    assert "supplemental evidence" in compliance_pack
+    assert "docs/runbooks/unified_platform_release.md" in compliance_pack
+    assert "managed-deployment-bundle-<environment>-<release-tag>" in compliance_pack
     assert "One-step forward/rollback smoke" in db_overview
     assert "backup/restore is the primary rollback path" in db_overview
+    assert "finance and audit review" in month_end_close
+    assert "not a production cutover packet" in month_end_close
+    assert "supplemental finance evidence" in month_end_close
+    assert "docs/runbooks/unified_platform_release.md" in month_end_close
+    assert "finance/procurement sign-off" not in month_end_close
+    assert "RUNTIME_PLAIN_ENV_JSON" in managed_cutover_packet
+    assert "RUNTIME_SECRET_ENV_JSON" in managed_cutover_packet
+    assert "artifact-registry-release-<release-tag>" in managed_cutover_packet
+    assert "managed-deployment-bundle-staging-<release-tag>" in managed_cutover_packet
+    assert "managed-release-blocker-summary-<release-tag>" in managed_cutover_packet
+    assert "Settings -> Environments" in managed_cutover_packet
+    assert "Workload Identity Federation" in managed_cutover_packet
+    assert "Workers & Pages" in managed_cutover_packet
+    assert "Supabase" in managed_cutover_packet
 
 
 def test_architecture_overview_does_not_overclaim_domain_purity_or_raw_k8s() -> None:
@@ -409,16 +470,14 @@ def test_partition_archival_helpers_match_runtime_maintenance_path() -> None:
     assert "RAISE NOTICE" not in sql_text
 
 
-def test_enforcement_gap_register_tracks_active_terraform_iam_surface() -> None:
-    text = (
+def test_historical_enforcement_gap_register_is_archived_outside_active_ops_surface() -> None:
+    assert not (
         REPO_ROOT / "docs/ops/enforcement_control_plane_gap_register_2026-02-23.md"
-    ).read_text(encoding="utf-8")
-
-    assert "terraform/main.tf" in text
-    assert "google_project_iam_member" in text
-    assert "google_service_account_iam_member" in text
-    assert "terraform/modules/iam/main.tf" not in text
-    assert "terraform/modules/iam/variables.tf" not in text
+    ).exists()
+    assert (
+        REPO_ROOT
+        / "docs/archive/ops/2026-q1/enforcement_control_plane_gap_register_2026-02-23.md"
+    ).exists()
 
 
 def test_runbooks_with_high_operational_risk_are_covered_by_contract_guard() -> None:
@@ -429,7 +488,8 @@ def test_runbooks_with_high_operational_risk_are_covered_by_contract_guard() -> 
     assert "docs/SOC2_CONTROLS.md" in script_text
     assert "docs/policies/data_retention.md" in script_text
     assert "docs/ops/benchmark_alignment_profiles.md" in script_text
-    assert "docs/ops/enforcement_control_plane_gap_register_2026-02-23.md" in script_text
+    assert "docs/ops/README.md" in script_text
+    assert "docs/ops/enforcement_release_gate_contract.json" in script_text
     assert "docs/runbooks/enforcement_preprovision_integrations.md" in script_text
     assert "docs/runbooks/partition_maintenance.md" in script_text
     assert "docs/runbooks/secret_rotation_emergency.md" in script_text

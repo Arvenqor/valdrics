@@ -9,6 +9,11 @@ Valdrics provides a tenant-scoped **compliance pack ZIP** that bundles:
 
 This is designed to support enterprise review cycles without requiring internal access to your production systems.
 
+This ZIP is supplemental evidence. It does not replace the managed deployment
+release path in `docs/runbooks/unified_platform_release.md` or the
+environment-specific `managed-deployment-bundle-<environment>-<release-tag>`
+artifact.
+
 ## Endpoint
 
 `GET /api/v1/audit/compliance-pack`
@@ -120,13 +125,19 @@ Close package (when `include_close_package=true`):
 
 ## Recommended Procurement Flow (Practical)
 
-1. Capture operational evidence:
+1. If you are documenting a live deployment, complete the managed release flow
+   first and keep the environment-specific managed deployment bundle as the
+   cutover packet:
+   - See `docs/runbooks/unified_platform_release.md`
+2. Capture operational evidence:
    - `uv run python scripts/capture_acceptance_evidence.py`
-2. Publish audit-grade evidence (performance, ingestion soak, identity smoke) where applicable:
+3. Publish audit-grade evidence (performance, ingestion soak, identity smoke) where applicable:
    - See `docs/ops/acceptance_evidence_capture.md`
-3. Export a compliance pack:
+4. Export a compliance pack:
    - `GET /api/v1/audit/compliance-pack?include_focus_export=true&include_savings_proof=true&include_realized_savings=true&include_close_package=true`
-4. Attach the ZIP and the acceptance evidence folder to your rollout/procurement ticket.
+5. Attach the ZIP and the acceptance evidence folder as supplementary
+   procurement/customer-review artifacts. Do not use them in place of the
+   managed deployment bundle for release approval.
 
 ## Security Notes
 
