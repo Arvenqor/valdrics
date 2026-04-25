@@ -47,6 +47,12 @@ _NATIVE_MAX_RETRIES = 3
 _RETRYABLE_STATUS_CODES = {408, 429, 500, 502, 503, 504}
 
 
+def _parse_manual_activity_timestamp(value: Any) -> datetime:
+    """Reject malformed activity timestamps before applying best-effort normalization."""
+    parse_required_timestamp(value)
+    return parse_timestamp(value)
+
+
 async def _license_get_request(
     *,
     url: str,
@@ -312,7 +318,7 @@ class LicenseAdapter(BaseAdapter):
         """
         return list_manual_feed_activity(
             feed=self.credentials.license_feed,
-            parse_timestamp_fn=parse_timestamp,
+            parse_timestamp_fn=_parse_manual_activity_timestamp,
         )
 
     async def discover_resources(
