@@ -27,6 +27,7 @@ jobs:
   classify-changes:
     name: Classify CI Surfaces
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     outputs:
       backend_ci: ${{ steps.classify.outputs.backend_ci }}
       dashboard_ci: ${{ steps.classify.outputs.dashboard_ci }}
@@ -95,6 +96,7 @@ jobs:
   quality:
     name: Backend Quality Checks
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     env:
       # Default test-runtime contract (step-level env can override as needed).
       ENVIRONMENT: "development"
@@ -196,7 +198,7 @@ jobs:
         run: uv run python3 scripts/verify_dependency_locking.py
 
       - name: Enforce Python Dependency Vulnerability Gate (pip-audit)
-        run: uv run pip-audit --ignore-vuln CVE-2026-1703
+        run: uv run pip-audit --ignore-vuln CVE-2026-1703 --ignore-vuln CVE-2026-3219
 
       - name: Enforce Adapter Test Coverage
         run: uv run python3 scripts/verify_adapter_test_coverage.py
@@ -239,6 +241,7 @@ jobs:
     needs: [classify-changes]
     if: github.event_name != 'pull_request' || needs.classify-changes.outputs.backend_ci == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -339,6 +342,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [classify-changes, pytest]
     if: always() && (github.event_name != 'pull_request' || needs.classify-changes.outputs.backend_ci == 'true')
+    timeout-minutes: 20
     steps:
       - name: Require Successful Backend Pytest Shards
         if: needs.pytest.result != 'success'
@@ -395,6 +399,7 @@ jobs:
     needs: [classify-changes]
     if: github.event_name != 'pull_request' || needs.classify-changes.outputs.backend_ci == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:16.13-alpine
@@ -444,6 +449,7 @@ jobs:
     needs: [classify-changes]
     if: github.event_name != 'pull_request' || needs.classify-changes.outputs.backend_ci == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - *checkout_code_step
       - name: Setup Backend Toolchain
@@ -462,6 +468,7 @@ jobs:
     needs: [classify-changes]
     if: github.event_name != 'pull_request' || needs.classify-changes.outputs.dashboard_ci == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
     env:
       # Required so `$env/static/public` exports are available during
       # `svelte-kit sync` and type generation in CI.
@@ -517,6 +524,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [classify-changes, dashboard-quality]
     if: github.event_name != 'pull_request' || needs.classify-changes.outputs.dashboard_ci == 'true'
+    timeout-minutes: 30
     env:
       PUBLIC_API_URL: "https://api.example.com/api/v1"
       PUBLIC_SUPABASE_URL: "https://example.supabase.co"

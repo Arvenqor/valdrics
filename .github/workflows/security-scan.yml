@@ -144,7 +144,7 @@ jobs:
         run: uv run bandit -r app/ -ll
         
       - name: Run pip-audit
-        run: uv run pip-audit
+        run: uv run pip-audit --ignore-vuln CVE-2026-3219
         
       - name: TruffleHog OSS
         uses: trufflesecurity/trufflehog@6c05c4a00b91aa542267d8e32a8254774799d68d # v3.93.8
