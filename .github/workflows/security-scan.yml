@@ -189,12 +189,12 @@ jobs:
         run: terraform -chdir=terraform validate -no-color
 
       - name: Terraform Security Scan (tfsec)
-        uses: aquasecurity/tfsec-action@b466648d6e39e7c75324f25d83891162a721f2d6 # v1.0.3
-        with:
-          working_directory: ./terraform
-          soft_fail: false
-          additional_args: --minimum-severity HIGH
-          github_token: ${{ github.token }}
+        run: |
+          docker run --rm \
+            -v "$PWD:/src" \
+            aquasec/tfsec:v1.28.14 \
+            /src/terraform \
+            --minimum-severity HIGH
 
       - name: Terraform Lint (tflint)
         uses: terraform-linters/setup-tflint@4cb9feea73331a35b422df102992a03a44a3bb33 # v6.2.1
