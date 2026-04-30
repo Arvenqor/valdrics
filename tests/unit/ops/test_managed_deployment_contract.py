@@ -5,6 +5,8 @@ import pytest
 from scripts.managed_deployment_contract import (
     DECLARED_EXTERNAL_VALUE_KEYS,
     CLOUDFLARE_PAGES_PUBLIC_ENV_KEYS,
+    GITHUB_RUNTIME_PLAIN_JSON_KEYS,
+    GITHUB_RUNTIME_SECRET_JSON_KEYS,
     MIGRATION_BASE_REQUIRED_OPERATOR_INPUT_KEYS,
     RUNTIME_VALIDATION_OPERATOR_INPUT_KEYS,
     TERRAFORM_BASE_REQUIRED_INPUTS,
@@ -12,6 +14,7 @@ from scripts.managed_deployment_contract import (
     identify_runtime_unresolved_keys,
     required_migration_operator_input_keys,
     required_runtime_operator_input_keys,
+    runtime_json_classification_errors,
     selected_llm_provider_env_key,
 )
 
@@ -19,6 +22,8 @@ from scripts.managed_deployment_contract import (
 def test_runtime_contract_sets_are_stable() -> None:
     assert "API_URL" in DECLARED_EXTERNAL_VALUE_KEYS
     assert "SUPABASE_JWT_SECRET" in RUNTIME_VALIDATION_OPERATOR_INPUT_KEYS
+    assert "API_URL" in GITHUB_RUNTIME_PLAIN_JSON_KEYS
+    assert "DATABASE_URL" in GITHUB_RUNTIME_SECRET_JSON_KEYS
     assert CLOUDFLARE_PAGES_PUBLIC_ENV_KEYS == (
         "PUBLIC_API_URL",
         "PUBLIC_SUPABASE_ANON_KEY",
@@ -101,3 +106,19 @@ def test_required_migration_operator_input_keys_expand_for_verified_ssl() -> Non
 def test_contains_placeholder_detects_marker() -> None:
     assert contains_placeholder("REPLACE_WITH_DB_HOST")
     assert not contains_placeholder("postgresql://user:pass@db.example.com:5432/app")
+
+
+def test_runtime_json_classification_errors_require_secret_and_plain_key_separation() -> (
+    None
+):
+    errors = runtime_json_classification_errors(
+        plain_keys=("API_URL", "DATABASE_URL"),
+        secret_keys=("SUPABASE_JWT_SECRET", "FRONTEND_URL"),
+    )
+
+    assert errors == [
+        "RUNTIME_PLAIN_ENV_JSON contains secret-classified keys that must stay in "
+        "RUNTIME_SECRET_ENV_JSON: DATABASE_URL",
+        "RUNTIME_SECRET_ENV_JSON contains plain-classified keys that must stay in "
+        "RUNTIME_PLAIN_ENV_JSON: FRONTEND_URL",
+    ]

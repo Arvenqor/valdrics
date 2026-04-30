@@ -138,6 +138,10 @@ jobs:
           from pathlib import Path
           import shlex
 
+          from scripts.managed_deployment_contract import (
+              runtime_json_classification_errors,
+          )
+
           def load_payload(name: str) -> dict[str, str]:
               raw = os.environ.get(name, "")
               try:
@@ -165,6 +169,9 @@ jobs:
                   "RUNTIME_PLAIN_ENV_JSON and RUNTIME_SECRET_ENV_JSON must not share keys: "
                   + ", ".join(overlap)
               )
+          classification_errors = runtime_json_classification_errors(plain, secret)
+          if classification_errors:
+              raise SystemExit("\n".join(classification_errors))
 
           merged = {**plain, **secret}
           output = Path(".runtime") / f"{os.environ['DEPLOY_ENVIRONMENT']}.env"

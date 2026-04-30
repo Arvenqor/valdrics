@@ -215,6 +215,9 @@ def test_rollback_and_recovery_docs_match_supported_platforms() -> None:
     assert "finance/procurement sign-off" not in month_end_close
     assert "RUNTIME_PLAIN_ENV_JSON" in managed_cutover_packet
     assert "RUNTIME_SECRET_ENV_JSON" in managed_cutover_packet
+    assert '"DATABASE_URL": "postgresql://..."' in managed_cutover_packet
+    assert "intentionally secret-classified" in managed_cutover_packet
+    assert "`RUNTIME_SECRET_ENV_JSON`" in managed_cutover_packet
     assert "artifact-registry-release-<release-tag>" in managed_cutover_packet
     assert "managed-deployment-bundle-staging-<release-tag>" in managed_cutover_packet
     assert "managed-release-blocker-summary-<release-tag>" in managed_cutover_packet

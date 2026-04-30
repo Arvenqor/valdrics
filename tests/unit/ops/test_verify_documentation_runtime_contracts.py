@@ -115,14 +115,15 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
     )
     _write(
         tmp_path / "docs/runbooks/unified_platform_release.md",
-        "Google Cloud Run\nCloud Tasks\nCloud Scheduler\nCloud Run Jobs\nArtifact Registry\nCloudflare Pages\nSupabase\nCloudflare Pages/DNS/WAF\nGCP runtime + API load balancer\nrelease-unified-platform.yml\npublish-artifact-registry-images.yml\ndeploy-unified-platform.yml\nmanaged-release-blocker-summary-<release-tag>\npromote_production=true\nREPLACE_WITH_REAL_STAGING_FRONTEND\nmake render-managed-release-blockers NON_SECRET_BUNDLE=true\nsupplemental procurement/audit artifacts only\nmanaged-deployment-bundle-<environment>-<release-tag>\nmanaged_cutover_operator_packet.md\napi_promotion_ref\nbatch_promotion_ref\nverify_managed_release_readiness.py\n",
+        "Google Cloud Run\nCloud Tasks\nCloud Scheduler\nCloud Run Jobs\nArtifact Registry\nCloudflare Pages\nSupabase\nCloudflare Pages/DNS/WAF\nGCP runtime + API load balancer\nrelease-unified-platform.yml\npublish-artifact-registry-images.yml\ndeploy-unified-platform.yml\nmanaged-release-blocker-summary-<release-tag>\npromote_production=true\nREPLACE_WITH_REAL_STAGING_FRONTEND\nmake render-managed-release-blockers NON_SECRET_BUNDLE=true\nsupplemental procurement/audit artifacts only\nmanaged-deployment-bundle-<environment>-<release-tag>\nmanaged_cutover_operator_packet.md\nsecret-classified keys such as `DATABASE_URL`\napi_promotion_ref\nbatch_promotion_ref\nverify_managed_release_readiness.py\n",
     )
     _write(
         tmp_path / "docs/runbooks/managed_cutover_operator_packet.md",
         "RUNTIME_PLAIN_ENV_JSON\nRUNTIME_SECRET_ENV_JSON\nartifact-registry-release-<release-tag>\n"
         "managed-deployment-bundle-staging-<release-tag>\n"
         "managed-release-blocker-summary-<release-tag>\n"
-        "Settings -> Environments\nWorkload Identity Federation\nWorkers & Pages\nSupabase\n",
+        "Settings -> Environments\nWorkload Identity Federation\nWorkers & Pages\nSupabase\n"
+        "\"DATABASE_URL\": \"postgresql://...\"\n",
     )
     _write(
         tmp_path / "docs/integrations/workflow_automation.md",

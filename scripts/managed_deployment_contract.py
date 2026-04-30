@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 
 
 PLACEHOLDER_PREFIX = "REPLACE_WITH_"
@@ -66,6 +66,31 @@ DECLARED_NONBLOCKING_EXTERNAL_KEYS = (
     "SUPABASE_ANON_KEY",
 )
 
+GITHUB_RUNTIME_PLAIN_JSON_KEYS = (
+    "ENVIRONMENT",
+    "API_URL",
+    "FRONTEND_URL",
+    "CORS_ORIGINS",
+    "GCP_PROJECT_ID",
+    "GCP_REGION",
+    "GCP_CLOUD_TASKS_QUEUE",
+    "GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL",
+    "GCP_CLOUD_RUN_SERVICE_NAME",
+    "GCP_CLOUD_RUN_BATCH_JOB_NAME",
+    "GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS",
+    "TRUSTED_PROXY_CIDRS",
+    "PLATFORM_RUNTIME_PROFILE",
+    "OBSERVABILITY_BACKEND",
+    "PUBLIC_API_RATE_LIMITING_BACKEND",
+    "RATELIMIT_ENABLED",
+    "SUPABASE_URL",
+    "SUPABASE_ANON_KEY",
+    "LLM_PROVIDER",
+    "EXPOSE_API_DOCUMENTATION_PUBLICLY",
+    "SAAS_STRICT_INTEGRATIONS",
+    "TRUST_PROXY_HEADERS",
+)
+
 INTERNAL_SECRET_KEYS = (
     "CSRF_SECRET_KEY",
     "ENCRYPTION_KEY",
@@ -74,6 +99,15 @@ INTERNAL_SECRET_KEYS = (
     "INTERNAL_METRICS_AUTH_TOKEN",
     "ENFORCEMENT_APPROVAL_TOKEN_SECRET",
     "ENFORCEMENT_EXPORT_SIGNING_SECRET",
+)
+
+GITHUB_RUNTIME_SECRET_JSON_KEYS = (
+    "DATABASE_URL",
+    "SUPABASE_JWT_SECRET",
+    "PAYSTACK_SECRET_KEY",
+    "PAYSTACK_PUBLIC_KEY",
+    *INTERNAL_SECRET_KEYS,
+    *tuple(LLM_PROVIDER_ENV_KEY.values()),
 )
 
 SUPPORTED_DB_SSL_MODES = ("disable", "require", "verify-ca", "verify-full")
@@ -147,3 +181,34 @@ def required_migration_operator_input_keys(values: Mapping[str, object]) -> list
     if db_ssl_mode in {"verify-ca", "verify-full"}:
         required_keys.append("DB_SSL_CA_CERT_PATH")
     return required_keys
+
+
+def runtime_json_classification_errors(
+    plain_keys: Iterable[str],
+    secret_keys: Iterable[str],
+) -> list[str]:
+    normalized_plain_keys = {str(key or "").strip() for key in plain_keys if str(key or "").strip()}
+    normalized_secret_keys = {
+        str(key or "").strip() for key in secret_keys if str(key or "").strip()
+    }
+
+    errors: list[str] = []
+    secret_keys_in_plain = sorted(
+        normalized_plain_keys & set(GITHUB_RUNTIME_SECRET_JSON_KEYS)
+    )
+    if secret_keys_in_plain:
+        errors.append(
+            "RUNTIME_PLAIN_ENV_JSON contains secret-classified keys that must stay in "
+            "RUNTIME_SECRET_ENV_JSON: " + ", ".join(secret_keys_in_plain)
+        )
+
+    plain_keys_in_secret = sorted(
+        normalized_secret_keys & set(GITHUB_RUNTIME_PLAIN_JSON_KEYS)
+    )
+    if plain_keys_in_secret:
+        errors.append(
+            "RUNTIME_SECRET_ENV_JSON contains plain-classified keys that must stay in "
+            "RUNTIME_PLAIN_ENV_JSON: " + ", ".join(plain_keys_in_secret)
+        )
+
+    return errors

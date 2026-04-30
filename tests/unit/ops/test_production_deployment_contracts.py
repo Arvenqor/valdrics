@@ -57,6 +57,7 @@ def test_release_artifacts_are_immutable_and_workflows_target_unified_platform()
     assert "terraform.runtime.auto.tfvars.json" in deploy_workflow
     assert "secrets.DATABASE_URL" not in deploy_workflow
     assert "secrets.SUPABASE_ANON_KEY" not in deploy_workflow
+    assert "runtime_json_classification_errors" in deploy_workflow
     assert "wrangler pages deploy" in deploy_workflow
     assert "/health/live" in deploy_workflow
     assert "needs.publish.outputs.api_promotion_ref" in release_workflow
@@ -142,6 +143,11 @@ def test_deployment_docs_match_unified_platform_contracts() -> None:
     assert "managed-release-blocker-summary-<release-tag>" in ops_doc
     assert "managed-release-blocker-summary-<release-tag>" in production_checklist
     assert "make render-managed-release-blockers" in production_checklist
+    assert "`DATABASE_URL`" in release_runbook
+    assert "RUNTIME_SECRET_ENV_JSON" in release_runbook
+    assert "secret-classified keys such as `DATABASE_URL`" in release_runbook
+    assert "secret-classified keys such as" in ops_doc
+    assert "`DATABASE_URL` stay in `RUNTIME_SECRET_ENV_JSON`" in ops_doc
 
 
 def test_root_legacy_deployment_files_are_removed() -> None:

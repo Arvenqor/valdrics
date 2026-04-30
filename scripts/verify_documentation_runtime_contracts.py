@@ -356,6 +356,7 @@ DOCUMENTATION_CONTRACTS: tuple[DocumentationContract, ...] = (
             "supplemental procurement/audit artifacts only",
             "managed-deployment-bundle-<environment>-<release-tag>",
             "managed_cutover_operator_packet.md",
+            "secret-classified keys such as `DATABASE_URL`",
         ),
     ),
     DocumentationContract(
@@ -370,6 +371,10 @@ DOCUMENTATION_CONTRACTS: tuple[DocumentationContract, ...] = (
             "Workload Identity Federation",
             "Workers & Pages",
             "Supabase",
+            "\"DATABASE_URL\": \"postgresql://...\"",
+        ),
+        forbidden_phrases=(
+            "\"DATABASE_URL\": \"postgres://...\"",
         ),
     ),
     DocumentationContract(

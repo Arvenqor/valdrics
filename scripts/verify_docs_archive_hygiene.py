@@ -67,19 +67,19 @@ WEAK_REFERENCE_PREFIXES = (
 PROHIBITED_ACTIVE_DOCS = {
     "docs/incident_response_plan.md": "Use docs/runbooks/incident_response.md instead.",
     "docs/DEPRECATION_POLICY.md": (
-        "Inactive policy narrative belongs under docs/archive/reference/."
+        "Inactive policy narrative — remove it."
     ),
     "docs/ZOMBIE_DETECTION_REFERENCE.md": (
-        "The historical reference belongs under docs/archive/reference/."
+        "Historical reference — remove it."
     ),
     "docs/LOGIC_AND_PERFORMANCE_AUDIT.md": (
         "Historical audit snapshots belong under docs/archive/reviews/."
     ),
     "docs/evidence/ci-green-2026-02-27.md": (
-        "Historical CI green-run promotion packet belongs under docs/archive/evidence/2026-q1/."
+        "Historical CI green-run promotion packet — remove it."
     ),
     "docs/ops/drills/enforcement_incident_drill_2026-02-23.md": (
-        "Historical enforcement incident drill record belongs under docs/archive/ops/2026-q1/drills/."
+        "Historical enforcement incident drill record — remove it."
     ),
     "docs/ops/enforcement_stress_evidence_2026-02-25.md": (
         "Use docs/ops/enforcement_stress_evidence.md for the canonical active protocol."
@@ -112,40 +112,40 @@ PROHIBITED_ACTIVE_DOCS = {
         "Use docs/runbooks/incident_response.md for the canonical active incident runbook."
     ),
     "docs/guides/aws_scp_setup.md": (
-        "Legacy AWS SCP setup guidance is not part of the current active docs surface; archive it under docs/archive/reference/ or remove it."
+        "Legacy AWS SCP setup guidance is not part of the current active docs surface — remove it."
     ),
     "docs/guides/cicd_security.md": (
-        "Legacy CI/CD hardening narrative is superseded by active workflow/runbook contracts; archive it under docs/archive/reference/ or remove it."
+        "Legacy CI/CD hardening narrative is superseded by active workflow/runbook contracts — remove it."
     ),
     "docs/architecture/identity_blueprint.md": (
-        "Historical identity reference belongs under docs/archive/reference/2026-q2/architecture/."
+        "Historical identity reference — remove it."
     ),
     "docs/architecture/discovery_wizard.md": (
-        "Historical discovery wizard note belongs under docs/archive/reference/2026-q2/architecture/."
+        "Historical discovery wizard note — remove it."
     ),
     "docs/product/personas.md": (
-        "Historical product persona note belongs under docs/archive/reference/2026-q2/product/."
+        "Historical product persona note — remove it."
     ),
     "docs/runbooks/aws_first_operator_flow.md": (
-        "Provider-specific AWS tenant smoke belongs under docs/archive/runbooks/2026-q2/."
+        "Provider-specific AWS tenant smoke runbook — remove it."
     ),
     "docs/ops/landing_page_audit_closure_2026-03-02.md": (
-        "Historical landing audit closure belongs under docs/archive/ops/2026-q1/."
+        "Historical landing audit closure — remove it."
     ),
     "docs/ops/pricing_packaging_correction_closure_2026-03-09.md": (
-        "Historical pricing/package correction closure belongs under docs/archive/ops/2026-q1/."
+        "Historical pricing/package correction closure — remove it."
     ),
 }
 PROHIBITED_ACTIVE_DOC_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (
         re.compile(r"^docs/ops/all_changes_categorization_\d{4}-\d{2}-\d{2}(?:_followup)?\.md$"),
-        "Dated change-categorization snapshots belong under docs/archive/ops/<quarter>/.",
+        "Dated change-categorization snapshots — remove them.",
     ),
     (
         re.compile(
             r"^docs/ops/evidence/all_changes_inventory(?:_followup2?|)?_\d{4}-\d{2}-\d{2}\.txt$"
         ),
-        "Historical all-changes inventory snapshots belong under docs/archive/ops/<quarter>/evidence/.",
+        "Historical all-changes inventory snapshots — remove them.",
     ),
 )
 

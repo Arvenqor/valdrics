@@ -240,12 +240,14 @@ Set the following for both `staging` and `production` environments.
 
 This value must be a JSON object with string values only.
 
+`DATABASE_URL` is intentionally excluded from this non-secret payload. Keep it
+only in `RUNTIME_SECRET_ENV_JSON`.
+
 ```json
 {
   "ENVIRONMENT": "staging",
   "API_URL": "https://api.example.com",
   "FRONTEND_URL": "https://app.example.com",
-  "DATABASE_URL": "postgres://...",
   "GCP_PROJECT_ID": "your-gcp-project-id",
   "GCP_REGION": "us-central1",
   "GCP_CLOUD_TASKS_QUEUE": "valdrics-managed-work",
@@ -270,7 +272,6 @@ This value must be a JSON object with string values only.
 Fill these values from the following sources:
 
 - `API_URL` and `FRONTEND_URL`: Cloudflare-managed public hostnames
-- `DATABASE_URL`: Supabase `Connect` dialog
 - `GCP_*`: Google Cloud project, region, queue, service names, and service
   account emails chosen for the target environment
 - `TRUSTED_PROXY_CIDRS`: current Cloudflare origin CIDR allowlist that your
@@ -296,6 +297,7 @@ template empty, then paste real values only into the GitHub environment secret.
 
 ```json
 {
+  "DATABASE_URL": "postgresql://...",
   "SUPABASE_JWT_SECRET": "",
   "PAYSTACK_SECRET_KEY": "",
   "PAYSTACK_PUBLIC_KEY": "",
@@ -311,6 +313,7 @@ template empty, then paste real values only into the GitHub environment secret.
 
 Source map:
 
+- `DATABASE_URL`: Supabase `Connect` dialog
 - `SUPABASE_JWT_SECRET`: Supabase project auth/JWT configuration
 - `PAYSTACK_*`: Paystack production dashboard
 - `INTERNAL_METRICS_AUTH_TOKEN`, `CSRF_SECRET_KEY`, `ENCRYPTION_KEY`,
@@ -321,6 +324,9 @@ Source map:
 
 Notes:
 
+- `DATABASE_URL` is intentionally secret-classified and must stay in
+  `RUNTIME_SECRET_ENV_JSON`; the deploy workflow rejects it if it is placed in
+  `RUNTIME_PLAIN_ENV_JSON`.
 - Only include the API key that matches `LLM_PROVIDER`.
 - Keep this JSON out of source control.
 - Treat every value here as a secret.

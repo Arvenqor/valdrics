@@ -86,7 +86,6 @@ and `scripts/managed_deployment_contract.py`, including keys such as:
 
 - `API_URL`
 - `FRONTEND_URL`
-- `DATABASE_URL`
 - `GCP_PROJECT_ID`
 - `GCP_REGION`
 - `GCP_CLOUD_TASKS_QUEUE`
@@ -99,6 +98,7 @@ and `scripts/managed_deployment_contract.py`, including keys such as:
 `RUNTIME_SECRET_ENV_JSON` must also provide the selected LLM provider secret
 and the core runtime secrets required by the same contract, including:
 
+- `DATABASE_URL`
 - the `LLM_PROVIDER`-selected API key (`OPENAI_API_KEY`, `GROQ_API_KEY`, `CLAUDE_API_KEY`, or `GOOGLE_API_KEY`)
 - `SUPABASE_JWT_SECRET`
 - `PAYSTACK_SECRET_KEY`
@@ -111,10 +111,13 @@ and the core runtime secrets required by the same contract, including:
 - `ENFORCEMENT_EXPORT_SIGNING_SECRET`
 
 `RUNTIME_PLAIN_ENV_JSON` and `RUNTIME_SECRET_ENV_JSON` must be JSON objects with
-string values. The reusable deploy workflow materializes `.runtime/<environment>.env`
-from those two inputs, derives `.runtime/<environment>.migrate.env` from the
-materialized `DATABASE_URL`, then generates and verifies the managed deployment
-bundle before Terraform or Alembic run.
+string values. The reusable deploy workflow rejects secret-classified keys such as `DATABASE_URL`
+if they appear in `RUNTIME_PLAIN_ENV_JSON`, and rejects plain-classified keys such as `API_URL`
+if they appear in `RUNTIME_SECRET_ENV_JSON`. After that validation it materializes
+`.runtime/<environment>.env` from the two inputs, derives
+`.runtime/<environment>.migrate.env` from the materialized `DATABASE_URL`, then
+generates and verifies the managed deployment bundle before Terraform or
+Alembic run.
 
 ## 3. Apply infrastructure and deploy the app
 
