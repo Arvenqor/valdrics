@@ -6,9 +6,8 @@ This directory is for active operational material only:
 - active runbooks and closure records that still inform current engineering work
 
 Historical workstream registers, temporary landing/growth packs, and dated
-change-categorization snapshots that no longer have repo references are archived
-under `docs/archive/ops/2026-q1/`. Historical promotion packets are archived
-under `docs/archive/evidence/`.
+change-categorization snapshots that no longer have repo references should be
+removed. Historical promotion packets should be removed once no longer active.
 
 Run `uv run python3 scripts/verify_docs_archive_hygiene.py` before promoting new
 dated operational docs into the active tree.

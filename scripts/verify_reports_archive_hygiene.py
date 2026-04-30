@@ -16,15 +16,13 @@ from scripts.env_generation_common import (
 DEFAULT_ROOT = _repo_root_for(__file__)
 PROHIBITED_ACTIVE_REPORT_PATHS = {
     "reports/production_fixes": (
-        "Historical production hardening pack belongs under "
-        "reports/archive/2026-q1/production_fixes/."
+        "Historical production hardening pack — remove it."
     ),
 }
 PROHIBITED_ACTIVE_REPORT_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (
         re.compile(r"^reports/audit/(?!archive/).+_\d{4}-\d{2}-\d{2}\.(?:md|csv|json)$"),
-        "Historical dated audit snapshots belong under reports/archive/<quarter>/audit/ "
-        "or reports/audit/archive/.",
+        "Historical dated audit snapshots — remove them.",
     ),
 )
 

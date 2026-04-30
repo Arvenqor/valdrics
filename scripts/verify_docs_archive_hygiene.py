@@ -40,7 +40,6 @@ SKIP_DIRECTORIES = {
     "dashboard/build",
     "dashboard/playwright-report",
     "dashboard/test-results",
-    "docs/archive",
     "dist",
     "build",
     "htmlcov",
@@ -73,7 +72,7 @@ PROHIBITED_ACTIVE_DOCS = {
         "Historical reference — remove it."
     ),
     "docs/LOGIC_AND_PERFORMANCE_AUDIT.md": (
-        "Historical audit snapshots belong under docs/archive/reviews/."
+        "Historical audit snapshot — remove it."
     ),
     "docs/evidence/ci-green-2026-02-27.md": (
         "Historical CI green-run promotion packet — remove it."

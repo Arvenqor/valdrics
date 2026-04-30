@@ -2,9 +2,8 @@
 
 This directory stores staged enforcement evidence artifacts used by release gates.
 
-Historical local-change inventory captures no longer live here. Archive-only
-`all_changes_inventory*.txt` snapshots belong under
-`docs/archive/ops/<quarter>/evidence/` so the active evidence tree stays limited
+Historical local-change inventory captures no longer live here — remove stale
+`all_changes_inventory*.txt` snapshots; the active evidence tree stays limited
 to current release-gate artifacts.
 
 Dated evidence artifacts remain active only when they are explicitly registered

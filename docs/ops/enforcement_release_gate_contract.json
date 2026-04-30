@@ -20,7 +20,7 @@
       "Binary Artifact Closure Checklist (release packet)",
       "docs/ops/evidence/enforcement_stress_artifact_YYYY-MM-DD.json",
       "docs/ops/evidence/enforcement_failure_injection_YYYY-MM-DD.json",
-      "docs/archive/evidence/<quarter>/ci-green-YYYY-MM-DD.md"
+      "docs/ops/evidence/ci-green-YYYY-MM-DD.md"
     ],
     "forbidden_snapshot_tokens": [
       "test_enforcement_webhook_helm_contract",

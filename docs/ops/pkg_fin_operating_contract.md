@@ -87,11 +87,6 @@ The following evidence remains release-relevant for pricing and packaging work:
 2. Workflow automation entitlement split:
    - `docs/integrations/workflow_automation.md`
 
-## Historical Context
-
-1. Archived pricing/package correction closure snapshot:
-   - `docs/archive/ops/2026-q1/pricing_packaging_correction_closure_2026-03-09.md`
-
 ## External Reference Anchors
 
 These external anchors remain the public justification layer for this contract:
