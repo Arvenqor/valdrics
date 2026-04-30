@@ -182,10 +182,8 @@ evidence only:
   - `docs/runbooks/disaster_recovery.md`
 - product research and market validation:
   - `docs/product/external_feedback_validation.md`
-- shipping helpers and progress snapshots:
+- shipping helpers:
   - `docs/runbooks/phased_shipping.md`
-  - `docs/roadmap.md`
-  - `reports/roadmap/*`
 
 None of the documents above should introduce a second roadmap.
 
