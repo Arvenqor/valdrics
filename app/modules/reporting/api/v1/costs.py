@@ -89,7 +89,10 @@ from app.modules.reporting.api.v1.costs_unit_economics_routes import (
     get_unit_economics_settings_impl,
     update_unit_economics_settings_impl,
 )
-from app.modules.reporting.domain.aggregator import LARGE_DATASET_THRESHOLD, CostAggregator
+from app.modules.reporting.domain.aggregator import (
+    LARGE_DATASET_THRESHOLD,
+    CostAggregator,
+)
 from app.modules.reporting.domain.anomaly_detection import (
     CostAnomaly,
     CostAnomalyDetectionService,
@@ -142,12 +145,16 @@ __all__ = [
     "get_spend_ledger_impl",
     "get_settings",
     "trigger_ingest_impl",
+    "_normalize_focus_export_provider_filter",
+    "_normalize_provider_filter",
+    "_normalize_spend_ledger_provider_filter",
 ]
 
 router = APIRouter(tags=["Costs"])
 # Include prebuilt route fragments without applying an additional prefix layer.
 router.routes.extend(_core_router.routes)
 router.routes.extend(_extended_router.routes)
+
 
 @router.get("")
 async def get_costs_root(
@@ -166,6 +173,7 @@ async def get_costs_root(
         db=db,
         current_user=current_user,
     )
+
 
 def _require_tenant_id(user: CurrentUser) -> UUID:
     if user.tenant_id is None:
