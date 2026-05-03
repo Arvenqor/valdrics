@@ -26,6 +26,7 @@ from app.modules.reporting.api.v1.costs_core_routes import (
     get_cost_forecast_impl,
     get_costs_impl,
     get_ingestion_sla_impl,
+    get_spend_ledger_impl,
     trigger_ingest_impl,
 )
 from app.modules.reporting.api.v1.costs_helpers import (
@@ -61,6 +62,7 @@ from app.modules.reporting.api.v1.costs_models import (
     ProviderInvoiceStatusUpdateRequest,
     ProviderInvoiceUpsertRequest,
     ProviderRecencyResponse,
+    SpendLedgerResponse,
     UnitEconomicsMetric,
     UnitEconomicsResponse,
     UnitEconomicsSettingsResponse,
@@ -120,6 +122,7 @@ __all__ = [
     "get_cost_forecast_impl",
     "get_costs_impl",
     "get_ingestion_sla_impl",
+    "get_spend_ledger_impl",
     "get_settings",
     "trigger_ingest_impl",
 ]
@@ -167,12 +170,23 @@ _PATCHABLE_TEST_SEAMS = (
     ProviderInvoiceStatusUpdateRequest,
     ProviderInvoiceUpsertRequest,
     ProviderRecencyResponse,
+    SpendLedgerResponse,
     UnitEconomicsMetric,
     UnitEconomicsResponse,
     UnitEconomicsSettingsResponse,
     UnitEconomicsSettingsUpdate,
 )
-SUPPORTED_PROVIDER_FILTERS = {"aws", "azure", "gcp", "saas", "license", "platform", "hybrid"}
+SUPPORTED_PROVIDER_FILTERS = {
+    "aws",
+    "azure",
+    "gcp",
+    "saas",
+    "license",
+    "platform",
+    "hybrid",
+}
+SUPPORTED_SPEND_LEDGER_PROVIDER_FILTERS = {*SUPPORTED_PROVIDER_FILTERS, "ai"}
+SUPPORTED_FOCUS_EXPORT_PROVIDER_FILTERS = {*SUPPORTED_PROVIDER_FILTERS, "ai"}
 SUPPORTED_ANOMALY_SEVERITIES = {"low", "medium", "high", "critical"}
 
 def _require_tenant_id(user: CurrentUser) -> UUID:
@@ -194,6 +208,36 @@ def _normalize_provider_filter(provider: str | None) -> str | None:
     if normalized not in SUPPORTED_PROVIDER_FILTERS:
         supported = ", ".join(sorted(SUPPORTED_PROVIDER_FILTERS))
         raise HTTPException(status_code=400, detail=f"Unsupported provider '{provider}'. Use one of: {supported}")
+    return normalized
+
+
+def _normalize_spend_ledger_provider_filter(provider: str | None) -> str | None:
+    if provider is None:
+        return None
+    normalized = provider.strip().lower()
+    if not normalized:
+        return None
+    if normalized not in SUPPORTED_SPEND_LEDGER_PROVIDER_FILTERS:
+        supported = ", ".join(sorted(SUPPORTED_SPEND_LEDGER_PROVIDER_FILTERS))
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported provider '{provider}'. Use one of: {supported}",
+        )
+    return normalized
+
+
+def _normalize_focus_export_provider_filter(provider: str | None) -> str | None:
+    if provider is None:
+        return None
+    normalized = provider.strip().lower()
+    if not normalized:
+        return None
+    if normalized not in SUPPORTED_FOCUS_EXPORT_PROVIDER_FILTERS:
+        supported = ", ".join(sorted(SUPPORTED_FOCUS_EXPORT_PROVIDER_FILTERS))
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported provider '{provider}'. Use one of: {supported}",
+        )
     return normalized
 
 
@@ -301,6 +345,17 @@ async def get_cost_attribution_coverage(**kwargs: Any) -> dict[str, Any]:
         require_tenant_id=_require_tenant_id,
         **kwargs,
     )
+
+
+async def get_spend_ledger(**kwargs: Any) -> SpendLedgerResponse:
+    payload = await get_spend_ledger_impl(
+        require_tenant_id=_require_tenant_id,
+        normalize_provider_filter=_normalize_spend_ledger_provider_filter,
+        **kwargs,
+    )
+    if isinstance(payload, SpendLedgerResponse):
+        return payload
+    return SpendLedgerResponse.model_validate(payload)
 
 
 async def get_canonical_quality(**kwargs: Any) -> Any:
@@ -487,7 +542,7 @@ async def delete_provider_invoice(**kwargs: Any) -> Any:
 async def export_focus_v13_costs_csv(**kwargs: Any) -> Any:
     return await export_focus_v13_costs_csv_impl(
         require_tenant_id=_require_tenant_id,
-        normalize_provider_filter=_normalize_provider_filter,
+        normalize_provider_filter=_normalize_focus_export_provider_filter,
         sanitize_csv_cell=_sanitize_csv_cell,
         get_settings=get_settings,
         **kwargs,
