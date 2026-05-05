@@ -131,7 +131,9 @@ def test_publish_artifact_registry_workflow_uses_wif_and_digest_promotion() -> N
     assert "artifact-registry-release.env" in workflow
     assert "immutable_artifact_registry_promotion" in workflow
     assert "concurrency:" in workflow
+    assert "group: publish-artifact-registry-images-${{ inputs.release_tag }}" in workflow
     assert "cancel-in-progress: false" in workflow
+    assert "github.workflow" not in workflow
     assert "timeout-minutes: 35" in workflow
 
 
@@ -149,7 +151,12 @@ def test_deploy_unified_platform_workflow_applies_terraform_and_cloudflare_pages
     assert "release_tag:" in workflow
     assert "batch_promotion_ref:" in workflow
     assert "concurrency:" in workflow
+    assert (
+        "group: deploy-unified-platform-${{ inputs.environment }}-${{ inputs.release_tag }}"
+        in workflow
+    )
     assert "cancel-in-progress: false" in workflow
+    assert "github.workflow" not in workflow
     assert "timeout-minutes: 90" in workflow
     assert "hashicorp/setup-terraform@" in workflow
     assert "b9cd54a3c349d3f38e8881555d616ced269862dd # v3" in workflow
@@ -196,7 +203,9 @@ def test_release_unified_platform_workflow_promotes_one_digest_through_environme
     )
 
     assert "concurrency:" in workflow
+    assert "group: release-unified-platform-${{ inputs.release_tag }}" in workflow
     assert "cancel-in-progress: false" in workflow
+    assert "github.workflow" not in workflow
     assert "timeout-minutes: 20" in workflow
     assert "timeout-minutes: 35" in workflow
     assert "Bootstrap Terraform State" in workflow
