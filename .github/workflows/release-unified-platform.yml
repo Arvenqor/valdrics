@@ -89,14 +89,14 @@ jobs:
           ref: ${{ inputs.git_ref || github.sha }}
 
       - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@7c6bc77d364ec2995949c0ea27054688c57f7ef7 # v3.0.0
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_DEPLOYER_SERVICE_ACCOUNT }}
           project_id: ${{ vars.GCP_PROJECT_ID }}
 
       - name: Set up gcloud
-        uses: google-github-actions/setup-gcloud@aa5489c8a0d8b7f894b681febe64e5b7ddf32f20 # v3.0.1
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
         with:
           project_id: ${{ vars.GCP_PROJECT_ID }}
           version: ">= 363.0.0"
@@ -159,14 +159,14 @@ jobs:
           ref: ${{ inputs.git_ref || github.sha }}
 
       - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@7c6bc77d364ec2995949c0ea27054688c57f7ef7 # v3.0.0
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_DEPLOYER_SERVICE_ACCOUNT }}
           project_id: ${{ vars.GCP_PROJECT_ID }}
 
       - name: Set up gcloud
-        uses: google-github-actions/setup-gcloud@aa5489c8a0d8b7f894b681febe64e5b7ddf32f20 # v3.0.1
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
         with:
           project_id: ${{ vars.GCP_PROJECT_ID }}
           version: ">= 363.0.0"
@@ -309,14 +309,14 @@ jobs:
           ref: ${{ inputs.git_ref || github.sha }}
 
       - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@7c6bc77d364ec2995949c0ea27054688c57f7ef7 # v3.0.0
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_DEPLOYER_SERVICE_ACCOUNT }}
           project_id: ${{ vars.GCP_PROJECT_ID }}
 
       - name: Set up gcloud
-        uses: google-github-actions/setup-gcloud@aa5489c8a0d8b7f894b681febe64e5b7ddf32f20 # v3.0.1
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
         with:
           project_id: ${{ vars.GCP_PROJECT_ID }}
           version: ">= 363.0.0"
