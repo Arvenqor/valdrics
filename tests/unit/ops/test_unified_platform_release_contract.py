@@ -20,8 +20,15 @@ def test_terraform_root_targets_gcp_cloudflare_and_supabase() -> None:
     assert 'source  = "cloudflare/cloudflare"' in providers
     assert 'source  = "supabase/supabase"' in providers
 
+    artifact_registry_main = (
+        REPO_ROOT / "terraform/artifact-registry/main.tf"
+    ).read_text(encoding="utf-8")
+
+    assert 'resource "google_artifact_registry_repository" "runtime"' in (
+        artifact_registry_main
+    )
     assert 'resource "google_cloud_run_v2_service" "api"' in main
-    assert 'ingress  = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"' in main
+    assert 'ingress          = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"' in main
     assert "custom_audiences = [var.api_url]" in main
     assert 'resource "google_compute_global_address" "api_edge"' in main
     assert 'resource "google_compute_region_network_endpoint_group" "api"' in main
@@ -192,6 +199,11 @@ def test_release_unified_platform_workflow_promotes_one_digest_through_environme
     assert "cancel-in-progress: false" in workflow
     assert "timeout-minutes: 20" in workflow
     assert "timeout-minutes: 35" in workflow
+    assert "Bootstrap Terraform State" in workflow
+    assert "Bootstrap Production Terraform State" in workflow
+    assert "Bootstrap Artifact Registry" in workflow
+    assert "terraform/state-backend" in workflow
+    assert "terraform/artifact-registry" in workflow
     assert "uses: ./.github/actions/setup-python-uv" in workflow
     assert "uses: ./.github/actions/setup-dashboard" in workflow
     assert "Publish Backend Artifact" in workflow
@@ -200,6 +212,7 @@ def test_release_unified_platform_workflow_promotes_one_digest_through_environme
     assert "ARTIFACT_REGISTRY_PROJECT_ID" in workflow
     assert "deploy-staging:" in workflow
     assert "deploy-production:" in workflow
+    assert "bootstrap-production-terraform-state:" in workflow
     assert "inputs.release_tag" in workflow
     assert "needs.publish.outputs.api_promotion_ref" in workflow
     assert "needs.publish.outputs.batch_promotion_ref" in workflow

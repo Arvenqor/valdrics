@@ -28,16 +28,21 @@ Required repository/environment variables:
 - `ARTIFACT_REGISTRY_PROJECT_ID`
 - `ARTIFACT_REGISTRY_REGION`
 - `ARTIFACT_REGISTRY_REPOSITORY`
+- `TERRAFORM_STATE_BUCKET`
 
-The release pipeline validates the release contract, publishes one digest-pinned
-backend image, deploys staging first, and promotes production only when
-`promote_production=true`. Production receives the same `api_promotion_ref` and
-`batch_promotion_ref` that passed staging.
+The release pipeline validates the release contract, applies the Terraform
+Artifact Registry foundation, publishes one digest-pinned backend image, deploys
+staging first, and promotes production only when `promote_production=true`.
+Production receives the same `api_promotion_ref` and `batch_promotion_ref` that
+passed staging.
 
 Implementation detail:
 
 - `.github/workflows/publish-artifact-registry-images.yml` is reusable and records
   `release/artifact-registry-release.json` plus `release/artifact-registry-release.env`
+- `.github/workflows/release-unified-platform.yml` applies
+  `terraform/artifact-registry/` before publishing, so the first image push uses
+  a Terraform-owned Docker repository instead of a console-created repository
 - `.github/workflows/deploy-unified-platform.yml` is reusable and applies one
   environment at a time with the digest-pinned `api_promotion_ref`, explicit
   `batch_promotion_ref`, and the immutable `release_tag`
@@ -67,6 +72,7 @@ At minimum the deployment workflow expects:
 - `vars.SUPABASE_ORGANIZATION_ID`
 - `vars.SUPABASE_PROJECT_NAME`
 - `vars.SUPABASE_REGION`
+- `vars.TERRAFORM_STATE_BUCKET`
 - `vars.RUNTIME_PLAIN_ENV_JSON`
 - `secrets.GCP_WORKLOAD_IDENTITY_PROVIDER`
 - `secrets.GCP_DEPLOYER_SERVICE_ACCOUNT`
@@ -118,6 +124,32 @@ if they appear in `RUNTIME_SECRET_ENV_JSON`. After that validation it materializ
 `.runtime/<environment>.migrate.env` from the materialized `DATABASE_URL`, then
 generates and verifies the managed deployment bundle before Terraform or
 Alembic run.
+
+## 2a. Bootstrap Terraform state
+
+Set `TERRAFORM_STATE_BUCKET` to the globally unique GCS bucket name that should
+hold the environment Terraform state. The release workflow applies
+`terraform/state-backend/` first and will create the bucket or import an existing
+bucket into the bootstrap state before continuing.
+
+The deployer service account needs API enablement and state-bucket permissions
+before this can succeed, including `roles/serviceusage.serviceUsageAdmin` and
+`roles/storage.admin` on the target project during bootstrap.
+
+For local operator bootstrap or repair, run:
+
+```bash
+terraform -chdir=terraform/state-backend init
+terraform -chdir=terraform/state-backend apply \
+  -var="gcp_project_id=<project-id>" \
+  -var="gcp_region=<region>" \
+  -var="state_bucket_name=<globally-unique-state-bucket>" \
+  -var='terraform_state_principals=["serviceAccount:<github-deployer-service-account>"]'
+```
+
+The release workflow uses `TERRAFORM_STATE_BUCKET` for both
+`terraform/artifact-registry/` and the main `terraform/` runtime state after the
+state bucket foundation succeeds.
 
 ## 3. Apply infrastructure and deploy the app
 
@@ -179,9 +211,18 @@ Staging evidence and validation gates:
 
 ## 4. Terraform source of truth
 
-The Terraform root in `terraform/` owns:
+Terraform is split by lifecycle:
 
-- Artifact Registry repository
+- `terraform/state-backend/` bootstraps the GCS bucket used for Terraform state.
+  This foundation is created first and is intentionally protected from normal
+  runtime teardown.
+- `terraform/artifact-registry/` owns the Artifact Registry Docker repository
+  used by the publish workflow.
+- `terraform/` owns the environment runtime stack and consumes the digest-pinned
+  image refs produced by the publish workflow.
+
+The runtime stack owns:
+
 - Secret Manager secrets
 - Cloud Run API service
 - GCP external HTTPS load balancer for the public API

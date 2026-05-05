@@ -317,7 +317,9 @@ jobs:
           TF_VAR_supabase_database_password: ${{ secrets.SUPABASE_DATABASE_PASSWORD }}
         run: |
           set -euo pipefail
-          terraform -chdir=terraform init
+          terraform -chdir=terraform init \
+            -backend-config="bucket=${{ vars.TERRAFORM_STATE_BUCKET }}" \
+            -backend-config="prefix=unified-platform/${DEPLOY_ENVIRONMENT}"
           terraform -chdir=terraform plan \
             -var-file="../${{ steps.managed_bundle.outputs.tfvars_path }}" \
             -out=tfplan

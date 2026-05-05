@@ -63,7 +63,9 @@ jobs:
 
   publish:
     name: Publish Backend Artifact
-    needs: validate
+    needs:
+      - validate
+      - bootstrap-artifact-registry
     uses: ./.github/workflows/publish-artifact-registry-images.yml
     with:
       release_tag: ${{ inputs.release_tag }}
@@ -72,6 +74,145 @@ jobs:
       artifact_registry_region: ${{ vars.ARTIFACT_REGISTRY_REGION }}
       artifact_registry_repository: ${{ vars.ARTIFACT_REGISTRY_REPOSITORY }}
     secrets: inherit
+
+  bootstrap-terraform-state:
+    name: Bootstrap Terraform State
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: staging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.git_ref || github.sha }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@7c6bc77d364ec2995949c0ea27054688c57f7ef7 # v3.0.0
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOYER_SERVICE_ACCOUNT }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@aa5489c8a0d8b7f894b681febe64e5b7ddf32f20 # v3.0.1
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          version: ">= 363.0.0"
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+
+      - name: Terraform apply state backend foundation
+        shell: bash
+        run: |
+          set -euo pipefail
+          terraform -chdir=terraform/state-backend init
+          if ! terraform -chdir=terraform/state-backend state show google_project_service.storage >/dev/null 2>&1; then
+            if gcloud services list \
+              --enabled \
+              --project="${{ vars.GCP_PROJECT_ID }}" \
+              --filter="name:storage.googleapis.com" \
+              --format="value(name)" | grep -q "storage.googleapis.com"; then
+              terraform -chdir=terraform/state-backend import \
+                -var="gcp_project_id=${{ vars.GCP_PROJECT_ID }}" \
+                -var="gcp_region=${{ vars.GCP_REGION }}" \
+                -var="state_bucket_name=${{ vars.TERRAFORM_STATE_BUCKET }}" \
+                -var='terraform_state_principals=["serviceAccount:${{ secrets.GCP_DEPLOYER_SERVICE_ACCOUNT }}"]' \
+                google_project_service.storage \
+                "${{ vars.GCP_PROJECT_ID }}/storage.googleapis.com"
+            fi
+          fi
+          if ! terraform -chdir=terraform/state-backend state show google_storage_bucket.terraform_state >/dev/null 2>&1; then
+            if gcloud storage buckets describe "gs://${{ vars.TERRAFORM_STATE_BUCKET }}" >/dev/null 2>&1; then
+              terraform -chdir=terraform/state-backend import \
+                -var="gcp_project_id=${{ vars.GCP_PROJECT_ID }}" \
+                -var="gcp_region=${{ vars.GCP_REGION }}" \
+                -var="state_bucket_name=${{ vars.TERRAFORM_STATE_BUCKET }}" \
+                -var='terraform_state_principals=["serviceAccount:${{ secrets.GCP_DEPLOYER_SERVICE_ACCOUNT }}"]' \
+                google_storage_bucket.terraform_state \
+                "${{ vars.TERRAFORM_STATE_BUCKET }}"
+            fi
+          fi
+          terraform -chdir=terraform/state-backend plan \
+            -var="gcp_project_id=${{ vars.GCP_PROJECT_ID }}" \
+            -var="gcp_region=${{ vars.GCP_REGION }}" \
+            -var="state_bucket_name=${{ vars.TERRAFORM_STATE_BUCKET }}" \
+            -var='terraform_state_principals=["serviceAccount:${{ secrets.GCP_DEPLOYER_SERVICE_ACCOUNT }}"]' \
+            -out=tfplan
+          terraform -chdir=terraform/state-backend apply -auto-approve tfplan
+
+  bootstrap-artifact-registry:
+    name: Bootstrap Artifact Registry
+    needs:
+      - validate
+      - bootstrap-terraform-state
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: staging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.git_ref || github.sha }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@7c6bc77d364ec2995949c0ea27054688c57f7ef7 # v3.0.0
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOYER_SERVICE_ACCOUNT }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@aa5489c8a0d8b7f894b681febe64e5b7ddf32f20 # v3.0.1
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          version: ">= 363.0.0"
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+
+      - name: Terraform apply Artifact Registry foundation
+        shell: bash
+        run: |
+          set -euo pipefail
+          terraform -chdir=terraform/artifact-registry init \
+            -backend-config="bucket=${{ vars.TERRAFORM_STATE_BUCKET }}" \
+            -backend-config="prefix=artifact-registry/${{ vars.GCP_PROJECT_ID }}"
+          if ! terraform -chdir=terraform/artifact-registry state show google_project_service.artifact_registry >/dev/null 2>&1; then
+            if gcloud services list \
+              --enabled \
+              --project="${{ vars.GCP_PROJECT_ID }}" \
+              --filter="name:artifactregistry.googleapis.com" \
+              --format="value(name)" | grep -q "artifactregistry.googleapis.com"; then
+              terraform -chdir=terraform/artifact-registry import \
+                -var="gcp_project_id=${{ vars.GCP_PROJECT_ID }}" \
+                -var="gcp_region=${{ vars.GCP_REGION }}" \
+                -var="artifact_registry_repository_id=${{ vars.ARTIFACT_REGISTRY_REPOSITORY }}" \
+                google_project_service.artifact_registry \
+                "${{ vars.GCP_PROJECT_ID }}/artifactregistry.googleapis.com"
+            fi
+          fi
+          if ! terraform -chdir=terraform/artifact-registry state show google_artifact_registry_repository.runtime >/dev/null 2>&1; then
+            if gcloud artifacts repositories describe "${{ vars.ARTIFACT_REGISTRY_REPOSITORY }}" \
+              --location="${{ vars.GCP_REGION }}" \
+              --project="${{ vars.GCP_PROJECT_ID }}" >/dev/null 2>&1; then
+              terraform -chdir=terraform/artifact-registry import \
+                -var="gcp_project_id=${{ vars.GCP_PROJECT_ID }}" \
+                -var="gcp_region=${{ vars.GCP_REGION }}" \
+                -var="artifact_registry_repository_id=${{ vars.ARTIFACT_REGISTRY_REPOSITORY }}" \
+                google_artifact_registry_repository.runtime \
+                "projects/${{ vars.GCP_PROJECT_ID }}/locations/${{ vars.GCP_REGION }}/repositories/${{ vars.ARTIFACT_REGISTRY_REPOSITORY }}"
+            fi
+          fi
+          terraform -chdir=terraform/artifact-registry plan \
+            -var="gcp_project_id=${{ vars.GCP_PROJECT_ID }}" \
+            -var="gcp_region=${{ vars.GCP_REGION }}" \
+            -var="artifact_registry_repository_id=${{ vars.ARTIFACT_REGISTRY_REPOSITORY }}" \
+            -out=tfplan
+          terraform -chdir=terraform/artifact-registry apply -auto-approve tfplan
 
   deploy-staging:
     name: Deploy Staging
@@ -143,6 +284,7 @@ jobs:
     needs:
       - publish
       - deploy-staging
+      - bootstrap-production-terraform-state
     uses: ./.github/workflows/deploy-unified-platform.yml
     with:
       environment: production
@@ -151,6 +293,75 @@ jobs:
       api_promotion_ref: ${{ needs.publish.outputs.api_promotion_ref }}
       batch_promotion_ref: ${{ needs.publish.outputs.batch_promotion_ref }}
     secrets: inherit
+
+  bootstrap-production-terraform-state:
+    name: Bootstrap Production Terraform State
+    if: ${{ inputs.promote_production }}
+    needs: deploy-staging
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.git_ref || github.sha }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@7c6bc77d364ec2995949c0ea27054688c57f7ef7 # v3.0.0
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOYER_SERVICE_ACCOUNT }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@aa5489c8a0d8b7f894b681febe64e5b7ddf32f20 # v3.0.1
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          version: ">= 363.0.0"
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+
+      - name: Terraform apply state backend foundation
+        shell: bash
+        run: |
+          set -euo pipefail
+          terraform -chdir=terraform/state-backend init
+          if ! terraform -chdir=terraform/state-backend state show google_project_service.storage >/dev/null 2>&1; then
+            if gcloud services list \
+              --enabled \
+              --project="${{ vars.GCP_PROJECT_ID }}" \
+              --filter="name:storage.googleapis.com" \
+              --format="value(name)" | grep -q "storage.googleapis.com"; then
+              terraform -chdir=terraform/state-backend import \
+                -var="gcp_project_id=${{ vars.GCP_PROJECT_ID }}" \
+                -var="gcp_region=${{ vars.GCP_REGION }}" \
+                -var="state_bucket_name=${{ vars.TERRAFORM_STATE_BUCKET }}" \
+                -var='terraform_state_principals=["serviceAccount:${{ secrets.GCP_DEPLOYER_SERVICE_ACCOUNT }}"]' \
+                google_project_service.storage \
+                "${{ vars.GCP_PROJECT_ID }}/storage.googleapis.com"
+            fi
+          fi
+          if ! terraform -chdir=terraform/state-backend state show google_storage_bucket.terraform_state >/dev/null 2>&1; then
+            if gcloud storage buckets describe "gs://${{ vars.TERRAFORM_STATE_BUCKET }}" >/dev/null 2>&1; then
+              terraform -chdir=terraform/state-backend import \
+                -var="gcp_project_id=${{ vars.GCP_PROJECT_ID }}" \
+                -var="gcp_region=${{ vars.GCP_REGION }}" \
+                -var="state_bucket_name=${{ vars.TERRAFORM_STATE_BUCKET }}" \
+                -var='terraform_state_principals=["serviceAccount:${{ secrets.GCP_DEPLOYER_SERVICE_ACCOUNT }}"]' \
+                google_storage_bucket.terraform_state \
+                "${{ vars.TERRAFORM_STATE_BUCKET }}"
+            fi
+          fi
+          terraform -chdir=terraform/state-backend plan \
+            -var="gcp_project_id=${{ vars.GCP_PROJECT_ID }}" \
+            -var="gcp_region=${{ vars.GCP_REGION }}" \
+            -var="state_bucket_name=${{ vars.TERRAFORM_STATE_BUCKET }}" \
+            -var='terraform_state_principals=["serviceAccount:${{ secrets.GCP_DEPLOYER_SERVICE_ACCOUNT }}"]' \
+            -out=tfplan
+          terraform -chdir=terraform/state-backend apply -auto-approve tfplan
 
   verify-production-readiness:
     name: Verify Production Release Readiness

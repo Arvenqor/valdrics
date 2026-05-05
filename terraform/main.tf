@@ -33,7 +33,6 @@ locals {
 
 resource "google_project_service" "required" {
   for_each = toset([
-    "artifactregistry.googleapis.com",
     "cloudbuild.googleapis.com",
     "cloudtasks.googleapis.com",
     "cloudscheduler.googleapis.com",
@@ -46,16 +45,6 @@ resource "google_project_service" "required" {
   project            = var.gcp_project_id
   service            = each.key
   disable_on_destroy = false
-}
-
-resource "google_artifact_registry_repository" "runtime" {
-  project       = var.gcp_project_id
-  location      = var.gcp_region
-  repository_id = var.artifact_registry_repository_id
-  description   = "Digest-pinned Valdrics backend images"
-  format        = "DOCKER"
-
-  depends_on = [google_project_service.required]
 }
 
 resource "google_service_account" "runtime" {
@@ -155,9 +144,9 @@ resource "google_cloud_tasks_queue" "runtime" {
 }
 
 resource "google_cloud_run_v2_service" "api" {
-  name     = var.cloud_run_service_name
-  location = var.gcp_region
-  ingress  = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
+  name             = var.cloud_run_service_name
+  location         = var.gcp_region
+  ingress          = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
   custom_audiences = [var.api_url]
 
   template {

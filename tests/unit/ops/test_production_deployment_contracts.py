@@ -60,6 +60,11 @@ def test_release_artifacts_are_immutable_and_workflows_target_unified_platform()
     assert "runtime_json_classification_errors" in deploy_workflow
     assert "wrangler pages deploy" in deploy_workflow
     assert "/health/live" in deploy_workflow
+    assert "Bootstrap Terraform State" in release_workflow
+    assert "Bootstrap Production Terraform State" in release_workflow
+    assert "Bootstrap Artifact Registry" in release_workflow
+    assert "terraform/state-backend" in release_workflow
+    assert "terraform/artifact-registry" in release_workflow
     assert "needs.publish.outputs.api_promotion_ref" in release_workflow
     assert "needs.publish.outputs.batch_promotion_ref" in release_workflow
     assert "actions/download-artifact@" in release_workflow

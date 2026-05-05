@@ -235,8 +235,11 @@ __marimo__/
 
 # Terraform local cache/state
 terraform/.terraform/
+terraform/**/.terraform/
 terraform/*.tfstate
 terraform/*.tfstate.*
+terraform/**/*.tfstate
+terraform/**/*.tfstate.*
 
 # Local transient diagnostics and test artifacts
 test_*.sqlite

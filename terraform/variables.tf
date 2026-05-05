@@ -20,12 +20,6 @@ variable "gcp_region" {
   default     = "us-central1"
 }
 
-variable "artifact_registry_repository_id" {
-  description = "Artifact Registry Docker repository ID that stores the backend image."
-  type        = string
-  default     = "valdrics-runtime"
-}
-
 variable "api_image" {
   description = "Digest-pinned Artifact Registry image ref for the API service."
   type        = string

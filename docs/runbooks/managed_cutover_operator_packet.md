@@ -131,12 +131,14 @@ Create or verify:
 
 - target GCP project for `staging`
 - target GCP project for `production`
-- Artifact Registry repository used by the publish workflow
+- Terraform state bucket for each environment
+- Terraform-managed Artifact Registry repository used by the publish workflow
 - Workload Identity Federation provider for GitHub Actions
 - deployer service account for environment deployment
 - artifact publisher service account for image publishing
-- permission grants required by Terraform, Cloud Run, Cloud Tasks, Cloud
-  Scheduler, Cloud Run Jobs, and load balancer management
+- permission grants required by Terraform state bootstrap, API enablement,
+  Cloud Run, Cloud Tasks, Cloud Scheduler, Cloud Run Jobs, and load balancer
+  management
 
 Where to get it:
 
@@ -220,6 +222,7 @@ Set the following for both `staging` and `production` environments.
 | `SUPABASE_ORGANIZATION_ID` | Supabase organization identifier | Supabase dashboard or Management API organization listing |
 | `SUPABASE_PROJECT_NAME` | Supabase project name | Supabase dashboard project overview |
 | `SUPABASE_REGION` | Supabase project region | Supabase project overview / creation settings |
+| `TERRAFORM_STATE_BUCKET` | GCS bucket used by Terraform remote state for this environment | Terraform `state-backend` output |
 | `RUNTIME_PLAIN_ENV_JSON` | JSON object of non-secret runtime keys | Assemble from the template in section 6 |
 
 ## 5. GitHub environment secrets
