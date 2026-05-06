@@ -268,6 +268,8 @@ The runtime stack owns:
 - Cloud Run API service
 - GCP external HTTPS load balancer for the public API
 - Cloud Armor origin guard for Cloudflare-only API load balancer ingress
+- Cloud Run public invocation via `invoker_iam_disabled`, not an `allUsers`
+  IAM binding, so projects with domain restricted sharing org policy can deploy
 - Cloud Run batch job
 - Cloud Tasks queue
 - Cloud Scheduler jobs

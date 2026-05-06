@@ -148,6 +148,9 @@ Create or verify:
 - permission grants required by Terraform state bootstrap, API enablement,
   Cloud Run, Cloud Tasks, Cloud Scheduler, Cloud Run Jobs, Secret Manager,
   Artifact Registry, and load balancer management
+- Cloud Run public access should use disabled Invoker IAM checks
+  (`invoker_iam_disabled`) instead of an `allUsers` IAM binding when the project
+  is under domain restricted sharing organization policy
 
 Where to get it:
 

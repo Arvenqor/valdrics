@@ -43,8 +43,9 @@ def test_terraform_root_targets_gcp_cloudflare_and_supabase() -> None:
         artifact_registry_main
     )
     assert 'resource "google_cloud_run_v2_service" "api"' in main
-    assert 'ingress          = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"' in main
-    assert "custom_audiences = [var.api_url]" in main
+    assert 'ingress              = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"' in main
+    assert "invoker_iam_disabled = true" in main
+    assert "custom_audiences     = [var.api_url]" in main
     assert 'resource "google_compute_global_address" "api_edge"' in main
     assert 'resource "google_compute_region_network_endpoint_group" "api"' in main
     assert 'resource "google_compute_security_policy" "api_edge_origin"' in main
@@ -67,6 +68,8 @@ def test_terraform_root_targets_gcp_cloudflare_and_supabase() -> None:
     assert 'resource "cloudflare_pages_project" "dashboard"' in main
     assert 'resource "supabase_project" "platform"' in main
     assert 'resource "supabase_settings" "platform"' in main
+    assert 'resource "google_cloud_run_service_iam_policy" "api_public_invoker"' not in main
+    assert '"allUsers"' not in main
 
     assert 'variable "runtime_plain_env"' in variables
     assert 'variable "runtime_secret_env"' in variables

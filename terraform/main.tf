@@ -144,10 +144,11 @@ resource "google_cloud_tasks_queue" "runtime" {
 }
 
 resource "google_cloud_run_v2_service" "api" {
-  name             = var.cloud_run_service_name
-  location         = var.gcp_region
-  ingress          = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
-  custom_audiences = [var.api_url]
+  name                 = var.cloud_run_service_name
+  location             = var.gcp_region
+  ingress              = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
+  invoker_iam_disabled = true
+  custom_audiences     = [var.api_url]
 
   template {
     service_account                  = google_service_account.runtime.email
@@ -367,22 +368,6 @@ resource "google_compute_global_forwarding_rule" "api_http" {
   target                = google_compute_target_http_proxy.api_http_redirect.id
 
   depends_on = [google_project_service.required]
-}
-
-data "google_iam_policy" "api_public_invoker" {
-  binding {
-    role = "roles/run.invoker"
-    members = [
-      "allUsers",
-    ]
-  }
-}
-
-resource "google_cloud_run_service_iam_policy" "api_public_invoker" {
-  location    = google_cloud_run_v2_service.api.location
-  project     = var.gcp_project_id
-  service     = google_cloud_run_v2_service.api.name
-  policy_data = data.google_iam_policy.api_public_invoker.policy_data
 }
 
 resource "google_cloud_run_v2_job" "batch" {
