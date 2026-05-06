@@ -137,7 +137,7 @@ class TestSessionDeep:
         with patch("app.shared.core.config.get_settings", return_value=mock_settings):
             importlib.reload(app.shared.db.session)
 
-    def test_ssl_config_require_prod_uses_verified_system_trust(self):
+    def test_ssl_config_require_prod_uses_tls_without_ca_validation(self):
         import app.shared.db.session as session_module
 
         mock_settings = MagicMock()
@@ -156,7 +156,7 @@ class TestSessionDeep:
         with (
             patch("app.shared.db.session.get_settings", return_value=mock_settings),
             patch(
-                "app.shared.db.connect_args.ssl.create_default_context",
+                "app.shared.db.connect_args.ssl.SSLContext",
                 return_value=ssl_ctx,
             ),
             patch("app.shared.db.session.create_async_engine", return_value=fake_engine),
@@ -170,5 +170,5 @@ class TestSessionDeep:
 
         assert runtime.engine is fake_engine
         assert runtime.session_maker is fake_session_factory
-        assert ssl_ctx.verify_mode == session_module.ssl.CERT_REQUIRED
-        assert ssl_ctx.check_hostname is True
+        assert ssl_ctx.verify_mode == session_module.ssl.CERT_NONE
+        assert ssl_ctx.check_hostname is False

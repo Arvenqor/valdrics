@@ -352,6 +352,9 @@ Notes:
 - `DATABASE_URL` is intentionally secret-classified and must stay in
   `RUNTIME_SECRET_ENV_JSON`; the deploy workflow rejects it if it is placed in
   `RUNTIME_PLAIN_ENV_JSON`.
+- Managed migrations default to `DB_SSL_MODE=require`, which requires TLS but
+  does not validate the database certificate chain. Use `verify-ca` or
+  `verify-full` only when you also provide `DB_SSL_CA_CERT_PATH`.
 - Only include the API key that matches `LLM_PROVIDER`.
 - Keep this JSON out of source control.
 - Treat every value here as a secret.

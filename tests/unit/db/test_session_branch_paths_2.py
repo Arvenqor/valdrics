@@ -107,14 +107,17 @@ def test_build_connect_args_require_branches_with_and_without_ca() -> None:
         DB_SSL_CA_CERT_PATH=None,
         is_production=False,
     )
-    with patch("app.shared.db.connect_args.ssl.create_default_context", return_value=ssl_ctx2):
+    with (
+        patch("app.shared.db.connect_args.ssl.create_default_context", return_value=ssl_ctx2),
+        patch("app.shared.db.connect_args.ssl.SSLContext", return_value=ssl_ctx2),
+    ):
         args2 = session_mod._build_connect_args(settings_insecure, "postgresql+asyncpg://h/db")
     assert args2["ssl"] is ssl_ctx2
     ssl_ctx2.load_verify_locations.assert_not_called()
-    assert ssl_ctx2.check_hostname is True
-    assert ssl_ctx2.verify_mode == session_mod.ssl.CERT_REQUIRED
+    assert ssl_ctx2.check_hostname is False
+    assert ssl_ctx2.verify_mode == session_mod.ssl.CERT_NONE
 
-    with patch("app.shared.db.connect_args.ssl.create_default_context", return_value=MagicMock()):
+    with patch("app.shared.db.connect_args.ssl.SSLContext", return_value=MagicMock()):
         args3 = session_mod._build_connect_args(
             settings_insecure, "sqlite+aiosqlite:///:memory:"
         )

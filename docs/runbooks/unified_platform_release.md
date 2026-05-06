@@ -157,6 +157,11 @@ if they appear in `RUNTIME_SECRET_ENV_JSON`. After that validation it materializ
 generates and verifies the managed deployment bundle before Terraform or
 Alembic run.
 
+The generated migration env defaults to `DB_SSL_MODE=require`, which requires
+TLS but does not verify the database certificate chain. Use `verify-ca` or
+`verify-full` plus `DB_SSL_CA_CERT_PATH` only when you have a pinned Supabase CA
+bundle available to the runner.
+
 ## 2a. Bootstrap Terraform state
 
 Set `TERRAFORM_STATE_BUCKET` to the globally unique GCS bucket name that should

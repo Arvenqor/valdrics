@@ -75,10 +75,10 @@ class TestSessionExhaustive:
                 else:
                     importlib.reload(session_mod)
 
-    def test_production_ssl_require_uses_system_trust_when_ca_not_pinned(
+    def test_production_ssl_require_enforces_tls_without_ca_validation_when_ca_not_pinned(
         self, clean_session_module
     ):
-        """Production require mode should use verified system trust without a pinned CA."""
+        """Production require mode should require TLS without relying on runner CA trust."""
         mock_settings = MagicMock()
         mock_settings.DATABASE_URL = "postgresql+asyncpg://user@host/db"
         mock_settings.DB_SSL_MODE = "require"
@@ -95,7 +95,7 @@ class TestSessionExhaustive:
         ssl_ctx = MagicMock()
         with (
             patch("app.shared.core.config.get_settings", return_value=mock_settings),
-            patch("ssl.create_default_context", return_value=ssl_ctx),
+            patch("ssl.SSLContext", return_value=ssl_ctx),
             patch("sqlalchemy.ext.asyncio.create_async_engine") as mock_create_engine,
             patch("sqlalchemy.event.listen"),
         ):
@@ -104,8 +104,8 @@ class TestSessionExhaustive:
 
         _, kwargs = mock_create_engine.call_args
         assert kwargs["connect_args"]["ssl"] is ssl_ctx
-        assert ssl_ctx.verify_mode == session_mod.ssl.CERT_REQUIRED
-        assert ssl_ctx.check_hostname is True
+        assert ssl_ctx.verify_mode == session_mod.ssl.CERT_NONE
+        assert ssl_ctx.check_hostname is False
 
     def test_invalid_ssl_mode(self, clean_session_module):
         """Test error on invalid SSL mode."""
