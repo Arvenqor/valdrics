@@ -387,6 +387,20 @@ def _cloudflare_pages_public_env(values: dict[str, str]) -> dict[str, str]:
     }
 
 
+def supabase_project_ref_from_url(value: str) -> str:
+    candidate = str(value or "").strip()
+    if not candidate or _contains_placeholder(candidate):
+        return ""
+    parsed = urlparse(candidate)
+    hostname = str(parsed.hostname or "").strip().lower()
+    if not hostname.endswith(".supabase.co"):
+        return ""
+    project_ref = hostname.removesuffix(".supabase.co").strip()
+    if not project_ref or "." in project_ref:
+        return ""
+    return project_ref
+
+
 def _json_placeholder_blockers(payload: Any, *, path: str = "") -> list[str]:
     blockers: list[str] = []
     if isinstance(payload, dict):
@@ -654,6 +668,10 @@ def generate_managed_deployment_artifacts(
         "supabase_organization_id": _resolved_or_placeholder(
             supabase_organization_id,
             placeholder_name="SUPABASE_ORGANIZATION_ID",
+        ),
+        "supabase_project_ref": _resolved_or_placeholder(
+            supabase_project_ref_from_url(_string_value(values, "SUPABASE_URL")),
+            placeholder_name="SUPABASE_PROJECT_REF",
         ),
         "supabase_project_name": _resolved_or_placeholder(
             supabase_project_name,

@@ -238,6 +238,11 @@ variable "supabase_organization_id" {
   type        = string
 }
 
+variable "supabase_project_ref" {
+  description = "Existing Supabase project ref derived from SUPABASE_URL and imported into Terraform state before apply."
+  type        = string
+}
+
 variable "supabase_project_name" {
   description = "Supabase project name for the environment."
   type        = string

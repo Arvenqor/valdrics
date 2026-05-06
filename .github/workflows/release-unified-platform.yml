@@ -200,11 +200,119 @@ jobs:
             -out=tfplan
           terraform -chdir=terraform/artifact-registry apply -auto-approve tfplan
 
+  preflight-staging-managed-platform:
+    name: Preflight Staging Managed Platform
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: staging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.git_ref || github.sha }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOYER_SERVICE_ACCOUNT }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          version: ">= 363.0.0"
+
+      - name: Enable required Google APIs early
+        shell: bash
+        run: |
+          set -euo pipefail
+          gcloud services enable \
+            cloudbuild.googleapis.com \
+            cloudtasks.googleapis.com \
+            cloudscheduler.googleapis.com \
+            compute.googleapis.com \
+            iam.googleapis.com \
+            run.googleapis.com \
+            secretmanager.googleapis.com \
+            --project="${{ vars.GCP_PROJECT_ID }}" \
+            --quiet
+
+      - name: Validate Supabase existing project binding
+        shell: bash
+        env:
+          RUNTIME_PLAIN_ENV_JSON: ${{ vars.RUNTIME_PLAIN_ENV_JSON }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 scripts/preflight_managed_platform.py \
+            --runtime-plain-env-json "${RUNTIME_PLAIN_ENV_JSON}" \
+            --supabase-organization-id "${{ vars.SUPABASE_ORGANIZATION_ID }}" \
+            --supabase-project-name "${{ vars.SUPABASE_PROJECT_NAME }}"
+
+  preflight-production-managed-platform:
+    name: Preflight Production Managed Platform
+    if: ${{ inputs.promote_production }}
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.git_ref || github.sha }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOYER_SERVICE_ACCOUNT }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          version: ">= 363.0.0"
+
+      - name: Enable required Google APIs early
+        shell: bash
+        run: |
+          set -euo pipefail
+          gcloud services enable \
+            cloudbuild.googleapis.com \
+            cloudtasks.googleapis.com \
+            cloudscheduler.googleapis.com \
+            compute.googleapis.com \
+            iam.googleapis.com \
+            run.googleapis.com \
+            secretmanager.googleapis.com \
+            --project="${{ vars.GCP_PROJECT_ID }}" \
+            --quiet
+
+      - name: Validate Supabase existing project binding
+        shell: bash
+        env:
+          RUNTIME_PLAIN_ENV_JSON: ${{ vars.RUNTIME_PLAIN_ENV_JSON }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 scripts/preflight_managed_platform.py \
+            --runtime-plain-env-json "${RUNTIME_PLAIN_ENV_JSON}" \
+            --supabase-organization-id "${{ vars.SUPABASE_ORGANIZATION_ID }}" \
+            --supabase-project-name "${{ vars.SUPABASE_PROJECT_NAME }}"
+
   publish:
     name: Publish Backend Artifact
     needs:
       - validate
       - bootstrap-artifact-registry
+      - preflight-staging-managed-platform
     uses: ./.github/workflows/publish-artifact-registry-images.yml
     with:
       release_tag: ${{ inputs.release_tag }}
@@ -285,6 +393,7 @@ jobs:
       - publish
       - deploy-staging
       - bootstrap-production-terraform-state
+      - preflight-production-managed-platform
     uses: ./.github/workflows/deploy-unified-platform.yml
     with:
       environment: production

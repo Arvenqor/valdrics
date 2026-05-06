@@ -127,6 +127,7 @@ TERRAFORM_BASE_REQUIRED_INPUTS = (
     "cloudflare_pages_project_name",
     "cloudflare_pages_production_branch",
     "supabase_organization_id",
+    "supabase_project_ref",
     "supabase_project_name",
     "supabase_region",
 )

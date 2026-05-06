@@ -180,18 +180,25 @@ Required workflow inputs:
 - `batch_promotion_ref`
 - optional `git_ref`
 
-The release pipeline performs:
+Before image publishing, the release workflow runs a managed-platform preflight
+against the target environment. The preflight enables required Google APIs early
+and validates that `SUPABASE_URL` points at an existing Supabase project in the
+configured organization. This catches org/token/project binding issues before
+the expensive Docker build and publish path.
+
+The deploy workflow performs:
 
 1. Google Cloud authentication with Workload Identity Federation
 2. Materialize `.runtime/<environment>.env`, `.runtime/<environment>.migrate.env`, and `.runtime/deploy/<environment>/...`
 3. Verify the managed deployment bundle
 4. Upload the non-secret deployment evidence bundle as an artifact for operator auditability. Keep `.runtime/<environment>.env`, `.runtime/<environment>.migrate.env`, `secret-manager-runtime-secrets.json`, and `terraform.runtime.auto.tfvars.json` on the deploy runner only.
-5. Terraform apply for GCP runtime + API load balancer, Cloudflare Pages/DNS/WAF, and Supabase project/settings
-6. Alembic migration from `.runtime/<environment>.migrate.env`
-7. Dashboard build from `.runtime/deploy/<environment>/cloudflare-pages-env.json`
-8. Cloudflare Pages direct upload deploy
-9. API liveness smoke check
-10. Refresh the codebase audit report and run the managed release readiness verifier against the uploaded non-secret bundle
+5. Import the existing Supabase project ref derived from `SUPABASE_URL` into Terraform state when it is not already tracked
+6. Terraform apply for GCP runtime + API load balancer, Cloudflare Pages/DNS/WAF, and Supabase project/settings
+7. Alembic migration from `.runtime/<environment>.migrate.env`
+8. Dashboard build from `.runtime/deploy/<environment>/cloudflare-pages-env.json`
+9. Cloudflare Pages direct upload deploy
+10. API liveness smoke check
+11. Refresh the codebase audit report and run the managed release readiness verifier against the uploaded non-secret bundle
 
 ## 3a. Staging cutover operator sequence
 
@@ -254,8 +261,9 @@ projects still require deployer permission to enable services, and the Compute
 Engine API can take a few minutes to propagate before load balancer resources
 accept creates. Cloudflare rate limiting defaults to 50 requests per 10 seconds
 because some zones are only entitled to the 10-second `http_ratelimit` window.
-Supabase project creation requires available organization project quota, or an
-existing project must be imported into Terraform state before the release run.
+Supabase projects are expected to exist before release. Terraform imports the
+project ref derived from `SUPABASE_URL` before planning, so an empty existing
+project is sufficient; Alembic owns table creation during the migration step.
 
 Terraform inputs are environment-specific and should be supplied through
 the generated `.runtime/deploy/<environment>/terraform.runtime.auto.tfvars.json`

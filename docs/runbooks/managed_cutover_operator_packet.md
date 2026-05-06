@@ -183,8 +183,11 @@ Create or verify:
 
 - target organization
 - target project
-- available project quota for Terraform-managed creation, or an imported
-  existing project in Terraform state before the release run
+- project URL in `SUPABASE_URL`, because the release workflow derives the
+  project ref from that URL and imports the existing project into Terraform
+  state before plan
+- empty tables are acceptable for a new staging or production project; Alembic
+  owns schema/table creation after Terraform finishes
 - project region
 - personal access token for Management API and Terraform
 - project database password

@@ -54,6 +54,8 @@ def test_release_artifacts_are_immutable_and_workflows_target_unified_platform()
     assert "secret-manager-runtime-secrets.json" not in deploy_upload_section
     assert "terraform.runtime.auto.tfvars.json" not in deploy_upload_section
     assert "terraform -chdir=terraform apply -auto-approve tfplan" in deploy_workflow
+    assert "terraform -chdir=terraform import" in deploy_workflow
+    assert "supabase_project.platform" in deploy_workflow
     assert "terraform.runtime.auto.tfvars.json" in deploy_workflow
     assert "secrets.DATABASE_URL" not in deploy_workflow
     assert "secrets.SUPABASE_ANON_KEY" not in deploy_workflow
@@ -63,6 +65,8 @@ def test_release_artifacts_are_immutable_and_workflows_target_unified_platform()
     assert "Bootstrap Terraform State" in release_workflow
     assert "Bootstrap Production Terraform State" in release_workflow
     assert "Bootstrap Artifact Registry" in release_workflow
+    assert "Preflight Staging Managed Platform" in release_workflow
+    assert "Preflight Production Managed Platform" in release_workflow
     assert "terraform/state-backend" in release_workflow
     assert "terraform/artifact-registry" in release_workflow
     assert "needs.publish.outputs.api_promotion_ref" in release_workflow

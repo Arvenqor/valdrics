@@ -73,6 +73,7 @@ def test_terraform_root_targets_gcp_cloudflare_and_supabase() -> None:
     assert 'variable "cloudflare_zone_id"' in variables
     assert 'variable "cloudflare_origin_allow_cidrs"' in variables
     assert 'variable "cloudflare_pages_project_name"' in variables
+    assert 'variable "supabase_project_ref"' in variables
     assert 'variable "supabase_project_name"' in variables
     assert (
         'managed_scheduler_jobs              = jsondecode(file("${path.module}/managed_scheduler_jobs.json"))'
@@ -217,6 +218,9 @@ def test_deploy_unified_platform_workflow_applies_terraform_and_cloudflare_pages
     assert "terraform -chdir=terraform init" in workflow
     assert "terraform.runtime.auto.tfvars.json" in workflow
     assert "-var-file=" in workflow
+    assert "terraform -chdir=terraform import" in workflow
+    assert "supabase_project.platform" in workflow
+    assert "steps.managed_bundle.outputs.supabase_project_ref" in workflow
     assert "terraform -chdir=terraform apply -auto-approve tfplan" in workflow
     assert 'source "${{ steps.managed_bundle.outputs.migration_env_path }}"' in workflow
     assert "uv run alembic upgrade head" in workflow
@@ -252,6 +256,11 @@ def test_release_unified_platform_workflow_promotes_one_digest_through_environme
     assert "uses: ./.github/actions/setup-python-uv" in workflow
     assert "uses: ./.github/actions/setup-dashboard" in workflow
     assert "Publish Backend Artifact" in workflow
+    assert "Preflight Staging Managed Platform" in workflow
+    assert "Preflight Production Managed Platform" in workflow
+    assert "preflight_managed_platform.py" in workflow
+    assert "gcloud services enable" in workflow
+    assert "preflight-staging-managed-platform" in workflow
     assert "./.github/workflows/publish-artifact-registry-images.yml" in workflow
     assert workflow.index("bootstrap-artifact-registry:") < workflow.index("publish:")
     assert "./.github/workflows/deploy-unified-platform.yml" in workflow

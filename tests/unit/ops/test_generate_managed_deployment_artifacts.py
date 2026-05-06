@@ -178,6 +178,7 @@ def test_generate_managed_deployment_artifacts_outputs_unified_platform_bundle(
     )
     assert terraform_tfvars["gcp_project_id"] == "valdrics-prod"
     assert terraform_tfvars["cloudflare_zone_id"] == "cf-zone-prod"
+    assert terraform_tfvars["supabase_project_ref"] == "example"
     assert terraform_tfvars["supabase_project_name"] == "valdrics"
     assert (
         report["artifacts"]["operator_handoff_markdown"]
@@ -263,7 +264,9 @@ def test_generate_managed_deployment_artifacts_reports_placeholder_blockers_for_
     assert "GROQ_API_KEY" in report["secret_manager_secret_keys"]
     assert "gcp_project_id" in report["terraform_remaining_inputs"]
     assert "cloudflare_zone_id" in report["terraform_remaining_inputs"]
+    assert "supabase_project_ref" in report["terraform_remaining_inputs"]
     assert "gcp_project_id" in report["terraform_value_blockers"]
+    assert "supabase_project_ref" in report["terraform_value_blockers"]
     assert "runtime_plain_env.API_URL" in report["terraform_value_blockers"]
 
 

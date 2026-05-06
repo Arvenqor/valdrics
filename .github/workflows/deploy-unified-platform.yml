@@ -116,12 +116,6 @@ jobs:
           uv-version: ${{ env.UV_VERSION }}
           dependency-install-command: uv sync --locked --dev
 
-      - name: Setup Dashboard Toolchain
-        uses: ./.github/actions/setup-dashboard
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          pnpm-version: ${{ env.PNPM_VERSION }}
-
       - name: Materialize managed runtime env from GitHub contract
         shell: bash
         env:
@@ -276,6 +270,7 @@ jobs:
               "cloudflare_account_id": str(tfvars["cloudflare_account_id"]),
               "cloudflare_pages_project_name": str(tfvars["cloudflare_pages_project_name"]),
               "cloudflare_pages_production_branch": str(tfvars["cloudflare_pages_production_branch"]),
+              "supabase_project_ref": str(tfvars["supabase_project_ref"]),
               "public_api_url": str(pages["PUBLIC_API_URL"]),
               "public_supabase_url": str(pages["PUBLIC_SUPABASE_URL"]),
               "public_supabase_anon_key": str(pages["PUBLIC_SUPABASE_ANON_KEY"]),
@@ -319,6 +314,12 @@ jobs:
           terraform -chdir=terraform init \
             -backend-config="bucket=${{ vars.TERRAFORM_STATE_BUCKET }}" \
             -backend-config="prefix=unified-platform/${DEPLOY_ENVIRONMENT}"
+          if ! terraform -chdir=terraform state show supabase_project.platform >/dev/null 2>&1; then
+            terraform -chdir=terraform import \
+              -var-file="../${{ steps.managed_bundle.outputs.tfvars_path }}" \
+              supabase_project.platform \
+              "${{ steps.managed_bundle.outputs.supabase_project_ref }}"
+          fi
           terraform -chdir=terraform plan \
             -var-file="../${{ steps.managed_bundle.outputs.tfvars_path }}" \
             -out=tfplan
@@ -332,6 +333,12 @@ jobs:
           source "${{ steps.managed_bundle.outputs.migration_env_path }}"
           set +a
           uv run alembic upgrade head
+
+      - name: Setup Dashboard Toolchain
+        uses: ./.github/actions/setup-dashboard
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          pnpm-version: ${{ env.PNPM_VERSION }}
 
       - name: Build dashboard
         shell: bash
