@@ -134,7 +134,8 @@ Create or verify:
 - Terraform state bucket for each environment
 - Terraform-managed Artifact Registry repository used by the publish workflow
 - enabled Google APIs, or deployer permissions to enable them during Terraform
-  apply, including `compute.googleapis.com` for the public API load balancer
+  apply, including `cloudresourcemanager.googleapis.com` for IAM preflights and
+  `compute.googleapis.com` for the public API load balancer
 - Workload Identity Federation provider for GitHub Actions
 - deployer service account for environment deployment
 - artifact publisher service account for image publishing

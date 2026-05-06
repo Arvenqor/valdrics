@@ -270,9 +270,14 @@ def test_release_unified_platform_workflow_promotes_one_digest_through_environme
     assert "preflight_gcp_managed_platform.py" in workflow
     assert "Validate GCP deployer Terraform IAM permissions" in workflow
     assert "gcloud services enable" in workflow
+    assert "cloudresourcemanager.googleapis.com" in workflow
     assert "preflight-staging-managed-platform" in workflow
     assert "./.github/workflows/publish-artifact-registry-images.yml" in workflow
     assert workflow.index("bootstrap-artifact-registry:") < workflow.index("publish:")
+    bootstrap_artifact_registry = workflow.split(
+        "bootstrap-artifact-registry:", maxsplit=1
+    )[1].split("preflight-staging-managed-platform:", maxsplit=1)[0]
+    assert "- preflight-staging-managed-platform" in bootstrap_artifact_registry
     assert "./.github/workflows/deploy-unified-platform.yml" in workflow
     assert "ARTIFACT_REGISTRY_PROJECT_ID" in workflow
     assert "deploy-staging:" in workflow

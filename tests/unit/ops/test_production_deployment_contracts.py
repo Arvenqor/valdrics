@@ -68,6 +68,7 @@ def test_release_artifacts_are_immutable_and_workflows_target_unified_platform()
     assert "Preflight Staging Managed Platform" in release_workflow
     assert "Preflight Production Managed Platform" in release_workflow
     assert "preflight_gcp_managed_platform.py" in release_workflow
+    assert "cloudresourcemanager.googleapis.com" in release_workflow
     assert "terraform/state-backend" in release_workflow
     assert "terraform/artifact-registry" in release_workflow
     assert "needs.publish.outputs.api_promotion_ref" in release_workflow

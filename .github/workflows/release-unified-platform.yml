@@ -134,6 +134,7 @@ jobs:
     needs:
       - validate
       - bootstrap-terraform-state
+      - preflight-staging-managed-platform
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     environment: staging
@@ -232,6 +233,7 @@ jobs:
           set -euo pipefail
           gcloud services enable \
             cloudbuild.googleapis.com \
+            cloudresourcemanager.googleapis.com \
             cloudtasks.googleapis.com \
             cloudscheduler.googleapis.com \
             compute.googleapis.com \
@@ -293,6 +295,7 @@ jobs:
           set -euo pipefail
           gcloud services enable \
             cloudbuild.googleapis.com \
+            cloudresourcemanager.googleapis.com \
             cloudtasks.googleapis.com \
             cloudscheduler.googleapis.com \
             compute.googleapis.com \

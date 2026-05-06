@@ -1,11 +1,26 @@
 from __future__ import annotations
 
+import json
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
 
 from scripts import preflight_gcp_managed_platform
+
+
+class _FakeResponse:
+    def __init__(self, payload: bytes) -> None:
+        self._payload = payload
+
+    def __enter__(self) -> "_FakeResponse":
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        return None
+
+    def read(self) -> bytes:
+        return self._payload
 
 
 def test_validate_project_permissions_accepts_required_grants(
@@ -18,11 +33,19 @@ def test_validate_project_permissions_accepts_required_grants(
         captured["kwargs"] = kwargs
         return SimpleNamespace(
             returncode=0,
-            stdout='{"permissions":["iam.serviceAccounts.create"]}',
+            stdout="access-token\n",
             stderr="",
         )
 
+    def fake_urlopen(request: Any, *, timeout: int) -> _FakeResponse:
+        captured["headers"] = dict(request.header_items())
+        captured["url"] = request.full_url
+        captured["body"] = request.data
+        captured["timeout"] = timeout
+        return _FakeResponse(b'{"permissions":["iam.serviceAccounts.create"]}')
+
     monkeypatch.setattr(preflight_gcp_managed_platform.subprocess, "run", fake_run)
+    monkeypatch.setattr(preflight_gcp_managed_platform, "urlopen", fake_urlopen)
 
     result = preflight_gcp_managed_platform.validate_project_permissions(
         project_id="valdrics-staging-001",
@@ -35,14 +58,25 @@ def test_validate_project_permissions_accepts_required_grants(
     }
     assert captured["command"] == [
         "gcloud",
-        "projects",
-        "test-iam-permissions",
-        "valdrics-staging-001",
-        "--permissions=iam.serviceAccounts.create",
-        "--format=json",
+        "auth",
+        "print-access-token",
     ]
     assert captured["kwargs"]["capture_output"] is True
     assert captured["kwargs"]["text"] is True
+    assert captured["timeout"] == 20
+    assert (
+        captured["url"]
+        == "https://cloudresourcemanager.googleapis.com/v1/projects/"
+        "valdrics-staging-001:testIamPermissions"
+    )
+    assert json_loads(captured["body"]) == {
+        "permissions": ["iam.serviceAccounts.create"]
+    }
+    assert captured["headers"]["Authorization"] == "Bearer access-token"
+    assert (
+        captured["headers"]["User-agent"]
+        == preflight_gcp_managed_platform.GOOGLE_API_USER_AGENT
+    )
 
 
 def test_validate_project_permissions_rejects_missing_grants(
@@ -53,9 +87,14 @@ def test_validate_project_permissions_rejects_missing_grants(
         "run",
         lambda *_args, **_kwargs: SimpleNamespace(
             returncode=0,
-            stdout='{"permissions":[]}',
+            stdout="access-token\n",
             stderr="",
         ),
+    )
+    monkeypatch.setattr(
+        preflight_gcp_managed_platform,
+        "urlopen",
+        lambda *_args, **_kwargs: _FakeResponse(b'{"permissions":[]}'),
     )
 
     with pytest.raises(RuntimeError, match="iam.serviceAccounts.create"):
@@ -72,3 +111,7 @@ def test_default_required_permissions_include_service_account_and_project_iam() 
     assert "resourcemanager.projects.setIamPolicy" in (
         preflight_gcp_managed_platform.DEFAULT_REQUIRED_PERMISSIONS
     )
+
+
+def json_loads(raw: bytes) -> object:
+    return json.loads(raw.decode("utf-8"))
