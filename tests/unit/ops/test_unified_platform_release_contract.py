@@ -240,7 +240,15 @@ def test_deploy_unified_platform_workflow_applies_terraform_and_cloudflare_pages
     assert "terraform -chdir=terraform import" in workflow
     assert "supabase_project.platform" in workflow
     assert "steps.managed_bundle.outputs.supabase_project_ref" in workflow
+    assert "apply_infrastructure" in workflow
+    assert "if: ${{ inputs.apply_infrastructure }}" in workflow
     assert "terraform -chdir=terraform apply -auto-approve tfplan" in workflow
+    assert "if: ${{ ! inputs.apply_infrastructure }}" in workflow
+    assert "Update Cloud Run app images" in workflow
+    assert "gcloud run services update" in workflow
+    assert "gcloud run jobs update" in workflow
+    assert "GCP_CLOUD_RUN_SERVICE_NAME" in workflow
+    assert "GCP_CLOUD_RUN_BATCH_JOB_NAME" in workflow
     assert 'source "${{ steps.managed_bundle.outputs.migration_env_path }}"' in workflow
     assert "uv run alembic upgrade head" in workflow
     assert "wrangler pages deploy" in workflow
@@ -312,6 +320,27 @@ def test_release_unified_platform_workflow_promotes_one_digest_through_environme
     assert "render_managed_release_blocker_summary.py" in workflow
     assert "managed-release-blocker-summary-${{ inputs.release_tag }}" in workflow
     assert "promote_production" in workflow
+
+
+def test_release_beta_app_workflow_skips_terraform_for_fast_product_releases() -> None:
+    workflow = (REPO_ROOT / ".github/workflows/release-beta-app.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "name: Release Beta App" in workflow
+    assert "release-beta-app-${{ inputs.environment }}-${{ inputs.release_tag }}" in (
+        workflow
+    )
+    assert "Validate Beta App Release Contract" in workflow
+    assert "Preflight Public API Route" in workflow
+    assert "/health/live" in workflow
+    assert "cf-mitigated: challenge" in workflow
+    assert "Bot Fight Mode" in workflow
+    assert "./.github/workflows/publish-artifact-registry-images.yml" in workflow
+    assert "./.github/workflows/deploy-unified-platform.yml" in workflow
+    assert "Deploy App Without Terraform" in workflow
+    assert "apply_infrastructure: false" in workflow
+    assert "terraform -chdir=terraform" not in workflow
 
 
 def test_dashboard_package_exposes_wrangler_for_pages_deploy() -> None:

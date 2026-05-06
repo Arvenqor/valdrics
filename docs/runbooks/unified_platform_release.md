@@ -15,6 +15,8 @@ This runbook defines the target operating model for the unified platform:
 Use:
 
 - `.github/workflows/release-unified-platform.yml`
+- `.github/workflows/release-beta-app.yml` for app-only beta releases after
+  infrastructure exists
 - `docs/runbooks/managed_cutover_operator_packet.md`
 
 Required workflow inputs:
@@ -36,6 +38,13 @@ staging first, and promotes production only when `promote_production=true`.
 Production receives the same `api_promotion_ref` and `batch_promotion_ref` that
 passed staging.
 
+For day-to-day beta/product releases, prefer `release-beta-app.yml` after the
+infrastructure already exists. It publishes one backend image, updates the Cloud
+Run service and batch job directly, runs migrations, deploys Cloudflare Pages,
+and skips Terraform/state bootstrap. Use the full `release-unified-platform.yml`
+only when Terraform-managed infrastructure, Cloudflare policy, Supabase project
+settings, or production promotion wiring needs to change.
+
 Implementation detail:
 
 - `.github/workflows/publish-artifact-registry-images.yml` is reusable and records
@@ -46,6 +55,9 @@ Implementation detail:
 - `.github/workflows/deploy-unified-platform.yml` is reusable and applies one
   environment at a time with the digest-pinned `api_promotion_ref`, explicit
   `batch_promotion_ref`, and the immutable `release_tag`
+- `.github/workflows/deploy-unified-platform.yml` supports
+  `apply_infrastructure=false` for app-only releases that update Cloud Run
+  images without running Terraform
 - `.github/workflows/deploy-unified-platform.yml` refreshes the codebase audit
   report and runs `scripts/verify_managed_release_readiness.py` after the deploy
   smoke check
@@ -84,6 +96,10 @@ At minimum the deployment workflow expects:
 Cloudflare Bot Fight Mode must be disabled for API health checks. WAF Skip rules
 cannot bypass Bot Fight Mode, so the release preflight checks Bot Management API
 access before the slower Terraform/image/deploy stages.
+
+The beta app release checks the public API route for a Cloudflare browser
+challenge before publishing/deploying, so this failure surfaces quickly instead
+of after the slow deployment path.
 
 The release pipeline also requires:
 

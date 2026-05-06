@@ -60,6 +60,12 @@ GitHub release/deploy secret contract:
 - Environment deploy also requires `CLOUDFLARE_API_TOKEN`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DATABASE_PASSWORD`, and `RUNTIME_SECRET_ENV_JSON`
 - `CLOUDFLARE_API_TOKEN` must include Zone `Bot Management:Edit`, DNS, Rulesets/WAF, and Pages permissions; Bot Fight Mode cannot be bypassed by WAF Skip rules, so Terraform disables it for API health probes
 
+Use `.github/workflows/release-beta-app.yml` for normal beta/product releases
+once infrastructure exists. It skips Terraform/state bootstrap and updates only
+the Cloud Run app images, database migrations, and Cloudflare Pages deployment.
+Reserve `.github/workflows/release-unified-platform.yml` for infrastructure or
+production-promotion changes.
+
 The runtime JSON inputs are not free-form. The active contract in
 `scripts/managed_deployment_contract.py` and
 `scripts/generate_managed_deployment_artifacts.py` blocks deployment until the

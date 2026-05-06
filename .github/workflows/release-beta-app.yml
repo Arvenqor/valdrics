@@ -1,0 +1,134 @@
+name: Release Beta App
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment."
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+      release_tag:
+        description: "Immutable release tag to build and deploy."
+        required: true
+        type: string
+      git_ref:
+        description: "Git ref to release. Defaults to the triggering SHA."
+        required: false
+        type: string
+
+concurrency:
+  group: release-beta-app-${{ inputs.environment }}-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PYTHON_VERSION: "3.12"
+  UV_VERSION: "0.10.9"
+
+jobs:
+  validate:
+    name: Validate Beta App Release Contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.git_ref || github.sha }}
+
+      - name: Setup Backend Toolchain
+        uses: ./.github/actions/setup-python-uv
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          uv-version: ${{ env.UV_VERSION }}
+          dependency-install-command: uv sync --locked --dev
+
+      - name: Validate app release contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv run pytest -q --tb=short --no-cov \
+            tests/unit/ops/test_unified_platform_release_contract.py \
+            tests/unit/ops/test_managed_deployment_contract.py \
+            tests/unit/ops/test_generate_managed_deployment_artifacts.py
+
+  preflight-public-api-route:
+    name: Preflight Public API Route
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Detect Cloudflare browser challenge before slow deploy
+        shell: bash
+        env:
+          RUNTIME_PLAIN_ENV_JSON: ${{ vars.RUNTIME_PLAIN_ENV_JSON }}
+        run: |
+          set -euo pipefail
+          api_url="$(
+            python3 - <<'PY'
+          from __future__ import annotations
+
+          import json
+          import os
+
+          payload = json.loads(os.environ["RUNTIME_PLAIN_ENV_JSON"])
+          api_url = str(payload.get("API_URL", "")).rstrip("/")
+          if not api_url:
+              raise SystemExit("RUNTIME_PLAIN_ENV_JSON.API_URL is required")
+          print(api_url)
+          PY
+          )"
+          response_headers="${RUNNER_TEMP}/beta-api-health.headers"
+          response_body="${RUNNER_TEMP}/beta-api-health.body"
+          http_status="$(
+            curl --silent --show-error --location --max-time 10 \
+              --dump-header "${response_headers}" \
+              --output "${response_body}" \
+              --write-out "%{http_code}" \
+              "${api_url}/health/live" || true
+          )"
+
+          if grep -iq '^cf-mitigated: challenge' "${response_headers}"; then
+            echo "::error title=Cloudflare browser challenge blocks public API::Disable Bot Fight Mode for this API zone before beta app release, or run the full infra release with a Cloudflare token that has Zone > Bot Management > Edit. Public users and CI smoke probes cannot pass a Cloudflare browser challenge."
+            cat "${response_headers}" || true
+            exit 1
+          fi
+
+          echo "Public API route returned HTTP ${http_status:-curl_error}; continuing because the app deploy may update the backend."
+
+  publish:
+    name: Publish Backend Artifact
+    needs:
+      - validate
+      - preflight-public-api-route
+    uses: ./.github/workflows/publish-artifact-registry-images.yml
+    with:
+      release_tag: ${{ inputs.release_tag }}
+      git_ref: ${{ inputs.git_ref || github.sha }}
+      gcp_project_id: ${{ vars.ARTIFACT_REGISTRY_PROJECT_ID }}
+      artifact_registry_region: ${{ vars.ARTIFACT_REGISTRY_REGION }}
+      artifact_registry_repository: ${{ vars.ARTIFACT_REGISTRY_REPOSITORY }}
+    secrets: inherit
+
+  deploy:
+    name: Deploy App Without Terraform
+    needs: publish
+    uses: ./.github/workflows/deploy-unified-platform.yml
+    with:
+      environment: ${{ inputs.environment }}
+      git_ref: ${{ inputs.git_ref || github.sha }}
+      release_tag: ${{ inputs.release_tag }}
+      api_promotion_ref: ${{ needs.publish.outputs.api_promotion_ref }}
+      batch_promotion_ref: ${{ needs.publish.outputs.batch_promotion_ref }}
+      apply_infrastructure: false
+    secrets: inherit

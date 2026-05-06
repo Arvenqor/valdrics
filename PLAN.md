@@ -1,6 +1,6 @@
 # Valdrics Source of Truth Plan
 
-Last reviewed: 2026-04-21
+Last reviewed: 2026-05-06
 Status: Canonical
 Owner: Product + Engineering
 
@@ -56,6 +56,16 @@ Every major idea in this file is assigned one strategy label:
   contracts, release workflows, TVC draft artifacts, and verification surfaces.
 - The main unfinished work is not repo plumbing. It is live cutover evidence and
   real production use on the supported managed stack.
+- Phase 1 now has two release lanes:
+  - `release-beta-app.yml` for fast beta/product releases after infrastructure
+    exists. This lane skips Terraform/state bootstrap and updates only Cloud Run
+    app images, database migrations, and Cloudflare Pages.
+  - `release-unified-platform.yml` for infrastructure changes, Cloudflare policy
+    changes, Supabase project settings, and production promotion wiring.
+- Current operational blocker: Cloudflare Bot Fight Mode is challenging public
+  API health probes. WAF Skip rules cannot bypass it; the zone must have Bot
+  Fight Mode disabled manually or the GitHub `CLOUDFLARE_API_TOKEN` must include
+  Zone `Bot Management:Edit` so Terraform can disable it.
 
 ## What Valdrics Is Building
 
@@ -136,6 +146,7 @@ unless they block an active phase:
 - supported managed platform contract on GCP + Cloudflare + Supabase
 - Cloud Tasks, Cloud Scheduler, and Cloud Run Jobs execution model
 - immutable release pipeline using Artifact Registry promotion refs
+- fast beta app release lane that avoids Terraform for normal product releases
 - managed deployment bundle verification and operator handoff generation
 - FOCUS-aligned export and reporting foundations
 - chargeback/showback and reconciliation foundations
@@ -148,6 +159,8 @@ The following foundations already exist materially in the repo today:
 
 - managed-platform operating model on GCP + Cloudflare + Supabase
 - immutable release pipeline and managed deployment bundle verification
+- app-only beta release lane for faster launch iteration on existing
+  infrastructure
 - Cloud Tasks, Cloud Scheduler, and Cloud Run Jobs execution surfaces
 - FOCUS-aligned export and normalized reporting foundations
 - chargeback, showback, reconciliation, and close workflow foundations
@@ -243,9 +256,13 @@ Outcome:
 In scope:
 
 - deploy `staging` on the managed stack
+- use the fast beta app release lane for normal launch iteration once managed
+  infrastructure exists
 - run parity smoke, workload, and rollback validation
 - cut staging traffic fully to the managed stack
 - promote the exact same immutable artifact to `production`
+- use the full unified release lane only for infrastructure, Cloudflare,
+  Supabase, or production-promotion changes
 - capture operator evidence packets for staging and production
 - obtain final release-operations sign-off
 - archive or remove any remaining unsupported operational paths that would
@@ -260,6 +277,8 @@ Not in scope:
 Ship gate:
 
 - staging is live and validated
+- the beta app release lane can deploy without Terraform and pass API/dashboard
+  smoke checks
 - production is live on the supported stack
 - release evidence is complete
 - the supported runbooks match reality

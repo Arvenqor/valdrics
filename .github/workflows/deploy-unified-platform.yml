@@ -26,6 +26,11 @@ on:
         description: "Digest-pinned Artifact Registry ref for the Cloud Run batch job."
         required: true
         type: string
+      apply_infrastructure:
+        description: "Apply Terraform-managed infrastructure before deploying app images."
+        required: false
+        default: true
+        type: boolean
   workflow_call:
     inputs:
       environment:
@@ -48,6 +53,11 @@ on:
         description: "Digest-pinned Artifact Registry ref for the Cloud Run batch job."
         required: true
         type: string
+      apply_infrastructure:
+        description: "Apply Terraform-managed infrastructure before deploying app images."
+        required: false
+        default: true
+        type: boolean
     secrets:
       GCP_WORKLOAD_IDENTITY_PROVIDER:
         required: true
@@ -107,6 +117,7 @@ jobs:
           version: ">= 363.0.0"
 
       - name: Set up Terraform
+        if: ${{ inputs.apply_infrastructure }}
         uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
 
       - name: Setup Backend Toolchain
@@ -304,6 +315,7 @@ jobs:
           retention-days: 30
 
       - name: Terraform apply unified platform
+        if: ${{ inputs.apply_infrastructure }}
         shell: bash
         env:
           TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -324,6 +336,59 @@ jobs:
             -var-file="../${{ steps.managed_bundle.outputs.tfvars_path }}" \
             -out=tfplan
           terraform -chdir=terraform apply -auto-approve tfplan
+
+      - name: Update Cloud Run app images
+        if: ${{ ! inputs.apply_infrastructure }}
+        shell: bash
+        env:
+          API_PROMOTION_REF: ${{ inputs.api_promotion_ref }}
+          BATCH_PROMOTION_REF: ${{ inputs.batch_promotion_ref }}
+        run: |
+          set -euo pipefail
+          targets_env="${RUNNER_TEMP}/cloud-run-app-targets.env"
+          python3 - <<'PY' > "${targets_env}"
+          from __future__ import annotations
+
+          import os
+          import shlex
+          from pathlib import Path
+
+          runtime_env = Path(f".runtime/{os.environ['DEPLOY_ENVIRONMENT']}.env")
+          values: dict[str, str] = {}
+          for raw_line in runtime_env.read_text(encoding="utf-8").splitlines():
+              line = raw_line.strip()
+              if not line or line.startswith("#") or "=" not in line:
+                  continue
+              key, _, raw_value = line.partition("=")
+              parsed = shlex.split(raw_value, posix=True)
+              values[key] = parsed[0] if parsed else ""
+
+          required = {
+              "API_SERVICE_NAME": "GCP_CLOUD_RUN_SERVICE_NAME",
+              "BATCH_JOB_NAME": "GCP_CLOUD_RUN_BATCH_JOB_NAME",
+          }
+          for output_name, runtime_key in required.items():
+              value = values.get(runtime_key, "").strip()
+              if not value:
+                  raise SystemExit(f"{runtime_key} is required for app-only deploys")
+              print(f"{output_name}={shlex.quote(value)}")
+          PY
+
+          set -a
+          source "${targets_env}"
+          set +a
+
+          gcloud run services update "${API_SERVICE_NAME}" \
+            --image="${API_PROMOTION_REF}" \
+            --region="${{ vars.GCP_REGION }}" \
+            --project="${{ vars.GCP_PROJECT_ID }}" \
+            --quiet
+
+          gcloud run jobs update "${BATCH_JOB_NAME}" \
+            --image="${BATCH_PROMOTION_REF}" \
+            --region="${{ vars.GCP_REGION }}" \
+            --project="${{ vars.GCP_PROJECT_ID }}" \
+            --quiet
 
       - name: Apply database migrations
         shell: bash

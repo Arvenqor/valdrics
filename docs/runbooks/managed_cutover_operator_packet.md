@@ -265,6 +265,10 @@ Cloudflare Bot Fight Mode cannot be bypassed by WAF Skip rules. The release
 preflight checks Bot Management API access because Terraform must disable Bot
 Fight Mode for API health probes.
 
+For launch/beta iteration after infrastructure is provisioned, run
+`.github/workflows/release-beta-app.yml`. It avoids Terraform and state bootstrap
+and only deploys app images, database migrations, and Cloudflare Pages.
+
 ## 6. `RUNTIME_PLAIN_ENV_JSON` template
 
 This value must be a JSON object with string values only.
