@@ -474,6 +474,11 @@ resource "cloudflare_zone_setting" "tls_1_3" {
   value      = "on"
 }
 
+resource "cloudflare_bot_management" "api_zone" {
+  zone_id    = var.cloudflare_zone_id
+  fight_mode = false
+}
+
 resource "cloudflare_dns_record" "api" {
   zone_id = var.cloudflare_zone_id
   name    = local.api_hostname

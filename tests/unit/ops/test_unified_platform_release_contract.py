@@ -57,6 +57,8 @@ def test_terraform_root_targets_gcp_cloudflare_and_supabase() -> None:
     assert "Deny direct origin access that bypasses Cloudflare." in main
     assert 'resource "google_compute_target_https_proxy" "api"' in main
     assert 'resource "cloudflare_dns_record" "api"' in main
+    assert 'resource "cloudflare_bot_management" "api_zone"' in main
+    assert "fight_mode = false" in main
     assert 'resource "cloudflare_ruleset" "api_rate_limit"' in main
     assert 'characteristics     = ["cf.colo.id", "ip.src"]' in main
     assert 'expression  = "(http.host eq \\"${local.api_hostname}\\")"' in main
