@@ -62,6 +62,10 @@ def test_terraform_root_targets_gcp_cloudflare_and_supabase() -> None:
     assert 'resource "cloudflare_ruleset" "api_rate_limit"' in main
     assert 'characteristics     = ["cf.colo.id", "ip.src"]' in main
     assert 'expression  = "(http.host eq \\"${local.api_hostname}\\")"' in main
+    assert 'resource "cloudflare_dns_record" "dashboard"' in main
+    assert 'type    = "CNAME"' in main
+    assert "cloudflare_pages_project.dashboard.subdomain" in main
+    assert 'resource "cloudflare_pages_domain" "dashboard"' in main
     assert 'resource "cloudflare_ruleset" "api_internal_block"' in main
     assert "Health probes must bypass Cloudflare browser challenges." in main
     assert 'action      = "skip"' in main

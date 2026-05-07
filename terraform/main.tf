@@ -5,6 +5,7 @@ data "google_project" "current" {
 locals {
   batch_image                         = trimspace(var.batch_job_image) != "" ? var.batch_job_image : var.api_image
   api_hostname                        = split("/", trimprefix(var.api_url, "https://"))[0]
+  frontend_hostname                   = split("/", trimprefix(var.frontend_url, "https://"))[0]
   cloudflare_origin_allow_cidr_chunks = chunklist(var.cloudflare_origin_allow_cidrs, 10)
   managed_scheduler_jobs              = jsondecode(file("${path.module}/managed_scheduler_jobs.json"))
 
@@ -460,6 +461,24 @@ resource "cloudflare_pages_project" "dashboard" {
   account_id        = var.cloudflare_account_id
   name              = var.cloudflare_pages_project_name
   production_branch = var.cloudflare_pages_production_branch
+}
+
+resource "cloudflare_dns_record" "dashboard" {
+  zone_id = var.cloudflare_zone_id
+  name    = local.frontend_hostname
+  type    = "CNAME"
+  content = cloudflare_pages_project.dashboard.subdomain
+  proxied = true
+  ttl     = 1
+  comment = "Valdrics frontend routed through Cloudflare Pages."
+}
+
+resource "cloudflare_pages_domain" "dashboard" {
+  account_id   = var.cloudflare_account_id
+  project_name = cloudflare_pages_project.dashboard.name
+  name         = local.frontend_hostname
+
+  depends_on = [cloudflare_dns_record.dashboard]
 }
 
 resource "cloudflare_zone_setting" "ssl" {

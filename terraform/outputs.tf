@@ -55,8 +55,16 @@ output "cloudflare_pages_subdomain" {
   value = cloudflare_pages_project.dashboard.subdomain
 }
 
+output "cloudflare_pages_custom_domain" {
+  value = cloudflare_pages_domain.dashboard.name
+}
+
 output "cloudflare_api_dns_record_id" {
   value = cloudflare_dns_record.api.id
+}
+
+output "cloudflare_dashboard_dns_record_id" {
+  value = cloudflare_dns_record.dashboard.id
 }
 
 output "supabase_project_ref" {
