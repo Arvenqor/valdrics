@@ -25,6 +25,15 @@ def _terraform_variable_block(source: str, name: str) -> str:
     return match.group("body")
 
 
+def test_dashboard_csp_is_cloudflare_compatible_without_unsafe_inline() -> None:
+    config = (REPO_ROOT / "dashboard/svelte.config.js").read_text(encoding="utf-8")
+
+    assert "mode: 'nonce'" in config
+    assert "https://static.cloudflareinsights.com" in config
+    assert "https://cloudflareinsights.com" in config
+    assert "unsafe-inline" not in config
+
+
 def test_terraform_root_targets_gcp_cloudflare_and_supabase() -> None:
     providers = (REPO_ROOT / "terraform/providers.tf").read_text(encoding="utf-8")
     main = (REPO_ROOT / "terraform/main.tf").read_text(encoding="utf-8")

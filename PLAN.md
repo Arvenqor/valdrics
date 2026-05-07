@@ -70,7 +70,10 @@ Every major idea in this file is assigned one strategy label:
   full release lane now keeps Playwright browser setup explicit and manages the
   Cloudflare Pages custom domain, frontend CNAME, and Pages runtime variables
   required by the edge proxy; direct-upload Pages deploys render those variables
-  into the Wrangler deployment config from the managed release bundle.
+  into the Wrangler deployment config from the managed release bundle. The
+  Cloudflare-hosted dashboard CSP uses nonce mode and allows Cloudflare Web
+  Analytics sources so Cloudflare JavaScript Detections can run without
+  weakening the policy with `unsafe-inline`.
 
 ## What Valdrics Is Building
 

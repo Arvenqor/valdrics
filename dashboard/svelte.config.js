@@ -6,6 +6,7 @@ const connectSrc = [
 	'self',
 	'https://*.supabase.co',
 	'https://*.valdrics.ai',
+	'https://cloudflareinsights.com',
 	'https://challenges.cloudflare.com'
 ];
 
@@ -23,10 +24,17 @@ const config = {
 		// Cloudflare Pages/Workers runtime adapter
 		adapter: adapter(),
 		csp: {
-			mode: 'hash',
+			// Cloudflare bot detections inject edge scripts; nonce mode lets Cloudflare
+			// preserve strict CSP without falling back to broad inline script allowances.
+			mode: 'nonce',
 			directives: {
 				'default-src': ['self'],
-				'script-src': ['self', 'https://*.supabase.co', 'https://challenges.cloudflare.com'],
+				'script-src': [
+					'self',
+					'https://*.supabase.co',
+					'https://challenges.cloudflare.com',
+					'https://static.cloudflareinsights.com'
+				],
 				'style-src': ['self'],
 				'style-src-attr': ['unsafe-hashes', 'sha256-S8qMpvofolR8Mpjy4kQvEm7m1q8clzU4dfDH0AmvZjo='],
 				'img-src': ['self', 'data:', 'https://*.supabase.co'],
