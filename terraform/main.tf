@@ -6,6 +6,7 @@ locals {
   batch_image                         = trimspace(var.batch_job_image) != "" ? var.batch_job_image : var.api_image
   api_hostname                        = split("/", trimprefix(var.api_url, "https://"))[0]
   frontend_hostname                   = split("/", trimprefix(var.frontend_url, "https://"))[0]
+  api_origin                          = trimsuffix(var.api_url, "/")
   cloudflare_origin_allow_cidr_chunks = chunklist(var.cloudflare_origin_allow_cidrs, 10)
   managed_scheduler_jobs              = jsondecode(file("${path.module}/managed_scheduler_jobs.json"))
 
@@ -30,6 +31,25 @@ locals {
   }
 
   runtime_env = merge(local.runtime_default_env, var.runtime_plain_env)
+
+  cloudflare_pages_env_vars = {
+    PRIVATE_API_ORIGIN = {
+      type  = "plain_text"
+      value = local.api_origin
+    }
+    PUBLIC_API_URL = {
+      type  = "plain_text"
+      value = "${local.api_origin}/api/v1"
+    }
+    PUBLIC_SUPABASE_URL = {
+      type  = "plain_text"
+      value = lookup(local.runtime_env, "SUPABASE_URL", "")
+    }
+    PUBLIC_SUPABASE_ANON_KEY = {
+      type  = "plain_text"
+      value = lookup(local.runtime_env, "SUPABASE_ANON_KEY", "")
+    }
+  }
 }
 
 resource "google_project_service" "required" {
@@ -461,6 +481,19 @@ resource "cloudflare_pages_project" "dashboard" {
   account_id        = var.cloudflare_account_id
   name              = var.cloudflare_pages_project_name
   production_branch = var.cloudflare_pages_production_branch
+
+  deployment_configs = {
+    preview = {
+      compatibility_date  = "2026-03-01"
+      compatibility_flags = ["nodejs_compat"]
+      env_vars            = local.cloudflare_pages_env_vars
+    }
+    production = {
+      compatibility_date  = "2026-03-01"
+      compatibility_flags = ["nodejs_compat"]
+      env_vars            = local.cloudflare_pages_env_vars
+    }
+  }
 }
 
 resource "cloudflare_dns_record" "dashboard" {

@@ -59,7 +59,7 @@ This runbook reflects the supported unified platform:
 ### Recovery Steps
 
 1. Roll back to the prior known-good Cloudflare Pages deployment.
-2. Confirm `PUBLIC_API_URL`, `PUBLIC_SUPABASE_URL`, and `PUBLIC_SUPABASE_ANON_KEY` still match the active environment contract.
+2. Confirm `PRIVATE_API_ORIGIN`, `PUBLIC_API_URL`, `PUBLIC_SUPABASE_URL`, and `PUBLIC_SUPABASE_ANON_KEY` still match the active environment contract.
 3. Re-validate core dashboard login, navigation, and operator views.
 
 ## 4. Full-Environment Restore / Reroute

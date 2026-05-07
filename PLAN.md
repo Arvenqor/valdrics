@@ -66,9 +66,10 @@ Every major idea in this file is assigned one strategy label:
   release preflight and Terraform using a GitHub `CLOUDFLARE_API_TOKEN` with
   Zone `Bot Management:Edit`. The latest staging full-release retry passed
   Cloudflare preflight, Terraform, Cloudflare Pages deploy, and API liveness;
-  release readiness then exposed that `FRONTEND_URL` was not resolvable. The
+  release readiness then exposed the remaining frontend edge runtime gap. The
   full release lane now keeps Playwright browser setup explicit and manages the
-  Cloudflare Pages custom domain plus CNAME for the frontend hostname.
+  Cloudflare Pages custom domain, frontend CNAME, and Pages runtime variables
+  required by the edge proxy.
 
 ## What Valdrics Is Building
 

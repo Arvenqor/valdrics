@@ -66,6 +66,13 @@ def test_terraform_root_targets_gcp_cloudflare_and_supabase() -> None:
     assert 'type    = "CNAME"' in main
     assert "cloudflare_pages_project.dashboard.subdomain" in main
     assert 'resource "cloudflare_pages_domain" "dashboard"' in main
+    assert "deployment_configs = {" in main
+    assert "env_vars            = local.cloudflare_pages_env_vars" in main
+    assert "PRIVATE_API_ORIGIN" in main
+    assert "PUBLIC_API_URL" in main
+    assert "PUBLIC_SUPABASE_URL" in main
+    assert "PUBLIC_SUPABASE_ANON_KEY" in main
+    assert 'compatibility_flags = ["nodejs_compat"]' in main
     assert 'resource "cloudflare_ruleset" "api_internal_block"' in main
     assert "Health probes must bypass Cloudflare browser challenges." in main
     assert 'action      = "skip"' in main

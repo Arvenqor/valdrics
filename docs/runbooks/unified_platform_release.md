@@ -238,9 +238,9 @@ The deploy workflow performs:
 3. Verify the managed deployment bundle
 4. Upload the non-secret deployment evidence bundle as an artifact for operator auditability. Keep `.runtime/<environment>.env`, `.runtime/<environment>.migrate.env`, `secret-manager-runtime-secrets.json`, and `terraform.runtime.auto.tfvars.json` on the deploy runner only.
 5. Import the existing Supabase project ref derived from `SUPABASE_URL` into Terraform state when it is not already tracked
-6. Terraform apply for GCP runtime + API load balancer, Cloudflare Pages/DNS/WAF, including the Pages custom domain and frontend CNAME, and Supabase project/settings
+6. Terraform apply for GCP runtime + API load balancer, Cloudflare Pages/DNS/WAF, including the Pages custom domain, frontend CNAME, Pages runtime variables, and Supabase project/settings
 7. Alembic migration from `.runtime/<environment>.migrate.env`
-8. Dashboard build from `.runtime/deploy/<environment>/cloudflare-pages-env.json`
+8. Dashboard build from `.runtime/deploy/<environment>/cloudflare-pages-env.json`; Terraform also applies the matching Cloudflare Pages runtime variables for Pages Functions
 9. Cloudflare Pages direct upload deploy
 10. API liveness smoke check
 11. Cache and install the Playwright Chromium browser required by the public dashboard readiness gate

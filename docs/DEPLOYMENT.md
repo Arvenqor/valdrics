@@ -132,7 +132,9 @@ Expected posture:
 - scheduled triggers are owned by Cloud Scheduler
 - long-running jobs execute on Cloud Run Jobs
 - frontend deploys to Cloudflare Pages, with Terraform owning the Pages custom
-  domain and proxied CNAME for `FRONTEND_URL`
+  domain, proxied CNAME for `FRONTEND_URL`, and Pages runtime variables such as
+  `PRIVATE_API_ORIGIN`, `PUBLIC_API_URL`, `PUBLIC_SUPABASE_URL`, and
+  `PUBLIC_SUPABASE_ANON_KEY`
 - database, auth, and storage run on Supabase
 - backend artifacts are promoted from Artifact Registry using digest-pinned refs
 - production promotion reuses the same tested backend artifact that passed staging
