@@ -122,6 +122,24 @@ For this repository, staging uses:
 principalSet://iam.googleapis.com/projects/772936428016/locations/global/workloadIdentityPools/github-actions/attribute.repository/Arvenqor/valdrics
 ```
 
+If `google-github-actions/auth` fails with `unauthorized_client` and
+`The given credential is rejected by the attribute condition`, fix the Workload
+Identity Federation provider first. That error is raised by Google STS before
+service-account impersonation, so missing `roles/iam.workloadIdentityUser`
+bindings are not the first suspect. In the target Google Cloud project:
+
+1. Open `IAM & Admin -> Workload Identity Federation`.
+2. Inspect the provider named by the environment secret
+   `GCP_WORKLOAD_IDENTITY_PROVIDER`.
+3. Update the provider attribute condition so it allows this repository and
+   release path, including `Arvenqor/valdrics`, `refs/heads/main`, and the
+   GitHub environment being authenticated (`staging` or `production`) if the
+   condition scopes by environment.
+4. After the provider accepts the token, verify `roles/iam.workloadIdentityUser`
+   remains granted on both the deployer and artifact publisher service accounts
+   for the repository principal shown above, using the target project's project
+   number.
+
 The deployer service account also needs project-level permissions for the
 Terraform-managed platform resources. At minimum, grant roles that include:
 

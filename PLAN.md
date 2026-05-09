@@ -84,6 +84,14 @@ Every major idea in this file is assigned one strategy label:
   dashboard CSP uses nonce mode and allows Cloudflare Web Analytics sources so
   Cloudflare JavaScript Detections can run without weakening the policy with
   `unsafe-inline`.
+  The first full production cutover attempt for
+  `2026.05.09-production-cutover` reached GitHub Actions production preflight
+  and failed before any production mutation because Google STS rejected the
+  GitHub OIDC credential against the production Workload Identity Federation
+  provider attribute condition. The next release gate is to update the
+  production provider condition, then verify `roles/iam.workloadIdentityUser`
+  grants on the production deployer and artifact publisher service accounts
+  before rerunning the full unified release lane.
 
 ## What Valdrics Is Building
 
