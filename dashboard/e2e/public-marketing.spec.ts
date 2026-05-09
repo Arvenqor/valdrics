@@ -291,6 +291,8 @@ test.describe('Public marketing smoke (desktop)', () => {
 
 		let assertedExplicitUsdPreference = false;
 		if ((await usdButton.count()) > 0) {
+			await localCurrencyButton.click();
+			await expect(localCurrencyButton).toHaveAttribute('aria-pressed', 'true');
 			await expect(usdButton).toBeVisible();
 			await usdButton.click();
 			await expect(usdButton).toHaveAttribute('aria-pressed', 'true');
