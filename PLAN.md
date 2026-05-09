@@ -64,16 +64,17 @@ Every major idea in this file is assigned one strategy label:
     changes, Supabase project settings, and production promotion wiring.
 - Current operational track: Cloudflare Bot Fight Mode is now enforced off by
   release preflight and Terraform using a GitHub `CLOUDFLARE_API_TOKEN` with
-  Zone `Bot Management:Edit`. The latest staging full-release retry passed
+  Zone `Bot Management:Edit`. The latest staging full-release run passed
   Cloudflare preflight, Terraform, Cloudflare Pages deploy, API liveness,
-  public smoke readiness, and the in-deploy managed readiness gate. The next
-  blocker moved out of Cloudflare into GitHub Actions setup: the standalone
-  readiness verifier exposed an invalid `actions/download-artifact` commit pin
-  and a `.runtime` artifact extraction-path mismatch. The full release lane now
-  keeps Playwright browser setup explicit, manages the Cloudflare Pages custom
+  public smoke readiness, the in-deploy managed readiness gate, and the
+  standalone staging release-readiness verifier. Production promotion was
+  intentionally skipped for that run. The full release lane now keeps
+  Playwright browser setup explicit, manages the Cloudflare Pages custom
   domain, frontend CNAME, and Pages runtime variables required by the edge
-  proxy, and keeps live-staging public visual baselines committed for the
-  landing hero, product, and trust sections.
+  proxy, pins the artifact download action to a resolvable commit, restores the
+  `.runtime` artifact extraction path for cross-job readiness checks, and keeps
+  live-staging public visual baselines committed for the landing hero, product,
+  and trust sections.
   Direct-upload Pages deploys render runtime variables into the Wrangler
   deployment config from the managed release bundle. The Cloudflare-hosted
   dashboard CSP uses nonce mode and allows Cloudflare Web Analytics sources so
