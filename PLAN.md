@@ -1,6 +1,6 @@
 # Valdrics Source of Truth Plan
 
-Last reviewed: 2026-05-07
+Last reviewed: 2026-05-09
 Status: Canonical
 Owner: Product + Engineering
 
@@ -65,17 +65,19 @@ Every major idea in this file is assigned one strategy label:
 - Current operational track: Cloudflare Bot Fight Mode is now enforced off by
   release preflight and Terraform using a GitHub `CLOUDFLARE_API_TOKEN` with
   Zone `Bot Management:Edit`. The latest staging full-release retry passed
-  Cloudflare preflight, Terraform, Cloudflare Pages deploy, API liveness, and
-  public smoke readiness; release readiness then exposed missing public visual
-  snapshot baselines. The full release lane now keeps Playwright browser setup
-  explicit, manages the Cloudflare Pages custom domain, frontend CNAME, and
-  Pages runtime variables required by the edge proxy, and keeps live-staging
-  public visual baselines committed for the landing hero, product, and trust
-  sections. Direct-upload Pages deploys render runtime variables into the
-  Wrangler deployment config from the managed release bundle. The
-  Cloudflare-hosted dashboard CSP uses nonce mode and allows Cloudflare Web
-  Analytics sources so Cloudflare JavaScript Detections can run without
-  weakening the policy with `unsafe-inline`.
+  Cloudflare preflight, Terraform, Cloudflare Pages deploy, API liveness,
+  public smoke readiness, and the in-deploy managed readiness gate. The next
+  blocker moved out of Cloudflare into GitHub Actions setup: the standalone
+  readiness verifier exposed an invalid `actions/download-artifact` commit pin.
+  The full release lane now keeps Playwright browser setup explicit, manages
+  the Cloudflare Pages custom domain, frontend CNAME, and Pages runtime
+  variables required by the edge proxy, and keeps live-staging public visual
+  baselines committed for the landing hero, product, and trust sections.
+  Direct-upload Pages deploys render runtime variables into the Wrangler
+  deployment config from the managed release bundle. The Cloudflare-hosted
+  dashboard CSP uses nonce mode and allows Cloudflare Web Analytics sources so
+  Cloudflare JavaScript Detections can run without weakening the policy with
+  `unsafe-inline`.
 
 ## What Valdrics Is Building
 
