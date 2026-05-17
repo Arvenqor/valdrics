@@ -6,6 +6,7 @@
 	import { edgeApiPath } from '$lib/edgeProxy';
 	import { clientLogger } from '$lib/logging/client';
 	import type { SafetyStatus } from './settingsPageModels';
+	import SettingsPageViewBody from './SettingsPageViewBody.svelte';
 	import {
 		INITIAL_ACTIVEOPS_SETTINGS,
 		INITIAL_CARBON_SETTINGS,
@@ -14,24 +15,6 @@
 	} from './settingsPageInitialState';
 	import { formatValidationIssues } from '$lib/validation/formatValidationIssues';
 	import './SettingsPageViewContent.css';
-
-	function createModuleLoader<T>(loader: () => Promise<T>): () => Promise<T> {
-		let promise: Promise<T> | null = null;
-
-		return () => {
-			if (!promise) {
-				promise = loader().catch((error) => {
-					promise = null;
-					throw error;
-				});
-			}
-			return promise;
-		};
-	}
-
-	const loadSettingsPageViewBody = createModuleLoader(
-		() => import('./SettingsPageViewBody.svelte')
-	);
 
 	let { data } = $props();
 	const SETTINGS_REQUEST_TIMEOUT_MS = 8000;
@@ -356,20 +339,10 @@
 	<title>Settings | Valdrics</title>
 </svelte:head>
 
-{#await loadSettingsPageViewBody()}
-	<div class="card">
-		<div class="skeleton h-8 w-48 mb-4"></div>
-		<div class="skeleton h-4 w-full mb-2"></div>
-		<div class="skeleton h-4 w-3/4 mb-6"></div>
-		<div class="skeleton h-64 rounded-2xl"></div>
-	</div>
-{:then module}
-	{@const SettingsPageViewBody = module.default}
-	<SettingsPageViewBody
-		{...viewProps}
-		bind:persona
-		bind:carbonSettings
-		bind:llmSettings
-		bind:activeOpsSettings
-	/>
-{/await}
+<SettingsPageViewBody
+	{...viewProps}
+	bind:persona
+	bind:carbonSettings
+	bind:llmSettings
+	bind:activeOpsSettings
+/>

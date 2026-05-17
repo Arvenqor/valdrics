@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import AuthGate from '$lib/components/AuthGate.svelte';
 	import { createLazyComponent } from '$lib/lazyComponent';
@@ -114,35 +113,10 @@
 	const loadSettingsDeferredSection = createLazyComponent<SettingsDeferredSectionProps>(
 		() => import('./SettingsDeferredSection.svelte')
 	);
-	let deferredSectionAnchor: HTMLDivElement | null = $state(null);
-	let deferredSectionVisible = $state(false);
 	let deferredSectionNotified = $state(false);
 
-	onMount(() => {
-		if (import.meta.env.MODE === 'test' || typeof IntersectionObserver === 'undefined') {
-			deferredSectionVisible = true;
-			return;
-		}
-
-		const observer = new IntersectionObserver(
-			(entries) => {
-				if (entries.some((entry) => entry.isIntersecting)) {
-					deferredSectionVisible = true;
-					observer.disconnect();
-				}
-			},
-			{ rootMargin: '280px 0px' }
-		);
-
-		if (deferredSectionAnchor) {
-			observer.observe(deferredSectionAnchor);
-		}
-
-		return () => observer.disconnect();
-	});
-
 	$effect(() => {
-		if (!deferredSectionVisible || deferredSectionNotified) return;
+		if (deferredSectionNotified) return;
 		deferredSectionNotified = true;
 		void onRevealDeferredSections();
 	});
@@ -336,60 +310,53 @@
 				{/if}
 			</div>
 
-			<div bind:this={deferredSectionAnchor}>
-				{#if deferredSectionVisible}
-					{#await loadSettingsDeferredSection()}
-						<div class="space-y-8">
-							<div class="card">
-								<div class="skeleton h-6 w-40 mb-4"></div>
-								<div class="skeleton h-4 w-full mb-2"></div>
-								<div class="skeleton h-4 w-3/4"></div>
-							</div>
-							<div class="card">
-								<div class="skeleton h-6 w-48 mb-4"></div>
-								<div class="skeleton h-24 rounded-2xl"></div>
-							</div>
+			<div>
+				{#await loadSettingsDeferredSection()}
+					<div class="space-y-8">
+						<div class="card">
+							<div class="skeleton h-6 w-40 mb-4"></div>
+							<div class="skeleton h-4 w-full mb-2"></div>
+							<div class="skeleton h-4 w-3/4"></div>
 						</div>
-					{:then module}
-						{@const SettingsDeferredSection = module.default}
-						<SettingsDeferredSection
-							{data}
-							bind:llmSettings
-							{loadingLLM}
-							{savingLLM}
-							{providerModels}
-							{saveLLMSettings}
-							bind:activeOpsSettings
-							{loadingActiveOps}
-							{savingActiveOps}
-							{saveActiveOpsSettings}
-							{loadingSafety}
-							{resettingSafety}
-							{loadSafetyStatus}
-							{resetSafetyCircuitBreaker}
-							{safetyError}
-							{safetySuccess}
-							{safetyStatus}
-						/>
-					{:catch}
-						<div class="space-y-8">
-							<div class="card">
-								<div class="skeleton h-6 w-40 mb-4"></div>
-								<div class="skeleton h-4 w-full mb-2"></div>
-								<div class="skeleton h-4 w-3/4"></div>
-							</div>
-							<div class="card">
-								<div class="skeleton h-6 w-48 mb-4"></div>
-								<div class="skeleton h-24 rounded-2xl"></div>
-							</div>
+						<div class="card">
+							<div class="skeleton h-6 w-48 mb-4"></div>
+							<div class="skeleton h-24 rounded-2xl"></div>
 						</div>
-					{/await}
-				{:else}
-					<div class="card">
-						<div class="skeleton h-6 w-48 mb-4"></div>
-						<div class="skeleton h-24 rounded-2xl"></div>
 					</div>
-				{/if}
+				{:then module}
+					{@const SettingsDeferredSection = module.default}
+					<SettingsDeferredSection
+						{data}
+						bind:llmSettings
+						{loadingLLM}
+						{savingLLM}
+						{providerModels}
+						{saveLLMSettings}
+						bind:activeOpsSettings
+						{loadingActiveOps}
+						{savingActiveOps}
+						{saveActiveOpsSettings}
+						{loadingSafety}
+						{resettingSafety}
+						{loadSafetyStatus}
+						{resetSafetyCircuitBreaker}
+						{safetyError}
+						{safetySuccess}
+						{safetyStatus}
+					/>
+				{:catch}
+					<div class="space-y-8">
+						<div class="card">
+							<div class="skeleton h-6 w-40 mb-4"></div>
+							<div class="skeleton h-4 w-full mb-2"></div>
+							<div class="skeleton h-4 w-3/4"></div>
+						</div>
+						<div class="card">
+							<div class="skeleton h-6 w-48 mb-4"></div>
+							<div class="skeleton h-24 rounded-2xl"></div>
+						</div>
+					</div>
+				{/await}
 			</div>
 		{/if}
 	</AuthGate>

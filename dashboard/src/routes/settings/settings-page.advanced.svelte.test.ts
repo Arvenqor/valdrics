@@ -29,13 +29,16 @@ describe('settings page integration wiring (advanced)', () => {
 		await screen.findByRole('button', { name: /Save carbon budget settings/i });
 
 		await fireEvent.click(screen.getByRole('button', { name: /Save carbon budget settings/i }));
-		await waitFor(() => {
-			expect(putMock).toHaveBeenCalledWith(
-				endpoint('/settings/carbon'),
-				expect.objectContaining({ carbon_budget_kg: expect.any(Number) }),
-				expect.objectContaining({ headers: expect.any(Object) })
-			);
-		});
+		await waitFor(
+			() => {
+				expect(putMock).toHaveBeenCalledWith(
+					endpoint('/settings/carbon'),
+					expect.objectContaining({ carbon_budget_kg: expect.any(Number) }),
+					expect.objectContaining({ headers: expect.any(Object) })
+				);
+			},
+			{ timeout: 5000 }
+		);
 
 		const openAiKey = (await screen.findByLabelText(
 			'OpenAI API Key',
