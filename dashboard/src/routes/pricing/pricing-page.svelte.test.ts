@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { readable } from 'svelte/store';
 import Page from './+page.svelte';
 import { DEFAULT_PRICING_PLANS } from './plans';
@@ -32,6 +32,10 @@ vi.mock('$app/stores', () => {
 });
 
 describe('pricing page public messaging', () => {
+	afterEach(() => {
+		cleanup();
+	});
+
 	it('shows the free tier entry path plus self-serve paid plans and enterprise review', () => {
 		render(Page, {
 			props: {
@@ -40,7 +44,8 @@ describe('pricing page public messaging', () => {
 					session: null,
 					subscription: { tier: 'free', status: 'active' },
 					profile: null,
-					plans: DEFAULT_PRICING_PLANS
+					plans: DEFAULT_PRICING_PLANS,
+					detectedCurrencyCode: 'USD'
 				}
 			}
 		});
@@ -91,5 +96,30 @@ describe('pricing page public messaging', () => {
 		expect(
 			screen.getByRole('link', { name: /request validation briefing/i }).getAttribute('href') || ''
 		).toContain('/talk-to-sales?');
+	});
+
+	it('shows detected NGN pricing with annual savings in naira', async () => {
+		render(Page, {
+			props: {
+				data: {
+					user: null,
+					session: null,
+					subscription: { tier: 'free', status: 'active' },
+					profile: null,
+					plans: DEFAULT_PRICING_PLANS,
+					detectedCurrencyCode: 'NGN'
+				}
+			}
+		});
+
+		expect(screen.getByText(/NGN \(₦\) detected from your location/i)).toBeTruthy();
+		expect(screen.getByText(/Prices shown in NGN based on detected location/i)).toBeTruthy();
+		expect(screen.getByText(/NGN checkout is settled through Paystack/i)).toBeTruthy();
+		expect(screen.getByText(/77,420\/mo starting price\./i)).toBeTruthy();
+
+		await fireEvent.click(screen.getByRole('switch', { name: /toggle billing cycle/i }));
+
+		expect(screen.getByText(/774,200 billed yearly/i)).toBeTruthy();
+		expect(screen.getByText(/Save .*154,840 per year versus monthly billing/i)).toBeTruthy();
 	});
 });

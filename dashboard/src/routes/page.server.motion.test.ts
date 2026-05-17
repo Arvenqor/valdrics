@@ -102,7 +102,7 @@ describe('landing motion query canonicalization', () => {
 		});
 	});
 
-	it('uses trusted geo headers but keeps the public landing USD-first for NG visitors', async () => {
+	it('uses trusted geo headers for NG visitors', async () => {
 		const result = asLoadResult(
 			await load({
 				url: new URL('https://example.com/'),
@@ -113,7 +113,7 @@ describe('landing motion query canonicalization', () => {
 			} as Parameters<typeof load>[0])
 		);
 
-		expect(result.landingHero.detectedCurrencyCode).toBe('USD');
+		expect(result.landingHero.detectedCurrencyCode).toBe('NGN');
 	});
 
 	it('uses trusted geo headers for supported public landing currencies', async () => {

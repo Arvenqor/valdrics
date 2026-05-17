@@ -280,6 +280,10 @@
 	color: var(--color-ink-950);
 }
 
+.pricing-plan-price--localized .pricing-plan-price__amount {
+	font-size: clamp(2rem, 4vw, 2.75rem);
+}
+
 .pricing-plan-price__period {
 	padding-bottom: 0.42rem;
 	font-size: 0.95rem;

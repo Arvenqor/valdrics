@@ -1,4 +1,4 @@
-export const PUBLIC_LANDING_CURRENCIES = ['USD', 'EUR', 'GBP', 'CNY'] as const;
+export const PUBLIC_LANDING_CURRENCIES = ['USD', 'EUR', 'GBP', 'NGN', 'CNY'] as const;
 
 export type LandingCurrencyCode = (typeof PUBLIC_LANDING_CURRENCIES)[number];
 

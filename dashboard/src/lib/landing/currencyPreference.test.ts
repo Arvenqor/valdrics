@@ -52,18 +52,17 @@ describe('currencyPreference', () => {
 	it('ignores unsupported currency values and preserves the current valid public preference', async () => {
 		const module = await loadModuleWithDetectedCurrency('EUR');
 		module.setLandingCurrencyPreference('USD');
-		module.setLandingCurrencyPreference('NGN' as 'USD');
 		module.setLandingCurrencyPreference('ZZZ' as 'USD');
 
 		expect(module.getLandingCurrencyPreference()).toBe('USD');
 		expect(window.localStorage.getItem('valdrics_landing_currency')).toBe('USD');
 	});
 
-	it('falls back to USD when the detected local currency is NGN', async () => {
+	it('uses NGN when the detected local currency is NGN', async () => {
 		const module = await loadModuleWithDetectedCurrency('NGN');
 
-		expect(module.resolveDetectedLandingCurrency()).toBe('USD');
-		expect(module.resolveInitialLandingCurrency()).toBe('USD');
+		expect(module.resolveDetectedLandingCurrency()).toBe('NGN');
+		expect(module.resolveInitialLandingCurrency()).toBe('NGN');
 	});
 
 	it('ignores a previously stored NGN landing preference', async () => {
@@ -72,6 +71,14 @@ describe('currencyPreference', () => {
 		const module = await loadModuleWithDetectedCurrency('EUR');
 		expect(module.getLandingCurrencyPreference()).toBe('EUR');
 		expect(module.resolveInitialLandingCurrency()).toBe('EUR');
+	});
+
+	it('preserves a stored NGN preference when NGN is still the local currency', async () => {
+		window.localStorage.setItem('valdrics_landing_currency', 'NGN');
+
+		const module = await loadModuleWithDetectedCurrency('NGN');
+		expect(module.getLandingCurrencyPreference()).toBe('NGN');
+		expect(module.resolveInitialLandingCurrency()).toBe('NGN');
 	});
 
 	it('ignores a stale stored local currency when the current detected local currency changes', async () => {

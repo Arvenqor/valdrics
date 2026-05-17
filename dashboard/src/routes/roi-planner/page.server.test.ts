@@ -38,13 +38,13 @@ describe('roi planner currency detection', () => {
 		expect(result.detectedCurrencyCode).toBe('GBP');
 	});
 
-	it('keeps NG visitors on USD for the public planner surface', async () => {
+	it('uses NGN for NG visitors on the public planner surface', async () => {
 		const result = asLoadResult(
 			await load({
 				request: buildRequest({ 'cf-ipcountry': 'NG' })
 			} as Parameters<typeof load>[0])
 		);
 
-		expect(result.detectedCurrencyCode).toBe('USD');
+		expect(result.detectedCurrencyCode).toBe('NGN');
 	});
 });

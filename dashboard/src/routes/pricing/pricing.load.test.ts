@@ -19,6 +19,13 @@ function jsonResponse(payload: unknown, status = 200): Response {
 	});
 }
 
+function buildLoadEvent(fetchMock: typeof fetch, headers: Record<string, string> = {}) {
+	return {
+		fetch: fetchMock,
+		request: new Request('https://example.com/pricing', { headers })
+	} as Parameters<typeof load>[0];
+}
+
 describe('pricing load contract', () => {
 	it('returns API plans when payload is valid', async () => {
 		const plans = [
@@ -40,19 +47,22 @@ describe('pricing load contract', () => {
 			return jsonResponse(plans);
 		});
 
-		const result = (await load({
-			fetch: fetchMock as unknown as typeof fetch
-		} as Parameters<typeof load>[0])) as { plans: typeof plans };
+		const result = (await load(
+			buildLoadEvent(fetchMock as unknown as typeof fetch, {
+				'cf-ipcountry': 'NG'
+			})
+		)) as { plans: typeof plans; detectedCurrencyCode: string };
 
 		expect(result.plans).toEqual(plans);
+		expect(result.detectedCurrencyCode).toBe('NGN');
 	});
 
 	it('falls back to defaults for non-200 responses', async () => {
 		const fetchMock = vi.fn(async () => jsonResponse({ detail: 'error' }, 500));
 
-		const result = (await load({
-			fetch: fetchMock as unknown as typeof fetch
-		} as Parameters<typeof load>[0])) as { plans: typeof DEFAULT_PRICING_PLANS };
+		const result = (await load(buildLoadEvent(fetchMock as unknown as typeof fetch))) as {
+			plans: typeof DEFAULT_PRICING_PLANS;
+		};
 
 		expect(result.plans).toEqual(DEFAULT_PRICING_PLANS);
 	});
@@ -60,9 +70,9 @@ describe('pricing load contract', () => {
 	it('falls back to defaults for invalid payload shape', async () => {
 		const fetchMock = vi.fn(async () => jsonResponse([{ id: 'broken' }]));
 
-		const result = (await load({
-			fetch: fetchMock as unknown as typeof fetch
-		} as Parameters<typeof load>[0])) as { plans: typeof DEFAULT_PRICING_PLANS };
+		const result = (await load(buildLoadEvent(fetchMock as unknown as typeof fetch))) as {
+			plans: typeof DEFAULT_PRICING_PLANS;
+		};
 
 		expect(result.plans).toEqual(DEFAULT_PRICING_PLANS);
 	});
@@ -72,9 +82,9 @@ describe('pricing load contract', () => {
 			throw new Error('network down');
 		});
 
-		const result = (await load({
-			fetch: fetchMock as unknown as typeof fetch
-		} as Parameters<typeof load>[0])) as { plans: typeof DEFAULT_PRICING_PLANS };
+		const result = (await load(buildLoadEvent(fetchMock as unknown as typeof fetch))) as {
+			plans: typeof DEFAULT_PRICING_PLANS;
+		};
 
 		expect(result.plans).toEqual(DEFAULT_PRICING_PLANS);
 	});

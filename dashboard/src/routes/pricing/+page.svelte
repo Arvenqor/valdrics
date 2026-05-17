@@ -20,11 +20,16 @@
 		FREE_TIER_LIMIT_NOTE,
 		PLANS_PRICING_EXPLANATION
 	} from '$lib/landing/heroContent.extended';
+	import {
+		formatCurrencyAmount,
+		getCurrencyMetadata,
+		normalizeSupportedCurrencyCode
+	} from '$lib/landing/currencyDisplay';
 	import { normalizeCheckoutUrl } from '$lib/utils';
 	import type { PageData } from './$types';
 	import type { PricingPlan, PricingPlanStory } from './plans';
 	import { DEFAULT_PRICING_PLANS, mergePricingPlans } from './plans';
-	import { PRICING_BUYING_NOTES, PRICING_HERO_META } from './pricingPageContent';
+	import { PRICING_HERO_META } from './pricingPageContent';
 	import './pricing-page.css';
 
 	type BillingCycle = 'monthly' | 'annual';
@@ -69,6 +74,28 @@
 			.trim()
 			.toLowerCase()
 	);
+	let activeCurrencyCode = $derived(normalizeSupportedCurrencyCode(data.detectedCurrencyCode));
+	let activeCurrency = $derived(getCurrencyMetadata(activeCurrencyCode));
+	let usingLocalizedPricing = $derived(activeCurrencyCode !== 'USD');
+	let pricingHeroMeta = $derived(
+		PRICING_HERO_META.map((item) =>
+			item.label === 'Entry path'
+				? {
+						...item,
+						value: `${formatLocalizedAmount(0)} free tier for the first governed workflow`
+					}
+				: item
+		)
+	);
+	let pricingBuyingNotes = $derived([
+		usingLocalizedPricing
+			? `Prices shown in ${activeCurrency.code} based on detected location.`
+			: 'Prices shown in USD.',
+		'Annual billing applies the lower effective monthly price.',
+		activeCurrencyCode === 'NGN'
+			? 'NGN checkout is settled through Paystack.'
+			: 'The permanent free tier does not require a checkout session.'
+	]);
 
 	$effect(() => {
 		if (pricingViewTracked || !data.user || !data.session?.access_token) {
@@ -99,12 +126,8 @@
 		);
 	}
 
-	function formatUsd(value: number): string {
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD',
-			maximumFractionDigits: 0
-		}).format(value);
+	function formatLocalizedAmount(valueUsd: number): string {
+		return formatCurrencyAmount(valueUsd, activeCurrencyCode);
 	}
 
 	function getDisplayedMonthlyPrice(plan: PricingPlan): number {
@@ -113,6 +136,10 @@
 
 	function getAnnualSavings(plan: PricingPlan): number {
 		return Math.max(plan.price_monthly * 12 - plan.price_annual, 0);
+	}
+
+	function getCheckoutCurrency(): string | undefined {
+		return activeCurrencyCode === 'NGN' ? 'NGN' : undefined;
 	}
 
 	function getSignupHref(planId: string): string {
@@ -156,7 +183,8 @@
 				edgeApiPath('/billing/checkout'),
 				{
 					tier: planId,
-					billing_cycle: billingCycle
+					billing_cycle: billingCycle,
+					currency: getCheckoutCurrency()
 				},
 				{
 					headers: {
@@ -213,7 +241,7 @@
 	{/snippet}
 
 	{#snippet heroMeta()}
-		{#each PRICING_HERO_META as item (item.label)}
+		{#each pricingHeroMeta as item (item.label)}
 			<article class="public-page__meta-item">
 				<strong>{item.label}</strong>
 				<span>{item.value}</span>
@@ -245,7 +273,12 @@
 				<div class="pricing-cycle__copy">
 					<p class="pricing-cycle__kicker">Billing cycle</p>
 					<p class="pricing-cycle__note">
-						Annual billing lowers the effective monthly price on paid plans.
+						{#if usingLocalizedPricing}
+							{activeCurrency.label} detected from your location. Annual billing lowers the effective
+							monthly price on paid plans.
+						{:else}
+							Annual billing lowers the effective monthly price on paid plans.
+						{/if}
 					</p>
 				</div>
 				<div class="pricing-cycle__toggle" role="group" aria-label="Billing cycle">
@@ -278,7 +311,7 @@
 						</div>
 						<div class="pricing-entry-card__price">
 							<p class="pricing-entry-card__price-label">Entry price</p>
-							<p class="pricing-entry-card__price-value">$0</p>
+							<p class="pricing-entry-card__price-value">{formatLocalizedAmount(0)}</p>
 						</div>
 					</div>
 
@@ -326,9 +359,12 @@
 
 						<p class="public-page__card-copy">{story.summary}</p>
 
-						<div class="pricing-plan-price">
-							<span class="pricing-plan-price__currency">$</span>
-							<span class="pricing-plan-price__amount">{getDisplayedMonthlyPrice(plan)}</span>
+						<div
+							class={`pricing-plan-price ${usingLocalizedPricing ? 'pricing-plan-price--localized' : ''}`}
+						>
+							<span class="pricing-plan-price__amount">
+								{formatLocalizedAmount(getDisplayedMonthlyPrice(plan))}
+							</span>
 							<span class="pricing-plan-price__period">
 								{billingCycle === 'monthly' ? '/mo' : '/mo billed annually'}
 							</span>
@@ -336,8 +372,8 @@
 
 						<p class="pricing-plan-price__note">
 							{billingCycle === 'annual'
-								? `${formatUsd(plan.price_annual)} billed yearly. Effective ${formatUsd(getDisplayedMonthlyPrice(plan))}/mo.`
-								: `${formatUsd(plan.price_monthly)}/mo starting price.`}
+								? `${formatLocalizedAmount(plan.price_annual)} billed yearly. Effective ${formatLocalizedAmount(getDisplayedMonthlyPrice(plan))}/mo.`
+								: `${formatLocalizedAmount(plan.price_monthly)}/mo starting price.`}
 						</p>
 
 						<ul class="public-page__list">
@@ -384,7 +420,7 @@
 
 							{#if billingCycle === 'annual' && getAnnualSavings(plan) > 0}
 								<p class="pricing-support-note">
-									Save {formatUsd(getAnnualSavings(plan))} per year versus monthly billing.
+									Save {formatLocalizedAmount(getAnnualSavings(plan))} per year versus monthly billing.
 								</p>
 							{/if}
 						</div>
@@ -412,7 +448,7 @@
 					</a>
 				</div>
 				<div class="public-page__badge-cloud pricing-buying-notes">
-					{#each PRICING_BUYING_NOTES as item (item)}
+					{#each pricingBuyingNotes as item (item)}
 						<span class="public-page__badge">{item}</span>
 					{/each}
 				</div>
