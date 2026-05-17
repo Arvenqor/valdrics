@@ -192,6 +192,50 @@
 	color: var(--color-ink-900);
 }
 
+.landing-public-business-review {
+	margin-top: 1rem;
+	display: grid;
+	grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+	gap: 1rem;
+	padding: 1.15rem;
+}
+
+.landing-public-business-review__intro,
+.landing-public-business-review__item {
+	display: grid;
+	gap: 0.45rem;
+	align-content: start;
+}
+
+.landing-public-business-review__intro h2 {
+	margin: 0;
+	font-family: 'Space Grotesk', 'Sora', var(--font-sans);
+	font-size: clamp(1.45rem, 2.2vw, 2rem);
+	line-height: 1.08;
+	letter-spacing: -0.04em;
+	color: var(--color-ink-950);
+}
+
+.landing-public-business-review__intro p,
+.landing-public-business-review__item p {
+	margin: 0;
+	color: var(--color-ink-600);
+	line-height: 1.6;
+}
+
+.landing-public-business-review__items {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+.landing-public-business-review__item {
+	padding: 0.85rem;
+	border-radius: 0.95rem;
+	background: rgb(243 248 250 / 0.96);
+	border: 1px solid rgb(8 126 164 / 0.08);
+}
+
 .landing-public-pillar-grid {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -269,6 +313,7 @@
 
 .landing-public-product-still,
 .landing-public-proof-item,
+.landing-public-business-review,
 .landing-public-pillar-card,
 .landing-public-plan-card,
 .landing-public-trust-card,
@@ -302,6 +347,7 @@
 .landing-public-pillar-card:hover,
 .landing-public-plan-card:hover,
 .landing-public-trust-card:hover,
+.landing-public-business-review:hover,
 .landing-public-proof-item:hover {
 	transform: translateY(-3px);
 	box-shadow: 0 20px 42px rgb(15 23 42 / 0.08);
@@ -320,6 +366,8 @@
 
 @media (max-width: 1023px) {
 	.landing-public-proof-strip,
+	.landing-public-business-review,
+	.landing-public-business-review__items,
 	.landing-public-pillar-grid,
 	.landing-public-plan-grid,
 	.landing-public-trust-grid,
@@ -342,6 +390,7 @@
 	.landing-public-plan-card,
 	.landing-public-trust-card,
 	.landing-public-proof-item,
+	.landing-public-business-review,
 	.landing-public-band {
 		padding: 1.1rem;
 		border-radius: 1.15rem;

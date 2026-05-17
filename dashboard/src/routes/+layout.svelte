@@ -115,6 +115,8 @@
 				<a href={toAppPath('/resources')}>Resources</a>
 				<a href={toAppPath('/docs')}>Docs</a>
 				<a href={toAppPath('/status')}>Status</a>
+				<a href={toAppPath('/privacy')}>Privacy</a>
+				<a href={toAppPath('/terms')}>Terms</a>
 			</nav>
 		</div>
 	</noscript>

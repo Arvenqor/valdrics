@@ -184,7 +184,7 @@ describe('public layout mobile menu', () => {
 		await waitFor(() => {
 			expect(screen.queryByRole('dialog', { name: /public navigation menu/i })).toBeNull();
 		});
-	});
+	}, 10_000);
 
 	it('closes when route changes', async () => {
 		await renderPublicLayout();

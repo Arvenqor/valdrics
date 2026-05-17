@@ -122,4 +122,18 @@ describe('LandingHeroView', () => {
 			'Real workspace still from the signed-in dashboard.'
 		);
 	});
+
+	it('makes the business activity and service delivery clear for payment review', () => {
+		const view = render(LandingHeroView, {
+			props: buildProps()
+		});
+
+		expect(view.container.textContent || '').toContain(
+			'Valdrics sells subscription access to a cloud spend governance SaaS product'
+		);
+		expect(view.container.textContent || '').toContain(
+			'Paid plans are monthly or annual software subscriptions'
+		);
+		expect(view.container.textContent || '').toContain('No physical goods are sold or shipped');
+	});
 });

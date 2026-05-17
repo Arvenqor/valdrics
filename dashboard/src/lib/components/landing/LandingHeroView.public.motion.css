@@ -194,6 +194,7 @@
 
 .public-site-shell[data-public-theme='dark'] .landing-public-section-head h2,
 .public-site-shell[data-public-theme='dark'] .landing-public-band h3,
+.public-site-shell[data-public-theme='dark'] .landing-public-business-review__intro h2,
 .public-site-shell[data-public-theme='dark'] .landing-public-trust-card h3,
 .public-site-shell[data-public-theme='dark'] .landing-public-preview-title,
 .public-site-shell[data-public-theme='dark'] .landing-public-pillar-card h3,
@@ -203,6 +204,8 @@
 
 .public-site-shell[data-public-theme='dark'] .landing-public-section-head p,
 .public-site-shell[data-public-theme='dark'] .landing-public-band p,
+.public-site-shell[data-public-theme='dark'] .landing-public-business-review__intro p,
+.public-site-shell[data-public-theme='dark'] .landing-public-business-review__item p,
 .public-site-shell[data-public-theme='dark'] .landing-public-pillar-card p,
 .public-site-shell[data-public-theme='dark'] .landing-public-plan-card p,
 .public-site-shell[data-public-theme='dark'] .landing-public-trust-card p {
@@ -219,6 +222,7 @@
 }
 
 .public-site-shell[data-public-theme='dark'] .landing-public-windowbar,
+.public-site-shell[data-public-theme='dark'] .landing-public-business-review__item,
 .public-site-shell[data-public-theme='dark'] .landing-public-impact-grid div {
 	border-color: rgb(255 255 255 / 0.08);
 	background: rgb(255 255 255 / 0.04);

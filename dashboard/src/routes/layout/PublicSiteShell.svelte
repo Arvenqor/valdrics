@@ -3,7 +3,6 @@
 	import { browser } from '$app/environment';
 	import { page } from '$app/stores';
 	import type { Snippet } from 'svelte';
-	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import CloudLogo from '$lib/components/CloudLogo.svelte';
 	import { createLazyComponent } from '$lib/lazyComponent';
@@ -14,6 +13,7 @@
 		togglePublicTheme as nextPublicTheme,
 		type PublicTheme
 	} from '$lib/public/publicTheme';
+	import PublicSiteFooter from './PublicSiteFooter.svelte';
 
 	type PublicTone = 'default' | 'landing';
 
@@ -33,7 +33,6 @@
 	let publicResourcesButton = $state<HTMLButtonElement | null>(null);
 	let publicTheme = $state<PublicTheme>('light');
 	let publicThemeLoaded = $state(false);
-	let publicFooterReady = $state(import.meta.env.MODE === 'test');
 
 	type PublicMobileMenuDialogProps = {
 		publicTheme: PublicTheme;
@@ -45,39 +44,13 @@
 		onClose: () => void;
 	};
 
-	type PublicSiteFooterProps = {
-		currentYear: number;
-		toAppPath: (path: string) => string;
-	};
-
 	const loadPublicMobileMenuDialog = createLazyComponent<PublicMobileMenuDialogProps>(
 		() => import('./PublicMobileMenuDialog.svelte')
-	);
-	const loadPublicSiteFooter = createLazyComponent<PublicSiteFooterProps>(
-		() => import('./PublicSiteFooter.svelte')
 	);
 
 	const themeToggleLabel = (theme: PublicTheme) =>
 		theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
 	const themeToggleCopy = (theme: PublicTheme) => (theme === 'dark' ? 'Light mode' : 'Dark mode');
-
-	onMount(() => {
-		if (publicFooterReady) {
-			return;
-		}
-
-		const activateFooter = () => {
-			publicFooterReady = true;
-		};
-
-		if (typeof window.requestIdleCallback === 'function') {
-			const idleId = window.requestIdleCallback(activateFooter, { timeout: 1200 });
-			return () => window.cancelIdleCallback(idleId);
-		}
-
-		const timeoutId = window.setTimeout(activateFooter, 400);
-		return () => window.clearTimeout(timeoutId);
-	});
 
 	$effect(() => {
 		if (!browser || publicThemeLoaded) return;
@@ -437,16 +410,5 @@
 		{@render children()}
 	</main>
 
-	{#if publicFooterReady}
-		{#await loadPublicSiteFooter() then module}
-			{@const PublicSiteFooter = module.default}
-			<PublicSiteFooter {currentYear} {toAppPath} />
-		{/await}
-	{:else}
-		<div class="public-site-footer" aria-hidden="true">
-			<div class="container mx-auto px-6 py-10">
-				<div class="h-24 rounded-xl border border-ink-800/40 bg-ink-950/10"></div>
-			</div>
-		</div>
-	{/if}
+	<PublicSiteFooter {currentYear} {toAppPath} />
 </div>

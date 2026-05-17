@@ -45,6 +45,24 @@
 		operational_resilience: 'Outcome recorded'
 	};
 
+	const businessReviewItems = [
+		{
+			label: 'Business activity',
+			detail:
+				'Valdrics is a web-based SaaS platform for cloud spend governance, owner-routed approvals, and savings proof for finance and engineering teams.'
+		},
+		{
+			label: 'How customers pay',
+			detail:
+				'Paid plans are monthly or annual software subscriptions. Teams can start with a free workspace, then upgrade through secure checkout when paid billing is active.'
+		},
+		{
+			label: 'Service delivery',
+			detail:
+				'Customers receive digital workspace access through the Valdrics web application. No physical goods are sold or shipped.'
+		}
+	] as const;
+
 	function formatCapturedAt(value: string): string {
 		const date = new Date(value);
 		if (Number.isNaN(date.getTime())) return value;
@@ -279,6 +297,30 @@
 					<strong>Pricing, proof, docs, and company details are public</strong>
 				</article>
 			</div>
+
+			<section
+				class="landing-public-business-review landing-public-surface"
+				aria-labelledby="landing-business-review-title"
+			>
+				<div class="landing-public-business-review__intro">
+					<p class="landing-public-eyebrow">Business activity</p>
+					<h2 id="landing-business-review-title">What Valdrics provides</h2>
+					<p>
+						Valdrics sells subscription access to a cloud spend governance SaaS product. The
+						platform helps teams review spend signals, assign accountable owners, route approvals,
+						and keep exportable proof of savings decisions.
+					</p>
+				</div>
+
+				<div class="landing-public-business-review__items" role="list">
+					{#each businessReviewItems as item (item.label)}
+						<article class="landing-public-business-review__item" role="listitem">
+							<p class="landing-public-proof-label">{item.label}</p>
+							<p>{item.detail}</p>
+						</article>
+					{/each}
+				</div>
+			</section>
 		</div>
 	</section>
 
