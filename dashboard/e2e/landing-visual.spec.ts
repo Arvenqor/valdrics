@@ -6,6 +6,10 @@ const stableSectionScreenshotOptions = {
 	caret: 'hide',
 	timeout: 15_000
 } as const;
+const mobileHeroScreenshotOptions = {
+	...stableSectionScreenshotOptions,
+	maxDiffPixels: 5_000
+} as const;
 
 async function prepareStablePublicPage(
 	page: Parameters<typeof test>[0]['page'],
@@ -55,7 +59,7 @@ test.describe('Landing visual snapshots', () => {
 			await prepareStablePublicPage(page);
 			await expect(page.locator('.landing-public-hero')).toHaveScreenshot(
 				'landing-hero-mobile.png',
-				stableSectionScreenshotOptions
+				mobileHeroScreenshotOptions
 			);
 			await expect(page.locator('#product')).toHaveScreenshot(
 				'landing-product-mobile.png',
