@@ -80,6 +80,116 @@ def test_sync_rulesets_creates_missing_entrypoints(monkeypatch: pytest.MonkeyPat
     ]
 
 
+def test_upsert_existing_top_rule_omits_redundant_before_position() -> None:
+    calls: list[tuple[str, str, dict[str, Any] | None]] = []
+
+    class FakeClient(sync_cloudflare_rulesets.CloudflareRulesetsClient):
+        def __init__(self) -> None:
+            pass
+
+        def request(
+            self,
+            method: str,
+            path: str,
+            *,
+            payload: dict[str, Any] | None = None,
+            allow_404: bool = False,
+        ) -> Any:
+            assert allow_404 is False
+            calls.append((method, path, payload))
+            return {"id": "ruleset-id", "rules": []}
+
+    rule = sync_cloudflare_rulesets.ManagedRule(
+        phase="http_request_firewall_custom",
+        ref="valdrics-health-probe-skip",
+        position={"before": ""},
+        payload={
+            "ref": "valdrics-health-probe-skip",
+            "description": "Health probes must bypass Cloudflare browser challenges.",
+            "action": "skip",
+        },
+    )
+
+    FakeClient().upsert_rule(
+        zone_id="zone-id",
+        ruleset={
+            "id": "ruleset-id",
+            "rules": [
+                {
+                    "id": "rule-id",
+                    "ref": "valdrics-health-probe-skip",
+                    "description": (
+                        "Health probes must bypass Cloudflare browser challenges."
+                    ),
+                }
+            ],
+        },
+        desired_rule=rule,
+    )
+
+    assert calls == [
+        (
+            "PATCH",
+            "/zones/zone-id/rulesets/ruleset-id/rules/rule-id",
+            {
+                "ref": "valdrics-health-probe-skip",
+                "description": "Health probes must bypass Cloudflare browser challenges.",
+                "action": "skip",
+            },
+        )
+    ]
+
+
+def test_upsert_missing_top_rule_keeps_before_position() -> None:
+    calls: list[tuple[str, str, dict[str, Any] | None]] = []
+
+    class FakeClient(sync_cloudflare_rulesets.CloudflareRulesetsClient):
+        def __init__(self) -> None:
+            pass
+
+        def request(
+            self,
+            method: str,
+            path: str,
+            *,
+            payload: dict[str, Any] | None = None,
+            allow_404: bool = False,
+        ) -> Any:
+            assert allow_404 is False
+            calls.append((method, path, payload))
+            return {"id": "ruleset-id", "rules": []}
+
+    rule = sync_cloudflare_rulesets.ManagedRule(
+        phase="http_request_firewall_custom",
+        ref="valdrics-health-probe-skip",
+        position={"before": ""},
+        payload={
+            "ref": "valdrics-health-probe-skip",
+            "description": "Health probes must bypass Cloudflare browser challenges.",
+            "action": "skip",
+        },
+    )
+
+    FakeClient().upsert_rule(
+        zone_id="zone-id",
+        ruleset={"id": "ruleset-id", "rules": []},
+        desired_rule=rule,
+    )
+
+    assert calls == [
+        (
+            "POST",
+            "/zones/zone-id/rulesets/ruleset-id/rules",
+            {
+                "ref": "valdrics-health-probe-skip",
+                "description": "Health probes must bypass Cloudflare browser challenges.",
+                "action": "skip",
+                "position": {"before": ""},
+            },
+        )
+    ]
+
+
 def test_import_terraform_ruleset_state_uses_zone_scoped_import_ids(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

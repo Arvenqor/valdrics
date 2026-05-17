@@ -209,20 +209,27 @@ class CloudflareRulesetsClient:
                 f"Cloudflare ruleset for {desired_rule.phase} has no ruleset id"
             )
 
-        body = dict(desired_rule.payload)
-        position = desired_rule.position
-        if desired_rule.after_ref:
-            after_id = _find_rule_id(ruleset, desired_rule.after_ref)
-            if after_id:
-                position = {"after": after_id}
-        if position is not None:
-            body["position"] = position
-
         existing_rule_id = _find_rule_id(
             ruleset,
             desired_rule.ref,
             description=str(desired_rule.payload.get("description") or ""),
         )
+
+        body = dict(desired_rule.payload)
+        position = dict(desired_rule.position) if desired_rule.position else None
+        if desired_rule.after_ref:
+            after_id = _find_rule_id(ruleset, desired_rule.after_ref)
+            if after_id:
+                position = {"after": after_id}
+        if (
+            existing_rule_id
+            and position is not None
+            and _position_is_current(ruleset, existing_rule_id, position)
+        ):
+            position = None
+        if position is not None:
+            body["position"] = position
+
         if existing_rule_id:
             method = "PATCH"
             path = (
@@ -266,6 +273,37 @@ def _find_rule_id(
         ):
             return str(rule.get("id") or "").strip()
     return ""
+
+
+def _position_is_current(
+    ruleset: dict[str, Any],
+    rule_id: str,
+    position: dict[str, str],
+) -> bool:
+    rule_ids = [
+        str(rule.get("id") or "").strip()
+        for rule in ruleset.get("rules") or []
+        if isinstance(rule, dict)
+    ]
+    if not rule_id or rule_id not in rule_ids:
+        return False
+
+    current_index = rule_ids.index(rule_id)
+    if "before" in position:
+        before_id = str(position.get("before") or "").strip()
+        if not before_id:
+            return current_index == 0
+        if before_id not in rule_ids:
+            return False
+        return current_index == rule_ids.index(before_id) - 1
+
+    if "after" in position:
+        after_id = str(position.get("after") or "").strip()
+        if not after_id or after_id not in rule_ids:
+            return False
+        return current_index == rule_ids.index(after_id) + 1
+
+    return False
 
 
 def sync_rulesets(
