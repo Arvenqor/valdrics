@@ -4,6 +4,10 @@ data "google_project" "current" {
 
 locals {
   batch_image                         = trimspace(var.batch_job_image) != "" ? var.batch_job_image : var.api_image
+  artifact_registry_image_match       = regex("^([a-z0-9-]+)-docker\\.pkg\\.dev/([^/]+)/([^/]+)/[^@]+@sha256:[0-9a-f]{64}$", var.api_image)
+  artifact_registry_region            = local.artifact_registry_image_match[0]
+  artifact_registry_project_id        = local.artifact_registry_image_match[1]
+  artifact_registry_repository_id     = local.artifact_registry_image_match[2]
   api_hostname                        = split("/", trimprefix(var.api_url, "https://"))[0]
   frontend_hostname                   = split("/", trimprefix(var.frontend_url, "https://"))[0]
   api_origin                          = trimsuffix(var.api_url, "/")
@@ -118,6 +122,30 @@ resource "google_service_account_iam_member" "allow_cloud_tasks_service_agent" {
   member             = "serviceAccount:service-${data.google_project.current.number}@gcp-sa-cloudtasks.iam.gserviceaccount.com"
 }
 
+resource "google_artifact_registry_repository_iam_member" "cloud_run_service_agent_image_reader" {
+  project    = local.artifact_registry_project_id
+  location   = local.artifact_registry_region
+  repository = local.artifact_registry_repository_id
+  role       = "roles/artifactregistry.reader"
+  member     = "serviceAccount:service-${data.google_project.current.number}@serverless-robot-prod.iam.gserviceaccount.com"
+}
+
+resource "google_artifact_registry_repository_iam_member" "runtime_image_reader" {
+  project    = local.artifact_registry_project_id
+  location   = local.artifact_registry_region
+  repository = local.artifact_registry_repository_id
+  role       = "roles/artifactregistry.reader"
+  member     = "serviceAccount:${google_service_account.runtime.email}"
+}
+
+resource "google_artifact_registry_repository_iam_member" "batch_image_reader" {
+  project    = local.artifact_registry_project_id
+  location   = local.artifact_registry_region
+  repository = local.artifact_registry_repository_id
+  role       = "roles/artifactregistry.reader"
+  member     = "serviceAccount:${google_service_account.batch.email}"
+}
+
 resource "google_service_account_iam_member" "allow_cloud_scheduler_service_agent" {
   service_account_id = google_service_account.scheduler_invoker.name
   role               = "roles/iam.serviceAccountUser"
@@ -223,7 +251,11 @@ resource "google_cloud_run_v2_service" "api" {
     type    = "TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST"
   }
 
-  depends_on = [google_project_service.required]
+  depends_on = [
+    google_project_service.required,
+    google_artifact_registry_repository_iam_member.cloud_run_service_agent_image_reader,
+    google_artifact_registry_repository_iam_member.runtime_image_reader,
+  ]
 }
 
 resource "google_compute_global_address" "api_edge" {
@@ -439,7 +471,11 @@ resource "google_cloud_run_v2_job" "batch" {
     }
   }
 
-  depends_on = [google_project_service.required]
+  depends_on = [
+    google_project_service.required,
+    google_artifact_registry_repository_iam_member.cloud_run_service_agent_image_reader,
+    google_artifact_registry_repository_iam_member.batch_image_reader,
+  ]
 }
 
 resource "google_cloud_scheduler_job" "managed" {
@@ -550,6 +586,7 @@ resource "cloudflare_ruleset" "api_internal_block" {
 
   rules = [
     {
+      ref         = "valdrics-health-probe-skip"
       action      = "skip"
       enabled     = true
       description = "Health probes must bypass Cloudflare browser challenges."
@@ -572,12 +609,21 @@ resource "cloudflare_ruleset" "api_internal_block" {
       }
     },
     {
+      ref         = "valdrics-internal-api-block"
       action      = "block"
       enabled     = true
       description = "Internal scheduler and task endpoints are not internet-facing."
       expression  = "(http.host eq \"${local.api_hostname}\" and starts_with(http.request.uri.path, \"/api/v1/internal/\"))"
     },
   ]
+
+  lifecycle {
+    ignore_changes = [
+      description,
+      name,
+      rules,
+    ]
+  }
 }
 
 resource "cloudflare_ruleset" "api_rate_limit" {
@@ -589,6 +635,7 @@ resource "cloudflare_ruleset" "api_rate_limit" {
 
   rules = [
     {
+      ref         = "valdrics-public-api-rate-limit"
       action      = "block"
       enabled     = true
       description = "Public API burst protection at the Cloudflare edge."
@@ -602,6 +649,14 @@ resource "cloudflare_ruleset" "api_rate_limit" {
       }
     },
   ]
+
+  lifecycle {
+    ignore_changes = [
+      description,
+      name,
+      rules,
+    ]
+  }
 }
 
 resource "supabase_project" "platform" {

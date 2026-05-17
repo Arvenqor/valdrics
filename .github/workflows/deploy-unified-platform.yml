@@ -318,6 +318,7 @@ jobs:
         if: ${{ inputs.apply_infrastructure }}
         shell: bash
         env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           TF_VAR_supabase_access_token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           TF_VAR_supabase_database_password: ${{ secrets.SUPABASE_DATABASE_PASSWORD }}
@@ -332,6 +333,12 @@ jobs:
               supabase_project.platform \
               "${{ steps.managed_bundle.outputs.supabase_project_ref }}"
           fi
+          uv run python3 scripts/sync_cloudflare_rulesets.py \
+            --cloudflare-zone-id "${{ vars.CLOUDFLARE_ZONE_ID }}" \
+            --api-url "${{ steps.managed_bundle.outputs.api_url }}" \
+            --terraform-dir terraform \
+            --terraform-var-file "${{ steps.managed_bundle.outputs.tfvars_path }}" \
+            --import-terraform-state
           terraform -chdir=terraform plan \
             -var-file="../${{ steps.managed_bundle.outputs.tfvars_path }}" \
             -out=tfplan

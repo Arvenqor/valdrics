@@ -56,6 +56,8 @@ def test_release_artifacts_are_immutable_and_workflows_target_unified_platform()
     assert "terraform -chdir=terraform apply -auto-approve tfplan" in deploy_workflow
     assert "terraform -chdir=terraform import" in deploy_workflow
     assert "supabase_project.platform" in deploy_workflow
+    assert "sync_cloudflare_rulesets.py" in deploy_workflow
+    assert "--import-terraform-state" in deploy_workflow
     assert "terraform.runtime.auto.tfvars.json" in deploy_workflow
     assert "secrets.DATABASE_URL" not in deploy_workflow
     assert "secrets.SUPABASE_ANON_KEY" not in deploy_workflow

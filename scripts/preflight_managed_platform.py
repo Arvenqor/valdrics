@@ -20,6 +20,7 @@ from scripts.generate_managed_deployment_artifacts import supabase_project_ref_f
 
 SUPABASE_API_BASE_URL = "https://api.supabase.com"
 SUPABASE_API_USER_AGENT = "CloudSentinel-AI-release-preflight/1.0"
+SUPABASE_INACTIVE_PROJECT_STATUSES = frozenset({"INACTIVE"})
 
 
 def _load_runtime_plain_env(raw_payload: str) -> dict[str, str]:
@@ -112,10 +113,18 @@ def validate_supabase_project_binding(
             f"but SUPABASE_PROJECT_NAME is {expected_name!r}."
         )
 
+    project_status = str(project.get("status") or "unknown").strip()
+    if project_status.upper() in SUPABASE_INACTIVE_PROJECT_STATUSES:
+        raise ValueError(
+            f"Supabase project {project_ref!r} is {project_status!r}. "
+            "Restore or reactivate the project in Supabase before running the "
+            "production release."
+        )
+
     return {
         "project_ref": project_ref,
         "project_name": actual_name or expected_name,
-        "project_status": str(project.get("status") or "unknown"),
+        "project_status": project_status or "unknown",
     }
 
 

@@ -111,3 +111,28 @@ def test_validate_supabase_project_binding_rejects_wrong_project_name(
             supabase_project_name="valdrics-staging",
             supabase_access_token="token",
         )
+
+
+def test_validate_supabase_project_binding_rejects_inactive_project(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        preflight_managed_platform,
+        "_request_json",
+        lambda _url, *, access_token: {
+            "ref": "hnnksaolfbfkekgdxvpf",
+            "organization_id": "yxmvrweoyqfysmuazbxw",
+            "name": "valdrics-production",
+            "status": "INACTIVE",
+        },
+    )
+
+    with pytest.raises(ValueError, match="Restore or reactivate"):
+        preflight_managed_platform.validate_supabase_project_binding(
+            runtime_plain_env_json=json.dumps(
+                {"SUPABASE_URL": "https://hnnksaolfbfkekgdxvpf.supabase.co"}
+            ),
+            supabase_organization_id="yxmvrweoyqfysmuazbxw",
+            supabase_project_name="valdrics-production",
+            supabase_access_token="token",
+        )

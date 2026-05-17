@@ -52,6 +52,12 @@ def test_terraform_root_targets_gcp_cloudflare_and_supabase() -> None:
         artifact_registry_main
     )
     assert 'resource "google_cloud_run_v2_service" "api"' in main
+    assert (
+        'resource "google_artifact_registry_repository_iam_member" '
+        '"cloud_run_service_agent_image_reader"' in main
+    )
+    assert "serverless-robot-prod.iam.gserviceaccount.com" in main
+    assert "roles/artifactregistry.reader" in main
     assert 'ingress              = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"' in main
     assert "invoker_iam_disabled = true" in main
     assert "custom_audiences     = [var.api_url]" in main
@@ -69,6 +75,7 @@ def test_terraform_root_targets_gcp_cloudflare_and_supabase() -> None:
     assert 'resource "cloudflare_bot_management" "api_zone"' in main
     assert "fight_mode = false" in main
     assert 'resource "cloudflare_ruleset" "api_rate_limit"' in main
+    assert "valdrics-public-api-rate-limit" in main
     assert 'characteristics     = ["cf.colo.id", "ip.src"]' in main
     assert 'expression  = "(http.host eq \\"${local.api_hostname}\\")"' in main
     assert 'resource "cloudflare_dns_record" "dashboard"' in main
@@ -83,6 +90,9 @@ def test_terraform_root_targets_gcp_cloudflare_and_supabase() -> None:
     assert "PUBLIC_SUPABASE_ANON_KEY" in main
     assert 'compatibility_flags = ["nodejs_compat"]' in main
     assert 'resource "cloudflare_ruleset" "api_internal_block"' in main
+    assert "valdrics-health-probe-skip" in main
+    assert "valdrics-internal-api-block" in main
+    assert "ignore_changes = [" in main
     assert "Health probes must bypass Cloudflare browser challenges." in main
     assert 'action      = "skip"' in main
     assert 'http.request.uri.path eq \\"/health/live\\"' in main
@@ -261,6 +271,9 @@ def test_deploy_unified_platform_workflow_applies_terraform_and_cloudflare_pages
     assert "-var-file=" in workflow
     assert "terraform -chdir=terraform import" in workflow
     assert "supabase_project.platform" in workflow
+    assert "scripts/sync_cloudflare_rulesets.py" in workflow
+    assert "--import-terraform-state" in workflow
+    assert "CLOUDFLARE_API_TOKEN" in workflow
     assert "steps.managed_bundle.outputs.supabase_project_ref" in workflow
     assert "apply_infrastructure" in workflow
     assert "if: ${{ inputs.apply_infrastructure }}" in workflow
