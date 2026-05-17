@@ -91,8 +91,20 @@ async function goToLanding(page: Parameters<typeof test>[0]['page']) {
 }
 
 async function ensureInteractiveSimulator(page: Parameters<typeof test>[0]['page']) {
+	for (let attempt = 0; attempt < 3; attempt += 1) {
+		const simulator = page.locator('#simulator');
+		await expect(simulator).toBeVisible();
+		try {
+			await simulator.scrollIntoViewIfNeeded();
+			break;
+		} catch (error) {
+			if (!/not attached to the DOM/i.test(String(error)) || attempt === 2) {
+				throw error;
+			}
+			await page.waitForTimeout(150);
+		}
+	}
 	const simulator = page.locator('#simulator');
-	await simulator.scrollIntoViewIfNeeded();
 	await expect(
 		simulator.getByRole('heading', { name: /model the savings case in minutes/i })
 	).toBeVisible();
