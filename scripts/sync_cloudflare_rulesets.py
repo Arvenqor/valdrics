@@ -209,13 +209,23 @@ class CloudflareRulesetsClient:
                 f"Cloudflare ruleset for {desired_rule.phase} has no ruleset id"
             )
 
-        existing_rule_id = _find_rule_id(
+        existing_rule = _find_rule(
             ruleset,
             desired_rule.ref,
             description=str(desired_rule.payload.get("description") or ""),
         )
+        existing_rule_id = (
+            str(existing_rule.get("id") or "").strip()
+            if existing_rule is not None
+            else ""
+        )
 
         body = dict(desired_rule.payload)
+        if existing_rule_id:
+            current_ref = str(existing_rule.get("ref") or "").strip()
+            desired_ref = str(body.get("ref") or desired_rule.ref).strip()
+            if current_ref != desired_ref:
+                body.pop("ref", None)
         position = dict(desired_rule.position) if desired_rule.position else None
         if desired_rule.after_ref:
             after_id = _find_rule_id(ruleset, desired_rule.after_ref)
@@ -261,18 +271,30 @@ def _find_rule_id(
     *,
     description: str = "",
 ) -> str:
+    rule = _find_rule(ruleset, ref, description=description)
+    if rule is None:
+        return ""
+    return str(rule.get("id") or "").strip()
+
+
+def _find_rule(
+    ruleset: dict[str, Any],
+    ref: str,
+    *,
+    description: str = "",
+) -> dict[str, Any] | None:
     normalized_description = str(description or "").strip()
     for rule in ruleset.get("rules") or []:
         if not isinstance(rule, dict):
             continue
         if str(rule.get("ref") or "").strip() == ref:
-            return str(rule.get("id") or "").strip()
+            return rule
         if (
             normalized_description
             and str(rule.get("description") or "").strip() == normalized_description
         ):
-            return str(rule.get("id") or "").strip()
-    return ""
+            return rule
+    return None
 
 
 def _position_is_current(
