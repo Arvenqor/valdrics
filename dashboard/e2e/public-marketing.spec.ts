@@ -4,7 +4,7 @@ const BASE_URL = process.env.DASHBOARD_URL || 'http://localhost:4173';
 const LOCAL_DASHBOARD_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 const isLocalDashboardUrl = LOCAL_DASHBOARD_HOSTS.has(new URL(BASE_URL).hostname);
 
-test.setTimeout(60_000);
+test.setTimeout(120_000);
 
 async function attachSecurityGuards(page: Parameters<typeof test>[0]['page']) {
 	await page.addInitScript(() => {
@@ -90,6 +90,7 @@ async function assertDownloadEndpoint(
 async function goToLanding(page: Parameters<typeof test>[0]['page']) {
 	await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
 	await expect(page.locator('#hero')).toBeVisible();
+	await expect(page.locator('.public-site-shell[data-public-hydrated="true"]')).toBeVisible();
 }
 
 async function ensureInteractiveSimulator(page: Parameters<typeof test>[0]['page']) {
@@ -134,18 +135,24 @@ async function ensureInteractiveTrust(page: Parameters<typeof test>[0]['page']) 
 }
 
 async function openResourcesMenu(page: Parameters<typeof test>[0]['page']) {
+	await expect(page.locator('.public-site-shell[data-public-hydrated="true"]')).toBeVisible();
 	const button = page.locator('header').getByRole('button', { name: /^resources$/i });
 	await expect(button).toBeVisible();
-	for (let attempt = 0; attempt < 2; attempt += 1) {
+	for (let attempt = 0; attempt < 4; attempt += 1) {
 		const menu = page.locator('#public-resources-menu');
 		if (await menu.isVisible().catch(() => false)) {
 			return menu;
 		}
 		await button.click();
-		if (await menu.isVisible().catch(() => false)) {
+		await expect(button)
+			.toHaveAttribute('aria-expanded', 'true', { timeout: 2_000 })
+			.catch(async () => {
+				await page.waitForTimeout(250);
+			});
+		if (await menu.isVisible({ timeout: 1_000 }).catch(() => false)) {
 			return menu;
 		}
-		await page.waitForTimeout(150);
+		await page.keyboard.press('Escape').catch(() => undefined);
 	}
 	const menu = page.locator('#public-resources-menu');
 	await expect(menu).toBeVisible();

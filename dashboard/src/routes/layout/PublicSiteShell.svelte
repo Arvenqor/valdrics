@@ -130,7 +130,12 @@
 	<link rel="stylesheet" href={`${base}/public-site-shell.css`} />
 </svelte:head>
 
-<div class="public-site-shell" data-public-tone={publicTone} data-public-theme={publicTheme}>
+<div
+	class="public-site-shell"
+	data-public-tone={publicTone}
+	data-public-theme={publicTheme}
+	data-public-hydrated={publicThemeLoaded ? 'true' : 'false'}
+>
 	<header class="public-site-header">
 		<nav class="container public-top-nav mx-auto flex items-center justify-between gap-4 px-6 py-4">
 			<a
