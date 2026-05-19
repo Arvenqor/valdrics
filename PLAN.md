@@ -1,6 +1,6 @@
 # Valdrics Source of Truth Plan
 
-Last reviewed: 2026-05-09
+Last reviewed: 2026-05-19
 Status: Canonical
 Owner: Product + Engineering
 
@@ -42,6 +42,18 @@ Every major idea in this file is assigned one strategy label:
 6. Every strategically relevant idea must be captured in a named phase in this
    file. Later phases exist because they depend on earlier foundations, not
    because they are ignored.
+7. AI may accelerate implementation, debugging, documentation, and verification,
+   but humans own production changes. A meaningful change must be explainable,
+   testable, and reversible by the engineer shipping it.
+8. Prefer the simplest durable solution that solves the current phase gate.
+   Do not add architecture, abstractions, or agent workflows for hypothetical
+   future needs.
+9. Document decisions that affect future debugging, onboarding, release safety,
+   security posture, or product direction. Avoid documentation theater, but do
+   not leave critical context trapped in one person's head.
+10. Business-critical journeys need automated confidence. Unit tests verify
+    logic, integration tests verify contracts, and Playwright/E2E tests protect
+    launch-critical user flows.
 
 ## Current Position
 
@@ -62,40 +74,28 @@ Every major idea in this file is assigned one strategy label:
     app images, database migrations, and Cloudflare Pages.
   - `release-unified-platform.yml` for infrastructure changes, Cloudflare policy
     changes, Supabase project settings, and production promotion wiring.
-- Current operational track: Cloudflare Bot Fight Mode is now enforced off by
+- Current operational track: Cloudflare Bot Fight Mode is enforced off by
   release preflight and Terraform using a GitHub `CLOUDFLARE_API_TOKEN` with
-  Zone `Bot Management:Edit`. The latest staging full-release run passed
-  Cloudflare preflight, Terraform, Cloudflare Pages deploy, API liveness,
-  public smoke readiness, the in-deploy managed readiness gate, and the
-  standalone staging release-readiness verifier. Production promotion was
-  intentionally skipped for that run. The beta app-only release lane has also
-  passed a staging smoke release with Terraform/state bootstrap skipped,
-  including public API preflight, digest-pinned backend image publish, Cloud
-  Run image update, database migrations, Cloudflare Pages deploy, API liveness,
-  and managed release readiness. The full release lane now keeps Playwright
-  browser setup explicit, manages the Cloudflare Pages custom domain, frontend
-  CNAME, and Pages runtime variables required by the edge proxy, pins the
-  artifact download action to a resolvable commit, restores the `.runtime`
-  artifact extraction path for cross-job readiness checks, and keeps
-  live-staging public visual baselines committed for the landing hero, product,
-  and trust sections.
-  Direct-upload Pages deploys render runtime variables into the Wrangler
-  deployment config from the managed release bundle. The Cloudflare-hosted
-  dashboard CSP uses nonce mode and allows Cloudflare Web Analytics sources so
-  Cloudflare JavaScript Detections can run without weakening the policy with
-  `unsafe-inline`.
-  The first full production cutover attempt for
-  `2026.05.09-production-cutover` reached GitHub Actions production preflight
-  and failed before any production mutation because Google STS rejected the
-  GitHub OIDC credential against the production Workload Identity Federation
-  provider attribute condition. The production provider condition has since
-  been updated enough for the `2026.05.12-production-cutover-2` run to pass
-  production GCP authentication, production preflight, and production Terraform
-  state bootstrap. That run then failed before production mutation while
-  generating the production managed runtime bundle because the production
-  `RUNTIME_SECRET_ENV_JSON` Paystack credentials were not live `sk_live_...` /
-  `pk_live_...` values. The next release gate is to set release-ready
-  production runtime secrets, then rerun the full unified release lane.
+  Zone `Bot Management:Edit`. The beta app-only release lane can deploy staging
+  without Terraform and pass public API, Cloud Run, database migration,
+  Cloudflare Pages, API liveness, and managed release-readiness checks. The full
+  unified release lane now reaches production mutation: production preflight,
+  Terraform state bootstrap, Artifact Registry reader grants, backend image
+  publish, Cloud Run deployment, migrations, Cloudflare Pages deploy, and API
+  liveness all pass.
+  The current engineering blocker is the final production dashboard readiness
+  gate. The `2026.05.18-paystack-pending-019bb41a` unified release deployed
+  production infrastructure and frontend assets, then failed the public browser
+  quality gate because production CSP blocked dashboard JavaScript chunks from
+  `https://app.valdrics.com/_app/immutable/...` under `script-src-elem`; the
+  same hydration failure prevented the talk-to-sales success/error UI from
+  rendering during smoke tests. The next engineering gate is to align the
+  production dashboard CSP, asset host, and custom-domain routing, then rerun
+  the full unified release lane to green.
+  Paystack activation is tracked as an external commercial/account-review
+  dependency, not the active engineering blocker. Until Paystack approves the
+  account, the product should remain reviewable without requiring a successful
+  live Paystack checkout.
 
 ## What Valdrics Is Building
 
@@ -258,19 +258,19 @@ to a shipping phase here:
 
 ## Current Ground Truth By Phase
 
-| Phase | Strategy | Ground truth now | Ship state |
-| --- | --- | --- | --- |
-| Phase 1: Managed Platform Live Cutover | `core disruption` | Repo foundations are present; live staging and production cutover evidence are still incomplete | Active |
-| Phase 2: Unified Technology Spend Ledger | `core disruption` | Partial foundations exist through the AI-aware canonical spend-ledger API, allocation-aware FOCUS v1.3 export, normalized reporting, and Cloud+ connectors | Not shipped |
-| Phase 3: Audit-Grade Close | `moat expansion` | Reconciliation and close foundations exist, but live end-to-end close proof as the canonical customer path is not established here | Not shipped |
-| Phase 4: Governed Action Loop | `core disruption` | Approvals, enforcement, and remediation foundations exist, but the full action loop is not yet the closed customer operating standard | Not shipped |
-| Phase 5: Technology Value Contract Standard | `core disruption` | Draft TVC schemas, examples, verifier, CI admission checks, and deployment admission receipts exist; runtime receipts and reconciliation views do not | Not shipped |
-| Phase 6: Unit Economics and Opportunity Cost | `core disruption` | Unit-economics primitives and leadership KPIs exist, but business-outcome integrations and true opportunity-cost decisions do not | Not shipped |
-| Phase 7: AI and Cloud+ Operating Controls | `moat expansion` | AI usage telemetry, budget controls, carbon, and Cloud+ connector foundations exist; mature domain control loops do not | Not shipped |
-| Phase 8: Enterprise Policy and Resilience | `moat expansion` | Residency, security, and enforcement foundations exist in part; sovereign placement and adversarial FinOps are not yet production features | Not shipped |
-| Phase 9: Commitment Intelligence and Recovery | `moat expansion` | Commitment optimization foundations exist, but regret-aware guidance and claims recovery workflows do not | Not shipped |
-| Phase 10: Capacity Markets and Portable Execution | `frontier bet` | Only adjacent primitives exist today; no active marketplace or portable-execution product surface is shipped | Not shipped |
-| Phase 11: Market Intelligence and Verifiable Economics | `frontier bet` | Forecasting and pricing baselines exist, but provider-price intelligence, verifiable receipts, and code-native economics are not shipped | Not shipped |
+| Phase                                                  | Strategy          | Ground truth now                                                                                                                                           | Ship state  |
+| ------------------------------------------------------ | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| Phase 1: Managed Platform Live Cutover                 | `core disruption` | Repo foundations are present; live staging and production cutover evidence are still incomplete                                                            | Active      |
+| Phase 2: Unified Technology Spend Ledger               | `core disruption` | Partial foundations exist through the AI-aware canonical spend-ledger API, allocation-aware FOCUS v1.3 export, normalized reporting, and Cloud+ connectors | Not shipped |
+| Phase 3: Audit-Grade Close                             | `moat expansion`  | Reconciliation and close foundations exist, but live end-to-end close proof as the canonical customer path is not established here                         | Not shipped |
+| Phase 4: Governed Action Loop                          | `core disruption` | Approvals, enforcement, and remediation foundations exist, but the full action loop is not yet the closed customer operating standard                      | Not shipped |
+| Phase 5: Technology Value Contract Standard            | `core disruption` | Draft TVC schemas, examples, verifier, CI admission checks, and deployment admission receipts exist; runtime receipts and reconciliation views do not      | Not shipped |
+| Phase 6: Unit Economics and Opportunity Cost           | `core disruption` | Unit-economics primitives and leadership KPIs exist, but business-outcome integrations and true opportunity-cost decisions do not                          | Not shipped |
+| Phase 7: AI and Cloud+ Operating Controls              | `moat expansion`  | AI usage telemetry, budget controls, carbon, and Cloud+ connector foundations exist; mature domain control loops do not                                    | Not shipped |
+| Phase 8: Enterprise Policy and Resilience              | `moat expansion`  | Residency, security, and enforcement foundations exist in part; sovereign placement and adversarial FinOps are not yet production features                 | Not shipped |
+| Phase 9: Commitment Intelligence and Recovery          | `moat expansion`  | Commitment optimization foundations exist, but regret-aware guidance and claims recovery workflows do not                                                  | Not shipped |
+| Phase 10: Capacity Markets and Portable Execution      | `frontier bet`    | Only adjacent primitives exist today; no active marketplace or portable-execution product surface is shipped                                               | Not shipped |
+| Phase 11: Market Intelligence and Verifiable Economics | `frontier bet`    | Forecasting and pricing baselines exist, but provider-price intelligence, verifiable receipts, and code-native economics are not shipped                   | Not shipped |
 
 ## Active Phase
 
@@ -317,6 +317,16 @@ Cleanup gate:
 
 - no active docs or release helpers imply a parallel production path
 - no retired deployment path is described as supported
+
+Current blockers and external dependencies:
+
+- Engineering blocker: fix production dashboard CSP/custom-domain alignment so
+  public browser readiness can hydrate the Cloudflare Pages app and pass the
+  final production release gate.
+- External dependency: Paystack account approval and business-description
+  review are handled outside the repo. Engineering should keep the payment
+  surface graceful while approval is pending and continue managed-platform
+  release hardening.
 
 ## Queued Shipping Phases
 
