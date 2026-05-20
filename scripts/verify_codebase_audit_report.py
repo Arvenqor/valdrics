@@ -83,6 +83,7 @@ TEST_AND_SPEC_EXCLUDED_PARTS = frozenset(
 )
 MEASURED_FACT_INTEGER_FIELDS = frozenset(REQUIRED_MEASURED_INTEGER_FIELDS)
 MEASURED_FACT_STRING_FIELDS = frozenset(REQUIRED_MEASURED_STRING_FIELDS)
+PYTEST_COLLECT_TIMEOUT_SECONDS = 420
 
 
 def _expect(condition: bool, message: str, *, errors: list[str]) -> None:
@@ -348,7 +349,7 @@ def _collect_backend_tests_count(*, root: Path) -> int:
             env=env,
             capture_output=True,
             text=True,
-            timeout=180,
+            timeout=PYTEST_COLLECT_TIMEOUT_SECONDS,
             check=False,
         )
         output = "\n".join(

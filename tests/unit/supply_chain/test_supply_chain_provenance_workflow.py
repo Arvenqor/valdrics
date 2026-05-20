@@ -1,7 +1,14 @@
 from __future__ import annotations
 
 import re
+from datetime import date
 from pathlib import Path
+
+from scripts.run_pip_audit import (
+    PIP_AUDIT_IGNORED_VULNERABILITIES,
+    build_pip_audit_command,
+    validate_exception_documentation,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -24,6 +31,7 @@ PINNED_COMPOSITE_ACTION_PATHS = (
     REPO_ROOT / ".github/actions/setup-python-uv/action.yml",
     REPO_ROOT / ".github/actions/setup-dashboard/action.yml",
 )
+PIP_AUDIT_WRAPPER_COMMAND = "uv run python scripts/run_pip_audit.py"
 
 
 def test_sbom_workflow_has_attestation_permissions() -> None:
@@ -97,10 +105,40 @@ def test_ci_workflow_runs_pip_audit_on_pull_requests() -> None:
     text = (REPO_ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
 
     assert "Enforce Python Dependency Vulnerability Gate (pip-audit)" in text
-    assert (
-        "uv run pip-audit --ignore-vuln CVE-2026-1703 --ignore-vuln CVE-2026-3219"
-        in text
+    assert PIP_AUDIT_WRAPPER_COMMAND in text
+
+
+def test_pip_audit_gate_uses_documented_exception_wrapper() -> None:
+    workflow_paths = (
+        REPO_ROOT / ".github/workflows/ci.yml",
+        REPO_ROOT / ".github/workflows/security-scan.yml",
+        REPO_ROOT / ".github/workflows/sbom.yml",
     )
+    shell_paths = (REPO_ROOT / "scripts/security_audit.sh",)
+
+    for path in (*workflow_paths, *shell_paths):
+        text = path.read_text(encoding="utf-8")
+        assert PIP_AUDIT_WRAPPER_COMMAND in text
+        assert "uv run pip-audit" not in text
+
+
+def test_pip_audit_exception_register_is_complete_and_time_boxed() -> None:
+    command = build_pip_audit_command(())
+    assert command[1:3] == ("-m", "pip_audit")
+    assert "--ignore-vuln" in command
+    assert "PYSEC-2025-183" in command
+    assert "CVE-2026-1703" not in command
+    assert "CVE-2026-3219" not in command
+    assert PIP_AUDIT_IGNORED_VULNERABILITIES["PYSEC-2025-183"]["review_by"] == date(
+        2026, 6, 19
+    )
+
+    errors = validate_exception_documentation(
+        repo_root=REPO_ROOT,
+        today=date(2026, 5, 20),
+    )
+
+    assert errors == ()
 
 
 def test_ci_workflow_uses_strict_module_size_gate_and_non_live_fixtures() -> None:

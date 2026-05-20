@@ -144,7 +144,7 @@ jobs:
         run: uv run bandit -r app/ -ll
         
       - name: Run pip-audit
-        run: uv run pip-audit --ignore-vuln CVE-2026-3219
+        run: uv run python scripts/run_pip_audit.py
         
       - name: TruffleHog OSS (Commit Range Gate)
         if: github.event_name != 'schedule'
