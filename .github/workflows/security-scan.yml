@@ -234,6 +234,8 @@ jobs:
           context: .
           push: false
           load: true
+          pull: true
+          no-cache-filters: runtime
           tags: valdrics-backend:${{ github.sha }}
           cache-from: type=gha,scope=backend-image
           cache-to: type=gha,scope=backend-image,mode=max
@@ -246,6 +248,8 @@ jobs:
           file: ./Dockerfile.dashboard
           push: false
           load: true
+          pull: true
+          no-cache-filters: runtime
           tags: valdrics-dashboard:${{ github.sha }}
           cache-from: type=gha,scope=dashboard-image
           cache-to: type=gha,scope=dashboard-image,mode=max

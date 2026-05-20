@@ -480,6 +480,8 @@ def test_security_scan_workflow_fails_on_high_or_critical_infra_and_container_fi
     assert "--pkg-types os,library" in security_text
     assert "--vuln-type" not in security_text
     assert "TRIVY_IMAGE:" not in ci_text
+    assert security_text.count("pull: true") >= 2
+    assert security_text.count("no-cache-filters: runtime") >= 2
 
 
 def test_backend_runtime_image_explicitly_refreshes_tls_runtime_packages() -> None:
