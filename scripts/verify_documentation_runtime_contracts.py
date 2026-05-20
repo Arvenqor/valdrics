@@ -20,6 +20,17 @@ class DocumentationContract:
 DEFAULT_ROOT = repo_root_for(__file__)
 DOCUMENTATION_CONTRACTS: tuple[DocumentationContract, ...] = (
     DocumentationContract(
+        path="PLAN.md",
+        required_phrases=(
+            "Last reviewed: 2026-05-20",
+            "2026.05.19-paystack-pending-8ef0b893",
+            "26131799197",
+            "docs/evidence/phase1-unified-release-closure.md",
+            "no release-blocking engineering blocker remains",
+            "PAYSTACK_ACTIVATION_PENDING=false",
+        ),
+    ),
+    DocumentationContract(
         path="README.md",
         required_phrases=(
             "Valdrics",
@@ -90,6 +101,7 @@ DOCUMENTATION_CONTRACTS: tuple[DocumentationContract, ...] = (
             "GCP external HTTPS load balancer",
             "PUBLIC_API_RATE_LIMITING_BACKEND=cloudflare",
             "Cloud Run custom audiences",
+            "PAYSTACK_ACTIVATION_PENDING=true",
         ),
         forbidden_phrases=(
             "Vercel",
@@ -284,6 +296,8 @@ DOCUMENTATION_CONTRACTS: tuple[DocumentationContract, ...] = (
             "OBSERVABILITY_BACKEND=gcp",
             "ENFORCEMENT_APPROVAL_TOKEN_SECRET=...",
             "PAYSTACK_SECRET_KEY=sk_live_...",
+            "PAYSTACK_ACTIVATION_PENDING=true",
+            "PAYSTACK_ACTIVATION_PENDING=false",
             "INTERNAL_METRICS_AUTH_TOKEN=<32+ char secret>",
             "EXPOSE_API_DOCUMENTATION_PUBLICLY=false",
             "CLOUDFLARE_ZONE_ID",
@@ -312,6 +326,7 @@ DOCUMENTATION_CONTRACTS: tuple[DocumentationContract, ...] = (
             "--env-file .runtime/production.env",
             "--env-file .runtime/production.migrate.env",
             "reusable deploy workflow migration step succeeds from `.runtime/production.migrate.env`",
+            "docs/evidence/phase1-unified-release-closure.md",
         ),
         forbidden_phrases=(
             "Optional but recommended: `SENTRY_DSN",
@@ -343,6 +358,9 @@ DOCUMENTATION_CONTRACTS: tuple[DocumentationContract, ...] = (
             "managed-deployment-bundle-<environment>-<release-tag>",
             "managed_cutover_operator_packet.md",
             "secret-classified keys such as `DATABASE_URL`",
+            "PAYSTACK_ACTIVATION_PENDING=true",
+            "PAYSTACK_ACTIVATION_PENDING=false",
+            "docs/evidence/phase1-unified-release-closure.md",
         ),
     ),
     DocumentationContract(
@@ -357,10 +375,28 @@ DOCUMENTATION_CONTRACTS: tuple[DocumentationContract, ...] = (
             "Workload Identity Federation",
             "Workers & Pages",
             "Supabase",
-            "\"DATABASE_URL\": \"postgresql://...\"",
+            '"DATABASE_URL": "postgresql://..."',
+            '"PAYSTACK_ACTIVATION_PENDING": "true"',
+            "docs/evidence/phase1-unified-release-closure.md",
         ),
-        forbidden_phrases=(
-            "\"DATABASE_URL\": \"postgres://...\"",
+        forbidden_phrases=('"DATABASE_URL": "postgres://..."',),
+    ),
+    DocumentationContract(
+        path="docs/evidence/phase1-unified-release-closure.md",
+        required_phrases=(
+            "Phase 1 Unified Release Closure Evidence",
+            "26131799197",
+            "https://github.com/Arvenqor/valdrics/actions/runs/26131799197",
+            "8ef0b893c2ac7d7d87798d8efee94f70044a7fa0",
+            "2026.05.19-paystack-pending-8ef0b893",
+            "artifact-registry-release-2026.05.19-paystack-pending-8ef0b893",
+            "managed-deployment-bundle-staging-2026.05.19-paystack-pending-8ef0b893",
+            "managed-deployment-bundle-production-2026.05.19-paystack-pending-8ef0b893",
+            "managed-release-blocker-summary-2026.05.19-paystack-pending-8ef0b893",
+            "PAYSTACK_ACTIVATION_PENDING=true",
+            "PAYSTACK_ACTIVATION_PENDING=false",
+            "Operator artifact review: pending manual sign-off",
+            "Real-tenant production-use confirmation: pending manual sign-off",
         ),
     ),
     DocumentationContract(

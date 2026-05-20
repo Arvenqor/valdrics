@@ -71,12 +71,19 @@ The runtime JSON inputs are not free-form. The active contract in
 `scripts/generate_managed_deployment_artifacts.py` blocks deployment until the
 required runtime keys are present, including:
 
-- non-secret runtime values such as `API_URL`, `FRONTEND_URL`, `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_CLOUD_TASKS_QUEUE`, `GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL`, `GCP_CLOUD_RUN_SERVICE_NAME`, `GCP_CLOUD_RUN_BATCH_JOB_NAME`, `GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS`, and `TRUSTED_PROXY_CIDRS`
+- non-secret runtime values such as `API_URL`, `FRONTEND_URL`, `GCP_PROJECT_ID`, `GCP_REGION`, `GCP_CLOUD_TASKS_QUEUE`, `GCP_CLOUD_TASKS_INVOKER_SERVICE_ACCOUNT_EMAIL`, `GCP_CLOUD_RUN_SERVICE_NAME`, `GCP_CLOUD_RUN_BATCH_JOB_NAME`, `GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS`, `PAYSTACK_ACTIVATION_PENDING`, and `TRUSTED_PROXY_CIDRS`
 - secret runtime values such as `DATABASE_URL`, the `LLM_PROVIDER`-selected API key, `SUPABASE_JWT_SECRET`, `PAYSTACK_SECRET_KEY`, `PAYSTACK_PUBLIC_KEY`, `INTERNAL_METRICS_AUTH_TOKEN`, `CSRF_SECRET_KEY`, `ENCRYPTION_KEY`, `KDF_SALT`, `ENFORCEMENT_APPROVAL_TOKEN_SECRET`, and `ENFORCEMENT_EXPORT_SIGNING_SECRET`
 
 The deploy workflow now enforces that secret-classified keys such as
 `DATABASE_URL` stay in `RUNTIME_SECRET_ENV_JSON`, and plain-classified keys such
 as `API_URL` stay in `RUNTIME_PLAIN_ENV_JSON`.
+
+When Paystack account approval is pending, set
+`PAYSTACK_ACTIVATION_PENDING=true` in `RUNTIME_PLAIN_ENV_JSON`. In that mode the
+managed runtime and deployment reports do not treat `PAYSTACK_SECRET_KEY` or
+`PAYSTACK_PUBLIC_KEY` as release blockers, and the product must remain
+reviewable without claiming successful live checkout. Set
+`PAYSTACK_ACTIVATION_PENDING=false` only after approved live keys are available.
 
 ## Supported Release Surface
 

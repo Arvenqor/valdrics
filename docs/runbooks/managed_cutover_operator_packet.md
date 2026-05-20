@@ -296,6 +296,7 @@ only in `RUNTIME_SECRET_ENV_JSON`.
   "SUPABASE_URL": "https://your-project-ref.supabase.co",
   "SUPABASE_ANON_KEY": "sb_publishable_or_anon_key",
   "LLM_PROVIDER": "groq",
+  "PAYSTACK_ACTIVATION_PENDING": "true",
   "EXPOSE_API_DOCUMENTATION_PUBLICLY": "false",
   "SAAS_STRICT_INTEGRATIONS": "true",
   "TRUST_PROXY_HEADERS": "true"
@@ -311,6 +312,8 @@ Fill these values from the following sources:
   load balancer and Cloud Armor policy are designed to trust
 - `SUPABASE_URL` and `SUPABASE_ANON_KEY`: Supabase project `Connect` dialog or
   `Settings -> API Keys`
+- `PAYSTACK_ACTIVATION_PENDING`: `true` only while Paystack account approval is
+  pending; switch to `false` when approved live keys are available
 
 Notes:
 
@@ -364,6 +367,9 @@ Notes:
   does not validate the database certificate chain. Use `verify-ca` or
   `verify-full` only when you also provide `DB_SSL_CA_CERT_PATH`.
 - Only include the API key that matches `LLM_PROVIDER`.
+- If `PAYSTACK_ACTIVATION_PENDING=true`, leave `PAYSTACK_SECRET_KEY` and
+  `PAYSTACK_PUBLIC_KEY` empty and do not claim live checkout validation.
+- If `PAYSTACK_ACTIVATION_PENDING=false`, provide approved live Paystack keys.
 - Keep this JSON out of source control.
 - Treat every value here as a secret.
 
@@ -435,6 +441,15 @@ Where to get it:
 Why it matters:
 
 - it is the cross-environment staging plus production release review summary
+
+### Phase 1 closure evidence
+
+After a green staging-to-production release, update and review:
+
+- `docs/evidence/phase1-unified-release-closure.md`
+
+This file ties the release tag, commit, workflow run, artifact names, Paystack
+activation boundary, and remaining manual sign-off work back to `PLAN.md`.
 
 ## 9. Staging then production execution sequence
 

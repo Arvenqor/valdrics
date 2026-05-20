@@ -1,6 +1,6 @@
 # Valdrics Source of Truth Plan
 
-Last reviewed: 2026-05-19
+Last reviewed: 2026-05-20
 Status: Canonical
 Owner: Product + Engineering
 
@@ -66,8 +66,9 @@ Every major idea in this file is assigned one strategy label:
   - database, auth, and storage on Supabase
 - The repo already contains the managed-platform foundation, deployment
   contracts, release workflows, TVC draft artifacts, and verification surfaces.
-- The main unfinished work is not repo plumbing. It is live cutover evidence and
-  real production use on the supported managed stack.
+- The main unfinished Phase 1 work is no longer repo plumbing or release
+  mechanics. It is closure discipline: operator artifact review, release-ops
+  sign-off, and real production use on the supported managed stack.
 - Phase 1 now has two release lanes:
   - `release-beta-app.yml` for fast beta/product releases after infrastructure
     exists. This lane skips Terraform/state bootstrap and updates only Cloud Run
@@ -83,16 +84,15 @@ Every major idea in this file is assigned one strategy label:
   Terraform state bootstrap, Artifact Registry reader grants, backend image
   publish, Cloud Run deployment, migrations, Cloudflare Pages deploy, and API
   liveness all pass.
-  The current engineering blocker is the final production release-readiness
-  contract. The `2026.05.19-smoke-52bf0d37` unified release deployed staging and
-  production, passed staging readiness, and passed the production public quality
-  gates (`public-marketing`, public a11y, public performance, and visual smoke).
-  The remaining failure is report drift for Paystack activation-pending mode:
-  the runtime report correctly treats `PAYSTACK_ACTIVATION_PENDING=true` as
-  non-blocking, while the deployment report still listed `PAYSTACK_SECRET_KEY`
-  and `PAYSTACK_PUBLIC_KEY` as runtime blockers. The next engineering gate is to
-  keep deployment artifacts aligned with the runtime Paystack-pending contract,
-  then rerun the full unified release lane to green.
+  The `2026.05.19-paystack-pending-8ef0b893` unified release passed the full
+  staging-to-production lane: release contract validation, preflight checks,
+  Terraform state/bootstrap, Artifact Registry, backend image publish, staging
+  deploy/readiness, production promotion/readiness, final production readiness,
+  and managed release blocker summary. Production public quality gates also
+  passed (`public-marketing`, public a11y, public performance, and visual smoke).
+  The previous Paystack activation-pending report drift was resolved by keeping
+  deployment artifacts aligned with the runtime report when
+  `PAYSTACK_ACTIVATION_PENDING=true`.
   Paystack activation is tracked as an external commercial/account-review
   dependency, not the active engineering blocker. Until Paystack approves the
   account, the product should remain reviewable without requiring a successful
@@ -221,6 +221,8 @@ evidence only:
   - `docs/runbooks/unified_platform_release.md`
   - `docs/DEPLOYMENT.md`
   - `docs/runbooks/production_env_checklist.md`
+- release closure evidence:
+  - `docs/evidence/phase1-unified-release-closure.md`
 - rollback and recovery:
   - `docs/ROLLBACK_PLAN.md`
   - `docs/runbooks/disaster_recovery.md`
@@ -261,7 +263,7 @@ to a shipping phase here:
 
 | Phase                                                  | Strategy          | Ground truth now                                                                                                                                           | Ship state  |
 | ------------------------------------------------------ | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| Phase 1: Managed Platform Live Cutover                 | `core disruption` | Repo foundations are present; live staging and production cutover evidence are still incomplete                                                            | Active      |
+| Phase 1: Managed Platform Live Cutover                 | `core disruption` | Full unified staging-to-production release is green on run `26131799197` for tag `2026.05.19-paystack-pending-8ef0b893`; closure now requires operator artifact review, release-ops sign-off, and real-tenant production use | Closing     |
 | Phase 2: Unified Technology Spend Ledger               | `core disruption` | Partial foundations exist through the AI-aware canonical spend-ledger API, allocation-aware FOCUS v1.3 export, normalized reporting, and Cloud+ connectors | Not shipped |
 | Phase 3: Audit-Grade Close                             | `moat expansion`  | Reconciliation and close foundations exist, but live end-to-end close proof as the canonical customer path is not established here                         | Not shipped |
 | Phase 4: Governed Action Loop                          | `core disruption` | Approvals, enforcement, and remediation foundations exist, but the full action loop is not yet the closed customer operating standard                      | Not shipped |
@@ -277,7 +279,7 @@ to a shipping phase here:
 
 ### Phase 1: Managed Platform Live Cutover
 
-Status: Active
+Status: Closing (active phase)
 Strategy label: `core disruption`
 
 Outcome:
@@ -321,13 +323,19 @@ Cleanup gate:
 
 Current blockers and external dependencies:
 
-- Engineering blocker: fix production dashboard CSP/custom-domain alignment so
-  public browser readiness can hydrate the Cloudflare Pages app and pass the
-  final production release gate.
+- Engineering blocker: no release-blocking engineering blocker remains after
+  GitHub Actions run `26131799197` passed the full unified staging-to-production
+  release lane. The remaining engineering closure task is keeping the
+  source-of-truth plan, runbooks, and release-evidence guard aligned with that
+  live release fact.
+- Manual closure work: download and review the non-secret release artifacts
+  named in `docs/evidence/phase1-unified-release-closure.md`, capture
+  release-ops sign-off, and confirm at least one real tenant can use production.
 - External dependency: Paystack account approval and business-description
   review are handled outside the repo. Engineering should keep the payment
-  surface graceful while approval is pending and continue managed-platform
-  release hardening.
+  surface graceful while approval is pending and must not claim live Paystack
+  checkout validation until `PAYSTACK_ACTIVATION_PENDING=false` with approved
+  live keys.
 
 ## Queued Shipping Phases
 

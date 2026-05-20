@@ -17,6 +17,15 @@ def _write(path: Path, content: str) -> None:
 
 def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
     _write(
+        tmp_path / "PLAN.md",
+        "Last reviewed: 2026-05-20\n"
+        "2026.05.19-paystack-pending-8ef0b893\n"
+        "26131799197\n"
+        "docs/evidence/phase1-unified-release-closure.md\n"
+        "no release-blocking engineering blocker remains\n"
+        "PAYSTACK_ACTIVATION_PENDING=false\n",
+    )
+    _write(
         tmp_path / "README.md",
         "Valdrics\nOptimize Cloud Value, Not Just Cost\nPython 3.12\nSupported Managed Platform\nArchived Future-Scale Reference\nLocal development only:\n",
     )
@@ -30,7 +39,7 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
     )
     _write(
         tmp_path / "docs/DEPLOYMENT.md",
-        "Current supported production deployment profile\nGoogle Cloud Run + Cloudflare Pages + Supabase\n.github/workflows/release-unified-platform.yml\n.github/workflows/publish-artifact-registry-images.yml\n.github/workflows/deploy-unified-platform.yml\nverify_codebase_audit_report.py\nverify_dashboard_runtime_contract.py\nverify_managed_release_readiness.py\nrender_managed_release_blocker_summary.py\nArtifact Registry\nartifact-registry-release.json\ncloudflare-pages-env.json\nunified-platform-manifest.json\ndeployment.report.json\noperator-handoff.md\nmanaged-release-blockers.md\nmanaged-release-blocker-summary-<release-tag>\nnon-secret deployment evidence bundle\nCloudflare WAF rate limiting rules\nGCP external HTTPS load balancer\nPUBLIC_API_RATE_LIMITING_BACKEND=cloudflare\nCloud Run custom audiences\n",
+        "Current supported production deployment profile\nGoogle Cloud Run + Cloudflare Pages + Supabase\n.github/workflows/release-unified-platform.yml\n.github/workflows/publish-artifact-registry-images.yml\n.github/workflows/deploy-unified-platform.yml\nverify_codebase_audit_report.py\nverify_dashboard_runtime_contract.py\nverify_managed_release_readiness.py\nrender_managed_release_blocker_summary.py\nArtifact Registry\nartifact-registry-release.json\ncloudflare-pages-env.json\nunified-platform-manifest.json\ndeployment.report.json\noperator-handoff.md\nmanaged-release-blockers.md\nmanaged-release-blocker-summary-<release-tag>\nnon-secret deployment evidence bundle\nCloudflare WAF rate limiting rules\nGCP external HTTPS load balancer\nPUBLIC_API_RATE_LIMITING_BACKEND=cloudflare\nCloud Run custom audiences\nPAYSTACK_ACTIVATION_PENDING=true\n",
     )
     _write(
         tmp_path / "docs/CAPACITY_PLAN.md",
@@ -51,7 +60,7 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
     )
     _write(
         tmp_path / "docs/ops/enforcement_release_gate_contract.json",
-        '{\n'
+        "{\n"
         '  "post_closure_sanity": {\n'
         '    "required_snapshot_tokens": ["CI-EVID-001"],\n'
         '    "forbidden_snapshot_tokens": ["legacy-helm-token"]\n'
@@ -107,11 +116,11 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
     )
     _write(
         tmp_path / "docs/runbooks/production_env_checklist.md",
-        "Python 3.12.x\n.python-version\nAPI_URL=https://api.example.com\nFRONTEND_URL=https://app.example.com\nPUBLIC_API_RATE_LIMITING_BACKEND=cloudflare\nRATELIMIT_ENABLED=false\nSUPABASE_ANON_KEY=...\nPLATFORM_RUNTIME_PROFILE=gcp\nOBSERVABILITY_BACKEND=gcp\nENFORCEMENT_APPROVAL_TOKEN_SECRET=...\nPAYSTACK_SECRET_KEY=sk_live_...\nINTERNAL_METRICS_AUTH_TOKEN=<32+ char secret>\nEXPOSE_API_DOCUMENTATION_PUBLICLY=false\nCLOUDFLARE_ZONE_ID\ngenerate_managed_runtime_env.py\ngenerate_managed_migration_env.py\ngenerate_managed_deployment_artifacts.py\nverify_codebase_audit_report.py\nverify_managed_deployment_bundle.py\nverify_managed_release_readiness.py\nverify_dashboard_runtime_contract.py\nrender_managed_release_blocker_summary.py\nrelease-unified-platform.yml\npublish-artifact-registry-images.yml\ndeploy-unified-platform.yml\n--api-promotion-ref <repo@sha256:...>\n--batch-promotion-ref <repo@sha256:...>\nrun_public_frontend_quality_gate.py\nscripts/verify_managed_release_readiness.py\ndeployment.report.json\ncloudflare-pages-env.json\nartifact-registry-release.json\nunified-platform-manifest.json\noperator-handoff.md\nmanaged-release-blockers.md\nmanaged-release-blocker-summary-<release-tag>\nmake render-managed-release-blockers\nnon-secret deployment evidence bundle\nCloud Run custom audiences\n--env-file .runtime/production.env\n--env-file .runtime/production.migrate.env\nreusable deploy workflow migration step succeeds from `.runtime/production.migrate.env`\n",
+        "Python 3.12.x\n.python-version\nAPI_URL=https://api.example.com\nFRONTEND_URL=https://app.example.com\nPUBLIC_API_RATE_LIMITING_BACKEND=cloudflare\nRATELIMIT_ENABLED=false\nSUPABASE_ANON_KEY=...\nPLATFORM_RUNTIME_PROFILE=gcp\nOBSERVABILITY_BACKEND=gcp\nENFORCEMENT_APPROVAL_TOKEN_SECRET=...\nPAYSTACK_SECRET_KEY=sk_live_...\nPAYSTACK_ACTIVATION_PENDING=true\nPAYSTACK_ACTIVATION_PENDING=false\nINTERNAL_METRICS_AUTH_TOKEN=<32+ char secret>\nEXPOSE_API_DOCUMENTATION_PUBLICLY=false\nCLOUDFLARE_ZONE_ID\ngenerate_managed_runtime_env.py\ngenerate_managed_migration_env.py\ngenerate_managed_deployment_artifacts.py\nverify_codebase_audit_report.py\nverify_managed_deployment_bundle.py\nverify_managed_release_readiness.py\nverify_dashboard_runtime_contract.py\nrender_managed_release_blocker_summary.py\nrelease-unified-platform.yml\npublish-artifact-registry-images.yml\ndeploy-unified-platform.yml\n--api-promotion-ref <repo@sha256:...>\n--batch-promotion-ref <repo@sha256:...>\nrun_public_frontend_quality_gate.py\nscripts/verify_managed_release_readiness.py\ndeployment.report.json\ncloudflare-pages-env.json\nartifact-registry-release.json\nunified-platform-manifest.json\noperator-handoff.md\nmanaged-release-blockers.md\nmanaged-release-blocker-summary-<release-tag>\nmake render-managed-release-blockers\nnon-secret deployment evidence bundle\nCloud Run custom audiences\n--env-file .runtime/production.env\n--env-file .runtime/production.migrate.env\nreusable deploy workflow migration step succeeds from `.runtime/production.migrate.env`\ndocs/evidence/phase1-unified-release-closure.md\n",
     )
     _write(
         tmp_path / "docs/runbooks/unified_platform_release.md",
-        "Google Cloud Run\nCloud Tasks\nCloud Scheduler\nCloud Run Jobs\nArtifact Registry\nCloudflare Pages\nSupabase\nCloudflare Pages/DNS/WAF\nGCP runtime + API load balancer\nrelease-unified-platform.yml\npublish-artifact-registry-images.yml\ndeploy-unified-platform.yml\nmanaged-release-blocker-summary-<release-tag>\npromote_production=true\nREPLACE_WITH_REAL_STAGING_FRONTEND\nmake render-managed-release-blockers NON_SECRET_BUNDLE=true\nsupplemental procurement/audit artifacts only\nmanaged-deployment-bundle-<environment>-<release-tag>\nmanaged_cutover_operator_packet.md\nsecret-classified keys such as `DATABASE_URL`\napi_promotion_ref\nbatch_promotion_ref\nverify_managed_release_readiness.py\n",
+        "Google Cloud Run\nCloud Tasks\nCloud Scheduler\nCloud Run Jobs\nArtifact Registry\nCloudflare Pages\nSupabase\nCloudflare Pages/DNS/WAF\nGCP runtime + API load balancer\nrelease-unified-platform.yml\npublish-artifact-registry-images.yml\ndeploy-unified-platform.yml\nmanaged-release-blocker-summary-<release-tag>\npromote_production=true\nREPLACE_WITH_REAL_STAGING_FRONTEND\nmake render-managed-release-blockers NON_SECRET_BUNDLE=true\nsupplemental procurement/audit artifacts only\nmanaged-deployment-bundle-<environment>-<release-tag>\nmanaged_cutover_operator_packet.md\nsecret-classified keys such as `DATABASE_URL`\nPAYSTACK_ACTIVATION_PENDING=true\nPAYSTACK_ACTIVATION_PENDING=false\ndocs/evidence/phase1-unified-release-closure.md\napi_promotion_ref\nbatch_promotion_ref\nverify_managed_release_readiness.py\n",
     )
     _write(
         tmp_path / "docs/runbooks/managed_cutover_operator_packet.md",
@@ -119,7 +128,25 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
         "managed-deployment-bundle-staging-<release-tag>\n"
         "managed-release-blocker-summary-<release-tag>\n"
         "Settings -> Environments\nWorkload Identity Federation\nWorkers & Pages\nSupabase\n"
-        "\"DATABASE_URL\": \"postgresql://...\"\n",
+        '"DATABASE_URL": "postgresql://..."\n'
+        '"PAYSTACK_ACTIVATION_PENDING": "true"\n'
+        "docs/evidence/phase1-unified-release-closure.md\n",
+    )
+    _write(
+        tmp_path / "docs/evidence/phase1-unified-release-closure.md",
+        "Phase 1 Unified Release Closure Evidence\n"
+        "26131799197\n"
+        "https://github.com/Arvenqor/valdrics/actions/runs/26131799197\n"
+        "8ef0b893c2ac7d7d87798d8efee94f70044a7fa0\n"
+        "2026.05.19-paystack-pending-8ef0b893\n"
+        "artifact-registry-release-2026.05.19-paystack-pending-8ef0b893\n"
+        "managed-deployment-bundle-staging-2026.05.19-paystack-pending-8ef0b893\n"
+        "managed-deployment-bundle-production-2026.05.19-paystack-pending-8ef0b893\n"
+        "managed-release-blocker-summary-2026.05.19-paystack-pending-8ef0b893\n"
+        "PAYSTACK_ACTIVATION_PENDING=true\n"
+        "PAYSTACK_ACTIVATION_PENDING=false\n"
+        "Operator artifact review: pending manual sign-off\n"
+        "Real-tenant production-use confirmation: pending manual sign-off\n",
     )
     _write(
         tmp_path / "docs/integrations/workflow_automation.md",

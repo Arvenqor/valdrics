@@ -200,6 +200,7 @@ and `scripts/managed_deployment_contract.py`, including keys such as:
 - `GCP_CLOUD_RUN_SERVICE_NAME`
 - `GCP_CLOUD_RUN_BATCH_JOB_NAME`
 - `GCP_INTERNAL_ALLOWED_SERVICE_ACCOUNTS`
+- `PAYSTACK_ACTIVATION_PENDING`
 - `TRUSTED_PROXY_CIDRS`
 
 `RUNTIME_SECRET_ENV_JSON` must also provide the selected LLM provider secret
@@ -217,6 +218,11 @@ and the core runtime secrets required by the same contract, including:
 - `ENFORCEMENT_APPROVAL_TOKEN_SECRET`
 - `ENFORCEMENT_EXPORT_SIGNING_SECRET`
 
+If Paystack account approval is still pending, set
+`PAYSTACK_ACTIVATION_PENDING=true` in `RUNTIME_PLAIN_ENV_JSON`. In that mode
+`PAYSTACK_SECRET_KEY` and `PAYSTACK_PUBLIC_KEY` are not required runtime
+operator inputs, and live checkout must remain explicitly unvalidated.
+
 `RUNTIME_PLAIN_ENV_JSON` and `RUNTIME_SECRET_ENV_JSON` must be JSON objects with
 string values. The reusable deploy workflow rejects secret-classified keys such as `DATABASE_URL`
 if they appear in `RUNTIME_PLAIN_ENV_JSON`, and rejects plain-classified keys such as `API_URL`
@@ -228,7 +234,8 @@ Alembic run.
 
 The unified release preflight also validates the same runtime JSON contract
 before artifact publishing or deploy work. In production, Paystack credentials
-must be live keys (`sk_live_...` and `pk_live_...`); test keys fail preflight.
+must be live keys (`sk_live_...` and `pk_live_...`) when
+`PAYSTACK_ACTIVATION_PENDING=false`; test keys fail preflight.
 
 The generated migration env defaults to `DB_SSL_MODE=require`, which requires
 TLS but does not verify the database certificate chain. Use `verify-ca` or
@@ -387,6 +394,8 @@ artifact bundle.
 - Keep Cloud Run scheduler ownership external. Do not re-enable the in-process scheduler in the API.
 - Keep internal task and scheduler endpoints authenticated with Google-signed identity tokens.
 - Treat this runbook as the only supported release path for staging and production.
+- Keep `docs/evidence/phase1-unified-release-closure.md` aligned with the
+  latest green unified release until Phase 1 is explicitly closed in `PLAN.md`.
 - `scripts/capture_acceptance_evidence.py` and `GET /api/v1/audit/compliance-pack`
   are supplemental procurement/audit artifacts only. They do not replace the
   environment-specific `managed-deployment-bundle-<environment>-<release-tag>`

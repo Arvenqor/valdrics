@@ -41,6 +41,9 @@ Set these in the runtime, deployment, and promotion contract:
 - `ENFORCEMENT_EXPORT_SIGNING_SECRET=...`
 - `INTERNAL_METRICS_AUTH_TOKEN=<32+ char secret>`
 - `EXPOSE_API_DOCUMENTATION_PUBLICLY=false`
+- `PAYSTACK_ACTIVATION_PENDING=true` while Paystack account approval is pending
+- `PAYSTACK_ACTIVATION_PENDING=false` when approved live Paystack keys are
+  installed
 - selected LLM provider key
 - `PAYSTACK_SECRET_KEY=sk_live_...`
 - `PAYSTACK_PUBLIC_KEY=pk_live_...`
@@ -57,6 +60,12 @@ jq '.required_operator_input_keys, .declared_but_not_runtime_required' .runtime/
 jq '.required_operator_input_keys' .runtime/production.migrate.report.json
 jq '.cloudflare_pages_public_env_keys, .terraform_remaining_inputs' .runtime/deploy/production/deployment.report.json
 ```
+
+Paystack activation-pending mode is release-safe but not checkout validation.
+While `PAYSTACK_ACTIVATION_PENDING=true`, the runtime and deployment reports do
+not treat `PAYSTACK_SECRET_KEY` or `PAYSTACK_PUBLIC_KEY` as unresolved operator
+inputs. Do not claim live checkout until Paystack approval is complete,
+`PAYSTACK_ACTIVATION_PENDING=false`, and live keys pass preflight.
 
 ## 2a. Generate the runtime scaffold
 
@@ -209,6 +218,9 @@ Infrastructure values still required outside the runtime env:
 9. Deploy through `.github/workflows/release-unified-platform.yml`.
 10. Validate `/health/live`, then confirm the reusable deploy workflow refreshes the codebase audit report and runs `scripts/verify_managed_release_readiness.py --non-secret-deployment-bundle` against the uploaded non-secret bundle.
 11. When the same release run also promoted production, confirm `managed-release-blocker-summary-<release-tag>` was uploaded and matches the downloaded staging and production bundles.
+12. Update `docs/evidence/phase1-unified-release-closure.md` with the green run
+    identity, required artifact names, Paystack activation boundary, and
+    remaining manual sign-off status.
 
 ## 4. Notes
 

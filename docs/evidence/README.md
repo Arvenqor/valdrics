@@ -8,3 +8,6 @@ This directory is for active, reusable release-evidence material only.
 
 The canonical CI packet template is:
 - `docs/evidence/ci-green-template.md`
+
+The current managed-platform closure evidence is:
+- `docs/evidence/phase1-unified-release-closure.md`
