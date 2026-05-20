@@ -21,7 +21,6 @@ env:
   PNPM_VERSION: "10.32.1"
   UV_VERSION: "0.10.9"
   COVERAGE_VERSION: "7.13.4"
-  TRIVY_IMAGE: "docker.io/aquasec/trivy:0.69.3"
 
 jobs:
   classify-changes:

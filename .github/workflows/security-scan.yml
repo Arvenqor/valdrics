@@ -47,7 +47,8 @@ env:
   PYTHON_VERSION: "3.12"
   TERRAFORM_VERSION: "1.14.8"
   UV_VERSION: "0.10.9"
-  TRIVY_IMAGE: "docker.io/aquasec/trivy:0.69.3"
+  # Trivy 0.69.3 manifest digest. Update intentionally with a scanner release review.
+  TRIVY_IMAGE: "docker.io/aquasec/trivy@sha256:bcc376de8d77cfe086a917230e818dc9f8528e3c852f7b1aff648949b6258d1c"
 
 jobs:
   classify-changes:
@@ -266,7 +267,7 @@ jobs:
             "${TRIVY_IMAGE}" image \
             --scanners vuln \
             --ignore-unfixed \
-            --vuln-type os,library \
+            --pkg-types os,library \
             --severity CRITICAL,HIGH \
             --format sarif \
             --skip-version-check \
@@ -288,7 +289,7 @@ jobs:
             "${TRIVY_IMAGE}" image \
             --scanners vuln \
             --ignore-unfixed \
-            --vuln-type os,library \
+            --pkg-types os,library \
             --severity CRITICAL,HIGH \
             --format sarif \
             --skip-version-check \

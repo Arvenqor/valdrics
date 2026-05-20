@@ -475,6 +475,11 @@ def test_security_scan_workflow_fails_on_high_or_critical_infra_and_container_fi
     assert "--severity CRITICAL,HIGH" in security_text
     assert "--exit-code 1" in security_text
     assert "--minimum-severity HIGH" in security_text
+    assert 'TRIVY_IMAGE: "docker.io/aquasec/trivy@sha256:' in security_text
+    assert 'TRIVY_IMAGE: "docker.io/aquasec/trivy:' not in security_text
+    assert "--pkg-types os,library" in security_text
+    assert "--vuln-type" not in security_text
+    assert "TRIVY_IMAGE:" not in ci_text
 
 
 def test_backend_runtime_image_explicitly_refreshes_tls_runtime_packages() -> None:
