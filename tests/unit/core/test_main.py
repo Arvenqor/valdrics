@@ -394,6 +394,39 @@ async def test_csrf_middleware_enforces_when_cookie_present_and_no_bearer():
 
 
 @pytest.mark.asyncio
+async def test_csrf_middleware_uses_scope_path_not_host_poisoned_url_path():
+    from app.main import csrf_protect_middleware
+
+    request = _make_request_with_headers(
+        path="/api/v1/settings/notifications",
+        method="PUT",
+        headers=[
+            (b"host", b"api.valdrics.com/api/v1/public?poison="),
+            (b"cookie", b"session=fake; fastapi-csrf-token=fake"),
+        ],
+    )
+    assert request.url.path == "/api/v1/public"
+
+    async def call_next(_request: Request):  # pragma: no cover
+        raise AssertionError("call_next should not be reached if CSRF blocks")
+
+    class _FakeCsrf:
+        async def validate_csrf(self, _request: Request) -> None:
+            raise CsrfProtectError(400, "Missing csrf header")
+
+    import app.main as main_mod
+
+    original_testing = main_mod.settings.TESTING
+    main_mod.settings.TESTING = False
+    try:
+        with patch("app.main.CsrfProtect", return_value=_FakeCsrf()):
+            response = await csrf_protect_middleware(request, call_next)
+        assert response.status_code == 400
+    finally:
+        main_mod.settings.TESTING = original_testing
+
+
+@pytest.mark.asyncio
 async def test_validation_exception_handler_records_metrics():
     request = _make_request(path="/validate", method="POST")
     exc = RequestValidationError(

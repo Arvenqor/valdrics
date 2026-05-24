@@ -127,15 +127,19 @@ def test_pip_audit_exception_register_is_complete_and_time_boxed() -> None:
     assert command[1:3] == ("-m", "pip_audit")
     assert "--ignore-vuln" in command
     assert "PYSEC-2025-183" in command
+    assert "PYSEC-2026-161" in command
     assert "CVE-2026-1703" not in command
     assert "CVE-2026-3219" not in command
     assert PIP_AUDIT_IGNORED_VULNERABILITIES["PYSEC-2025-183"]["review_by"] == date(
         2026, 6, 19
     )
+    assert PIP_AUDIT_IGNORED_VULNERABILITIES["PYSEC-2026-161"]["review_by"] == date(
+        2026, 6, 7
+    )
 
     errors = validate_exception_documentation(
         repo_root=REPO_ROOT,
-        today=date(2026, 5, 20),
+        today=date(2026, 5, 24),
     )
 
     assert errors == ()

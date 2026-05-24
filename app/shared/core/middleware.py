@@ -9,6 +9,7 @@ import structlog
 from app.shared.core.config import get_settings
 from app.shared.core.cors_policy import resolve_cors_allowed_origins
 from app.shared.core.proxy_headers import apply_trusted_proxy_headers
+from app.shared.core.request_security import is_valid_host_header, request_scope_path
 from app.shared.core.tracing import set_correlation_id
 
 REQUEST_ID_ALLOWED_CHARS = frozenset(
@@ -54,7 +55,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             response.headers["X-Frame-Options"] = "DENY"
 
         # Skip strict CSP for Swagger UI (requires inline scripts)
-        if request.url.path in ["/docs", "/redoc", "/openapi.json"]:
+        if request_scope_path(request) in ["/docs", "/redoc", "/openapi.json"]:
             return response
 
         normalized_origins = resolve_cors_allowed_origins(
@@ -113,7 +114,7 @@ class InternalMetricsAccessMiddleware(BaseHTTPMiddleware):
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
         settings = get_settings()
-        if request.url.path != INTERNAL_METRICS_PATH or settings.TESTING:
+        if request_scope_path(request) != INTERNAL_METRICS_PATH or settings.TESTING:
             return await call_next(request)
 
         if not getattr(settings, "is_strict_environment", False):
@@ -144,6 +145,20 @@ class TrustedProxyHeadersMiddleware(BaseHTTPMiddleware):
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
         apply_trusted_proxy_headers(request, settings_obj=get_settings())
+        return await call_next(request)
+
+
+class HostHeaderValidationMiddleware(BaseHTTPMiddleware):
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        host = request.headers.get("host")
+        if not is_valid_host_header(host):
+            structlog.get_logger().warning(
+                "malformed_host_header_rejected",
+                path=request_scope_path(request),
+            )
+            return PlainTextResponse("Bad Request", status_code=400)
         return await call_next(request)
 
 

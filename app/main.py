@@ -39,8 +39,10 @@ from app.shared.core.middleware import (
     InternalMetricsAccessMiddleware,
     RequestIDMiddleware,
     SecurityHeadersMiddleware,
+    HostHeaderValidationMiddleware,
     TrustedProxyHeadersMiddleware,
 )
+from app.shared.core.request_security import request_scope_path
 from app.shared.core.security_metrics import CSRF_ERRORS, RATE_LIMIT_EXCEEDED
 from app.shared.core.ops_metrics import API_ERRORS_TOTAL
 from app.shared.core.docs_assets import render_redoc_ui_html, render_swagger_ui_html
@@ -311,7 +313,7 @@ async def csrf_protect_exception_handler(
     request: Request, exc: CsrfProtectError
 ) -> JSONResponse:
     """Handle CSRF protection exceptions."""
-    CSRF_ERRORS.labels(path=request.url.path, method=request.method).inc()
+    CSRF_ERRORS.labels(path=request_scope_path(request), method=request.method).inc()
     from app.shared.core.error_governance import handle_exception
 
     return handle_exception(request, exc)
@@ -330,7 +332,7 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
         message_text = detail_text
 
     API_ERRORS_TOTAL.labels(
-        path=request.url.path, method=request.method, status_code=exc.status_code
+        path=request_scope_path(request), method=request.method, status_code=exc.status_code
     ).inc()
     return JSONResponse(
         status_code=exc.status_code,
@@ -352,7 +354,7 @@ async def validation_exception_handler(
     """Handle Pydantic validation errors."""
 
     API_ERRORS_TOTAL.labels(
-        path=request.url.path, method=request.method, status_code=422
+        path=request_scope_path(request), method=request.method, status_code=422
     ).inc()
     return JSONResponse(
         status_code=422,
@@ -418,12 +420,12 @@ async def custom_rate_limit_handler(request: Request, exc: Exception) -> Respons
     if not isinstance(exc, RateLimitExceeded):
         raise exc
     RATE_LIMIT_EXCEEDED.labels(
-        path=request.url.path,
+        path=request_scope_path(request),
         method=request.method,
         tier=getattr(request.state, "tier", "unknown"),
     ).inc()
     API_ERRORS_TOTAL.labels(
-        path=request.url.path,
+        path=request_scope_path(request),
         method=request.method,
         status_code=getattr(exc, "status_code", 429),
     ).inc()
@@ -512,7 +514,8 @@ async def csrf_protect_middleware(
             return await call_next(request)
 
         # Public lead-gen endpoints are unauthenticated and intended for third-party forms.
-        if request.url.path.startswith("/api/v1/public"):
+        request_path = request_scope_path(request)
+        if request_path.startswith("/api/v1/public"):
             return await call_next(request)
 
         # CSRF only protects cookie-authenticated browser requests.
@@ -535,12 +538,15 @@ async def csrf_protect_middleware(
             # Log and block
             logger.warning(
                 "csrf_validation_failed",
-                path=request.url.path,
+                path=request_path,
                 method=request.method,
             )
             return await csrf_protect_exception_handler(request, e)
 
     return await call_next(request)
+
+
+valdrics_app.add_middleware(HostHeaderValidationMiddleware)
 
 
 # Register API routers in a dedicated registry module for maintainability.

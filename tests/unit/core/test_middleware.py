@@ -3,11 +3,13 @@ from unittest.mock import MagicMock, patch
 from starlette.responses import Response
 import structlog
 from app.shared.core.middleware import (
+    HostHeaderValidationMiddleware,
     InternalMetricsAccessMiddleware,
     RequestIDMiddleware,
     SecurityHeadersMiddleware,
     TrustedProxyHeadersMiddleware,
 )
+from app.shared.core.request_security import is_valid_host_header
 
 
 @pytest.fixture
@@ -183,6 +185,61 @@ async def test_internal_metrics_access_middleware_blocks_public_unauthenticated_
         response = await middleware.dispatch(request, call_next)
 
     assert response.status_code == 404
+
+
+@pytest.mark.parametrize(
+    "host",
+    [
+        "testserver",
+        "api.valdrics.com",
+        "api.valdrics.com:443",
+        "127.0.0.1:8000",
+        "[2001:db8::1]:8443",
+    ],
+)
+def test_host_header_validator_accepts_rfc_authority_hosts(host: str) -> None:
+    assert is_valid_host_header(host)
+
+
+@pytest.mark.parametrize(
+    "host",
+    [
+        "",
+        "api.valdrics.com/api/v1/public?poison=",
+        "api.valdrics.com#fragment",
+        "user@api.valdrics.com",
+        "api.valdrics.com,evil.example",
+        "api.valdrics.com:99999",
+        "2001:db8::1",
+    ],
+)
+def test_host_header_validator_rejects_malformed_hosts(host: str) -> None:
+    assert not is_valid_host_header(host)
+
+
+@pytest.mark.asyncio
+async def test_host_header_validation_middleware_rejects_path_poisoning_host() -> None:
+    async def call_next(_request):
+        raise AssertionError("malformed Host must not reach downstream middleware")
+
+    from fastapi import Request
+
+    request = Request(
+        {
+            "type": "http",
+            "scheme": "https",
+            "method": "POST",
+            "path": "/api/v1/settings/notifications",
+            "query_string": b"",
+            "headers": [(b"host", b"api.valdrics.com/api/v1/public?poison=")],
+            "client": ("8.8.8.8", 44321),
+        }
+    )
+    middleware = HostHeaderValidationMiddleware(MagicMock())
+
+    response = await middleware.dispatch(request, call_next)
+
+    assert response.status_code == 400
 
 
 @pytest.mark.asyncio
