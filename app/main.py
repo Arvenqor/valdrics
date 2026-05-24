@@ -57,20 +57,12 @@ from app.shared.db.local_sqlite_bootstrap import (
     bootstrap_local_sqlite_schema,
     should_bootstrap_local_sqlite,
 )
-from app.shared.db.session import (
-    dispose_db_runtime,
-    get_engine,
-)
+from app.shared.db.session import dispose_db_runtime, get_engine
 from app.shared.core.exceptions import ValdricsException
-from app.shared.core.rate_limit import (
-    setup_rate_limiting,
-)
+from app.shared.core.rate_limit import setup_rate_limiting
 
 # Ensure all models are registered with SQLAlchemy
-from app.modules.governance.api.v1.scim import (
-    ScimError,
-    scim_error_response,
-)
+from app.modules.governance.api.v1.scim import ScimError, scim_error_response
 
 # Configure structured logging
 setup_logging()
@@ -547,7 +539,6 @@ async def csrf_protect_middleware(
 
 
 valdrics_app.add_middleware(HostHeaderValidationMiddleware)
-
 
 # Register API routers in a dedicated registry module for maintainability.
 register_api_routers(valdrics_app)

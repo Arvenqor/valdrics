@@ -3,7 +3,7 @@
   "breaches": [
     {
       "path": "app/main.py",
-      "lines": 547,
+      "lines": 544,
       "preferred_max_lines": 500
     },
     {
