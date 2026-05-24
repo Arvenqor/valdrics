@@ -71,10 +71,7 @@ def paystack_secret_overlay_from_env(
     if not paystack_secret_key and not paystack_public_key:
         return {}
     if normalized_environment and normalized_environment != "production":
-        raise ValueError(
-            "Paystack dedicated secret overlay is supported only for production "
-            "deployments."
-        )
+        return {}
     if not paystack_secret_key or not paystack_public_key:
         raise ValueError(
             "Paystack secret overlay requires both PAYSTACK_SECRET_KEY and "

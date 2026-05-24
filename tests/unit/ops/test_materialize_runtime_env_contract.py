@@ -93,7 +93,7 @@ def test_materialize_runtime_env_contract_cli_uses_github_annotation(
     )
 
 
-def test_materialize_runtime_env_contract_cli_rejects_staging_paystack_overlay(
+def test_materialize_runtime_env_contract_cli_ignores_staging_paystack_overlay(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -112,5 +112,8 @@ def test_materialize_runtime_env_contract_cli_rejects_staging_paystack_overlay(
         ]
     )
 
-    assert exit_code == 1
-    assert "only for production deployments" in capsys.readouterr().out
+    assert exit_code == 0
+    rendered = (tmp_path / "staging.env").read_text(encoding="utf-8")
+    assert "PAYSTACK_SECRET_KEY=sk_live_overlay_paystack_secret" not in rendered
+    assert "PAYSTACK_PUBLIC_KEY=pk_live_overlay_paystack_public" not in rendered
+    assert "[managed-runtime-env-materializer] ok" in capsys.readouterr().out

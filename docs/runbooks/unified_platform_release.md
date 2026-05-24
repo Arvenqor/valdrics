@@ -228,7 +228,8 @@ GitHub environment secrets named `PAYSTACK_SECRET_KEY` and
 overlay those two values over production `RUNTIME_SECRET_ENV_JSON` only when
 both are set, which avoids rewriting unrelated aggregate runtime secrets during
 activation or rotation. The dedicated overlay is intentionally production-only
-to prevent live credentials from leaking into staging releases.
+and ignored outside production to prevent live credentials from being
+materialized into staging releases.
 
 `RUNTIME_PLAIN_ENV_JSON` and `RUNTIME_SECRET_ENV_JSON` must be JSON objects with
 string values. The reusable deploy workflow rejects secret-classified keys such as `DATABASE_URL`

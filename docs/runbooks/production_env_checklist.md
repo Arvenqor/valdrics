@@ -53,7 +53,7 @@ named `PAYSTACK_SECRET_KEY` and `PAYSTACK_PUBLIC_KEY`. The release preflight and
 deploy workflow overlay only those two keys over production
 `RUNTIME_SECRET_ENV_JSON` when both are set, so the aggregate runtime secret JSON
 does not need to be rewritten for payment activation. The dedicated overlay is
-not accepted for staging.
+ignored outside production.
 
 Required promotion refs for the reusable deploy workflow:
 
