@@ -164,13 +164,16 @@ def test_paystack_secret_overlay_requires_both_keys(
         paystack_secret_overlay_from_env()
 
 
-def test_paystack_secret_overlay_ignores_non_production(
+def test_paystack_secret_overlay_loads_environment_scoped_pair(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("PAYSTACK_SECRET_KEY", "sk_live_overlay_paystack_secret")
     monkeypatch.setenv("PAYSTACK_PUBLIC_KEY", "pk_live_overlay_paystack_public")
 
-    assert paystack_secret_overlay_from_env(environment="staging") == {}
+    assert paystack_secret_overlay_from_env() == {
+        "PAYSTACK_SECRET_KEY": "sk_live_overlay_paystack_secret",
+        "PAYSTACK_PUBLIC_KEY": "pk_live_overlay_paystack_public",
+    }
 
 
 def test_preflight_runtime_env_contract_rejects_unresolved_secret_inputs(

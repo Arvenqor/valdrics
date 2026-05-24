@@ -58,10 +58,10 @@ GitHub release/deploy secret contract:
 - Artifact publish requires `GCP_WORKLOAD_IDENTITY_PROVIDER` and `GCP_ARTIFACT_PUBLISHER_SERVICE_ACCOUNT`
 - Environment deploy requires `GCP_WORKLOAD_IDENTITY_PROVIDER` and `GCP_DEPLOYER_SERVICE_ACCOUNT`
 - Environment deploy also requires `CLOUDFLARE_API_TOKEN`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DATABASE_PASSWORD`, and `RUNTIME_SECRET_ENV_JSON`
-- Production Paystack activation may provide approved live `PAYSTACK_SECRET_KEY`
-  and `PAYSTACK_PUBLIC_KEY` as dedicated GitHub environment secrets; when both
-  are set, they overlay only the Paystack keys from `RUNTIME_SECRET_ENV_JSON`
-  during production preflight and deployment materialization
+- Paystack activation or rotation may provide `PAYSTACK_SECRET_KEY` and
+  `PAYSTACK_PUBLIC_KEY` as dedicated GitHub environment secrets; when both are
+  set, they overlay only the Paystack keys from that environment's
+  `RUNTIME_SECRET_ENV_JSON` during preflight and deployment materialization
 - `CLOUDFLARE_API_TOKEN` must include Zone `Bot Management:Edit`, DNS, Rulesets/WAF, and Pages permissions; Bot Fight Mode cannot be bypassed by WAF Skip rules, so release preflight and Terraform enforce `fight_mode=false` for API health probes
 
 Use `.github/workflows/release-beta-app.yml` for normal beta/product releases

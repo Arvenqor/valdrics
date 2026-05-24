@@ -59,18 +59,14 @@ def _render_env_payload(values: dict[str, str]) -> str:
 
 def paystack_secret_overlay_from_env(
     *,
-    environment: str | None = None,
     secret_key_env_name: str = DEFAULT_PAYSTACK_SECRET_ENV_NAME,
     public_key_env_name: str = DEFAULT_PAYSTACK_PUBLIC_ENV_NAME,
 ) -> dict[str, str]:
     """Load optional dedicated Paystack secrets from the GitHub environment."""
 
-    normalized_environment = str(environment or "").strip().lower()
     paystack_secret_key = str(os.environ.get(secret_key_env_name, "") or "").strip()
     paystack_public_key = str(os.environ.get(public_key_env_name, "") or "").strip()
     if not paystack_secret_key and not paystack_public_key:
-        return {}
-    if normalized_environment and normalized_environment != "production":
         return {}
     if not paystack_secret_key or not paystack_public_key:
         raise ValueError(
@@ -178,9 +174,7 @@ def main(argv: list[str] | None = None) -> int:
             environment=args.environment,
             plain=_load_payload_from_env(args.runtime_plain_env_name),
             secret=_load_payload_from_env(args.runtime_secret_env_name),
-            secret_overlay=paystack_secret_overlay_from_env(
-                environment=args.environment
-            ),
+            secret_overlay=paystack_secret_overlay_from_env(),
             template_path=args.template_path,
         )
     except (OSError, ValueError) as exc:

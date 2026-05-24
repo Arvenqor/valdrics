@@ -79,9 +79,7 @@ def main(argv: list[str] | None = None) -> int:
             plain=_load_payload_from_env(args.runtime_plain_env_name),
             secret=_load_payload_from_env(args.runtime_secret_env_name),
             output_path=args.output_path,
-            secret_overlay=paystack_secret_overlay_from_env(
-                environment=args.environment
-            ),
+            secret_overlay=paystack_secret_overlay_from_env(),
         )
     except (OSError, ValueError) as exc:
         print(f"::error title=Managed runtime env materialization failed::{exc}")

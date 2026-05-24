@@ -225,11 +225,9 @@ operator inputs, and live checkout must remain explicitly unvalidated.
 After approval, prefer installing live Paystack credentials as dedicated
 GitHub environment secrets named `PAYSTACK_SECRET_KEY` and
 `PAYSTACK_PUBLIC_KEY`. The release preflight and reusable deploy workflow
-overlay those two values over production `RUNTIME_SECRET_ENV_JSON` only when
-both are set, which avoids rewriting unrelated aggregate runtime secrets during
-activation or rotation. The dedicated overlay is intentionally production-only
-and ignored outside production to prevent live credentials from being
-materialized into staging releases.
+overlay those two values over that environment's `RUNTIME_SECRET_ENV_JSON` only
+when both are set, which avoids rewriting unrelated aggregate runtime secrets
+during activation or rotation.
 
 `RUNTIME_PLAIN_ENV_JSON` and `RUNTIME_SECRET_ENV_JSON` must be JSON objects with
 string values. The reusable deploy workflow rejects secret-classified keys such as `DATABASE_URL`

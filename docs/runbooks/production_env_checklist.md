@@ -50,10 +50,9 @@ Set these in the runtime, deployment, and promotion contract:
 
 For Paystack activation and rotation, prefer environment-scoped GitHub secrets
 named `PAYSTACK_SECRET_KEY` and `PAYSTACK_PUBLIC_KEY`. The release preflight and
-deploy workflow overlay only those two keys over production
+deploy workflow overlay only those two keys over that environment's
 `RUNTIME_SECRET_ENV_JSON` when both are set, so the aggregate runtime secret JSON
-does not need to be rewritten for payment activation. The dedicated overlay is
-ignored outside production.
+does not need to be rewritten for payment activation or rotation.
 
 Required promotion refs for the reusable deploy workflow:
 
