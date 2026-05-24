@@ -222,6 +222,13 @@ If Paystack account approval is still pending, set
 `PAYSTACK_ACTIVATION_PENDING=true` in `RUNTIME_PLAIN_ENV_JSON`. In that mode
 `PAYSTACK_SECRET_KEY` and `PAYSTACK_PUBLIC_KEY` are not required runtime
 operator inputs, and live checkout must remain explicitly unvalidated.
+After approval, prefer installing live Paystack credentials as dedicated
+GitHub environment secrets named `PAYSTACK_SECRET_KEY` and
+`PAYSTACK_PUBLIC_KEY`. The release preflight and reusable deploy workflow
+overlay those two values over production `RUNTIME_SECRET_ENV_JSON` only when
+both are set, which avoids rewriting unrelated aggregate runtime secrets during
+activation or rotation. The dedicated overlay is intentionally production-only
+to prevent live credentials from leaking into staging releases.
 
 `RUNTIME_PLAIN_ENV_JSON` and `RUNTIME_SECRET_ENV_JSON` must be JSON objects with
 string values. The reusable deploy workflow rejects secret-classified keys such as `DATABASE_URL`

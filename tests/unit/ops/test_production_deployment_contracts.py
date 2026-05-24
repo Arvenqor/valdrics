@@ -61,7 +61,9 @@ def test_release_artifacts_are_immutable_and_workflows_target_unified_platform()
     assert "terraform.runtime.auto.tfvars.json" in deploy_workflow
     assert "secrets.DATABASE_URL" not in deploy_workflow
     assert "secrets.SUPABASE_ANON_KEY" not in deploy_workflow
-    assert "runtime_json_classification_errors" in deploy_workflow
+    assert "scripts/materialize_runtime_env_contract.py" in deploy_workflow
+    assert "PAYSTACK_SECRET_KEY: ${{ secrets.PAYSTACK_SECRET_KEY }}" in deploy_workflow
+    assert "PAYSTACK_PUBLIC_KEY: ${{ secrets.PAYSTACK_PUBLIC_KEY }}" in deploy_workflow
     assert "wrangler pages deploy" in deploy_workflow
     assert "/health/live" in deploy_workflow
     assert "Bootstrap Terraform State" in release_workflow

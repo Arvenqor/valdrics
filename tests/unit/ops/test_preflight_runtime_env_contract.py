@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from scripts.preflight_runtime_env_contract import (
+    paystack_secret_overlay_from_env,
     main,
     preflight_runtime_env_contract,
 )
@@ -125,6 +126,52 @@ def test_preflight_runtime_env_contract_accepts_pending_paystack_activation(
     assert report["runtime_validation_blockers"] == []
     assert "PAYSTACK_SECRET_KEY" not in report["required_operator_input_keys"]
     assert "PAYSTACK_PUBLIC_KEY" not in report["required_operator_input_keys"]
+
+
+def test_preflight_runtime_env_contract_applies_paystack_secret_overlay(
+    tmp_path: Path,
+) -> None:
+    template = tmp_path / ".env.example"
+    _write_template(template)
+    plain = _plain_payload()
+    plain["PAYSTACK_ACTIVATION_PENDING"] = "false"
+    secret = _secret_payload()
+    secret["PAYSTACK_SECRET_KEY"] = ""
+    secret["PAYSTACK_PUBLIC_KEY"] = ""
+
+    report = preflight_runtime_env_contract(
+        environment="production",
+        plain=plain,
+        secret=secret,
+        secret_overlay={
+            "PAYSTACK_SECRET_KEY": "sk_live_overlay_paystack_secret",
+            "PAYSTACK_PUBLIC_KEY": "pk_live_overlay_paystack_public",
+        },
+        template_path=template,
+    )
+
+    assert report["validation_ready"] is True
+    assert report["runtime_validation_blockers"] == []
+
+
+def test_paystack_secret_overlay_requires_both_keys(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PAYSTACK_SECRET_KEY", "sk_live_overlay_paystack_secret")
+    monkeypatch.delenv("PAYSTACK_PUBLIC_KEY", raising=False)
+
+    with pytest.raises(ValueError, match="requires both PAYSTACK_SECRET_KEY"):
+        paystack_secret_overlay_from_env()
+
+
+def test_paystack_secret_overlay_is_production_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PAYSTACK_SECRET_KEY", "sk_live_overlay_paystack_secret")
+    monkeypatch.setenv("PAYSTACK_PUBLIC_KEY", "pk_live_overlay_paystack_public")
+
+    with pytest.raises(ValueError, match="only for production deployments"):
+        paystack_secret_overlay_from_env(environment="staging")
 
 
 def test_preflight_runtime_env_contract_rejects_unresolved_secret_inputs(

@@ -104,7 +104,10 @@ Every major idea in this file is assigned one strategy label:
   requires installing approved live keys, setting production
   `PAYSTACK_ACTIVATION_PENDING=false`, rerunning managed runtime preflight and
   release readiness, and validating live checkout before payment readiness is
-  claimed.
+  claimed. The release workflow supports dedicated GitHub environment secrets
+  `PAYSTACK_SECRET_KEY` and `PAYSTACK_PUBLIC_KEY` as a narrow overlay so
+  Paystack activation or rotation does not require rewriting the aggregate
+  `RUNTIME_SECRET_ENV_JSON` payload.
 
 ## What Valdrics Is Building
 

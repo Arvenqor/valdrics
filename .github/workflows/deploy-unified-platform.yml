@@ -71,6 +71,10 @@ on:
         required: true
       RUNTIME_SECRET_ENV_JSON:
         required: true
+      PAYSTACK_SECRET_KEY:
+        required: false
+      PAYSTACK_PUBLIC_KEY:
+        required: false
 
 concurrency:
   group: deploy-unified-platform-${{ inputs.environment }}-${{ inputs.release_tag }}
@@ -132,61 +136,13 @@ jobs:
         env:
           RUNTIME_PLAIN_ENV_JSON: ${{ vars.RUNTIME_PLAIN_ENV_JSON }}
           RUNTIME_SECRET_ENV_JSON: ${{ secrets.RUNTIME_SECRET_ENV_JSON }}
+          PAYSTACK_SECRET_KEY: ${{ secrets.PAYSTACK_SECRET_KEY }}
+          PAYSTACK_PUBLIC_KEY: ${{ secrets.PAYSTACK_PUBLIC_KEY }}
         run: |
           set -euo pipefail
-          mkdir -p .runtime
-          python3 - <<'PY'
-          from __future__ import annotations
-
-          import json
-          import os
-          from pathlib import Path
-          import shlex
-
-          from scripts.managed_deployment_contract import (
-              runtime_json_classification_errors,
-          )
-
-          def load_payload(name: str) -> dict[str, str]:
-              raw = os.environ.get(name, "")
-              try:
-                  payload = json.loads(raw)
-              except json.JSONDecodeError as exc:
-                  raise SystemExit(f"{name} must be valid JSON: {exc}") from exc
-              if not isinstance(payload, dict):
-                  raise SystemExit(f"{name} must be a JSON object")
-
-              normalized: dict[str, str] = {}
-              for raw_key, raw_value in payload.items():
-                  key = str(raw_key or "").strip()
-                  if not key:
-                      raise SystemExit(f"{name} contains an empty key")
-                  if not isinstance(raw_value, str):
-                      raise SystemExit(f"{name}.{key} must be a string")
-                  normalized[key] = raw_value
-              return normalized
-
-          plain = load_payload("RUNTIME_PLAIN_ENV_JSON")
-          secret = load_payload("RUNTIME_SECRET_ENV_JSON")
-          overlap = sorted(set(plain) & set(secret))
-          if overlap:
-              raise SystemExit(
-                  "RUNTIME_PLAIN_ENV_JSON and RUNTIME_SECRET_ENV_JSON must not share keys: "
-                  + ", ".join(overlap)
-              )
-          classification_errors = runtime_json_classification_errors(plain, secret)
-          if classification_errors:
-              raise SystemExit("\n".join(classification_errors))
-
-          merged = {**plain, **secret}
-          output = Path(".runtime") / f"{os.environ['DEPLOY_ENVIRONMENT']}.env"
-          lines = []
-          for key in sorted(merged):
-              value = merged[key]
-              rendered = "" if value == "" else shlex.quote(value)
-              lines.append(f"{key}={rendered}")
-          output.write_text("\n".join(lines) + "\n", encoding="utf-8")
-          PY
+          python3 scripts/materialize_runtime_env_contract.py \
+            --environment "${DEPLOY_ENVIRONMENT}" \
+            --output-path ".runtime/${DEPLOY_ENVIRONMENT}.env"
 
       - name: Generate managed runtime, migration, and deployment bundle
         id: managed_bundle

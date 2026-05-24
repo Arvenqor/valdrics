@@ -21,6 +21,8 @@ from scripts.managed_deployment_contract import runtime_json_classification_erro
 
 DEFAULT_PLAIN_ENV_NAME = "RUNTIME_PLAIN_ENV_JSON"
 DEFAULT_SECRET_ENV_NAME = "RUNTIME_SECRET_ENV_JSON"
+DEFAULT_PAYSTACK_SECRET_ENV_NAME = "PAYSTACK_SECRET_KEY"
+DEFAULT_PAYSTACK_PUBLIC_ENV_NAME = "PAYSTACK_PUBLIC_KEY"
 
 
 def _load_payload_from_env(name: str) -> dict[str, str]:
@@ -55,14 +57,56 @@ def _render_env_payload(values: dict[str, str]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def paystack_secret_overlay_from_env(
+    *,
+    environment: str | None = None,
+    secret_key_env_name: str = DEFAULT_PAYSTACK_SECRET_ENV_NAME,
+    public_key_env_name: str = DEFAULT_PAYSTACK_PUBLIC_ENV_NAME,
+) -> dict[str, str]:
+    """Load optional dedicated Paystack secrets from the GitHub environment."""
+
+    normalized_environment = str(environment or "").strip().lower()
+    paystack_secret_key = str(os.environ.get(secret_key_env_name, "") or "").strip()
+    paystack_public_key = str(os.environ.get(public_key_env_name, "") or "").strip()
+    if not paystack_secret_key and not paystack_public_key:
+        return {}
+    if normalized_environment and normalized_environment != "production":
+        raise ValueError(
+            "Paystack dedicated secret overlay is supported only for production "
+            "deployments."
+        )
+    if not paystack_secret_key or not paystack_public_key:
+        raise ValueError(
+            "Paystack secret overlay requires both PAYSTACK_SECRET_KEY and "
+            "PAYSTACK_PUBLIC_KEY to be set together."
+        )
+    return {
+        "PAYSTACK_SECRET_KEY": paystack_secret_key,
+        "PAYSTACK_PUBLIC_KEY": paystack_public_key,
+    }
+
+
+def apply_paystack_secret_overlay(
+    secret: dict[str, str],
+    overlay: dict[str, str] | None,
+) -> dict[str, str]:
+    merged = dict(secret)
+    for key, value in (overlay or {}).items():
+        if value.strip():
+            merged[key] = value
+    return merged
+
+
 def preflight_runtime_env_contract(
     *,
     environment: str,
     plain: dict[str, str],
     secret: dict[str, str],
+    secret_overlay: dict[str, str] | None = None,
     template_path: Path,
 ) -> dict[str, Any]:
     normalized_environment = environment.strip().lower()
+    secret = apply_paystack_secret_overlay(secret, secret_overlay)
     overlap = sorted(set(plain) & set(secret))
     if overlap:
         raise ValueError(
@@ -137,6 +181,9 @@ def main(argv: list[str] | None = None) -> int:
             environment=args.environment,
             plain=_load_payload_from_env(args.runtime_plain_env_name),
             secret=_load_payload_from_env(args.runtime_secret_env_name),
+            secret_overlay=paystack_secret_overlay_from_env(
+                environment=args.environment
+            ),
             template_path=args.template_path,
         )
     except (OSError, ValueError) as exc:

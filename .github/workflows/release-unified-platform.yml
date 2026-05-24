@@ -54,12 +54,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          uv run ruff check scripts/generate_managed_deployment_artifacts.py scripts/managed_deployment_contract.py scripts/preflight_runtime_env_contract.py
+          uv run ruff check scripts/generate_managed_deployment_artifacts.py scripts/managed_deployment_contract.py scripts/materialize_runtime_env_contract.py scripts/preflight_runtime_env_contract.py
           uv run pytest -q --tb=short --no-cov \
             tests/unit/ops/test_unified_platform_release_contract.py \
             tests/unit/ops/test_production_deployment_contracts.py \
             tests/unit/ops/test_managed_deployment_contract.py \
             tests/unit/ops/test_generate_managed_deployment_artifacts.py \
+            tests/unit/ops/test_materialize_runtime_env_contract.py \
             tests/unit/ops/test_preflight_runtime_env_contract.py
 
   bootstrap-terraform-state:
@@ -247,6 +248,8 @@ jobs:
         env:
           RUNTIME_PLAIN_ENV_JSON: ${{ vars.RUNTIME_PLAIN_ENV_JSON }}
           RUNTIME_SECRET_ENV_JSON: ${{ secrets.RUNTIME_SECRET_ENV_JSON }}
+          PAYSTACK_SECRET_KEY: ${{ secrets.PAYSTACK_SECRET_KEY }}
+          PAYSTACK_PUBLIC_KEY: ${{ secrets.PAYSTACK_PUBLIC_KEY }}
         run: |
           set -euo pipefail
           python3 scripts/preflight_runtime_env_contract.py \
@@ -328,6 +331,8 @@ jobs:
         env:
           RUNTIME_PLAIN_ENV_JSON: ${{ vars.RUNTIME_PLAIN_ENV_JSON }}
           RUNTIME_SECRET_ENV_JSON: ${{ secrets.RUNTIME_SECRET_ENV_JSON }}
+          PAYSTACK_SECRET_KEY: ${{ secrets.PAYSTACK_SECRET_KEY }}
+          PAYSTACK_PUBLIC_KEY: ${{ secrets.PAYSTACK_PUBLIC_KEY }}
         run: |
           set -euo pipefail
           python3 scripts/preflight_runtime_env_contract.py \

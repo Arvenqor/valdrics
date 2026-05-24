@@ -48,6 +48,13 @@ Set these in the runtime, deployment, and promotion contract:
 - `PAYSTACK_SECRET_KEY=sk_live_...`
 - `PAYSTACK_PUBLIC_KEY=pk_live_...`
 
+For Paystack activation and rotation, prefer environment-scoped GitHub secrets
+named `PAYSTACK_SECRET_KEY` and `PAYSTACK_PUBLIC_KEY`. The release preflight and
+deploy workflow overlay only those two keys over production
+`RUNTIME_SECRET_ENV_JSON` when both are set, so the aggregate runtime secret JSON
+does not need to be rewritten for payment activation. The dedicated overlay is
+not accepted for staging.
+
 Required promotion refs for the reusable deploy workflow:
 
 - `api_promotion_ref=repo@sha256:...`
@@ -66,6 +73,8 @@ While `PAYSTACK_ACTIVATION_PENDING=true`, the runtime and deployment reports do
 not treat `PAYSTACK_SECRET_KEY` or `PAYSTACK_PUBLIC_KEY` as unresolved operator
 inputs. Do not claim live checkout until Paystack approval is complete,
 `PAYSTACK_ACTIVATION_PENDING=false`, and live keys pass preflight.
+Setting only one dedicated Paystack secret fails preflight; rotate the secret
+and public key as a pair.
 
 ## 2a. Generate the runtime scaffold
 

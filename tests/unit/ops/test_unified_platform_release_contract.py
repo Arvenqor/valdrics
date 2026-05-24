@@ -369,8 +369,18 @@ def test_release_unified_platform_workflow_promotes_one_digest_through_environme
     )[1].split("preflight-staging-managed-platform:", maxsplit=1)[0]
     assert "preflight_runtime_env_contract.py" in staging_preflight
     assert "--environment staging" in staging_preflight
+    assert "PAYSTACK_SECRET_KEY: ${{ secrets.PAYSTACK_SECRET_KEY }}" in staging_preflight
+    assert "PAYSTACK_PUBLIC_KEY: ${{ secrets.PAYSTACK_PUBLIC_KEY }}" in staging_preflight
     assert "preflight_runtime_env_contract.py" in production_preflight
     assert "--environment production" in production_preflight
+    assert (
+        "PAYSTACK_SECRET_KEY: ${{ secrets.PAYSTACK_SECRET_KEY }}"
+        in production_preflight
+    )
+    assert (
+        "PAYSTACK_PUBLIC_KEY: ${{ secrets.PAYSTACK_PUBLIC_KEY }}"
+        in production_preflight
+    )
     assert "preflight_runtime_env_contract.py" not in bootstrap_artifact_registry
     assert "- preflight-staging-managed-platform" in bootstrap_artifact_registry
     assert "./.github/workflows/deploy-unified-platform.yml" in workflow

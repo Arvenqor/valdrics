@@ -120,7 +120,9 @@ activation pending. The reviewed production release still retained
 For production payment enablement:
 
 - install approved live `sk_live_...` and `pk_live_...` keys without committing
-  secret values to the repository
+  secret values to the repository; the preferred path is dedicated GitHub
+  environment secrets `PAYSTACK_SECRET_KEY` and `PAYSTACK_PUBLIC_KEY`, set
+  together
 - change production to `PAYSTACK_ACTIVATION_PENDING=false`
 - rerun the managed runtime preflight and release readiness checks after live
   keys are installed

@@ -58,6 +58,10 @@ GitHub release/deploy secret contract:
 - Artifact publish requires `GCP_WORKLOAD_IDENTITY_PROVIDER` and `GCP_ARTIFACT_PUBLISHER_SERVICE_ACCOUNT`
 - Environment deploy requires `GCP_WORKLOAD_IDENTITY_PROVIDER` and `GCP_DEPLOYER_SERVICE_ACCOUNT`
 - Environment deploy also requires `CLOUDFLARE_API_TOKEN`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DATABASE_PASSWORD`, and `RUNTIME_SECRET_ENV_JSON`
+- Production Paystack activation may provide approved live `PAYSTACK_SECRET_KEY`
+  and `PAYSTACK_PUBLIC_KEY` as dedicated GitHub environment secrets; when both
+  are set, they overlay only the Paystack keys from `RUNTIME_SECRET_ENV_JSON`
+  during production preflight and deployment materialization
 - `CLOUDFLARE_API_TOKEN` must include Zone `Bot Management:Edit`, DNS, Rulesets/WAF, and Pages permissions; Bot Fight Mode cannot be bypassed by WAF Skip rules, so release preflight and Terraform enforce `fight_mode=false` for API health probes
 
 Use `.github/workflows/release-beta-app.yml` for normal beta/product releases
@@ -84,6 +88,9 @@ managed runtime and deployment reports do not treat `PAYSTACK_SECRET_KEY` or
 `PAYSTACK_PUBLIC_KEY` as release blockers, and the product must remain
 reviewable without claiming successful live checkout. Set
 `PAYSTACK_ACTIVATION_PENDING=false` only after approved live keys are available.
+To reduce broad secret-blob edits during activation or rotation, install the
+live keys as environment-scoped `PAYSTACK_SECRET_KEY` and
+`PAYSTACK_PUBLIC_KEY` secrets together; setting only one key fails preflight.
 
 ## Supported Release Surface
 
