@@ -99,15 +99,18 @@ Every major idea in this file is assigned one strategy label:
   emitted GitHub Node.js 20 action-deprecation annotations for pinned
   third-party actions. Those actions should be updated before GitHub forces
   JavaScript actions to Node.js 24 on 2026-06-02.
-  Paystack account approval was reported by the owner on 2026-05-24. Paystack
-  is no longer an external account-review blocker, but payment activation still
-  requires installing approved live keys, setting production
-  `PAYSTACK_ACTIVATION_PENDING=false`, rerunning managed runtime preflight and
-  release readiness, and validating live checkout before payment readiness is
-  claimed. The release workflow supports dedicated GitHub environment secrets
-  `PAYSTACK_SECRET_KEY` and `PAYSTACK_PUBLIC_KEY` as a narrow overlay so
-  Paystack activation or rotation does not require rewriting the aggregate
-  `RUNTIME_SECRET_ENV_JSON` payload.
+  Paystack account approval was reported by the owner on 2026-05-24. Approved
+  live keys were installed through the dedicated GitHub environment secrets
+  `PAYSTACK_SECRET_KEY` and `PAYSTACK_PUBLIC_KEY`, and run `26354921733` passed
+  the full unified staging-to-production lane for
+  `2026.05.24-paystack-live-dfd7b8b2` with production
+  `PAYSTACK_ACTIVATION_PENDING=false`. Payment activation is still not complete
+  until a real controlled production checkout is validated.
+  A 2026-05-24 non-creating auth probe against `/auth/flow` returned
+  `401 Invalid login credentials` in both staging and production, proving the
+  deployed dashboard can reach Supabase Auth. Reported registration failure is
+  therefore tracked as a provider/project signup configuration gate, not a
+  missing dashboard runtime-variable gate.
 
 ## What Valdrics Is Building
 
@@ -274,7 +277,7 @@ to a shipping phase here:
 
 | Phase                                                  | Strategy          | Ground truth now                                                                                                                                           | Ship state  |
 | ------------------------------------------------------ | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| Phase 1: Managed Platform Live Cutover                 | `core disruption` | Full unified staging-to-production release is green on run `26197286420` for tag `2026.05.21-paystack-pending-43c3cb5b`; operator artifact review is complete; closure now requires release-ops sign-off and real-tenant production use | Closing     |
+| Phase 1: Managed Platform Live Cutover                 | `core disruption` | Full unified staging-to-production release is green on run `26354921733` for tag `2026.05.24-paystack-live-dfd7b8b2`; operator artifact review is complete for the earlier managed cutover run; closure now requires release-ops sign-off, production signup/tenant access, and live checkout validation | Closing     |
 | Phase 2: Unified Technology Spend Ledger               | `core disruption` | Partial foundations exist through the AI-aware canonical spend-ledger API, allocation-aware FOCUS v1.3 export, normalized reporting, and Cloud+ connectors | Not shipped |
 | Phase 3: Audit-Grade Close                             | `moat expansion`  | Reconciliation and close foundations exist, but live end-to-end close proof as the canonical customer path is not established here                         | Not shipped |
 | Phase 4: Governed Action Loop                          | `core disruption` | Approvals, enforcement, and remediation foundations exist, but the full action loop is not yet the closed customer operating standard                      | Not shipped |
@@ -334,22 +337,29 @@ Cleanup gate:
 
 Current blockers and external dependencies:
 
-- Engineering blocker: no release-blocking engineering blocker remains after
-  GitHub Actions run `26197286420` passed the full unified staging-to-production
-  release lane. The source-of-truth plan, runbooks, and release-evidence guard
-  are aligned with that live release fact.
+- Engineering blocker: no release-blocking release-lane blocker remains after
+  GitHub Actions run `26354921733` passed the full unified staging-to-production
+  release lane with live Paystack overlay support and production
+  `PAYSTACK_ACTIVATION_PENDING=false`. The source-of-truth plan, runbooks, and
+  release-evidence guard are aligned with that live release fact.
 - Manual closure work: capture release-ops sign-off and confirm at least one
   real tenant can use production. The non-secret artifact review named in
-  `docs/evidence/phase1-unified-release-closure.md` is complete for release run
-  `26197286420`.
+  `docs/evidence/phase1-unified-release-closure.md` is complete for release runs
+  `26197286420` and `26354921733`.
+- Signup and tenant-access gate: production and staging `/auth/flow` probes on
+  2026-05-24 returned `401 Invalid login credentials` for a nonexistent login,
+  proving Supabase Auth is reachable from the deployed dashboard. Reported
+  registration failure remains a Supabase Auth/provider signup configuration
+  issue to resolve before real-tenant production-use confirmation.
 - Release hardening: update pinned GitHub Actions that emitted Node.js 20
   deprecation annotations before GitHub forces JavaScript actions to Node.js 24
   on 2026-06-02.
 - Paystack activation: account approval was reported by the owner on
-  2026-05-24. Engineering must not claim live Paystack checkout validation until
-  approved live keys are installed, production has
-  `PAYSTACK_ACTIVATION_PENDING=false`, managed runtime preflight and release
-  readiness pass, and checkout is validated in production.
+  2026-05-24, live keys are now supplied through dedicated GitHub environment
+  secrets, and run `26354921733` passed managed runtime preflight plus release
+  readiness. Engineering must not claim live Paystack checkout validation until
+  a controlled production checkout is completed after signup/tenant access is
+  unblocked.
 
 ## Queued Shipping Phases
 

@@ -1,7 +1,8 @@
 # Phase 1 Unified Release Closure Evidence
 
 Status: Engineering release green; Phase 1 closure pending
-release-operations sign-off and real-tenant production-use confirmation.
+release-operations sign-off, production signup or controlled tenant-auth access,
+and controlled live checkout validation.
 
 Last reviewed: 2026-05-24
 Canonical plan: `PLAN.md`
@@ -36,6 +37,78 @@ An earlier dispatch, run `26197236570`, used the short SHA `43c3cb5b` as
 `git_ref` and failed during checkout before any staging or production mutation.
 The authoritative release evidence is run `26197286420`, dispatched with the
 full commit SHA.
+
+## Post-Approval Paystack Activation Release
+
+After Paystack approval was reported by the project owner on 2026-05-24, commit
+`dfd7b8b28c8f3fdaf930122a4c2793b2191ad353` added the environment-scoped
+Paystack overlay path. GitHub Actions run `26354921733` then passed the full
+unified staging-to-production release lane for release tag
+`2026.05.24-paystack-live-dfd7b8b2`.
+
+Run `26354921733` completed successfully on 2026-05-24 and covered:
+
+- release contract validation
+- staging and production managed-platform preflight
+- Terraform state/bootstrap
+- Artifact Registry bootstrap and digest-pinned backend image publish
+- staging deployment and independent managed release-readiness verification
+- production promotion using the same immutable artifact contract
+- production deployment and independent managed release-readiness verification
+- final managed release blocker summary rendering
+
+Artifacts emitted by the post-approval release:
+
+- `artifact-registry-release-2026.05.24-paystack-live-dfd7b8b2`
+  - GitHub artifact digest:
+    `sha256:7679c70d84cf4a9d1f9ed1af345e8d1c69eb7f0721180e9933d4abf45b46e683`
+- `managed-deployment-bundle-staging-2026.05.24-paystack-live-dfd7b8b2`
+  - GitHub artifact digest:
+    `sha256:ebd24f2e39d272556761cf5e0a5cca15e9344d9c8a2326d5a1d5caa318d9c041`
+- `managed-deployment-bundle-production-2026.05.24-paystack-live-dfd7b8b2`
+  - GitHub artifact digest:
+    `sha256:93b51ed049b911e50157f6e5c507eacdd3f662aba89e8e8e1473d3b71a21b2dd`
+- `managed-release-blocker-summary-2026.05.24-paystack-live-dfd7b8b2`
+  - GitHub artifact digest:
+    `sha256:07fdf99a1afe2c219cafeda3b2dcd7294aa1d675950f6e0ee15e51c04549221a`
+
+This run proves the managed release lane accepts approved Paystack live keys via
+dedicated environment-scoped secrets and can promote production with
+`PAYSTACK_ACTIVATION_PENDING=false`. It does not by itself prove live checkout.
+
+Post-approval artifact review completed on 2026-05-24 for run `26354921733`.
+Reviewed artifacts:
+
+- `artifact-registry-release-2026.05.24-paystack-live-dfd7b8b2`
+- `managed-deployment-bundle-staging-2026.05.24-paystack-live-dfd7b8b2`
+- `managed-deployment-bundle-production-2026.05.24-paystack-live-dfd7b8b2`
+- `managed-release-blocker-summary-2026.05.24-paystack-live-dfd7b8b2`
+
+Review result:
+
+- staging and production were reported ready in
+  `managed-release-blockers.md`
+- runtime, migration, deployment, Cloudflare public-env, Artifact Registry,
+  Secret Manager payload, and Terraform blocker arrays were clear
+- the production deployment manifest retained
+  `PAYSTACK_ACTIVATION_PENDING=false`
+- a secret-pattern scan found no database URLs, Paystack secret keys, Groq keys,
+  private-key material, or secret assignment forms in the reviewed artifacts
+
+## Auth And Signup Closure Gate
+
+On 2026-05-24, a non-creating POST to `/auth/flow` with a deliberately
+nonexistent password-login user returned `401 Invalid login credentials` in both
+staging and production. That proves the deployed dashboard can reach Supabase
+Auth and that the public Supabase runtime variables are present.
+
+The project owner reported that user registration currently fails with an auth
+not-allowed message. Because the runtime auth probe succeeds, this is tracked as
+a Supabase Auth/provider signup configuration or project policy gate, not a
+missing dashboard runtime-variable gate. Real-tenant production-use confirmation
+and live Paystack checkout validation remain blocked until a controlled user can
+register, be invited, or otherwise authenticate through the supported production
+path.
 
 ## Required Release Artifacts
 
@@ -109,42 +182,46 @@ Review notes:
 
 ## Paystack Activation Boundary
 
-This release proves the managed platform can ship while production Paystack
-activation is disabled. It does not prove live Paystack checkout.
+The original release proved the managed platform could ship while production
+Paystack activation was disabled. It did not prove live Paystack checkout.
 
 The project owner reported Paystack account approval on 2026-05-24. That changes
 Paystack from external account-review pending to post-approval payment
-activation pending. The reviewed production release still retained
-`PAYSTACK_ACTIVATION_PENDING=true`, so live checkout remains unvalidated.
+activation work. The post-approval release run `26354921733` now proves live-key
+runtime wiring and production `PAYSTACK_ACTIVATION_PENDING=false`, but live
+checkout remains unvalidated until a controlled production checkout succeeds.
 
 For production payment enablement:
 
-- install approved live `sk_live_...` and `pk_live_...` keys without committing
-  secret values to the repository; the preferred path is dedicated GitHub
-  environment secrets `PAYSTACK_SECRET_KEY` and `PAYSTACK_PUBLIC_KEY`, set
-  together
-- change production to `PAYSTACK_ACTIVATION_PENDING=false`
-- rerun the managed runtime preflight and release readiness checks after live
-  keys are installed
+- keep approved live `sk_live_...` and `pk_live_...` keys in dedicated GitHub
+  environment secrets `PAYSTACK_SECRET_KEY` and `PAYSTACK_PUBLIC_KEY`
+- keep production `PAYSTACK_ACTIVATION_PENDING=false`
+- keep managed runtime preflight and release readiness green after live-key
+  rotation
 - validate the production checkout path before claiming payment readiness
 
 ## Closure Controls
 
 Phase 1 must not be marked complete in `PLAN.md` until all of these are true:
 
-- engineering release evidence is green for run `26197286420`
-- the required release artifacts above have been downloaded and reviewed
+- engineering release evidence is green for runs `26197286420` and
+  `26354921733`
+- the required release artifacts above and the post-approval artifacts have been
+  downloaded and reviewed
 - release operations has signed off on the operator packet
 - at least one real tenant or user can use production on the supported managed
   stack
-- Paystack post-approval activation remains explicitly classified as pending, or
+- payment readiness remains explicitly classified as live-checkout pending, or
   live checkout has been separately validated after approval
 
 Current closure state:
 
 - Engineering release evidence: complete
-- Operator artifact review: complete for release run `26197286420`
+- Operator artifact review: complete for release runs `26197286420` and
+  `26354921733`
 - Release-operations sign-off: pending manual sign-off
-- Real-tenant production-use confirmation: pending manual sign-off
+- Real-tenant production-use confirmation: blocked on production signup or
+  controlled tenant-auth access
 - Paystack account approval: reported approved by owner on 2026-05-24
-- Paystack live checkout validation: pending post-approval activation release
+- Paystack live-key release wiring: complete for run `26354921733`
+- Paystack live checkout validation: pending controlled production checkout

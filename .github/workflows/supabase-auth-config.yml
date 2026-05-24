@@ -1,0 +1,53 @@
+name: Supabase Auth Config
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target GitHub environment."
+        type: choice
+        required: true
+        default: staging
+        options:
+          - staging
+          - production
+      apply_changes:
+        description: "Apply the required signup/site-url/callback settings."
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-auth-config-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  inspect-or-repair:
+    name: Inspect or Repair Supabase Auth
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      APPLY_CHANGES: ${{ inputs.apply_changes }}
+      RUNTIME_PLAIN_ENV_JSON: ${{ vars.RUNTIME_PLAIN_ENV_JSON }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Inspect or repair auth config
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "${APPLY_CHANGES}" == "true" ]]; then
+            args+=(--apply)
+          fi
+          python3 scripts/manage_supabase_auth_config.py \
+            --environment "${{ inputs.environment }}" \
+            --runtime-plain-env-json "${RUNTIME_PLAIN_ENV_JSON}" \
+            --report-path "supabase-auth-config-${{ inputs.environment }}.json" \
+            "${args[@]}"
