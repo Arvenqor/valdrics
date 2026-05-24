@@ -1,6 +1,6 @@
 # Valdrics Source of Truth Plan
 
-Last reviewed: 2026-05-21
+Last reviewed: 2026-05-24
 Status: Canonical
 Owner: Product + Engineering
 
@@ -84,22 +84,27 @@ Every major idea in this file is assigned one strategy label:
   Terraform state bootstrap, Artifact Registry reader grants, backend image
   publish, Cloud Run deployment, migrations, Cloudflare Pages deploy, and API
   liveness all pass.
-  The `2026.05.19-paystack-pending-8ef0b893` unified release passed the full
+  The `2026.05.21-paystack-pending-43c3cb5b` unified release passed the full
   staging-to-production lane: release contract validation, preflight checks,
   Terraform state/bootstrap, Artifact Registry, backend image publish, staging
   deploy/readiness, production promotion/readiness, final production readiness,
-  and managed release blocker summary. Production public quality gates also
-  passed (`public-marketing`, public a11y, public performance, and visual smoke).
+  and managed release blocker summary.
   The previous Paystack activation-pending report drift was resolved by keeping
   deployment artifacts aligned with the runtime report when
   `PAYSTACK_ACTIVATION_PENDING=true`.
-  Phase 1 operator artifact review for release run `26131799197` was completed
+  Phase 1 operator artifact review for release run `26197286420` was completed
   on 2026-05-21. Release-operations sign-off and real-tenant production-use
   confirmation remain pending.
-  Paystack activation is tracked as an external commercial/account-review
-  dependency, not the active engineering blocker. Until Paystack approves the
-  account, the product should remain reviewable without requiring a successful
-  live Paystack checkout.
+  A non-blocking release-hardening follow-up remains: the current release run
+  emitted GitHub Node.js 20 action-deprecation annotations for pinned
+  third-party actions. Those actions should be updated before GitHub forces
+  JavaScript actions to Node.js 24 on 2026-06-02.
+  Paystack account approval was reported by the owner on 2026-05-24. Paystack
+  is no longer an external account-review blocker, but payment activation still
+  requires installing approved live keys, setting production
+  `PAYSTACK_ACTIVATION_PENDING=false`, rerunning managed runtime preflight and
+  release readiness, and validating live checkout before payment readiness is
+  claimed.
 
 ## What Valdrics Is Building
 
@@ -266,7 +271,7 @@ to a shipping phase here:
 
 | Phase                                                  | Strategy          | Ground truth now                                                                                                                                           | Ship state  |
 | ------------------------------------------------------ | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| Phase 1: Managed Platform Live Cutover                 | `core disruption` | Full unified staging-to-production release is green on run `26131799197` for tag `2026.05.19-paystack-pending-8ef0b893`; operator artifact review is complete; closure now requires release-ops sign-off and real-tenant production use | Closing     |
+| Phase 1: Managed Platform Live Cutover                 | `core disruption` | Full unified staging-to-production release is green on run `26197286420` for tag `2026.05.21-paystack-pending-43c3cb5b`; operator artifact review is complete; closure now requires release-ops sign-off and real-tenant production use | Closing     |
 | Phase 2: Unified Technology Spend Ledger               | `core disruption` | Partial foundations exist through the AI-aware canonical spend-ledger API, allocation-aware FOCUS v1.3 export, normalized reporting, and Cloud+ connectors | Not shipped |
 | Phase 3: Audit-Grade Close                             | `moat expansion`  | Reconciliation and close foundations exist, but live end-to-end close proof as the canonical customer path is not established here                         | Not shipped |
 | Phase 4: Governed Action Loop                          | `core disruption` | Approvals, enforcement, and remediation foundations exist, but the full action loop is not yet the closed customer operating standard                      | Not shipped |
@@ -327,19 +332,21 @@ Cleanup gate:
 Current blockers and external dependencies:
 
 - Engineering blocker: no release-blocking engineering blocker remains after
-  GitHub Actions run `26131799197` passed the full unified staging-to-production
-  release lane. The remaining engineering closure task is keeping the
-  source-of-truth plan, runbooks, and release-evidence guard aligned with that
-  live release fact.
+  GitHub Actions run `26197286420` passed the full unified staging-to-production
+  release lane. The source-of-truth plan, runbooks, and release-evidence guard
+  are aligned with that live release fact.
 - Manual closure work: capture release-ops sign-off and confirm at least one
   real tenant can use production. The non-secret artifact review named in
   `docs/evidence/phase1-unified-release-closure.md` is complete for release run
-  `26131799197`.
-- External dependency: Paystack account approval and business-description
-  review are handled outside the repo. Engineering should keep the payment
-  surface graceful while approval is pending and must not claim live Paystack
-  checkout validation until `PAYSTACK_ACTIVATION_PENDING=false` with approved
-  live keys.
+  `26197286420`.
+- Release hardening: update pinned GitHub Actions that emitted Node.js 20
+  deprecation annotations before GitHub forces JavaScript actions to Node.js 24
+  on 2026-06-02.
+- Paystack activation: account approval was reported by the owner on
+  2026-05-24. Engineering must not claim live Paystack checkout validation until
+  approved live keys are installed, production has
+  `PAYSTACK_ACTIVATION_PENDING=false`, managed runtime preflight and release
+  readiness pass, and checkout is validated in production.
 
 ## Queued Shipping Phases
 

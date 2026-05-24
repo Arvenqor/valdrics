@@ -18,9 +18,9 @@ def _write(path: Path, content: str) -> None:
 def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
     _write(
         tmp_path / "PLAN.md",
-        "Last reviewed: 2026-05-21\n"
-        "2026.05.19-paystack-pending-8ef0b893\n"
-        "26131799197\n"
+        "Last reviewed: 2026-05-24\n"
+        "2026.05.21-paystack-pending-43c3cb5b\n"
+        "26197286420\n"
         "docs/evidence/phase1-unified-release-closure.md\n"
         "no release-blocking engineering blocker remains\n"
         "PAYSTACK_ACTIVATION_PENDING=false\n",
@@ -135,17 +135,19 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
     _write(
         tmp_path / "docs/evidence/phase1-unified-release-closure.md",
         "Phase 1 Unified Release Closure Evidence\n"
-        "26131799197\n"
-        "https://github.com/Arvenqor/valdrics/actions/runs/26131799197\n"
-        "8ef0b893c2ac7d7d87798d8efee94f70044a7fa0\n"
-        "2026.05.19-paystack-pending-8ef0b893\n"
-        "artifact-registry-release-2026.05.19-paystack-pending-8ef0b893\n"
-        "managed-deployment-bundle-staging-2026.05.19-paystack-pending-8ef0b893\n"
-        "managed-deployment-bundle-production-2026.05.19-paystack-pending-8ef0b893\n"
-        "managed-release-blocker-summary-2026.05.19-paystack-pending-8ef0b893\n"
+        "26197286420\n"
+        "https://github.com/Arvenqor/valdrics/actions/runs/26197286420\n"
+        "43c3cb5bd6bdb694f9cad48868ef90efd5a9fb67\n"
+        "2026.05.21-paystack-pending-43c3cb5b\n"
+        "artifact-registry-release-2026.05.21-paystack-pending-43c3cb5b\n"
+        "managed-deployment-bundle-staging-2026.05.21-paystack-pending-43c3cb5b\n"
+        "managed-deployment-bundle-production-2026.05.21-paystack-pending-43c3cb5b\n"
+        "managed-release-blocker-summary-2026.05.21-paystack-pending-43c3cb5b\n"
         "PAYSTACK_ACTIVATION_PENDING=true\n"
         "PAYSTACK_ACTIVATION_PENDING=false\n"
-        "Operator artifact review: complete for release run `26131799197`\n"
+        "Operator artifact review: complete for release run `26197286420`\n"
+        "Paystack account approval: reported approved by owner on 2026-05-24\n"
+        "Paystack live checkout validation: pending post-approval activation release\n"
         "Real-tenant production-use confirmation: pending manual sign-off\n",
     )
     _write(
