@@ -110,6 +110,19 @@ and live Paystack checkout validation remain blocked until a controlled user can
 register, be invited, or otherwise authenticate through the supported production
 path.
 
+The Supabase Auth Config workflow repaired the provider-side signup settings
+after this finding:
+
+- staging run `26374391163` completed successfully with `apply_changes=true`
+- production run `26380893636` completed successfully with `apply_changes=true`
+
+The workflow uses the environment-scoped `SUPABASE_ACCESS_TOKEN`, derives the
+Supabase project ref from `RUNTIME_PLAIN_ENV_JSON`, enables new-user signup, sets
+the auth site URL to `FRONTEND_URL`, and ensures
+`FRONTEND_URL/auth/callback` is present in the redirect allow list. The remaining
+closure proof is a controlled browser signup, email confirmation, onboarding,
+and checkout attempt through production.
+
 ## Required Release Artifacts
 
 Download and review these artifacts from the workflow run before marking Phase 1
@@ -220,8 +233,8 @@ Current closure state:
 - Operator artifact review: complete for release runs `26197286420` and
   `26354921733`
 - Release-operations sign-off: pending manual sign-off
-- Real-tenant production-use confirmation: blocked on production signup or
-  controlled tenant-auth access
+- Real-tenant production-use confirmation: pending controlled production signup
+  and onboarding validation after Supabase Auth config repair
 - Paystack account approval: reported approved by owner on 2026-05-24
 - Paystack live-key release wiring: complete for run `26354921733`
 - Paystack live checkout validation: pending controlled production checkout

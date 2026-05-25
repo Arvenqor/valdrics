@@ -110,7 +110,10 @@ Every major idea in this file is assigned one strategy label:
   `401 Invalid login credentials` in both staging and production, proving the
   deployed dashboard can reach Supabase Auth. Reported registration failure is
   therefore tracked as a provider/project signup configuration gate, not a
-  missing dashboard runtime-variable gate.
+  missing dashboard runtime-variable gate. The Supabase Auth Config workflow
+  repaired the signup/site-url/callback settings in staging on run
+  `26374391163` and production on run `26380893636`; controlled browser signup,
+  onboarding, and checkout validation remain pending.
 
 ## What Valdrics Is Building
 
@@ -277,7 +280,7 @@ to a shipping phase here:
 
 | Phase                                                  | Strategy          | Ground truth now                                                                                                                                           | Ship state  |
 | ------------------------------------------------------ | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| Phase 1: Managed Platform Live Cutover                 | `core disruption` | Full unified staging-to-production release is green on run `26354921733` for tag `2026.05.24-paystack-live-dfd7b8b2`; operator artifact review is complete for the earlier managed cutover run; closure now requires release-ops sign-off, production signup/tenant access, and live checkout validation | Closing     |
+| Phase 1: Managed Platform Live Cutover                 | `core disruption` | Full unified staging-to-production release is green on run `26354921733` for tag `2026.05.24-paystack-live-dfd7b8b2`; operator artifact review and Supabase Auth config repair are complete; closure now requires release-ops sign-off, controlled production signup/onboarding confirmation, and live checkout validation | Closing     |
 | Phase 2: Unified Technology Spend Ledger               | `core disruption` | Partial foundations exist through the AI-aware canonical spend-ledger API, allocation-aware FOCUS v1.3 export, normalized reporting, and Cloud+ connectors | Not shipped |
 | Phase 3: Audit-Grade Close                             | `moat expansion`  | Reconciliation and close foundations exist, but live end-to-end close proof as the canonical customer path is not established here                         | Not shipped |
 | Phase 4: Governed Action Loop                          | `core disruption` | Approvals, enforcement, and remediation foundations exist, but the full action loop is not yet the closed customer operating standard                      | Not shipped |
@@ -348,9 +351,11 @@ Current blockers and external dependencies:
   `26197286420` and `26354921733`.
 - Signup and tenant-access gate: production and staging `/auth/flow` probes on
   2026-05-24 returned `401 Invalid login credentials` for a nonexistent login,
-  proving Supabase Auth is reachable from the deployed dashboard. Reported
-  registration failure remains a Supabase Auth/provider signup configuration
-  issue to resolve before real-tenant production-use confirmation.
+  proving Supabase Auth is reachable from the deployed dashboard. The Supabase
+  Auth Config workflow then completed successfully for staging run `26374391163`
+  and production run `26380893636`, applying required signup, site URL, and
+  callback settings. Controlled production signup and tenant onboarding still
+  need browser validation before real-tenant production-use confirmation.
 - Release hardening: update pinned GitHub Actions that emitted Node.js 20
   deprecation annotations before GitHub forces JavaScript actions to Node.js 24
   on 2026-06-02.
