@@ -22,7 +22,7 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
         "2026.05.21-paystack-pending-43c3cb5b\n"
         "26197286420\n"
         "docs/evidence/phase1-unified-release-closure.md\n"
-        "no release-blocking engineering blocker remains\n"
+        "no release-blocking release-lane blocker remains\n"
         "PAYSTACK_ACTIVATION_PENDING=false\n",
     )
     _write(
@@ -145,10 +145,13 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
         "managed-release-blocker-summary-2026.05.21-paystack-pending-43c3cb5b\n"
         "PAYSTACK_ACTIVATION_PENDING=true\n"
         "PAYSTACK_ACTIVATION_PENDING=false\n"
-        "Operator artifact review: complete for release run `26197286420`\n"
+        "26354921733\n"
+        "2026.05.24-paystack-live-dfd7b8b2\n"
+        "26380893636\n"
+        "Operator artifact review: complete for release runs `26197286420` and\n"
         "Paystack account approval: reported approved by owner on 2026-05-24\n"
-        "Paystack live checkout validation: pending post-approval activation release\n"
-        "Real-tenant production-use confirmation: pending manual sign-off\n",
+        "Paystack live checkout validation: pending controlled production checkout\n"
+        "Real-tenant production-use confirmation: pending controlled production signup\n",
     )
     _write(
         tmp_path / "docs/integrations/workflow_automation.md",
