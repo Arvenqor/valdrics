@@ -1,6 +1,6 @@
 # Valdrics Source of Truth Plan
 
-Last reviewed: 2026-05-24
+Last reviewed: 2026-05-25
 Status: Canonical
 Owner: Product + Engineering
 
@@ -112,8 +112,13 @@ Every major idea in this file is assigned one strategy label:
   therefore tracked as a provider/project signup configuration gate, not a
   missing dashboard runtime-variable gate. The Supabase Auth Config workflow
   repaired the signup/site-url/callback settings in staging on run
-  `26374391163` and production on run `26380893636`; controlled browser signup,
-  onboarding, and checkout validation remain pending.
+  `26374391163` and production on run `26380893636`. A 2026-05-25 production
+  browser check rendered the signup page as `Create Account | Valdrics`, and
+  non-creating password-signup probes returned Supabase validation errors
+  (`Password should be at least 6 characters.` and
+  `Unable to validate email address: invalid format`) instead of the previous
+  auth-disabled path. Controlled real-email signup, onboarding, and checkout
+  validation remain pending.
 
 ## What Valdrics Is Building
 
@@ -354,8 +359,10 @@ Current blockers and external dependencies:
   proving Supabase Auth is reachable from the deployed dashboard. The Supabase
   Auth Config workflow then completed successfully for staging run `26374391163`
   and production run `26380893636`, applying required signup, site URL, and
-  callback settings. Controlled production signup and tenant onboarding still
-  need browser validation before real-tenant production-use confirmation.
+  callback settings. A 2026-05-25 production browser check and non-creating
+  signup probes confirm the auth-disabled path is cleared. Controlled
+  production signup with a real inbox and tenant onboarding still need
+  validation before real-tenant production-use confirmation.
 - Release hardening: update pinned GitHub Actions that emitted Node.js 20
   deprecation annotations before GitHub forces JavaScript actions to Node.js 24
   on 2026-06-02.

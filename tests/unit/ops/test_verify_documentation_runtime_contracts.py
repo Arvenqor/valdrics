@@ -18,7 +18,7 @@ def _write(path: Path, content: str) -> None:
 def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
     _write(
         tmp_path / "PLAN.md",
-        "Last reviewed: 2026-05-24\n"
+        "Last reviewed: 2026-05-25\n"
         "2026.05.21-paystack-pending-43c3cb5b\n"
         "26197286420\n"
         "docs/evidence/phase1-unified-release-closure.md\n"

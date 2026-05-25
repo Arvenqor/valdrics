@@ -4,7 +4,7 @@ Status: Engineering release green; Phase 1 closure pending
 release-operations sign-off, production signup or controlled tenant-auth access,
 and controlled live checkout validation.
 
-Last reviewed: 2026-05-24
+Last reviewed: 2026-05-25
 Canonical plan: `PLAN.md`
 
 ## Release Identity
@@ -123,6 +123,21 @@ the auth site URL to `FRONTEND_URL`, and ensures
 closure proof is a controlled browser signup, email confirmation, onboarding,
 and checkout attempt through production.
 
+On 2026-05-25, a production browser check loaded
+`https://app.valdrics.com/auth/login?mode=signup` with page title
+`Create Account | Valdrics`, no console errors, and no auth-disabled message.
+Two non-creating production `password-signup` probes against `/auth/flow`
+returned Supabase validation responses instead of the previous auth-disabled
+path:
+
+- invalid short password probe: `Password should be at least 6 characters.`
+- invalid email-format probe: `Unable to validate email address: invalid format`
+
+This confirms the provider-side signup gate is no longer failing at the
+environment/project-policy layer. It still does not prove full production signup
+because no real inbox confirmation, onboarding request, or tenant session was
+completed in this probe.
+
 ## Required Release Artifacts
 
 Download and review these artifacts from the workflow run before marking Phase 1
@@ -234,7 +249,8 @@ Current closure state:
   `26354921733`
 - Release-operations sign-off: pending manual sign-off
 - Real-tenant production-use confirmation: pending controlled production signup
-  and onboarding validation after Supabase Auth config repair
+  with real email confirmation and onboarding validation after Supabase Auth
+  config repair
 - Paystack account approval: reported approved by owner on 2026-05-24
 - Paystack live-key release wiring: complete for run `26354921733`
 - Paystack live checkout validation: pending controlled production checkout

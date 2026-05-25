@@ -22,7 +22,7 @@ DOCUMENTATION_CONTRACTS: tuple[DocumentationContract, ...] = (
     DocumentationContract(
         path="PLAN.md",
         required_phrases=(
-            "Last reviewed: 2026-05-24",
+            "Last reviewed: 2026-05-25",
             "2026.05.21-paystack-pending-43c3cb5b",
             "26197286420",
             "docs/evidence/phase1-unified-release-closure.md",
