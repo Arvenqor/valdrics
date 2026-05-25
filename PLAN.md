@@ -95,10 +95,10 @@ Every major idea in this file is assigned one strategy label:
   Phase 1 operator artifact review for release run `26197286420` was completed
   on 2026-05-21. Release-operations sign-off and real-tenant production-use
   confirmation remain pending.
-  A non-blocking release-hardening follow-up remains: the current release run
-  emitted GitHub Node.js 20 action-deprecation annotations for pinned
-  third-party actions. Those actions should be updated before GitHub forces
-  JavaScript actions to Node.js 24 on 2026-06-02.
+  The repo-side release-hardening follow-up for GitHub JavaScript action
+  runtime deprecation has been implemented: release, deploy, publish, and
+  evidence workflows now use Node.js 24-ready Terraform and artifact action
+  pins. The next unified release run should confirm the annotations are gone.
   Paystack account approval was reported by the owner on 2026-05-24. Approved
   live keys were installed through the dedicated GitHub environment secrets
   `PAYSTACK_SECRET_KEY` and `PAYSTACK_PUBLIC_KEY`, and run `26354921733` passed
@@ -363,9 +363,10 @@ Current blockers and external dependencies:
   signup probes confirm the auth-disabled path is cleared. Controlled
   production signup with a real inbox and tenant onboarding still need
   validation before real-tenant production-use confirmation.
-- Release hardening: update pinned GitHub Actions that emitted Node.js 20
-  deprecation annotations before GitHub forces JavaScript actions to Node.js 24
-  on 2026-06-02.
+- Release hardening: repo-side GitHub JavaScript action runtime updates are
+  implemented with Node.js 24-ready Terraform and artifact action pins. The next
+  unified release run should confirm there are no remaining action-runtime
+  deprecation annotations.
 - Paystack activation: account approval was reported by the owner on
   2026-05-24, live keys are now supplied through dedicated GitHub environment
   secrets, and run `26354921733` passed managed runtime preflight plus release

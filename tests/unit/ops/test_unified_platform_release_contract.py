@@ -247,7 +247,8 @@ def test_deploy_unified_platform_workflow_applies_terraform_and_cloudflare_pages
     assert "github.workflow" not in workflow
     assert "timeout-minutes: 90" in workflow
     assert "hashicorp/setup-terraform@" in workflow
-    assert "b9cd54a3c349d3f38e8881555d616ced269862dd # v3" in workflow
+    assert "dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1" in workflow
+    assert "b9cd54a3c349d3f38e8881555d616ced269862dd # v3" not in workflow
     assert "uses: ./.github/actions/setup-python-uv" in workflow
     assert "uses: ./.github/actions/setup-dashboard" in workflow
     assert "Cache Playwright Browsers" in workflow
@@ -262,6 +263,7 @@ def test_deploy_unified_platform_workflow_applies_terraform_and_cloudflare_pages
     assert "refresh_codebase_audit_report.py" in workflow
     assert "verify_managed_release_readiness.py" in workflow
     assert "actions/upload-artifact@" in workflow
+    assert "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4" not in workflow
     assert ".runtime/${{ inputs.environment }}.report.json" in upload_section
     assert ".runtime/${{ inputs.environment }}.migrate.report.json" in upload_section
     assert "deployment.report.json" in upload_section

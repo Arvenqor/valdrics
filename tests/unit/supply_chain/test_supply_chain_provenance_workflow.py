@@ -230,6 +230,39 @@ def test_workflows_pin_uv_bootstrap_version() -> None:
         assert "${{ env.UV_VERSION }}" in text
 
 
+def test_release_workflows_use_node24_ready_action_pins() -> None:
+    release_workflow_paths = (
+        REPO_ROOT / ".github/workflows/release-unified-platform.yml",
+        REPO_ROOT / ".github/workflows/deploy-unified-platform.yml",
+        REPO_ROOT / ".github/workflows/publish-artifact-registry-images.yml",
+    )
+    stale_node20_action_pins = (
+        "hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3",
+        "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4",
+        "actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1",
+    )
+
+    combined_release_workflows = "\n".join(
+        path.read_text(encoding="utf-8") for path in release_workflow_paths
+    )
+
+    for stale_pin in stale_node20_action_pins:
+        assert stale_pin not in combined_release_workflows
+
+    assert (
+        "hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1"
+        in combined_release_workflows
+    )
+    assert (
+        "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1"
+        in combined_release_workflows
+    )
+    assert (
+        "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1"
+        in combined_release_workflows
+    )
+
+
 def test_ci_and_release_related_workflows_use_local_setup_composite_actions() -> None:
     ci_text = (REPO_ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
     security_text = (REPO_ROOT / ".github/workflows/security-scan.yml").read_text(

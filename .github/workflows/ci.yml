@@ -327,7 +327,7 @@ jobs:
 
       - name: Upload Coverage Data
         if: always()
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: backend-coverage-${{ matrix.shard_id }}
           path: ${{ env.COVERAGE_DIR }}
@@ -504,7 +504,7 @@ jobs:
           tar -czf "${RUNNER_TEMP}/dashboard-preview-output.tar.gz" .svelte-kit/output
 
       - name: Upload Dashboard Preview Build
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dashboard-preview-output
           path: ${{ runner.temp }}/dashboard-preview-output.tar.gz
@@ -588,7 +588,7 @@ jobs:
           DASHBOARD_URL: http://localhost:4173
 
       - name: Upload Public Playwright Report
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: ${{ matrix.artifact }}

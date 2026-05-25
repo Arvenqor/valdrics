@@ -204,9 +204,10 @@ Review notes:
   `43c3cb5bd6bdb694f9cad48868ef90efd5a9fb67`. Later documentation-only commits
   must not be treated as runtime release proof without a new release run.
 - The release workflow emitted GitHub Node.js 20 action-deprecation annotations
-  for pinned third-party actions. The annotations did not fail this release, but
-  workflow hardening should update those actions before GitHub forces Node.js 24
-  for JavaScript actions on 2026-06-02.
+  for pinned third-party actions. The annotations did not fail this release.
+  Repo-side hardening has since updated release-path Terraform and artifact
+  actions to Node.js 24-ready pins; the next unified release run should confirm
+  the warnings are gone.
 
 ## Paystack Activation Boundary
 
