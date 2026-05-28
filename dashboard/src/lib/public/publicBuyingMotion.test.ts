@@ -66,6 +66,22 @@ describe('publicBuyingMotion', () => {
 		);
 	});
 
+	it('sends production marketing-domain signup traffic to the app auth host', () => {
+		const currentUrl = new URL(
+			'https://valdrics.com/pricing?utm_source=linkedin&utm_campaign=launch'
+		);
+
+		expect(
+			buildPublicSignupHref('', currentUrl, {
+				entry: 'pricing',
+				source: 'pricing_plan_growth',
+				extraParams: { plan: 'growth' }
+			})
+		).toBe(
+			'https://app.valdrics.com/auth/login?entry=pricing&source=pricing_plan_growth&mode=signup&plan=growth&utm_source=linkedin&utm_campaign=launch'
+		);
+	});
+
 	it('does not overwrite existing destination query params', () => {
 		const currentUrl = new URL('https://example.com/?persona=cto&utm_source=docs');
 

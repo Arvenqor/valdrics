@@ -1,5 +1,6 @@
 import type { LandingExperimentAssignments } from './landingExperiment';
 import type { LandingUtmParams } from './landingFunnel';
+import { buildPublicAuthHref } from '$lib/public/publicAppOrigin';
 
 interface LandingHrefOptions {
 	persona: string;
@@ -8,6 +9,7 @@ interface LandingHrefOptions {
 
 export interface LandingSignupHrefOptions extends LandingHrefOptions {
 	basePath: string;
+	currentUrl: URL;
 	intent: string;
 	includeExperimentQueryParams: boolean;
 	experiments: LandingExperimentAssignments;
@@ -45,7 +47,10 @@ export function buildLandingSignupHref(options: LandingSignupHrefOptions): strin
 		params.set('exp_order', options.experiments.sectionOrderVariant);
 	}
 	appendUtmParams(params, options.utm);
-	return `${options.basePath}/auth/login?${params.toString()}`;
+	return buildPublicAuthHref(
+		`${options.basePath}/auth/login?${params.toString()}`,
+		options.currentUrl
+	);
 }
 
 export function buildLandingSalesHref(options: LandingSalesHrefOptions): string {

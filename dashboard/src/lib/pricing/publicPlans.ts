@@ -163,7 +163,7 @@ export const DEFAULT_PRICING_PLANS: PricingPlan[] = [
 			'Reconciliation, close workflow, and compliance exports',
 			'Cloud+ connectors, savings proof, and incident integrations'
 		],
-		cta: 'Start Pro Workspace',
+		cta: 'Start with Pro',
 		popular: false,
 		story: {
 			badge: 'Automation lane',

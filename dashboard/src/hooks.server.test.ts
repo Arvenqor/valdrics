@@ -173,7 +173,30 @@ describe('hooks.server handle', () => {
 		} as Parameters<typeof handle>[0]);
 
 		expect(response.status).toBe(303);
-		expect(response.headers.get('location')).toBe('/auth/login');
+		expect(response.headers.get('location')).toBe('/auth/login?mode=login&next=%2Fsettings');
+		expect(resolve).not.toHaveBeenCalled();
+	});
+
+	it('redirects protected marketing-domain routes to app auth when session is absent', async () => {
+		mocks.createServerClient.mockReturnValue({
+			auth: {
+				getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+				getUser: vi.fn()
+			}
+		});
+
+		const event = createEvent('https://valdrics.com/settings');
+		const resolve = vi.fn();
+
+		const response = await handle({
+			event,
+			resolve
+		} as Parameters<typeof handle>[0]);
+
+		expect(response.status).toBe(303);
+		expect(response.headers.get('location')).toBe(
+			'https://app.valdrics.com/auth/login?mode=login&next=%2Fsettings'
+		);
 		expect(resolve).not.toHaveBeenCalled();
 	});
 

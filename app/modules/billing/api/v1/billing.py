@@ -11,7 +11,7 @@ from uuid import UUID
 from typing import TYPE_CHECKING, Annotated, Any, Dict, List, Optional
 from urllib.parse import urljoin, urlparse, urlunparse
 from fastapi import APIRouter, Depends, HTTPException, Request
-from httpx import HTTPError
+from httpx import HTTPError, HTTPStatusError
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -299,6 +299,16 @@ async def create_checkout(
         raise
     except ValueError as e:
         raise HTTPException(400, str(e))
+    except HTTPStatusError as e:
+        logger.error(
+            "checkout_provider_rejected",
+            status_code=e.response.status_code,
+            error=str(e),
+        )
+        raise HTTPException(
+            502,
+            "Billing provider rejected the checkout request. Contact support if this continues.",
+        ) from e
     except BILLING_RUNTIME_RECOVERABLE_ERRORS as e:
         logger.error("checkout_failed", error=str(e))
         raise HTTPException(500, "Failed to create checkout session") from e

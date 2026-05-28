@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import type { PublicContentEntry } from '$lib/content/publicContent.types';
 	import { appendPublicAttribution } from '$lib/public/publicBuyingMotion';
+	import { buildPublicAuthHref } from '$lib/public/publicAppOrigin';
 	import PublicPageMeta from './PublicPageMeta.svelte';
 	import './PublicMarketingPage.css';
 
@@ -27,10 +28,13 @@
 	function resolveHref(href: string, sourceSuffix: string): string {
 		if (/^(https?:|mailto:)/i.test(href)) return href;
 		const internalHref = !base ? href : href === '/' ? base || '/' : `${base}${href}`;
-		return appendPublicAttribution(internalHref, $page.url, {
+		const attributedHref = appendPublicAttribution(internalHref, $page.url, {
 			entry: trackingEntry,
 			source: `${trackingEntry}_${sourceSuffix}`
 		});
+		return attributedHref.startsWith('/auth/login')
+			? buildPublicAuthHref(attributedHref, $page.url)
+			: attributedHref;
 	}
 
 	function toSectionId(value: string): string {

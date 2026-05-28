@@ -7,6 +7,7 @@
 	import PublicPageMeta from '$lib/components/public/PublicPageMeta.svelte';
 	import { api } from '$lib/api';
 	import { resolveSessionTenantId } from '$lib/auth/sessionTenant';
+	import { readCheckoutErrorMessage } from '$lib/checkoutError';
 	import { edgeApiPath } from '$lib/edgeProxy';
 	import { trackProductFunnelStage } from '$lib/funnel/productFunnelTelemetry';
 	import {
@@ -194,8 +195,7 @@
 			);
 
 			if (!res.ok) {
-				const err = await res.json();
-				throw new Error(err.detail || 'Checkout failed');
+				throw new Error(await readCheckoutErrorMessage(res));
 			}
 
 			const { checkout_url } = await res.json();

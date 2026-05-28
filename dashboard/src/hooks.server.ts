@@ -15,6 +15,7 @@ import type { Session, User } from '@supabase/supabase-js';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { serverLogger } from '$lib/logging/server';
 import { isPublicPath } from '$lib/routeProtection';
+import { buildPublicAuthHref } from '$lib/public/publicAppOrigin';
 import { canUseE2EAuthBypass, shouldUseSecureCookies } from '$lib/serverSecurity';
 import {
 	createPlaywrightE2EAccessToken,
@@ -260,9 +261,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 		const { session } = await event.locals.safeGetSession();
 		if (!session) {
+			const next = `${event.url.pathname}${event.url.search}`;
+			const loginPath = `/auth/login?mode=login&next=${encodeURIComponent(next)}`;
 			return new Response(null, {
 				status: 303,
-				headers: { Location: '/auth/login' }
+				headers: { Location: buildPublicAuthHref(loginPath, event.url) }
 			});
 		}
 	}

@@ -14,6 +14,7 @@
 		themeToggleCopy: string;
 		restoreFocusTarget?: HTMLButtonElement | null;
 		toAppPath: (path: string) => string;
+		toAuthPath: (path: string) => string;
 		onToggleTheme: () => void;
 		onClose: () => void;
 	}
@@ -24,6 +25,7 @@
 		themeToggleCopy,
 		restoreFocusTarget = null,
 		toAppPath,
+		toAuthPath,
 		onToggleTheme,
 		onClose
 	}: Props = $props();
@@ -154,7 +156,7 @@
 				Enterprise Review
 			</a>
 			<a
-				href={toAppPath('/auth/login')}
+				href={toAuthPath('/auth/login')}
 				class="btn btn-secondary justify-center mb-2 w-full"
 				data-sveltekit-preload-data="hover"
 				data-sveltekit-preload-code="hover"

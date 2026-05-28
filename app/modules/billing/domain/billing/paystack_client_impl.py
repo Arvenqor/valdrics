@@ -52,8 +52,25 @@ class PaystackClient:
             if not isinstance(payload, dict):
                 raise ValueError("Invalid Paystack response payload type")
             return payload
+        except httpx.HTTPStatusError as exc:
+            provider_message = None
+            payload = None
+            try:
+                payload = exc.response.json()
+            except ValueError:
+                payload = None
+            if isinstance(payload, dict):
+                provider_message = payload.get("message")
+            shared.logger.error(
+                "paystack_api_error",
+                endpoint=endpoint,
+                status_code=exc.response.status_code,
+                provider_message=provider_message,
+                error=str(exc),
+            )
+            raise
         except httpx.HTTPError as exc:
-            shared.logger.error("paystack_api_error", endpoint=endpoint, error=str(exc))
+            shared.logger.error("paystack_api_transport_error", endpoint=endpoint, error=str(exc))
             raise
 
     async def initialize_transaction(

@@ -3,6 +3,8 @@
 	import { base } from '$app/paths';
 	import PublicMarketingPage from '$lib/components/public/PublicMarketingPage.svelte';
 	import PublicPageMeta from '$lib/components/public/PublicPageMeta.svelte';
+	import { page } from '$app/stores';
+	import { buildPublicSignupHref } from '$lib/public/publicBuyingMotion';
 	import { getTurnstileToken } from '$lib/security/turnstile';
 	import {
 		buyerRegionOptions,
@@ -26,6 +28,13 @@
 	let submitState = $state<SubmitState>('idle');
 	let statusMessage = $state('');
 	let inquiryId = $state('');
+	let startFreeInsteadHref = $derived(
+		buildPublicSignupHref(base, $page.url, {
+			entry: 'talk_to_sales',
+			source: 'talk_to_sales',
+			intent: 'talk_to_sales'
+		})
+	);
 
 	async function submitInquiry(event: SubmitEvent) {
 		event.preventDefault();
@@ -111,12 +120,7 @@
 	{#snippet heroActions()}
 		<a href="#sales-inquiry-form" class="btn btn-primary">Start sales inquiry</a>
 		<a href={`${base}/enterprise`} class="btn btn-secondary">Explore Enterprise Overview</a>
-		<a
-			href={`${base}/auth/login?intent=talk_to_sales&entry=talk_to_sales`}
-			class="btn btn-secondary"
-		>
-			Start Free Instead
-		</a>
+		<a href={startFreeInsteadHref} class="btn btn-secondary">Start Free Instead</a>
 	{/snippet}
 
 	{#snippet heroMeta()}

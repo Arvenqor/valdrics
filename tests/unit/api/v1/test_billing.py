@@ -66,6 +66,8 @@ async def test_get_public_plans_db_success(mock_db: AsyncMock) -> None:
     assert len(plans) >= 2
     assert plans[0]["id"] == "free"
     assert any(plan["name"] == "Starter" for plan in plans)
+    pro_plan = next(plan for plan in plans if plan["id"] == "pro")
+    assert pro_plan["cta"] == "Start with Pro"
 
 
 @pytest.mark.asyncio

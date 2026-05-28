@@ -368,8 +368,10 @@
 	const openCookieSettings = () => (cookieBannerVisible = true);
 
 	function buildSignupHref(intent: string, extraParams: Record<string, string> = {}): string {
+		const currentUrl = getCurrentPageUrl();
 		return buildLandingHeroSignupPath({
 			basePath: base,
+			currentUrl,
 			intent,
 			persona: buyerPersonaId,
 			includeExperimentQueryParams,

@@ -359,7 +359,7 @@ TIER_CONFIG: dict[PricingTier, dict[str, Any]] = {
             "retention_days": 730,
         },
         "description": "For enterprises requiring high-scale cloud governance.",
-        "cta": "Contact Sales",
+        "cta": "Start with Pro",
         "display_features": [
             "Includes all Growth features",
             "Hourly zombie scanning",

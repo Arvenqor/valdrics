@@ -4,6 +4,7 @@
 	import { page } from '$app/stores';
 	import { api } from '$lib/api';
 	import { resolveSessionTenantId } from '$lib/auth/sessionTenant';
+	import { readCheckoutErrorMessage } from '$lib/checkoutError';
 	import { edgeApiPath } from '$lib/edgeProxy';
 	import { trackProductFunnelStage } from '$lib/funnel/productFunnelTelemetry';
 	import { normalizeCheckoutUrl } from '$lib/utils';
@@ -143,8 +144,7 @@
 			);
 
 			if (!response.ok) {
-				const payload = await response.json().catch(() => ({}));
-				throw new Error(payload?.detail || 'Checkout failed');
+				throw new Error(await readCheckoutErrorMessage(response));
 			}
 
 			const { checkout_url } = await response.json();

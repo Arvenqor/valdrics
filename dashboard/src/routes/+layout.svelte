@@ -19,6 +19,7 @@
 	import { canAccessAdminHealth } from '$lib/entitlements';
 	import { allowedNavHrefs, normalizePersona } from '$lib/persona';
 	import { createLazyComponent } from '$lib/lazyComponent';
+	import { buildPublicAuthHref } from '$lib/public/publicAppOrigin';
 	import PublicSiteShell from './layout/PublicSiteShell.svelte';
 	import AppAuthenticatedShell from './layout/AppAuthenticatedShell.svelte';
 
@@ -71,6 +72,10 @@
 		const normalizedPath = path.startsWith('/') ? path : `/${path}`;
 		const normalizedBase = base === '/' ? '' : base;
 		return `${normalizedBase}${normalizedPath}`;
+	}
+
+	function toAuthPath(path: string): string {
+		return buildPublicAuthHref(toAppPath(path), $page.url);
 	}
 
 	function resolvePublicTone(pathname: string): PublicTone {
@@ -136,7 +141,7 @@
 			{@render children()}
 		</AppAuthenticatedShell>
 	{:else}
-		<PublicSiteShell {currentYear} {toAppPath} {publicTone}>
+		<PublicSiteShell {currentYear} {toAppPath} {toAuthPath} {publicTone}>
 			{@render children()}
 		</PublicSiteShell>
 	{/if}

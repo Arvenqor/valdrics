@@ -5,6 +5,7 @@ import type { LandingTelemetryContext } from '$lib/landing/landingTelemetry';
 
 type HeroSignupArgs = {
 	basePath: string;
+	currentUrl: URL;
 	intent: string;
 	persona: string;
 	includeExperimentQueryParams: boolean;
@@ -41,6 +42,7 @@ type LandingSelectionArgs = {
 export function buildLandingHeroSignupPath(args: HeroSignupArgs): string {
 	return buildLandingSignupHref({
 		basePath: args.basePath,
+		currentUrl: args.currentUrl,
 		intent: args.intent,
 		persona: args.persona,
 		includeExperimentQueryParams: args.includeExperimentQueryParams,

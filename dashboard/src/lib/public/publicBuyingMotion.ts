@@ -4,6 +4,7 @@ import {
 	type PublicBuyerPersona,
 	type PublicBuyingMotion
 } from './publicBuyerSignals';
+import { buildPublicAuthHref } from './publicAppOrigin';
 
 export type { PublicBuyerPersona, PublicBuyingMotion } from './publicBuyerSignals';
 export { resolvePublicBuyerPersona, resolvePublicBuyingMotion } from './publicBuyerSignals';
@@ -97,7 +98,7 @@ export function buildPublicSignupHref(
 	currentUrl: URL,
 	options: PublicSignupHrefOptions
 ): string {
-	return appendPublicAttribution(`${basePath}/auth/login`, currentUrl, {
+	const relativeHref = appendPublicAttribution(`${basePath}/auth/login`, currentUrl, {
 		entry: options.entry,
 		source: options.source,
 		persona: options.persona,
@@ -107,6 +108,7 @@ export function buildPublicSignupHref(
 			...(options.extraParams || {})
 		}
 	});
+	return buildPublicAuthHref(relativeHref, currentUrl);
 }
 
 export function buildPublicEnterpriseHref(

@@ -20,11 +20,12 @@
 	interface Props {
 		currentYear: number;
 		toAppPath: (path: string) => string;
+		toAuthPath: (path: string) => string;
 		publicTone: PublicTone;
 		children: Snippet;
 	}
 
-	let { currentYear, toAppPath, publicTone, children }: Props = $props();
+	let { currentYear, toAppPath, toAuthPath, publicTone, children }: Props = $props();
 
 	let publicMenuOpen = $state(false);
 	let publicMenuButton = $state<HTMLButtonElement | null>(null);
@@ -40,6 +41,7 @@
 		themeToggleCopy: string;
 		restoreFocusTarget?: HTMLButtonElement | null;
 		toAppPath: (path: string) => string;
+		toAuthPath: (path: string) => string;
 		onToggleTheme: () => void;
 		onClose: () => void;
 	};
@@ -282,7 +284,7 @@
 					Enterprise Review
 				</a>
 				<a
-					href={toAppPath('/auth/login')}
+					href={toAuthPath('/auth/login')}
 					class="btn btn-primary text-sm px-4 py-2"
 					data-sveltekit-preload-data="hover"
 					data-sveltekit-preload-code="hover"
@@ -342,7 +344,7 @@
 					<span class="sr-only">{themeToggleCopy(publicTheme)}</span>
 				</button>
 				<a
-					href={toAppPath('/auth/login')}
+					href={toAuthPath('/auth/login')}
 					class="btn btn-primary public-nav-mobile-cta"
 					data-sveltekit-preload-data="hover"
 					data-sveltekit-preload-code="hover"
@@ -404,6 +406,7 @@
 					themeToggleCopy={themeToggleCopy(publicTheme)}
 					restoreFocusTarget={publicMenuButton}
 					{toAppPath}
+					{toAuthPath}
 					onToggleTheme={togglePublicTheme}
 					onClose={closePublicMenu}
 				/>
