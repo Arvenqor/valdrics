@@ -138,6 +138,7 @@
 	data-public-theme={publicTheme}
 	data-public-hydrated={publicThemeLoaded ? 'true' : 'false'}
 >
+	{#if publicTone !== 'landing'}
 	<header class="public-site-header">
 		<nav class="container public-top-nav mx-auto flex items-center justify-between gap-4 px-6 py-4">
 			<a
@@ -413,10 +414,13 @@
 			{/await}
 		{/if}
 	</header>
+	{/if}
 
 	<main id="main" tabindex="-1" class="page-enter public-site-main">
 		{@render children()}
 	</main>
 
+	{#if publicTone !== 'landing'}
 	<PublicSiteFooter {currentYear} {toAppPath} />
+	{/if}
 </div>
