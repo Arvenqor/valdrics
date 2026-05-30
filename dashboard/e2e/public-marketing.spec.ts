@@ -73,8 +73,6 @@ async function attachSecurityGuards(page: PublicPage) {
 				return false;
 			}
 
-			// Chromium can report SvelteKit modulepreload headers and Cloudflare edge
-			// injections as CSP violations even when the app scripts hydrate correctly.
 			if (
 				directive === 'script-src-elem' &&
 				blockedUrl.origin === window.location.origin &&
@@ -187,108 +185,14 @@ async function goToLanding(page: PublicPage) {
 	await waitForPublicHydration(page);
 }
 
-async function ensureInteractiveSimulator(page: PublicPage) {
-	for (let attempt = 0; attempt < 3; attempt += 1) {
-		const simulator = page.locator('#simulator');
-		await expect(simulator).toBeVisible();
-		try {
-			await simulator.evaluate((element) => {
-				element.scrollIntoView({ block: 'center', behavior: 'instant' });
-			});
-			break;
-		} catch (error) {
-			if (!/not attached to the DOM/i.test(String(error)) || attempt === 2) {
-				throw error;
-			}
-			await page.waitForTimeout(150);
-		}
-	}
-	const simulator = page.locator('#simulator');
-	await expect(
-		simulator.getByRole('heading', { name: /model the savings case in minutes/i })
-	).toBeVisible();
-	await expect(simulator.getByRole('group', { name: /display currency/i })).toBeVisible();
-	return simulator;
-}
-
-async function ensureInteractivePlans(page: PublicPage) {
-	await ensureInteractiveSimulator(page);
-	await page.evaluate(() => {
-		window.scrollTo({ top: document.body.scrollHeight, behavior: 'instant' });
-	});
-	const plans = page.locator('#plans');
-	await expect(plans.getByRole('link', { name: /start free workspace/i })).toBeVisible();
-	return plans;
-}
-
-async function ensureInteractiveTrust(page: PublicPage) {
-	await ensureInteractivePlans(page);
-	const trust = page.locator('#trust');
-	await expect(trust.getByRole('link', { name: /open proof pack/i })).toBeVisible();
-	return trust;
-}
-
-async function openResourcesMenu(page: PublicPage) {
-	await waitForPublicHydration(page);
-	const button = page.locator('header').getByRole('button', { name: /^resources$/i });
-	await expect(button).toBeVisible();
-	for (let attempt = 0; attempt < 4; attempt += 1) {
-		const menu = page.locator('#public-resources-menu');
-		if (await menu.isVisible().catch(() => false)) {
-			return menu;
-		}
-		await button.click();
-		await expect(button)
-			.toHaveAttribute('aria-expanded', 'true', { timeout: 2_000 })
-			.catch(async () => {
-				await page.waitForTimeout(250);
-			});
-		if (await menu.isVisible({ timeout: 1_000 }).catch(() => false)) {
-			return menu;
-		}
-		await page.keyboard.press('Escape').catch(() => undefined);
-	}
-	const menu = page.locator('#public-resources-menu');
-	await expect(menu).toBeVisible();
-	return menu;
-}
-
 async function openMobileMenu(page: PublicPage) {
 	const menu = page.locator('#public-mobile-menu');
 	const toggle = page.getByRole('button', { name: /toggle menu/i });
 	await expect(toggle).toBeVisible();
-
 	if (await menu.isVisible().catch(() => false)) {
 		return menu;
 	}
-
-	if ((await toggle.getAttribute('aria-expanded')) === 'true') {
-		await menu.waitFor({ state: 'visible', timeout: 1_500 }).catch(async () => {
-			await page.keyboard.press('Escape');
-			await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-		});
-		if (await menu.isVisible().catch(() => false)) {
-			return menu;
-		}
-	}
-
-	const backdrop = page.getByRole('button', { name: /close navigation menu/i });
-	if (await backdrop.isVisible().catch(() => false)) {
-		await page.keyboard.press('Escape');
-		await expect(backdrop).toBeHidden();
-	}
-
-	for (let attempt = 0; attempt < 2; attempt += 1) {
-		if (await menu.isVisible().catch(() => false)) {
-			return menu;
-		}
-		await toggle.click();
-		await menu.waitFor({ state: 'visible', timeout: 1_500 }).catch(() => undefined);
-		if (await menu.isVisible().catch(() => false)) {
-			return menu;
-		}
-		await page.waitForTimeout(150);
-	}
+	await toggle.click();
 	await expect(menu).toBeVisible();
 	return menu;
 }
@@ -359,14 +263,14 @@ test.describe('Public marketing smoke (desktop)', () => {
 
 		const landingHeading = page.getByRole('heading', { level: 1 }).first();
 		await expect(landingHeading).toBeVisible();
-		await expect(landingHeading).toContainText(
-			/cloud|spend|governed action|owner-routed action|margin/i
-		);
+		await expect(landingHeading).toContainText(/govern|optimize/i);
+		await expect(page.locator('#features')).toBeVisible();
+		await expect(page.locator('#how-it-works')).toBeVisible();
+		await expect(page.locator('#pricing')).toBeVisible();
+		await expect(page.locator('.trust-bar')).toBeVisible();
 		await expect(page.getByRole('contentinfo')).toBeVisible();
 
-		const primaryCta = page
-			.getByRole('link', { name: /start free|book executive briefing/i })
-			.first();
+		const primaryCta = page.getByRole('link', { name: /start free/i }).first();
 		await expect(primaryCta).toHaveAttribute('href', /\/auth\/login(\?.*)?$/);
 
 		const footer = page.getByRole('contentinfo');
@@ -407,264 +311,52 @@ test.describe('Public marketing smoke (desktop)', () => {
 		});
 	});
 
-	test('uses currency controls and preserves an explicit USD choice before ROI auth', async ({
-		page,
-		context
-	}) => {
-		if (isLocalDashboardUrl) {
-			await context.setExtraHTTPHeaders({
-				'x-vercel-ip-country': 'GB'
-			});
-		}
-		await goToLanding(page);
-
-		const simulatorCurrency = (await ensureInteractiveSimulator(page)).getByRole('group', {
-			name: /display currency/i
-		});
-		await expect(simulatorCurrency).toBeVisible();
-		const currencyButtons = simulatorCurrency.getByRole('button');
-		const localCurrencyButton = currencyButtons.first();
-		await expect(localCurrencyButton).toBeVisible();
-		if (isLocalDashboardUrl) {
-			await expect(localCurrencyButton).toHaveText(/local gbp/i);
-		}
-		const usdButton = simulatorCurrency.getByRole('button', { name: /usd/i });
-		await expect(page.locator('#hero')).toContainText(/first workflow typically live/i);
-
-		let assertedExplicitUsdPreference = false;
-		if ((await currencyButtons.count()) > 1) {
-			await localCurrencyButton.click();
-			await expect(localCurrencyButton).toHaveAttribute('aria-pressed', 'true');
-			await expect(usdButton).toBeVisible();
-			await usdButton.click();
-			await expect(usdButton).toHaveAttribute('aria-pressed', 'true');
-			assertedExplicitUsdPreference = true;
-		} else {
-			await expect(localCurrencyButton).toHaveText(/usd/i);
-			await expect(localCurrencyButton).toHaveAttribute('aria-pressed', 'true');
-		}
-
-		if (assertedExplicitUsdPreference) {
-			await expect
-				.poll(
-					() =>
-						page.evaluate(() => {
-							return window.localStorage.getItem('valdrics_landing_currency');
-						}),
-					{ message: 'expected USD landing currency preference to persist in localStorage' }
-				)
-				.toBe('USD');
-		}
-
-		await gotoPublic(page, `${BASE_URL}/roi-planner`, { waitUntil: 'domcontentloaded' });
-		await expect(page).toHaveURL(/\/auth\/login$/);
-		await expect(page).toHaveTitle(/sign in/i);
-		await expect(page.getByRole('heading', { level: 1, name: /welcome back/i })).toBeVisible();
-		await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
-			'content',
-			'noindex,nofollow'
-		);
-	});
-
-	test('keeps public header, resources, and hero CTAs on working destinations', async ({
-		page
-	}) => {
+	test('keeps landing navigation and CTAs on working destinations', async ({ page }) => {
 		const security = await attachSecurityGuards(page);
 		await goToLanding(page);
-		const header = page.locator('header');
+		const header = page.locator('header.nav');
 
-		await header.getByRole('link', { name: /^product$/i }).click();
-		await assertHashDestination(page, '#product', '#product');
+		await header.getByRole('link', { name: /^features$/i }).click();
+		await assertHashDestination(page, '#features', '#features');
+
+		await goToLanding(page);
+		await header.getByRole('link', { name: /^how it works$/i }).click();
+		await assertHashDestination(page, '#how-it-works', '#how-it-works');
 
 		await goToLanding(page);
 		await header.getByRole('link', { name: /^pricing$/i }).click();
-		await assertPublicRoute(page, '/pricing', /pricing that stays simple/i);
+		await assertHashDestination(page, '#pricing', '#pricing');
 
 		await goToLanding(page);
-		await header.getByRole('link', { name: /^enterprise$/i }).click();
-		await assertPublicRoute(page, '/enterprise', /enterprise review that stays clear/i);
-
-		await goToLanding(page);
-		await (await openResourcesMenu(page))
-			.getByRole('menuitem', { name: /^resource hub$/i })
-			.click();
-		await assertPublicRoute(page, '/resources', /resources/i);
-
-		await goToLanding(page);
-		await (await openResourcesMenu(page)).getByRole('menuitem', { name: /^docs$/i }).click();
-		await assertPublicRoute(page, '/docs', /documentation/i);
-
-		await goToLanding(page);
-		await (await openResourcesMenu(page)).getByRole('menuitem', { name: /^proof pack$/i }).click();
-		await assertPublicRoute(page, '/proof', /proof surfaces for buyer diligence/i);
-
-		await goToLanding(page);
-		await (await openResourcesMenu(page)).getByRole('menuitem', { name: /^about$/i }).click();
-		await assertPublicRoute(page, '/about', /meet the team behind valdrics/i);
-
-		await goToLanding(page);
-		await (await openResourcesMenu(page)).getByRole('menuitem', { name: /^insights$/i }).click();
+		await header.getByRole('link', { name: /^insights$/i }).click();
 		await assertPublicRoute(page, '/insights', /insights/i);
 
 		await goToLanding(page);
-		await header
-			.locator('.public-nav-secondary')
-			.getByRole('link', { name: /^enterprise review$/i })
-			.click();
-		await assertPublicRoute(page, '/enterprise', /enterprise review that stays clear/i);
-
-		await goToLanding(page);
-		await header
-			.locator('.public-nav-secondary')
-			.getByRole('link', { name: /^start free$/i })
-			.click();
+		await header.getByRole('link', { name: /^sign in$/i }).click();
 		await expect(page).toHaveURL(/\/auth\/login(\?.*)?$/);
 
 		await goToLanding(page);
-		const hero = page.locator('#hero');
-		await hero.getByRole('link', { name: /see pricing/i }).click();
-		await assertPublicRoute(page, '/pricing', /pricing that stays simple/i);
-
-		await goToLanding(page);
-		await hero.getByRole('link', { name: /start free|book executive briefing/i }).click();
-		await expect(page).toHaveURL(/\/auth\/login(\?.*)?$/);
-
-		await goToLanding(page);
-		await (await ensureInteractiveSimulator(page))
-			.getByRole('link', { name: /open full roi planner/i })
-			.click();
-		await expect(page).toHaveURL(/\/auth\/login(\?.*intent=roi_assessment.*)?$/);
-	});
-
-	test('keeps proof, pricing, trust, and footer CTAs on working destinations', async ({ page }) => {
-		const security = await attachSecurityGuards(page);
-		await goToLanding(page);
-		const simulator = await ensureInteractiveSimulator(page);
-		await simulator.getByRole('link', { name: /review methodology/i }).click();
-		await assertPublicRoute(
-			page,
-			'/docs/technical-validation',
-			/public capability validation summary/i
-		);
-
-		await goToLanding(page);
-		const simulatorAgain = await ensureInteractiveSimulator(page);
-		const assumptionsHref = await simulatorAgain
-			.locator('a[href$="valdrics-roi-assumptions.csv"]')
-			.getAttribute('href');
-		expect(assumptionsHref || '').toMatch(/resources\/valdrics-roi-assumptions\.csv$/);
-		if (assumptionsHref) {
-			await assertDownloadEndpoint(page, assumptionsHref, /text\/csv|text\/plain/i);
-		}
-
-		await goToLanding(page);
-		const plans = await ensureInteractivePlans(page);
-		await plans.getByRole('link', { name: /start free workspace/i }).click();
-		await expect(page).toHaveURL(/\/auth\/login(\?.*plan=free.*)?$/);
-
-		await goToLanding(page);
-		await (await ensureInteractivePlans(page))
-			.getByRole('link', { name: /see growth on pricing/i })
-			.click();
-		await assertPublicRoute(page, '/pricing', /pricing that stays simple/i);
-
-		await goToLanding(page);
-		await (await ensureInteractivePlans(page))
-			.getByRole('link', { name: /review pro details/i })
-			.click();
-		await assertPublicRoute(page, '/pricing', /pricing that stays simple/i);
-
-		await goToLanding(page);
-		await (await ensureInteractivePlans(page))
-			.getByRole('link', { name: /see detailed pricing/i })
-			.click();
-		await assertPublicRoute(page, '/pricing', /pricing that stays simple/i);
-
-		await goToLanding(page);
-		await (await ensureInteractivePlans(page))
-			.getByRole('link', { name: /enterprise review/i })
-			.click();
-		await assertPublicRoute(page, '/enterprise', /enterprise review that stays clear/i);
-
-		await goToLanding(page);
-		const trust = await ensureInteractiveTrust(page);
-		await trust.getByRole('link', { name: /^enterprise review$/i }).click();
-		await assertPublicRoute(page, '/enterprise', /enterprise review that stays clear/i);
-
-		await goToLanding(page);
-		const onePagerHref = await (await ensureInteractiveTrust(page))
-			.getByRole('link', { name: /download one-pager/i })
-			.getAttribute('href');
-		expect(onePagerHref || '').toMatch(/resources\/valdrics-enterprise-one-pager\.md$/);
-		if (onePagerHref) {
-			await assertDownloadEndpoint(page, onePagerHref, /text\/markdown|text\/plain/i);
-		}
-
-		await goToLanding(page);
-		await (await ensureInteractiveTrust(page))
-			.getByRole('link', { name: /request validation briefing/i })
+		await page
+			.locator('#hero')
+			.getByRole('link', { name: /see a live demo/i })
 			.click();
 		await expect(page).toHaveURL(/\/talk-to-sales(\?.*)?$/);
-		await expect(page).toHaveURL(/source=trust_validation/);
-		await expect(page).toHaveURL(/intent=request_validation_briefing/);
 		await expect(page.getByRole('heading', { level: 1, name: /talk to sales/i })).toBeVisible();
 
-		const footerCases = [
-			{ label: /documentation/i, type: 'route', path: '/docs', heading: /documentation/i },
-			{
-				label: /^enterprise$/i,
-				type: 'route',
-				path: '/enterprise',
-				heading: /enterprise review that stays clear/i
-			},
-			{
-				label: /^proof pack$/i,
-				type: 'route',
-				path: '/proof',
-				heading: /proof surfaces for buyer diligence/i
-			},
-			{
-				label: /^talk to sales$/i,
-				type: 'route',
-				path: '/talk-to-sales',
-				heading: /talk to sales/i
-			},
-			{
-				label: /^pricing$/i,
-				type: 'route',
-				path: '/pricing',
-				heading: /pricing that stays simple/i
-			},
-			{ label: /^privacy$/i, type: 'route', path: '/privacy', heading: /privacy policy/i },
-			{ label: /^terms$/i, type: 'route', path: '/terms', heading: /terms of service/i },
-			{ label: /^status$/i, type: 'route', path: '/status', heading: /system status/i }
-		] as const;
-
-		for (const footerCase of footerCases) {
-			await goToLanding(page);
-			const footer = page.getByRole('contentinfo');
-			const link = footer.getByRole('link', { name: footerCase.label });
-			const href = await link.getAttribute('href');
-			expect(href || '').toBeTruthy();
-			if (href) {
-				await gotoPublic(page, new URL(href, BASE_URL).toString(), {
-					waitUntil: 'domcontentloaded'
-				});
-			}
-			await assertPublicRoute(page, footerCase.path, footerCase.heading);
-		}
+		await goToLanding(page);
+		await page
+			.locator('#pricing')
+			.getByRole('link', { name: /start free trial/i })
+			.first()
+			.click();
+		await expect(page).toHaveURL(/\/auth\/login(\?.*plan=starter.*)?$/);
 
 		await goToLanding(page);
-		const footer = page.getByRole('contentinfo');
-		await expect(
-			footer.getByRole('link', { name: /sales contact sales@valdrics.com/i })
-		).toHaveAttribute('href', /^mailto:sales@valdrics\.com$/i);
-		await expect(
-			footer.getByRole('link', { name: /support contact support@valdrics.com/i })
-		).toHaveAttribute('href', /^mailto:support@valdrics\.com$/i);
-		await expect(
-			footer.getByRole('link', { name: /security contact security@valdrics.com/i })
-		).toHaveAttribute('href', /^mailto:security@valdrics\.com$/i);
+		await page
+			.locator('#pricing')
+			.getByRole('link', { name: /talk to us/i })
+			.click();
+		await expect(page).toHaveURL(/\/talk-to-sales(\?.*)?$/);
 
 		await security.assertClean();
 	});
@@ -698,6 +390,9 @@ test.describe('Public marketing smoke (desktop)', () => {
 		await expect(page).toHaveURL(/\/talk-to-sales(\?.*)?$/);
 		await expect(page.getByRole('heading', { level: 1, name: /talk to sales/i })).toBeVisible();
 		await expect(page).toHaveURL(/intent=enterprise_briefing/);
+
+		const onePagerHref = '/resources/valdrics-enterprise-one-pager.md';
+		await assertDownloadEndpoint(page, onePagerHref, /text\/markdown|text\/plain/i);
 	});
 
 	test('talk-to-sales success flow submits one inquiry with marketing context', async ({
@@ -771,13 +466,11 @@ test.describe('Public marketing smoke (mobile)', () => {
 		await goToLanding(page);
 		const landingHeading = page.getByRole('heading', { level: 1 }).first();
 		await expect(landingHeading).toBeVisible();
-		await expect(landingHeading).toContainText(
-			/cloud|spend|governed action|owner-routed action|margin/i
-		);
-		await expect(page.locator('#product')).toBeVisible();
-		await expect(page.locator('#simulator')).toBeVisible();
-		await expect(page.locator('#plans')).toBeVisible();
-		await expect(page.locator('#trust')).toBeVisible();
+		await expect(landingHeading).toContainText(/govern|optimize/i);
+		await expect(page.locator('#features')).toBeVisible();
+		await expect(page.locator('#how-it-works')).toBeVisible();
+		await expect(page.locator('#pricing')).toBeVisible();
+		await expect(page.locator('.trust-bar')).toBeVisible();
 
 		await assertPublicRoute(page, '/docs', /documentation/i);
 		await assertPublicRoute(page, '/docs/api', /api reference/i);
@@ -790,27 +483,27 @@ test.describe('Public marketing smoke (mobile)', () => {
 
 	test('mobile menu links resolve key landing and route destinations', async ({ page }) => {
 		await goToLanding(page);
-		await (await openMobileMenu(page)).getByRole('link', { name: /^enterprise review$/i }).click();
-		await assertPublicRoute(page, '/enterprise', /enterprise review that stays clear/i);
-
-		await goToLanding(page);
 		await (await openMobileMenu(page)).getByRole('link', { name: /^start free$/i }).click();
 		await expect(page).toHaveURL(/\/auth\/login(\?.*)?$/);
 
 		await goToLanding(page);
-		await (await openMobileMenu(page)).getByRole('link', { name: /^product$/i }).click();
-		await assertHashDestination(page, '#product', '#product');
+		await (await openMobileMenu(page)).getByRole('link', { name: /^features$/i }).click();
+		await assertHashDestination(page, '#features', '#features');
+
+		await goToLanding(page);
+		await (await openMobileMenu(page)).getByRole('link', { name: /^how it works$/i }).click();
+		await assertHashDestination(page, '#how-it-works', '#how-it-works');
 
 		await goToLanding(page);
 		await (await openMobileMenu(page)).getByRole('link', { name: /^pricing$/i }).click();
-		await assertPublicRoute(page, '/pricing', /pricing that stays simple/i);
+		await assertHashDestination(page, '#pricing', '#pricing');
 
 		await goToLanding(page);
-		await (await openMobileMenu(page)).getByRole('link', { name: /^enterprise$/i }).click();
-		await assertPublicRoute(page, '/enterprise', /enterprise review that stays clear/i);
+		await (await openMobileMenu(page)).getByRole('link', { name: /^insights$/i }).click();
+		await expect(page).toHaveURL(/\/insights$/);
 
-		await goToLanding(page);
-		await (await openMobileMenu(page)).getByRole('link', { name: /^resources$/i }).click();
-		await assertPublicRoute(page, '/resources', /resources/i);
+		if (isLocalDashboardUrl) {
+			await expect(page.locator('main')).toBeVisible();
+		}
 	});
 });

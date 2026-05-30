@@ -17,7 +17,12 @@ FRONTEND_EXTENSIONS = {".svelte", ".ts", ".js", ".css"}
 FRONTEND_SOURCE_ROOT = Path("dashboard/src")
 
 # Transitional exceptions while decomposition work is in progress.
-FRONTEND_MODULE_LINE_BUDGET_OVERRIDES: dict[str, int] = {}
+FRONTEND_MODULE_LINE_BUDGET_OVERRIDES: dict[str, int] = {
+    # The refreshed public landing is a short-term exception while it is split
+    # into route sections. Keep this scoped to the route file so new oversized
+    # modules still fail the gate.
+    "dashboard/src/routes/+page.svelte": 3500,
+}
 
 
 @dataclass(frozen=True)

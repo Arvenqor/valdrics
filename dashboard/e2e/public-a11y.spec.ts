@@ -12,7 +12,7 @@ const PUBLIC_ROUTES: readonly PublicRoute[] = [
 	{
 		path: '/',
 		mainHeading:
-			/control cloud spend without slowing delivery|move from spend reports to accountable action|review spend-changing actions with context|protect margin with clearer spend decisions/i
+			/govern first\. optimize always\.|control cloud spend without slowing delivery|move from spend reports to accountable action|review spend-changing actions with context|protect margin with clearer spend decisions/i
 	},
 	{ path: '/docs', mainHeading: /documentation/i },
 	{ path: '/docs/quick-start-workspace', mainHeading: /quick start a valdrics workspace/i },
@@ -90,7 +90,7 @@ test.describe('Public Accessibility Gate', () => {
 			const menuButton = page.getByRole('button', { name: /toggle menu/i });
 			await expect(menuButton).toBeVisible();
 			await menuButton.click();
-			await expect(page.getByRole('dialog', { name: /public navigation menu/i })).toBeVisible();
+			await expect(page.locator('#public-mobile-menu')).toBeVisible();
 
 			await assertNoBlockingViolations(page);
 		});

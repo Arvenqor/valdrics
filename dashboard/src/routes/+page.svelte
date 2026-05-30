@@ -20,7 +20,7 @@
     10. Comparison table
     11. FAQ accordion
     12. Pricing
-    13. Blog teasers
+    13. Insights teasers
     14. Trust bar
     15. Final CTA
     16. Footer
@@ -210,7 +210,7 @@
 			role: 'Ownership, DPA, and renewal control',
 			co: 'Example workflow',
 			initials: 'SG',
-			color: 'linear-gradient(135deg,#00CF7C,#00C2FF)'
+			avatarClass: 'tcard__avatar--saas'
 		},
 		{
 			saving: 'Cloud budget guardrail',
@@ -220,7 +220,7 @@
 			role: 'Budget, region, and instance policy checks',
 			co: 'Example workflow',
 			initials: 'CG',
-			color: 'linear-gradient(135deg,#9270FF,#F5A623)'
+			avatarClass: 'tcard__avatar--cloud'
 		},
 		{
 			saving: 'Board-ready evidence',
@@ -230,7 +230,7 @@
 			role: 'Traceable governance ROI',
 			co: 'Example workflow',
 			initials: 'ER',
-			color: 'linear-gradient(135deg,#F5A623,#FF3A5C)'
+			avatarClass: 'tcard__avatar--reporting'
 		}
 	];
 
@@ -334,8 +334,8 @@
 				return '#pricing';
 			case 'Integrations':
 				return '#integrations';
-			case 'Blog':
-				return appPath('/blog');
+			case 'Insights':
+				return appPath('/insights');
 			case 'Documentation':
 			case 'Governance Guides':
 			case 'Glossary':
@@ -418,9 +418,6 @@
 		name="keywords"
 		content="cloud governance platform, SaaS spend management, software license management, approval workflow software, cloud cost governance, shadow IT detection, IT spend management"
 	/>
-	<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
-	<link rel="canonical" href="https://www.valdrics.com/" />
-
 	<!-- Open Graph -->
 	<meta property="og:type" content="website" />
 	<meta property="og:url" content="https://www.valdrics.com/" />
@@ -473,7 +470,7 @@
 			<li><a href="#features">Features</a></li>
 			<li><a href="#how-it-works">How it works</a></li>
 			<li><a href="#pricing">Pricing</a></li>
-			<li><a href={appPath('/blog')}>Blog</a></li>
+			<li><a href={appPath('/insights')}>Insights</a></li>
 		</ul>
 
 		<div class="nav__actions">
@@ -496,16 +493,16 @@
 
 	<!-- Mobile menu -->
 	{#if mobileMenuOpen}
-		<div class="nav__mobile">
+		<nav id="public-mobile-menu" class="nav__mobile" aria-label="Mobile navigation">
 			<a href="#features" on:click={() => (mobileMenuOpen = false)}>Features</a>
 			<a href="#how-it-works" on:click={() => (mobileMenuOpen = false)}>How it works</a>
 			<a href="#pricing" on:click={() => (mobileMenuOpen = false)}>Pricing</a>
-			<a href={appPath('/blog')} on:click={() => (mobileMenuOpen = false)}>Blog</a>
+			<a href={appPath('/insights')} on:click={() => (mobileMenuOpen = false)}>Insights</a>
 			<div class="nav__mobile-actions">
 				<a href={loginHref()} class="btn btn--ghost">Sign in</a>
-				<a href={signupHref('landing_nav_mobile')} class="btn btn--jade">Get started →</a>
+				<a href={signupHref('landing_nav_mobile')} class="btn btn--jade">Start Free</a>
 			</div>
-		</div>
+		</nav>
 	{/if}
 </header>
 
@@ -824,7 +821,7 @@
 					</div>
 				</div>
 				<div class="fcard__stat">
-					<span class="fcard__stat-val" style="color: var(--jade)">20 min</span>
+					<span class="fcard__stat-val fcard__stat-val--jade">20 min</span>
 					<span class="fcard__stat-label">from signup to first live approval workflow</span>
 				</div>
 			</div>
@@ -851,7 +848,7 @@
 						review requests and renewal alerts. Resources with no owner are flagged on day one.
 					</p>
 					<div class="fcard__stat">
-						<span class="fcard__stat-val" style="color: var(--ion)">87%</span>
+						<span class="fcard__stat-val fcard__stat-val--ion">87%</span>
 						<span class="fcard__stat-label">avg. ownership coverage on day 30</span>
 					</div>
 				</div>
@@ -877,7 +874,7 @@
 						editor.
 					</p>
 					<div class="fcard__stat">
-						<span class="fcard__stat-val" style="color: var(--violet)">40+</span>
+						<span class="fcard__stat-val fcard__stat-val--violet">40+</span>
 						<span class="fcard__stat-label">pre-built governance policy templates</span>
 					</div>
 				</div>
@@ -885,7 +882,7 @@
 		</div>
 
 		<!-- Second row: flipped layout -->
-		<div class="features__grid features__grid--flipped" style="margin-top: 14px;">
+		<div class="features__grid features__grid--flipped features__grid--second">
 			<!-- Left column: two stacked -->
 			<div class="fcard__col">
 				<div class="fcard fcard--ruby" use:reveal={{ delay: 80 }}>
@@ -909,7 +906,7 @@
 						of software spend in the first 90 days.
 					</p>
 					<div class="fcard__stat">
-						<span class="fcard__stat-val" style="color: var(--ruby)">12 tools</span>
+						<span class="fcard__stat-val fcard__stat-val--ruby">12 tools</span>
 						<span class="fcard__stat-label">avg. shadow IT found per team in month 1</span>
 					</div>
 				</div>
@@ -934,7 +931,7 @@
 						ROI statement — not just a cost chart with no story attached.
 					</p>
 					<div class="fcard__stat">
-						<span class="fcard__stat-val" style="color: var(--amber)">$34K</span>
+						<span class="fcard__stat-val fcard__stat-val--amber">$34K</span>
 						<span class="fcard__stat-label">avg. monthly savings in first quarter</span>
 					</div>
 				</div>
@@ -960,7 +957,7 @@
 				</p>
 				<!-- Mini topology chart illustration -->
 				<div class="fcard__illustration">
-					<svg viewBox="0 0 280 80" style="width:100%;display:block;" preserveAspectRatio="none">
+					<svg class="topology-chart" viewBox="0 0 280 80" preserveAspectRatio="none">
 						<defs>
 							<linearGradient id="tg" x1="0" y1="0" x2="0" y2="1">
 								<stop offset="0%" stop-color="#00C2FF" stop-opacity=".22" />
@@ -1006,12 +1003,17 @@
 						/>
 					</svg>
 					<div class="topology-legend">
-						<span><i style="background:var(--ion)"></i> Cloud Infra</span>
-						<span><i style="background:var(--violet)"></i> Software/SaaS</span>
+						<span
+							><i class="topology-legend__swatch topology-legend__swatch--ion"></i> Cloud Infra</span
+						>
+						<span
+							><i class="topology-legend__swatch topology-legend__swatch--violet"></i>
+							Software/SaaS</span
+						>
 					</div>
 				</div>
 				<div class="fcard__stat">
-					<span class="fcard__stat-val" style="color: var(--ion)">3 clouds</span>
+					<span class="fcard__stat-val fcard__stat-val--ion">3 clouds</span>
 					<span class="fcard__stat-label">+ 100s of SaaS tools in one unified view</span>
 				</div>
 			</div>
@@ -1022,12 +1024,12 @@
 <!-- ═══ HOW IT WORKS ══════════════════════════════════════════════ -->
 <section class="how" id="how-it-works">
 	<div class="container">
-		<div use:reveal style="text-align:center;">
+		<div class="section-center" use:reveal>
 			<span class="section-label">How it works</span>
-			<h2 class="section-title" style="margin:0 auto;">
+			<h2 class="section-title section-title--center">
 				From first connection to governed spend<br />in under an hour.
 			</h2>
-			<p class="section-sub" style="margin:14px auto 0;">
+			<p class="section-sub section-sub--center">
 				No professional services. No IT ticket. No onboarding marathon.
 			</p>
 		</div>
@@ -1054,17 +1056,17 @@
 			</div>
 			<div class="live-counter__stats">
 				<div class="live-counter__stat">
-					<div class="live-counter__val" style="color:var(--jade)">{fmt(decisionsToday)}</div>
+					<div class="live-counter__val live-counter__val--jade">{fmt(decisionsToday)}</div>
 					<div class="live-counter__sub">approval decisions made</div>
 				</div>
 				<div class="live-counter__divider" aria-hidden="true"></div>
 				<div class="live-counter__stat">
-					<div class="live-counter__val" style="color:var(--ruby)">{fmt(shadowFlagged)}</div>
+					<div class="live-counter__val live-counter__val--ruby">{fmt(shadowFlagged)}</div>
 					<div class="live-counter__sub">shadow IT tools flagged</div>
 				</div>
 				<div class="live-counter__divider" aria-hidden="true"></div>
 				<div class="live-counter__stat">
-					<div class="live-counter__val" style="color:var(--ion)">{fmt(violationsCaught)}</div>
+					<div class="live-counter__val live-counter__val--ion">{fmt(violationsCaught)}</div>
 					<div class="live-counter__sub">policy violations caught</div>
 				</div>
 			</div>
@@ -1075,17 +1077,17 @@
 <!-- ═══ INTEGRATIONS ══════════════════════════════════════════════ -->
 <section class="integrations">
 	<div class="container">
-		<div use:reveal style="text-align:center;">
+		<div class="section-center" use:reveal>
 			<span class="section-label">Integrations</span>
-			<h2 class="section-title" style="margin:0 auto;">
+			<h2 class="section-title section-title--center">
 				Governance that lives where your team works.
 			</h2>
-			<p class="section-sub" style="margin:14px auto 0;text-align:center;">
+			<p class="section-sub section-sub--center">
 				Connect cloud providers and workflow tools in minutes — no agents, no code.
 			</p>
 		</div>
 		<div class="integrations__grid" use:reveal={{ delay: 100 }}>
-			{#each [{ logo: 'aws.svg', name: 'AWS' }, { logo: 'gcp.svg', name: 'GCP', col: 'var(--ion)' }, { logo: 'azure.svg', name: 'Azure', col: 'var(--violet)' }, { logo: 'slack.svg', name: 'Slack' }, { logo: 'teams.svg', name: 'Teams' }, { logo: 'jira.svg', name: 'Jira' }, { logo: 'okta.svg', name: 'Okta' }, { logo: 'github.svg', name: 'GitHub' }, { logo: 'terraform.svg', name: 'Terraform' }, { logo: 'pagerduty.svg', name: 'PagerDuty' }, { logo: 'datadog.svg', name: 'Datadog' }, { logo: 'figma.svg', name: 'Figma' }, { logo: 'notion.svg', name: 'Notion' }, { logo: 'stripe.svg', name: 'Stripe' }, { logo: 'rippling.svg', name: 'Rippling' }, { icon: '＋', name: '+90 more', col: 'var(--sub)' }] as t}
+			{#each [{ logo: 'aws.svg', name: 'AWS', tone: 'default' }, { logo: 'gcp.svg', name: 'GCP', tone: 'ion' }, { logo: 'azure.svg', name: 'Azure', tone: 'violet' }, { logo: 'slack.svg', name: 'Slack', tone: 'default' }, { logo: 'teams.svg', name: 'Teams', tone: 'default' }, { logo: 'jira.svg', name: 'Jira', tone: 'default' }, { logo: 'okta.svg', name: 'Okta', tone: 'default' }, { logo: 'github.svg', name: 'GitHub', tone: 'default' }, { logo: 'terraform.svg', name: 'Terraform', tone: 'default' }, { logo: 'pagerduty.svg', name: 'PagerDuty', tone: 'default' }, { logo: 'datadog.svg', name: 'Datadog', tone: 'default' }, { logo: 'figma.svg', name: 'Figma', tone: 'default' }, { logo: 'notion.svg', name: 'Notion', tone: 'default' }, { logo: 'stripe.svg', name: 'Stripe', tone: 'default' }, { logo: 'rippling.svg', name: 'Rippling', tone: 'default' }, { icon: '＋', name: '+90 more', tone: 'muted' }] as t}
 				<div class="integ-card">
 					{#if t.logo}
 						<img
@@ -1096,9 +1098,16 @@
 							decoding="async"
 						/>
 					{:else}
-						<span class="integ-card__icon" style={t.col ? `color:${t.col}` : ''}>{t.icon}</span>
+						<span class="integ-card__icon" class:integ-card__icon--muted={t.tone === 'muted'}
+							>{t.icon}</span
+						>
 					{/if}
-					<span class="integ-card__name" style={t.col ? `color:${t.col}` : ''}>{t.name}</span>
+					<span
+						class="integ-card__name"
+						class:integ-card__name--ion={t.tone === 'ion'}
+						class:integ-card__name--violet={t.tone === 'violet'}
+						class:integ-card__name--muted={t.tone === 'muted'}>{t.name}</span
+					>
 				</div>
 			{/each}
 		</div>
@@ -1118,7 +1127,7 @@
 					<div class="tcard__saving">{t.saving}</div>
 					<blockquote class="tcard__quote">{t.quote}</blockquote>
 					<footer class="tcard__author">
-						<div class="tcard__avatar" style="background:{t.color}">{t.initials}</div>
+						<div class="tcard__avatar {t.avatarClass}">{t.initials}</div>
 						<div>
 							<div class="tcard__name">{t.name}</div>
 							<div class="tcard__role">{t.role}</div>
@@ -1140,7 +1149,14 @@
 				The only platform that governs<br />cloud <em>and</em> software together.
 			</h2>
 		</div>
-		<div class="comparison__wrap" use:reveal={{ delay: 100 }}>
+		<!-- svelte-ignore a11y_no_noninteractive_tabindex: axe requires keyboard focus for horizontal table scrolling. -->
+		<div
+			class="comparison__wrap"
+			role="region"
+			tabindex="0"
+			aria-label="Scrollable feature comparison table"
+			use:reveal={{ delay: 100 }}
+		>
 			<table class="comp-table" aria-label="Feature comparison">
 				<thead>
 					<tr>
@@ -1228,12 +1244,12 @@
 <!-- ═══ PRICING ═══════════════════════════════════════════════════ -->
 <section class="pricing" id="pricing">
 	<div class="container">
-		<div use:reveal style="text-align:center;">
+		<div class="section-center" use:reveal>
 			<span class="section-label">Pricing</span>
-			<h2 class="section-title" style="margin:0 auto;">
+			<h2 class="section-title section-title--center">
 				Governance that pays for itself<br />in the first month.
 			</h2>
-			<p class="section-sub" style="margin:14px auto 0;">
+			<p class="section-sub section-sub--center">
 				14-day trial on all plans. No credit card. Cancel any time.
 			</p>
 		</div>
@@ -1303,7 +1319,7 @@
 		<div class="cta__glow"></div>
 		<div class="cta__gate"></div>
 	</div>
-	<div class="container" style="text-align:center;position:relative;z-index:1;">
+	<div class="container cta__inner">
 		<div use:reveal>
 			<span class="section-label">Start today</span>
 			<h2 class="cta__title">Govern first.<br />Optimize always.</h2>
@@ -1324,7 +1340,7 @@
 </section>
 
 <!-- ═══ FOOTER ════════════════════════════════════════════════════ -->
-<footer class="footer">
+<div class="footer" role="contentinfo">
 	<div class="container">
 		<div class="footer__top">
 			<div class="footer__brand">
@@ -1351,7 +1367,7 @@
 					ownership tracking, and measurable cost optimization — at valdrics.com
 				</p>
 			</div>
-			{#each [{ title: 'Product', links: ['Features', 'Pricing', 'Changelog', 'Integrations', 'Roadmap'] }, { title: 'Learn', links: ['Documentation', 'Blog', 'Governance Guides', 'Case Studies', 'Glossary'] }, { title: 'Company', links: ['About', 'Careers', 'Contact', 'Press', 'Security'] }, { title: 'Legal', links: ['Privacy Policy', 'Terms of Service', 'DPA', 'Cookie Policy', 'SLA'] }] as col}
+			{#each [{ title: 'Product', links: ['Features', 'Pricing', 'Changelog', 'Integrations', 'Roadmap'] }, { title: 'Learn', links: ['Documentation', 'Insights', 'Governance Guides', 'Case Studies', 'Glossary'] }, { title: 'Company', links: ['About', 'Careers', 'Contact', 'Press', 'Security'] }, { title: 'Legal', links: ['Privacy Policy', 'Terms of Service', 'DPA', 'Cookie Policy', 'SLA'] }] as col}
 				<div>
 					<div class="footer__col-title">{col.title}</div>
 					<ul class="footer__links">
@@ -1386,7 +1402,7 @@
 			</div>
 		</div>
 	</div>
-</footer>
+</div>
 
 <style>
 	/* ─── SCROLL REVEAL ──────────────────────────────────────────── */
@@ -1436,6 +1452,16 @@
 		max-width: 520px;
 		margin-top: 14px;
 		line-height: 1.7;
+	}
+	.section-center {
+		text-align: center;
+	}
+	.section-title--center {
+		margin: 0 auto;
+	}
+	.section-sub--center {
+		margin: 14px auto 0;
+		text-align: center;
 	}
 
 	/* ─── BUTTONS ────────────────────────────────────────────────── */
@@ -1575,9 +1601,15 @@
 		border-radius: 1px;
 	}
 	.nav__mobile {
+		position: fixed;
+		top: 64px;
+		right: 0;
+		left: 0;
 		display: flex;
 		flex-direction: column;
 		gap: 6px;
+		max-height: calc(100vh - 64px);
+		overflow-y: auto;
 		padding: 20px 24px;
 		background: var(--base);
 		border-bottom: 1px solid var(--bdr);
@@ -2221,6 +2253,9 @@
 	.features__grid--flipped {
 		grid-template-columns: 1fr 1.4fr;
 	}
+	.features__grid--second {
+		margin-top: 14px;
+	}
 	.fcard__col {
 		display: flex;
 		flex-direction: column;
@@ -2330,6 +2365,21 @@
 		font-family: var(--font-display);
 		font-weight: 700;
 		font-size: 22px;
+	}
+	.fcard__stat-val--jade {
+		color: var(--jade);
+	}
+	.fcard__stat-val--ion {
+		color: var(--ion);
+	}
+	.fcard__stat-val--violet {
+		color: var(--violet);
+	}
+	.fcard__stat-val--ruby {
+		color: var(--ruby);
+	}
+	.fcard__stat-val--amber {
+		color: var(--amber);
 	}
 	.fcard__stat-label {
 		font-size: 12px;
@@ -2449,6 +2499,10 @@
 		gap: 14px;
 		margin-top: 8px;
 	}
+	.topology-chart {
+		display: block;
+		width: 100%;
+	}
 	.topology-legend span {
 		display: flex;
 		align-items: center;
@@ -2461,6 +2515,12 @@
 		height: 3px;
 		border-radius: 2px;
 		display: inline-block;
+	}
+	.topology-legend__swatch--ion {
+		background: var(--ion);
+	}
+	.topology-legend__swatch--violet {
+		background: var(--violet);
 	}
 
 	/* ─── HOW IT WORKS ───────────────────────────────────────────── */
@@ -2576,6 +2636,15 @@
 		line-height: 1;
 		letter-spacing: -0.03em;
 	}
+	.live-counter__val--jade {
+		color: var(--jade);
+	}
+	.live-counter__val--ruby {
+		color: var(--ruby);
+	}
+	.live-counter__val--ion {
+		color: var(--ion);
+	}
 	.live-counter__sub {
 		font-size: 13px;
 		color: var(--sub);
@@ -2618,6 +2687,9 @@
 	.integ-card__icon {
 		font-size: 20px;
 	}
+	.integ-card__icon--muted {
+		color: var(--sub);
+	}
 	.integ-card__logo {
 		width: 20px;
 		height: 20px;
@@ -2628,6 +2700,15 @@
 		color: var(--sub);
 		font-family: var(--font-mono);
 		letter-spacing: 0.04em;
+	}
+	.integ-card__name--ion {
+		color: var(--ion);
+	}
+	.integ-card__name--violet {
+		color: var(--violet);
+	}
+	.integ-card__name--muted {
+		color: var(--sub);
 	}
 
 	/* ─── TESTIMONIALS ───────────────────────────────────────────── */
@@ -2705,6 +2786,15 @@
 		font-size: 13px;
 		color: #fff;
 		flex-shrink: 0;
+	}
+	.tcard__avatar--saas {
+		background: linear-gradient(135deg, #00cf7c, #00c2ff);
+	}
+	.tcard__avatar--cloud {
+		background: linear-gradient(135deg, #9270ff, #f5a623);
+	}
+	.tcard__avatar--reporting {
+		background: linear-gradient(135deg, #f5a623, #ff3a5c);
 	}
 	.tcard__name {
 		font-size: 13px;
@@ -3031,6 +3121,11 @@
 			rgba(0, 207, 124, 0.2) 70%,
 			transparent
 		);
+	}
+	.cta__inner {
+		position: relative;
+		z-index: 1;
+		text-align: center;
 	}
 	.cta__title {
 		font-family: var(--font-display);

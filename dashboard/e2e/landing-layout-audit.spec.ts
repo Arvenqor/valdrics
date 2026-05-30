@@ -104,17 +104,15 @@ test.describe('Landing layout audit regressions', () => {
 		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 
-		for (const sectionId of ['#hero', '#product', '#simulator', '#plans', '#trust']) {
+		for (const sectionId of ['#hero', '#problem', '#features', '#how-it-works', '#pricing']) {
 			await expect(page.locator(sectionId)).toBeVisible();
 		}
 
-		await expect(page.locator('#hero')).toContainText(
-			/control cloud spend without slowing delivery/i
-		);
-		await expect(page.locator('#hero .landing-public-proof-item')).toHaveCount(3);
-		await expect(page.locator('#product .landing-public-pillar-card')).toHaveCount(3);
-		await expect(page.locator('#plans .landing-public-plan-card')).toHaveCount(3);
-		await expect(page.locator('#trust .landing-public-trust-card')).toHaveCount(3);
+		await expect(page.locator('#hero')).toContainText(/govern first|optimize always/i);
+		await expect(page.locator('#hero .chip')).toHaveCount(3);
+		await expect(page.locator('#features .fcard')).toHaveCount(6);
+		await expect(page.locator('#pricing .pcard')).toHaveCount(3);
+		await expect(page.locator('.trust-bar .trust-badge')).toHaveCount(6);
 
 		const overflow = await page.evaluate(() => ({
 			scrollWidth: document.documentElement.scrollWidth,
@@ -144,15 +142,15 @@ test.describe('Landing layout audit regressions', () => {
 			});
 			await page.waitForTimeout(120);
 
-			await expect(page.getByRole('link', { name: /back to top/i })).toBeVisible();
-
-			const lastBadge = page.getByRole('contentinfo').locator('.public-footer-contact').last();
-			await lastBadge.scrollIntoViewIfNeeded();
-			const badgeBounds = await lastBadge.boundingBox();
-			expect(badgeBounds).not.toBeNull();
-			if (badgeBounds) {
-				expect(badgeBounds.x).toBeGreaterThanOrEqual(0);
-				expect(badgeBounds.x + badgeBounds.width).toBeLessThanOrEqual(390);
+			const footer = page.getByRole('contentinfo');
+			await expect(footer).toBeVisible();
+			const lastFooterLink = footer.locator('.footer__links a').last();
+			await lastFooterLink.scrollIntoViewIfNeeded();
+			const linkBounds = await lastFooterLink.boundingBox();
+			expect(linkBounds).not.toBeNull();
+			if (linkBounds) {
+				expect(linkBounds.x).toBeGreaterThanOrEqual(0);
+				expect(linkBounds.x + linkBounds.width).toBeLessThanOrEqual(390);
 			}
 
 			await security.assertClean();
