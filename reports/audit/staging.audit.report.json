@@ -45,10 +45,10 @@
     "backend_tests_collected": 6454,
     "direct_audit_logger_call_sites": 33,
     "fastapi_requirement": "~=0.128.0",
-    "frontend_svelte_version": "^5.51.5",
-    "frontend_sveltekit_version": "^2.57.1",
+    "frontend_svelte_version": "5.53.0",
+    "frontend_sveltekit_version": "2.57.1",
     "python_requires": ">=3.12,<3.13",
-    "test_and_spec_files": 955,
+    "test_and_spec_files": 957,
     "zombie_plugin_classes": 56
   },
   "partial_or_overstated_claims": [

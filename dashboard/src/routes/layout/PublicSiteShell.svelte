@@ -139,108 +139,237 @@
 	data-public-hydrated={publicThemeLoaded ? 'true' : 'false'}
 >
 	{#if publicTone !== 'landing'}
-	<header class="public-site-header">
-		<nav class="container public-top-nav mx-auto flex items-center justify-between gap-4 px-6 py-4">
-			<a
-				href={toAppPath('/')}
-				class="public-brand flex items-center gap-2"
-				aria-label="Valdrics home"
-				data-sveltekit-preload-data="hover"
-				data-sveltekit-preload-code="hover"
+		<header class="public-site-header">
+			<nav
+				class="container public-top-nav mx-auto flex items-center justify-between gap-4 px-6 py-4"
 			>
-				<CloudLogo provider="valdrics" size={40} emphasizeMark={true} />
-				<img
-					src={`${base}/valdrics_wordmark.svg`}
-					alt=""
-					class="public-brand-wordmark hidden sm:block"
-					width="155"
-					height="45"
-					loading="eager"
-					decoding="async"
-					fetchpriority="high"
-				/>
-			</a>
+				<a
+					href={toAppPath('/')}
+					class="public-brand flex items-center gap-2"
+					aria-label="Valdrics home"
+					data-sveltekit-preload-data="hover"
+					data-sveltekit-preload-code="hover"
+				>
+					<CloudLogo provider="valdrics" size={40} emphasizeMark={true} />
+					<img
+						src={`${base}/valdrics_wordmark.svg`}
+						alt=""
+						class="public-brand-wordmark hidden sm:block"
+						width="155"
+						height="45"
+						loading="eager"
+						decoding="async"
+						fetchpriority="high"
+					/>
+				</a>
 
-			<div class="public-nav-primary items-center gap-5 text-sm">
-				{#each PUBLIC_PRIMARY_LINKS as link (link.href)}
-					{#if link.href === '/resources'}
-						<div class="public-nav-dropdown">
-							<button
-								type="button"
-								class="public-nav-dropdown-trigger public-nav-link"
-								bind:this={publicResourcesButton}
-								aria-haspopup="menu"
-								aria-expanded={publicResourcesMenuOpen}
-								aria-controls="public-resources-menu"
-								onclick={togglePublicResourcesMenu}
+				<div class="public-nav-primary items-center gap-5 text-sm">
+					{#each PUBLIC_PRIMARY_LINKS as link (link.href)}
+						{#if link.href === '/resources'}
+							<div class="public-nav-dropdown">
+								<button
+									type="button"
+									class="public-nav-dropdown-trigger public-nav-link"
+									bind:this={publicResourcesButton}
+									aria-haspopup="menu"
+									aria-expanded={publicResourcesMenuOpen}
+									aria-controls="public-resources-menu"
+									onclick={togglePublicResourcesMenu}
+								>
+									<span>{link.label}</span>
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										width="14"
+										height="14"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										class:rotate-180={publicResourcesMenuOpen}
+									>
+										<polyline points="6 9 12 15 18 9"></polyline>
+									</svg>
+								</button>
+								{#if publicResourcesMenuOpen}
+									<div
+										id="public-resources-menu"
+										class="public-nav-dropdown-panel"
+										role="menu"
+										aria-label="Resources"
+										bind:this={publicResourcesPanel}
+									>
+										{#each PUBLIC_RESOURCES_DROPDOWN_LINKS as resourceLink (resourceLink.href)}
+											<a
+												href={toAppPath(resourceLink.href)}
+												role="menuitem"
+												class="public-nav-dropdown-item"
+												data-sveltekit-preload-data="hover"
+												data-sveltekit-preload-code="hover"
+												onclick={closePublicResourcesMenu}
+											>
+												{resourceLink.label}
+											</a>
+										{/each}
+									</div>
+								{/if}
+							</div>
+						{:else}
+							<a
+								href={toAppPath(link.href)}
+								class="public-nav-link"
+								data-sveltekit-preload-data="hover"
+								data-sveltekit-preload-code="hover"
 							>
-								<span>{link.label}</span>
+								{link.label}
+							</a>
+						{/if}
+					{/each}
+				</div>
+
+				<div class="public-nav-secondary items-center gap-2">
+					<button
+						type="button"
+						class="public-theme-toggle"
+						aria-label={themeToggleLabel(publicTheme)}
+						aria-pressed={publicTheme === 'dark'}
+						title={themeToggleLabel(publicTheme)}
+						onclick={togglePublicTheme}
+					>
+						<span class="public-theme-toggle__icon" aria-hidden="true">
+							{#if publicTheme === 'dark'}
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
-									width="14"
-									height="14"
+									width="16"
+									height="16"
 									viewBox="0 0 24 24"
 									fill="none"
 									stroke="currentColor"
 									stroke-width="2"
 									stroke-linecap="round"
 									stroke-linejoin="round"
-									class:rotate-180={publicResourcesMenuOpen}
 								>
-									<polyline points="6 9 12 15 18 9"></polyline>
+									<circle cx="12" cy="12" r="4"></circle>
+									<path d="M12 2v2"></path>
+									<path d="M12 20v2"></path>
+									<path d="m4.93 4.93 1.41 1.41"></path>
+									<path d="m17.66 17.66 1.41 1.41"></path>
+									<path d="M2 12h2"></path>
+									<path d="M20 12h2"></path>
+									<path d="m6.34 17.66-1.41 1.41"></path>
+									<path d="m19.07 4.93-1.41 1.41"></path>
 								</svg>
-							</button>
-							{#if publicResourcesMenuOpen}
-								<div
-									id="public-resources-menu"
-									class="public-nav-dropdown-panel"
-									role="menu"
-									aria-label="Resources"
-									bind:this={publicResourcesPanel}
+							{:else}
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="16"
+									height="16"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
 								>
-									{#each PUBLIC_RESOURCES_DROPDOWN_LINKS as resourceLink (resourceLink.href)}
-										<a
-											href={toAppPath(resourceLink.href)}
-											role="menuitem"
-											class="public-nav-dropdown-item"
-											data-sveltekit-preload-data="hover"
-											data-sveltekit-preload-code="hover"
-											onclick={closePublicResourcesMenu}
-										>
-											{resourceLink.label}
-										</a>
-									{/each}
-								</div>
+									<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+								</svg>
 							{/if}
-						</div>
-					{:else}
-						<a
-							href={toAppPath(link.href)}
-							class="public-nav-link"
-							data-sveltekit-preload-data="hover"
-							data-sveltekit-preload-code="hover"
-						>
-							{link.label}
-						</a>
-					{/if}
-				{/each}
-			</div>
+						</span>
+						<span>{themeToggleCopy(publicTheme)}</span>
+					</button>
+					<a
+						href={toAppPath('/enterprise')}
+						class="btn btn-secondary text-sm px-4 py-2"
+						data-sveltekit-preload-data="hover"
+						data-sveltekit-preload-code="hover"
+					>
+						Enterprise Review
+					</a>
+					<a
+						href={toAuthPath('/auth/login')}
+						class="btn btn-primary text-sm px-4 py-2"
+						data-sveltekit-preload-data="hover"
+						data-sveltekit-preload-code="hover"
+					>
+						Start Free
+					</a>
+				</div>
 
-			<div class="public-nav-secondary items-center gap-2">
-				<button
-					type="button"
-					class="public-theme-toggle"
-					aria-label={themeToggleLabel(publicTheme)}
-					aria-pressed={publicTheme === 'dark'}
-					title={themeToggleLabel(publicTheme)}
-					onclick={togglePublicTheme}
-				>
-					<span class="public-theme-toggle__icon" aria-hidden="true">
-						{#if publicTheme === 'dark'}
+				<div class="public-nav-mobile flex items-center gap-2">
+					<button
+						type="button"
+						class="public-theme-toggle public-theme-toggle--icon-only"
+						aria-label={themeToggleLabel(publicTheme)}
+						aria-pressed={publicTheme === 'dark'}
+						title={themeToggleLabel(publicTheme)}
+						onclick={togglePublicTheme}
+					>
+						<span class="public-theme-toggle__icon" aria-hidden="true">
+							{#if publicTheme === 'dark'}
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="16"
+									height="16"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+								>
+									<circle cx="12" cy="12" r="4"></circle>
+									<path d="M12 2v2"></path>
+									<path d="M12 20v2"></path>
+									<path d="m4.93 4.93 1.41 1.41"></path>
+									<path d="m17.66 17.66 1.41 1.41"></path>
+									<path d="M2 12h2"></path>
+									<path d="M20 12h2"></path>
+									<path d="m6.34 17.66-1.41 1.41"></path>
+									<path d="m19.07 4.93-1.41 1.41"></path>
+								</svg>
+							{:else}
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="16"
+									height="16"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+								>
+									<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+								</svg>
+							{/if}
+						</span>
+						<span class="sr-only">{themeToggleCopy(publicTheme)}</span>
+					</button>
+					<a
+						href={toAuthPath('/auth/login')}
+						class="btn btn-primary public-nav-mobile-cta"
+						data-sveltekit-preload-data="hover"
+						data-sveltekit-preload-code="hover"
+					>
+						Start Free
+					</a>
+					<button
+						type="button"
+						class="btn btn-ghost p-2 public-nav-menu-toggle"
+						bind:this={publicMenuButton}
+						aria-label="Toggle menu"
+						aria-expanded={publicMenuOpen}
+						aria-controls="public-mobile-menu"
+						aria-haspopup="dialog"
+						onclick={togglePublicMenu}
+					>
+						<span class="public-nav-menu-label" aria-hidden="true">Menu</span>
+						{#if publicMenuOpen}
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
-								width="16"
-								height="16"
+								width="20"
+								height="20"
 								viewBox="0 0 24 24"
 								fill="none"
 								stroke="currentColor"
@@ -248,21 +377,14 @@
 								stroke-linecap="round"
 								stroke-linejoin="round"
 							>
-								<circle cx="12" cy="12" r="4"></circle>
-								<path d="M12 2v2"></path>
-								<path d="M12 20v2"></path>
-								<path d="m4.93 4.93 1.41 1.41"></path>
-								<path d="m17.66 17.66 1.41 1.41"></path>
-								<path d="M2 12h2"></path>
-								<path d="M20 12h2"></path>
-								<path d="m6.34 17.66-1.41 1.41"></path>
-								<path d="m19.07 4.93-1.41 1.41"></path>
+								<line x1="18" y1="6" x2="6" y2="18"></line>
+								<line x1="6" y1="6" x2="18" y2="18"></line>
 							</svg>
 						{:else}
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
-								width="16"
-								height="16"
+								width="20"
+								height="20"
 								viewBox="0 0 24 24"
 								fill="none"
 								stroke="currentColor"
@@ -270,150 +392,30 @@
 								stroke-linecap="round"
 								stroke-linejoin="round"
 							>
-								<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+								<line x1="3" y1="12" x2="21" y2="12"></line>
+								<line x1="3" y1="6" x2="21" y2="6"></line>
+								<line x1="3" y1="18" x2="21" y2="18"></line>
 							</svg>
 						{/if}
-					</span>
-					<span>{themeToggleCopy(publicTheme)}</span>
-				</button>
-				<a
-					href={toAppPath('/enterprise')}
-					class="btn btn-secondary text-sm px-4 py-2"
-					data-sveltekit-preload-data="hover"
-					data-sveltekit-preload-code="hover"
-				>
-					Enterprise Review
-				</a>
-				<a
-					href={toAuthPath('/auth/login')}
-					class="btn btn-primary text-sm px-4 py-2"
-					data-sveltekit-preload-data="hover"
-					data-sveltekit-preload-code="hover"
-				>
-					Start Free
-				</a>
-			</div>
-
-			<div class="public-nav-mobile flex items-center gap-2">
-				<button
-					type="button"
-					class="public-theme-toggle public-theme-toggle--icon-only"
-					aria-label={themeToggleLabel(publicTheme)}
-					aria-pressed={publicTheme === 'dark'}
-					title={themeToggleLabel(publicTheme)}
-					onclick={togglePublicTheme}
-				>
-					<span class="public-theme-toggle__icon" aria-hidden="true">
-						{#if publicTheme === 'dark'}
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="16"
-								height="16"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-							>
-								<circle cx="12" cy="12" r="4"></circle>
-								<path d="M12 2v2"></path>
-								<path d="M12 20v2"></path>
-								<path d="m4.93 4.93 1.41 1.41"></path>
-								<path d="m17.66 17.66 1.41 1.41"></path>
-								<path d="M2 12h2"></path>
-								<path d="M20 12h2"></path>
-								<path d="m6.34 17.66-1.41 1.41"></path>
-								<path d="m19.07 4.93-1.41 1.41"></path>
-							</svg>
-						{:else}
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="16"
-								height="16"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-							>
-								<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
-							</svg>
-						{/if}
-					</span>
-					<span class="sr-only">{themeToggleCopy(publicTheme)}</span>
-				</button>
-				<a
-					href={toAuthPath('/auth/login')}
-					class="btn btn-primary public-nav-mobile-cta"
-					data-sveltekit-preload-data="hover"
-					data-sveltekit-preload-code="hover"
-				>
-					Start Free
-				</a>
-				<button
-					type="button"
-					class="btn btn-ghost p-2 public-nav-menu-toggle"
-					bind:this={publicMenuButton}
-					aria-label="Toggle menu"
-					aria-expanded={publicMenuOpen}
-					aria-controls="public-mobile-menu"
-					aria-haspopup="dialog"
-					onclick={togglePublicMenu}
-				>
-					<span class="public-nav-menu-label" aria-hidden="true">Menu</span>
-					{#if publicMenuOpen}
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							width="20"
-							height="20"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-						>
-							<line x1="18" y1="6" x2="6" y2="18"></line>
-							<line x1="6" y1="6" x2="18" y2="18"></line>
-						</svg>
-					{:else}
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							width="20"
-							height="20"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-						>
-							<line x1="3" y1="12" x2="21" y2="12"></line>
-							<line x1="3" y1="6" x2="21" y2="6"></line>
-							<line x1="3" y1="18" x2="21" y2="18"></line>
-						</svg>
-					{/if}
-				</button>
-			</div>
-		</nav>
-		{#if publicMenuOpen}
-			{#await loadPublicMobileMenuDialog() then module}
-				{@const PublicMobileMenuDialog = module.default}
-				<PublicMobileMenuDialog
-					{publicTheme}
-					themeToggleLabel={themeToggleLabel(publicTheme)}
-					themeToggleCopy={themeToggleCopy(publicTheme)}
-					restoreFocusTarget={publicMenuButton}
-					{toAppPath}
-					{toAuthPath}
-					onToggleTheme={togglePublicTheme}
-					onClose={closePublicMenu}
-				/>
-			{/await}
-		{/if}
-	</header>
+					</button>
+				</div>
+			</nav>
+			{#if publicMenuOpen}
+				{#await loadPublicMobileMenuDialog() then module}
+					{@const PublicMobileMenuDialog = module.default}
+					<PublicMobileMenuDialog
+						{publicTheme}
+						themeToggleLabel={themeToggleLabel(publicTheme)}
+						themeToggleCopy={themeToggleCopy(publicTheme)}
+						restoreFocusTarget={publicMenuButton}
+						{toAppPath}
+						{toAuthPath}
+						onToggleTheme={togglePublicTheme}
+						onClose={closePublicMenu}
+					/>
+				{/await}
+			{/if}
+		</header>
 	{/if}
 
 	<main id="main" tabindex="-1" class="page-enter public-site-main">
@@ -421,6 +423,6 @@
 	</main>
 
 	{#if publicTone !== 'landing'}
-	<PublicSiteFooter {currentYear} {toAppPath} />
+		<PublicSiteFooter {currentYear} {toAppPath} />
 	{/if}
 </div>

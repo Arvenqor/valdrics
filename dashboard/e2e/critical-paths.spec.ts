@@ -25,14 +25,16 @@ test.describe('Onboarding Flow', () => {
 		await expect(
 			page.getByRole('heading', {
 				level: 1,
-				name: /control cloud spend without slowing delivery|a cleaner path from spend signal to action|move from spend reports to accountable action|one shared path from variance to action|review spend-changing actions with context|one controlled path from anomaly to execution|protect margin with clearer spend decisions|one governed path from variance to board-ready proof/i
+				name: /govern first\. optimize always\.|control cloud spend without slowing delivery|a cleaner path from spend signal to action|move from spend reports to accountable action|one shared path from variance to action|review spend-changing actions with context|one controlled path from anomaly to execution|protect margin with clearer spend decisions|one governed path from variance to board-ready proof/i
 			})
 		).toBeVisible();
 		await expect(
-			page.getByRole('link', { name: /Start Free Workspace|Book Executive Briefing/i }).first()
+			page
+				.getByRole('link', { name: /Start free|Start Free Workspace|Book Executive Briefing/i })
+				.first()
 		).toBeVisible();
 		await expect(
-			page.getByRole('link', { name: /See Pricing|Start Free Workspace/i }).nth(1)
+			page.getByRole('link', { name: /See a live demo|See Pricing|Start Free Workspace/i }).first()
 		).toBeVisible();
 	});
 
