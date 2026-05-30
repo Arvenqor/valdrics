@@ -93,8 +93,8 @@ describe('public layout mobile menu', () => {
 		return screen.getAllByRole('button', { name: /toggle menu/i })[0] as HTMLButtonElement;
 	}
 
-	async function renderPublicLayout() {
-		mocks.pageStore.set({ url: new URL('https://example.com/') });
+	async function renderPublicLayout(pathname = '/pricing') {
+		mocks.pageStore.set({ url: new URL(pathname, 'https://example.com') });
 		const result = render(Layout, {
 			data: {
 				user: null,
@@ -105,6 +105,23 @@ describe('public layout mobile menu', () => {
 			children: emptySnippet
 		});
 		await screen.findAllByRole('link', { name: /^start free$/i });
+		return result;
+	}
+
+	async function renderPublicLandingLayout() {
+		mocks.pageStore.set({ url: new URL('https://example.com/') });
+		const result = render(Layout, {
+			data: {
+				user: null,
+				session: null,
+				profile: null,
+				subscription: { tier: 'free', status: 'active' }
+			},
+			children: emptySnippet
+		});
+		await waitFor(() => {
+			expect(result.container.querySelector('.public-site-shell')).toBeTruthy();
+		});
 		return result;
 	}
 
@@ -223,22 +240,13 @@ describe('public layout mobile menu', () => {
 	});
 
 	it('uses landing tone on the home page and default tone on other public routes', async () => {
-		const { container, unmount } = await renderPublicLayout();
+		const { container, unmount } = await renderPublicLandingLayout();
 		const homeShell = container.querySelector('.public-site-shell');
 		expect(homeShell?.getAttribute('data-public-tone')).toBe('landing');
+		expect(screen.queryByRole('link', { name: /^start free$/i })).toBeNull();
 
 		unmount();
-		mocks.pageStore.set({ url: new URL('https://example.com/pricing') });
-		const pricingRender = render(Layout, {
-			data: {
-				user: null,
-				session: null,
-				profile: null,
-				subscription: { tier: 'free', status: 'active' }
-			},
-			children: emptySnippet
-		});
-		await screen.findAllByRole('link', { name: /^start free$/i });
+		const pricingRender = await renderPublicLayout('/pricing');
 		const pricingShell = pricingRender.container.querySelector('.public-site-shell');
 		expect(pricingShell?.getAttribute('data-public-tone')).toBe('default');
 	});

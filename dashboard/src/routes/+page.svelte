@@ -30,7 +30,6 @@
 	import { onMount } from 'svelte';
 	import { tweened } from 'svelte/motion';
 	import { cubicOut } from 'svelte/easing';
-	import { fly, fade } from 'svelte/transition';
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import { buildPublicAuthHref } from '$lib/public/publicAppOrigin';
@@ -132,6 +131,106 @@
 		{
 			q: 'How does Valdrics handle security and compliance?',
 			a: 'Valdrics is designed for security-sensitive FinOps workflows: read-only cloud access, limited cost and usage metadata, tenant-aware controls, and audit evidence exports. Enterprise customers can request private deployment reviews, DPAs, and security documentation during onboarding.'
+		}
+	];
+
+	const structuredDataJson = JSON.stringify({
+		'@context': 'https://schema.org',
+		'@graph': [
+			{
+				'@type': 'WebSite',
+				'@id': 'https://www.valdrics.com/#website',
+				url: 'https://www.valdrics.com/',
+				name: 'Valdrics',
+				description: 'Cloud and software spend governance platform',
+				publisher: { '@id': 'https://www.valdrics.com/#org' }
+			},
+			{
+				'@type': 'Organization',
+				'@id': 'https://www.valdrics.com/#org',
+				name: 'Valdrics',
+				url: 'https://www.valdrics.com',
+				description:
+					'Valdrics helps companies govern cloud and software spend through approval workflows, ownership tracking, and policy controls.',
+				sameAs: ['https://twitter.com/valdrics', 'https://linkedin.com/company/valdrics']
+			},
+			{
+				'@type': 'SoftwareApplication',
+				name: 'Valdrics',
+				applicationCategory: 'BusinessApplication',
+				operatingSystem: 'Web, SaaS',
+				description:
+					'Cloud and software spend governance platform with approval workflows, ownership tracking, policy engine, and shadow IT detection.',
+				offers: [
+					{ '@type': 'Offer', name: 'Starter', price: '299', priceCurrency: 'USD' },
+					{ '@type': 'Offer', name: 'Team', price: '799', priceCurrency: 'USD' },
+					{ '@type': 'Offer', name: 'Enterprise', description: 'Custom pricing' }
+				]
+			},
+			{
+				'@type': 'FAQPage',
+				mainEntity: [
+					{
+						'@type': 'Question',
+						name: 'What is cloud and software spend governance?',
+						acceptedAnswer: {
+							'@type': 'Answer',
+							text: 'Governance is the layer of controls that decides which cloud resources and software tools get approved, who owns them, and whether they comply with your policies before spend is committed.'
+						}
+					},
+					{
+						'@type': 'Question',
+						name: 'How long does Valdrics setup take?',
+						acceptedAnswer: {
+							'@type': 'Answer',
+							text: 'Your first approval workflow can be live in under 20 minutes. Cloud providers connect via read-only roles, and SaaS tools connect through supported integrations.'
+						}
+					},
+					{
+						'@type': 'Question',
+						name: 'Does Valdrics need write access to cloud accounts?',
+						acceptedAnswer: {
+							'@type': 'Answer',
+							text: "No. Valdrics is designed around read-only cloud access and keeps governance actions in your team's approval workflow."
+						}
+					}
+				]
+			}
+		]
+	})
+		.replaceAll('</script', '<\\/script')
+		.replaceAll('<', '\\u003c');
+
+	const GOVERNANCE_SCENARIOS = [
+		{
+			saving: 'Software renewal gate',
+			quote:
+				'A team requests another SaaS renewal. Valdrics ties the request to an owner, justification, approval status, and policy history before the invoice becomes a surprise.',
+			name: 'SaaS governance',
+			role: 'Ownership, DPA, and renewal control',
+			co: 'Example workflow',
+			initials: 'SG',
+			color: 'linear-gradient(135deg,#00CF7C,#00C2FF)'
+		},
+		{
+			saving: 'Cloud budget guardrail',
+			quote:
+				'An expensive infrastructure request crosses a team budget threshold. Valdrics routes it for finance review and keeps the policy decision attached to the resource.',
+			name: 'Cloud governance',
+			role: 'Budget, region, and instance policy checks',
+			co: 'Example workflow',
+			initials: 'CG',
+			color: 'linear-gradient(135deg,#9270FF,#F5A623)'
+		},
+		{
+			saving: 'Board-ready evidence',
+			quote:
+				'Every spend-changing decision carries a requester, approver, reason, and timestamp, giving finance and engineering one evidence trail instead of scattered screenshots.',
+			name: 'Executive reporting',
+			role: 'Traceable governance ROI',
+			co: 'Example workflow',
+			initials: 'ER',
+			color: 'linear-gradient(135deg,#F5A623,#FF3A5C)'
 		}
 	];
 
@@ -348,51 +447,7 @@
 	/>
 	<meta name="twitter:image" content="https://www.valdrics.com/twitter-card.png" />
 
-	<!-- Structured Data -->
-	{@html `<script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "WebSite",
-        "@id": "https://www.valdrics.com/#website",
-        "url": "https://www.valdrics.com/",
-        "name": "Valdrics",
-        "description": "Cloud and software spend governance platform",
-        "publisher": { "@id": "https://www.valdrics.com/#org" }
-      },
-      {
-        "@type": "Organization",
-        "@id": "https://www.valdrics.com/#org",
-        "name": "Valdrics Inc.",
-        "url": "https://www.valdrics.com",
-        "description": "Valdrics helps companies stop wasting money on cloud and software by enforcing approval workflows, ownership tracking, and governance policies.",
-        "sameAs": ["https://twitter.com/valdrics","https://linkedin.com/company/valdrics"]
-      },
-      {
-        "@type": "SoftwareApplication",
-        "name": "Valdrics",
-        "applicationCategory": "BusinessApplication",
-        "operatingSystem": "Web, SaaS",
-        "description": "Cloud and software spend governance platform with approval workflows, ownership tracking, policy engine, and shadow IT detection.",
-        "offers": [
-          { "@type": "Offer", "name": "Starter",    "price": "299",  "priceCurrency": "USD" },
-          { "@type": "Offer", "name": "Team",       "price": "799",  "priceCurrency": "USD" },
-          { "@type": "Offer", "name": "Enterprise", "description": "Custom pricing"         }
-        ],
-        "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.8", "reviewCount": "74" }
-      },
-      {
-        "@type": "FAQPage",
-        "mainEntity": [
-          { "@type": "Question", "name": "What is cloud and software spend governance?", "acceptedAnswer": { "@type": "Answer", "text": "Governance is the layer of controls that decides which cloud resources and software tools get approved, who owns them, and whether they comply with your policies — before spend is committed." } },
-          { "@type": "Question", "name": "How long does Valdrics setup take?", "acceptedAnswer": { "@type": "Answer", "text": "Your first approval workflow can be live in under 20 minutes. Cloud providers connect via read-only roles. SaaS tools connect via OAuth in one click." } },
-          { "@type": "Question", "name": "Does Valdrics need write access to cloud accounts?", "acceptedAnswer": { "@type": "Answer", "text": "Never. Valdrics is entirely read-only. All governance actions are carried out by your team — Valdrics tells you what to do and tracks that it was done." } }
-        ]
-      }
-    ]
-  }
-  <\/script>`}
+	{@html `<script type="application/ld+json">${structuredDataJson}</script>`}
 </svelte:head>
 
 <!-- ═══ NAV ═══════════════════════════════════════════════════════ -->
@@ -429,6 +484,7 @@
 		</div>
 
 		<button
+			type="button"
 			class="nav__burger"
 			aria-label="Toggle menu"
 			aria-expanded={mobileMenuOpen}
@@ -440,7 +496,7 @@
 
 	<!-- Mobile menu -->
 	{#if mobileMenuOpen}
-		<div class="nav__mobile" transition:fly={{ y: -8, duration: 220 }}>
+		<div class="nav__mobile">
 			<a href="#features" on:click={() => (mobileMenuOpen = false)}>Features</a>
 			<a href="#how-it-works" on:click={() => (mobileMenuOpen = false)}>How it works</a>
 			<a href="#pricing" on:click={() => (mobileMenuOpen = false)}>Pricing</a>
@@ -522,7 +578,6 @@
 					class="hero-card"
 					class:hero-card--approved={heroCardState === 'approved'}
 					class:hero-card--denied={heroCardState === 'denied'}
-					transition:fly={{ y: 10, duration: 300 }}
 				>
 					<div
 						class="hero-card__stripe
@@ -556,8 +611,10 @@
 						<div class="hero-card__cost-label">COST IMPACT</div>
 						{#if heroCardState === 'pending'}
 							<div class="hero-card__actions">
-								<button class="btn-approve" aria-label="Approve this request">✓</button>
-								<button class="btn-deny" aria-label="Deny this request">✕</button>
+								<button type="button" class="btn-approve" aria-label="Approve this request"
+									>✓</button
+								>
+								<button type="button" class="btn-deny" aria-label="Deny this request">✕</button>
 							</div>
 						{:else if heroCardState === 'approved'}
 							<div class="hero-card__decision hero-card__decision--approved">Approved by Sarah</div>
@@ -1048,18 +1105,18 @@
 	</div>
 </section>
 
-<!-- ═══ TESTIMONIALS ══════════════════════════════════════════════ -->
+<!-- ═══ GOVERNANCE SCENARIOS ══════════════════════════════════════ -->
 <section class="testimonials" id="customers">
 	<div class="container">
 		<div use:reveal>
-			<span class="section-label">Customer stories</span>
-			<h2 class="section-title">Teams that stopped asking<br />"who approved this?"</h2>
+			<span class="section-label">Governance scenarios</span>
+			<h2 class="section-title">Stop asking<br />"who approved this?"</h2>
 		</div>
 		<div class="testimonials__grid">
-			{#each [{ saving: '↓ $41K/mo in first 60 days', quote: "We had a $41K software bill with 23 tools nobody could explain. Valdrics surfaced them all in the first week. <strong>Twelve were cancelled immediately.</strong> Finance stopped asking questions they couldn't answer.", name: 'Nana Kofi Asante', role: 'VP Engineering', co: 'CHIPPER CASH · Series C', initials: 'NK', color: 'linear-gradient(135deg,#00CF7C,#00C2FF)' }, { saving: '↑ 96% policy compliance in 30 days', quote: "The approval workflow was live in under an hour. We set three policies and <strong>Valdrics enforces them automatically.</strong> Our legal team hasn't had to chase a missing DPA since.", name: 'Ifeoma Adeyemi', role: 'Head of Legal & Compliance', co: 'MONIEPOINT · Scale-up', initials: 'IA', color: 'linear-gradient(135deg,#9270FF,#F5A623)' }, { saving: '→ Finance + Engineering aligned', quote: 'Every spend decision is now traceable to a person, a justification, and a date. <strong>Our quarterly board review went from 3 hours of cost archaeology to a 20-minute governance report.</strong>', name: 'Bright Osei', role: 'CFO', co: 'WAVE MOBILE MONEY · Enterprise', initials: 'BO', color: 'linear-gradient(135deg,#F5A623,#FF3A5C)' }] as t, i}
+			{#each GOVERNANCE_SCENARIOS as t, i}
 				<article class="tcard" use:reveal={{ delay: i * 80 }}>
 					<div class="tcard__saving">{t.saving}</div>
-					<blockquote class="tcard__quote">{@html t.quote}</blockquote>
+					<blockquote class="tcard__quote">{t.quote}</blockquote>
 					<footer class="tcard__author">
 						<div class="tcard__avatar" style="background:{t.color}">{t.initials}</div>
 						<div>
@@ -1134,7 +1191,12 @@
 					itemscope
 					itemtype="https://schema.org/Question"
 				>
-					<button class="faq__q" on:click={() => toggleFaq(i)} aria-expanded={openFaq === i}>
+					<button
+						type="button"
+						class="faq__q"
+						on:click={() => toggleFaq(i)}
+						aria-expanded={openFaq === i}
+					>
 						<span class="faq__q-text" itemprop="name">{faq.q}</span>
 						<svg
 							class="faq__chevron"
@@ -1150,7 +1212,6 @@
 					{#if openFaq === i}
 						<div
 							class="faq__a"
-							transition:fly={{ y: -6, duration: 220 }}
 							itemprop="acceptedAnswer"
 							itemscope
 							itemtype="https://schema.org/Answer"
@@ -1520,6 +1581,7 @@
 		padding: 20px 24px;
 		background: var(--base);
 		border-bottom: 1px solid var(--bdr);
+		animation: navMenuIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
 	}
 	.nav__mobile a {
 		font-size: 14px;
@@ -1680,6 +1742,16 @@
 			transform: scale(0.6);
 		}
 	}
+	@keyframes navMenuIn {
+		from {
+			opacity: 0;
+			transform: translateY(-8px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
 
 	.hero__headline {
 		font-family: var(--font-display);
@@ -1762,6 +1834,7 @@
 		border: 1px solid var(--bdr);
 		border-radius: 12px;
 		padding: 13px 14px;
+		animation: heroCardIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
 		transition: border-color 0.3s;
 	}
 	.hero-card--ghost {
@@ -1776,6 +1849,16 @@
 	.hero-card--denied {
 		border-color: rgba(255, 58, 92, 0.25);
 		background: rgba(255, 58, 92, 0.04);
+	}
+	@keyframes heroCardIn {
+		from {
+			opacity: 0;
+			transform: translateY(10px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
 	}
 	.hero-card__stripe {
 		width: 3px;
@@ -2762,11 +2845,22 @@
 		padding: 0 19px 16px;
 		border-top: 1px solid var(--bdr);
 		padding-top: 14px;
+		animation: faqAnswerIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
 	}
 	.faq__a p {
 		font-size: 13px;
 		color: var(--sub);
 		line-height: 1.75;
+	}
+	@keyframes faqAnswerIn {
+		from {
+			opacity: 0;
+			transform: translateY(-6px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
 	}
 
 	/* ─── PRICING ────────────────────────────────────────────────── */
