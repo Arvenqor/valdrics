@@ -157,7 +157,7 @@ def test_main_rejects_non_positive_max_drill_age_before_running_checks(
     [
         "tests/unit/enforcement/test_key_rotation_drill_selectors.py",
         "scripts/verify_key_rotation_drill_evidence.py",
-        "docs/ops/key-rotation-drill-2026-02-27.md",
+        "docs/ops/key-rotation-drill-2026-05-30.md",
         "docs/ops/evidence/finance_guardrails_TEMPLATE.json",
         "docs/ops/evidence/valdrics_disposition_register_2026-02-28.json",
         "docs/ops/evidence/README.md",
@@ -201,7 +201,7 @@ def test_main_rejects_relative_protected_output_from_outside_repo(
         match="output must not overwrite key-rotation drill source or verifier files",
     ):
         drill_generator.main(
-            ["--output", "docs/ops/key-rotation-drill-2026-02-27.md"]
+            ["--output", "docs/ops/key-rotation-drill-2026-05-30.md"]
         )
 
 

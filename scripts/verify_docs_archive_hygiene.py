@@ -58,7 +58,7 @@ REGISTERED_ACTIVE_DATED_DOCS = {
     "docs/ops/evidence/pkg_fin_policy_decisions_2026-02-28.json",
     "docs/ops/evidence/pricing_benchmark_register_2026-02-27.json",
     "docs/ops/evidence/valdrics_disposition_register_2026-02-28.json",
-    "docs/ops/key-rotation-drill-2026-02-27.md",
+    "docs/ops/key-rotation-drill-2026-05-30.md",
 }
 WEAK_REFERENCE_PREFIXES = (
     "docs/ops/evidence/all_changes_inventory",

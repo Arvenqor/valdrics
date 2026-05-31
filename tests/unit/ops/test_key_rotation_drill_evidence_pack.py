@@ -6,7 +6,7 @@ from scripts.verify_key_rotation_drill_evidence import verify_key_rotation_drill
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-DRILL_PATH = REPO_ROOT / "docs/ops/key-rotation-drill-2026-02-27.md"
+DRILL_PATH = REPO_ROOT / "docs/ops/key-rotation-drill-2026-05-30.md"
 
 
 def test_key_rotation_drill_pack_has_required_evidence_markers() -> None:

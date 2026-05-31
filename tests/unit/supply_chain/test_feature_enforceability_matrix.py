@@ -174,7 +174,7 @@ def test_main_rejects_scanned_source_root_output() -> None:
         "docs/ops/feature_enforceability_matrix.json",
         "docs/ops/evidence/finance_telemetry_snapshot_TEMPLATE.json",
         "docs/ops/evidence/enforcement_stress_artifact_2026-02-27.json",
-        "docs/ops/key-rotation-drill-2026-02-27.md",
+        "docs/ops/key-rotation-drill-2026-05-30.md",
         "docs/ops/evidence/README.md",
     ],
 )

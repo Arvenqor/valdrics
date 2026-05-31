@@ -159,7 +159,7 @@ def _resolve_output_path(*, repo_root: Path, output: str) -> Path:
         __file__,
         "scripts/verify_feature_enforceability_matrix.py",
         "docs/ops/feature_enforceability_matrix.json",
-        "docs/ops/key-rotation-drill-2026-02-27.md",
+        "docs/ops/key-rotation-drill-2026-05-30.md",
         "docs/ops/evidence/finance_telemetry_snapshot_TEMPLATE.json",
         "docs/ops/evidence/enforcement_stress_artifact_2026-02-27.json",
         "docs/ops/evidence/README.md",

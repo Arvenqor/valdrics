@@ -133,7 +133,7 @@ DOCUMENTATION_CONTRACTS: tuple[DocumentationContract, ...] = (
             "active operational material only",
             "Persistent operational contracts should use undated canonical paths.",
             "docs/ops/enforcement_release_gate_contract.json",
-            "docs/ops/key-rotation-drill-2026-02-27.md",
+            "docs/ops/key-rotation-drill-2026-05-30.md",
         ),
     ),
     DocumentationContract(

@@ -40,7 +40,7 @@ def _protected_output_paths() -> set[Path]:
         "scripts/generate_finance_telemetry_snapshot.py",
         "scripts/verify_finance_telemetry_snapshot.py",
         "docs/ops/feature_enforceability_matrix.json",
-        "docs/ops/key-rotation-drill-2026-02-27.md",
+        "docs/ops/key-rotation-drill-2026-05-30.md",
     )
 
 

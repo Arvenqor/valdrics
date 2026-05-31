@@ -50,7 +50,7 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
         "active operational material only\n"
         "Persistent operational contracts should use undated canonical paths.\n"
         "docs/ops/enforcement_release_gate_contract.json\n"
-        "docs/ops/key-rotation-drill-2026-02-27.md\n",
+        "docs/ops/key-rotation-drill-2026-05-30.md\n",
     )
     _write(
         tmp_path / "docs/ops/acceptance_evidence_capture.md",

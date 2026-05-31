@@ -200,7 +200,7 @@ def test_generate_local_dev_env_rejects_directory_output_path(
         ".env.example",
         "scripts/generate_local_dev_env.py",
         "docs/ops/evidence/finance_guardrails_TEMPLATE.json",
-        "docs/ops/key-rotation-drill-2026-02-27.md",
+        "docs/ops/key-rotation-drill-2026-05-30.md",
         "docs/ops/evidence/README.md",
     ],
 )

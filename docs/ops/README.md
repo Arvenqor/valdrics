@@ -21,7 +21,7 @@ covering:
 - current dated release-gate evidence artifacts under `docs/ops/evidence/` and
   `docs/security/`
 - the current dated key-rotation drill report:
-  `docs/ops/key-rotation-drill-2026-02-27.md`
+  `docs/ops/key-rotation-drill-2026-05-30.md`
 
 Persistent operational contracts should use undated canonical paths. Example:
 - `docs/ops/landing_funnel_alerting.md`

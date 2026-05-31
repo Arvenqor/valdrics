@@ -181,7 +181,7 @@ def test_rollback_and_recovery_docs_match_supported_platforms() -> None:
     assert "active operational material only" in ops_readme
     assert "Persistent operational contracts should use undated canonical paths." in ops_readme
     assert "docs/ops/enforcement_release_gate_contract.json" in ops_readme
-    assert "docs/ops/key-rotation-drill-2026-02-27.md" in ops_readme
+    assert "docs/ops/key-rotation-drill-2026-05-30.md" in ops_readme
     assert "not the managed deployment release path" in acceptance_evidence
     assert "docs/runbooks/unified_platform_release.md" in acceptance_evidence
     assert "managed-deployment-bundle-<environment>-<release-tag>" in acceptance_evidence

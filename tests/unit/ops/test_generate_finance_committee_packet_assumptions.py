@@ -117,7 +117,7 @@ def test_generate_finance_committee_packet_assumptions_rejects_input_output_coll
         "docs/ops/evidence/finance_telemetry_snapshot_TEMPLATE.json",
         "docs/ops/evidence/finance_telemetry_snapshot_2026-02-28.json",
         "docs/ops/evidence/pricing_benchmark_register_TEMPLATE.json",
-        "docs/ops/key-rotation-drill-2026-02-27.md",
+        "docs/ops/key-rotation-drill-2026-05-30.md",
         "docs/ops/evidence/README.md",
     ],
 )

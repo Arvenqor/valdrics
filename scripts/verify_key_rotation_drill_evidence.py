@@ -13,7 +13,7 @@ from scripts.env_generation_common import (
     resolve_repo_relative_path_from_root as _resolve_repo_relative_path_from_root,
 )
 
-DEFAULT_DRILL_PATH = "docs/ops/key-rotation-drill-2026-02-27.md"
+DEFAULT_DRILL_PATH = "docs/ops/key-rotation-drill-2026-05-30.md"
 DEFAULT_MAX_DRILL_AGE_DAYS = 120.0
 
 REQUIRED_TEXT_FIELDS: tuple[str, ...] = (

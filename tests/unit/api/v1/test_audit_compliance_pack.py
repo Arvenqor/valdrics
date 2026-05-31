@@ -2,7 +2,7 @@ import io
 import json
 import zipfile
 import csv
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import uuid4
 
@@ -191,7 +191,7 @@ async def test_export_compliance_pack_can_include_focus_export(
             is_active=True,
         )
     )
-    record_day = date.today()
+    record_day = datetime.now(timezone.utc).date()
     db.add(
         CostRecord(
             id=uuid4(),
@@ -487,7 +487,7 @@ async def test_export_compliance_pack_can_include_savings_proof_and_close_packag
         )
     )
 
-    record_day = date.today()
+    record_day = datetime.now(timezone.utc).date()
     db.add(
         CostRecord(
             id=uuid4(),

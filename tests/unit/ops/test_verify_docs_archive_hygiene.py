@@ -21,12 +21,12 @@ def test_verify_docs_archive_hygiene_accepts_registered_referenced_dated_doc(
     tmp_path: Path,
 ) -> None:
     _write(
-        tmp_path / "docs/ops/key-rotation-drill-2026-02-27.md",
+        tmp_path / "docs/ops/key-rotation-drill-2026-05-30.md",
         "key rotation drill\n",
     )
     _write(
         tmp_path / "docs/ops/README.md",
-        "See docs/ops/key-rotation-drill-2026-02-27.md for the active contract.\n",
+        "See docs/ops/key-rotation-drill-2026-05-30.md for the active contract.\n",
     )
 
     errors = verify_docs_archive_hygiene(root=tmp_path)
@@ -87,12 +87,12 @@ def test_verify_docs_archive_hygiene_accepts_supported_dated_doc_component(
     tmp_path: Path,
 ) -> None:
     _write(
-        tmp_path / "docs/ops/key-rotation-drill-2026-02-27.md",
+        tmp_path / "docs/ops/key-rotation-drill-2026-05-30.md",
         "drill record\n",
     )
     _write(
         tmp_path / "scripts/verify_key_rotation_drill_evidence.py",
-        "See docs/ops/key-rotation-drill-2026-02-27.md.\n",
+        "See docs/ops/key-rotation-drill-2026-05-30.md.\n",
     )
 
     errors = verify_docs_archive_hygiene(root=tmp_path)

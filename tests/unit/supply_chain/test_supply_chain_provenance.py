@@ -202,7 +202,7 @@ def test_resolve_output_path_rejects_directory_output(tmp_path: Path) -> None:
         Path(".github/workflows/sbom.yml"),
         Path("docs/ops/evidence/finance_guardrails_TEMPLATE.json"),
         Path("docs/ops/evidence/valdrics_disposition_register_2026-02-28.json"),
-        Path("docs/ops/key-rotation-drill-2026-02-27.md"),
+        Path("docs/ops/key-rotation-drill-2026-05-30.md"),
         Path("docs/ops/evidence/README.md"),
     ],
 )

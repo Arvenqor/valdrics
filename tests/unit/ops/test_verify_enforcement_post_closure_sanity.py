@@ -63,7 +63,7 @@ def test_dimension_tokens_include_lock_contention_and_snapshot_export_evidence()
         "valdrics_ops_enforcement_gate_lock_events_total",
     ) in observability
     assert (
-        "docs/ops/key-rotation-drill-2026-02-27.md",
+        "docs/ops/key-rotation-drill-2026-05-30.md",
         "rollback_validation_passed: true",
     ) in deterministic
     assert (

@@ -159,9 +159,17 @@ def test_verify_key_rotation_drill_evidence_rejects_future_execution_time(
         )
 
 
-def test_main_succeeds_for_valid_file(tmp_path: Path) -> None:
+def test_main_succeeds_for_valid_file(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     path = tmp_path / "drill.md"
     _write(path, _valid_doc())
+    monkeypatch.setattr(
+        drill_verifier,
+        "_utcnow",
+        lambda: datetime(2026, 2, 27, 12, 0, tzinfo=timezone.utc),
+    )
 
     exit_code = drill_verifier.main(
         [
@@ -184,6 +192,11 @@ def test_main_resolves_relative_drill_path_from_repo_root_when_run_outside_repo(
     path = repo_root / "docs" / "ops" / "drill.md"
     _write(path, _valid_doc())
     monkeypatch.setattr(drill_verifier, "_repo_root", lambda: repo_root)
+    monkeypatch.setattr(
+        drill_verifier,
+        "_utcnow",
+        lambda: datetime(2026, 2, 27, 12, 0, tzinfo=timezone.utc),
+    )
 
     old_cwd = Path.cwd()
     try:

@@ -671,7 +671,7 @@ def test_generate_managed_runtime_env_rejects_non_file_template_path(
         ("output_path", ".env.example"),
         ("report_path", "scripts/validate_runtime_env.py"),
         ("output_path", "docs/ops/evidence/finance_guardrails_TEMPLATE.json"),
-        ("report_path", "docs/ops/key-rotation-drill-2026-02-27.md"),
+        ("report_path", "docs/ops/key-rotation-drill-2026-05-30.md"),
         ("output_path", "docs/ops/evidence/README.md"),
     ],
 )

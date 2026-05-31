@@ -62,7 +62,7 @@ DIMENSION_TOKENS: dict[str, tuple[EvidenceToken, ...]] = {
             "test_reconcile_reservation_idempotent_replay_with_same_key",
         ),
         EvidenceToken(
-            "docs/ops/key-rotation-drill-2026-02-27.md",
+            "docs/ops/key-rotation-drill-2026-05-30.md",
             "rollback_validation_passed: true",
         ),
     ),
