@@ -166,7 +166,13 @@
 		bottom: 0;
 		left: 50%;
 		width: 1px;
-		background: linear-gradient(to bottom, transparent, rgba(0, 207, 124, 0.2) 30%, rgba(0, 207, 124, 0.2) 70%, transparent);
+		background: linear-gradient(
+			to bottom,
+			transparent,
+			rgba(0, 207, 124, 0.2) 30%,
+			rgba(0, 207, 124, 0.2) 70%,
+			transparent
+		);
 	}
 	.cta__inner {
 		position: relative;

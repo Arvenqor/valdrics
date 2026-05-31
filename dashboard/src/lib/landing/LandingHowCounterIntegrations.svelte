@@ -117,7 +117,14 @@
 		left: 10%;
 		right: 10%;
 		height: 1px;
-		background: linear-gradient(to right, var(--bdr), var(--jade) 25%, var(--ion) 50%, var(--violet) 75%, var(--bdr));
+		background: linear-gradient(
+			to right,
+			var(--bdr),
+			var(--jade) 25%,
+			var(--ion) 50%,
+			var(--violet) 75%,
+			var(--bdr)
+		);
 	}
 	.how__step {
 		padding: 0 16px;

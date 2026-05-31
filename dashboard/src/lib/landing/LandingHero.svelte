@@ -42,9 +42,13 @@
 				</a>
 			</div>
 			<div class="hero__chips" role="list" aria-label="Key statistics">
-				<div class="chip" role="listitem"><strong>Proactive</strong> governance, not reactive reports</div>
+				<div class="chip" role="listitem">
+					<strong>Proactive</strong> governance, not reactive reports
+				</div>
 				<div class="chip" role="listitem"><strong>Cloud + SaaS</strong> in one platform</div>
-				<div class="chip" role="listitem"><strong>&lt; 20 min</strong> to first approval workflow</div>
+				<div class="chip" role="listitem">
+					<strong>&lt; 20 min</strong> to first approval workflow
+				</div>
 			</div>
 		</div>
 		<LandingHeroPreview {heroCardState} {heroCardVisible} />
