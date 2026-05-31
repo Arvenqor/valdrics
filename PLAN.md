@@ -106,6 +106,12 @@ Every major idea in this file is assigned one strategy label:
   `2026.05.24-paystack-live-dfd7b8b2` with production
   `PAYSTACK_ACTIVATION_PENDING=false`. Payment activation is still not complete
   until a real controlled production checkout is validated.
+  A 2026-05-31 checkout hardening change removed Paystack provider plan-code
+  dependency from checkout initialization; Valdrics now sends dynamic
+  transaction amounts plus metadata and keeps renewal ownership in the
+  application via stored authorization charging. This avoids stale plan IDs from
+  a deleted or rotated Paystack account blocking checkout, but it does not
+  replace the required controlled live checkout validation.
   A 2026-05-24 non-creating auth probe against `/auth/flow` returned
   `401 Invalid login credentials` in both staging and production, proving the
   deployed dashboard can reach Supabase Auth. Reported registration failure is
@@ -369,10 +375,11 @@ Current blockers and external dependencies:
   deprecation annotations.
 - Paystack activation: account approval was reported by the owner on
   2026-05-24, live keys are now supplied through dedicated GitHub environment
-  secrets, and run `26354921733` passed managed runtime preflight plus release
-  readiness. Engineering must not claim live Paystack checkout validation until
-  a controlled production checkout is completed after signup/tenant access is
-  unblocked.
+  secrets, run `26354921733` passed managed runtime preflight plus release
+  readiness, and the repo-side checkout path no longer depends on provider
+  plan codes that can drift when Paystack accounts are rotated. Engineering
+  must not claim live Paystack checkout validation until a controlled
+  production checkout is completed after signup/tenant access is unblocked.
 
 ## Queued Shipping Phases
 

@@ -66,7 +66,8 @@ class BillingService:
         self,
         db: AsyncSession,
         *,
-        exchange_rate_service_factory: Callable[[AsyncSession], _ExchangeRateRuntime] | None = None,
+        exchange_rate_service_factory: Callable[[AsyncSession], _ExchangeRateRuntime]
+        | None = None,
     ):
         self.db = db
         self.client = PaystackClient()
@@ -75,7 +76,9 @@ class BillingService:
         )
 
     @staticmethod
-    def _default_exchange_rate_service_factory(db: AsyncSession) -> _ExchangeRateRuntime:
+    def _default_exchange_rate_service_factory(
+        db: AsyncSession,
+    ) -> _ExchangeRateRuntime:
         from app.shared.core.currency import ExchangeRateService
 
         return ExchangeRateService(db)
@@ -103,7 +106,9 @@ class BillingService:
         from app.shared.core.pricing import TIER_CONFIG
 
         normalized_cycle = self._normalize_billing_cycle(billing_cycle)
-        plan_res = await self.db.execute(select(PricingPlan).where(PricingPlan.id == tier.value))
+        plan_res = await self.db.execute(
+            select(PricingPlan).where(PricingPlan.id == tier.value)
+        )
         plan_obj = plan_res.scalar_one_or_none()
 
         if plan_obj is not None and getattr(plan_obj, "price_usd", None) is not None:
@@ -127,35 +132,6 @@ class BillingService:
             raw_price = price_cfg
 
         return self._to_decimal_usd(raw_price)
-
-    def _resolve_plan_code(self, *, tier: PricingTier, billing_cycle: str) -> str | None:
-        mapping = {
-            PricingTier.STARTER: (
-                getattr(shared.settings, "PAYSTACK_PLAN_STARTER_ANNUAL", None)
-                if billing_cycle.lower() == "annual"
-                else shared.settings.PAYSTACK_PLAN_STARTER
-            ),
-            PricingTier.GROWTH: (
-                getattr(shared.settings, "PAYSTACK_PLAN_GROWTH_ANNUAL", None)
-                if billing_cycle.lower() == "annual"
-                else shared.settings.PAYSTACK_PLAN_GROWTH
-            ),
-            PricingTier.PRO: (
-                getattr(shared.settings, "PAYSTACK_PLAN_PRO_ANNUAL", None)
-                if billing_cycle.lower() == "annual"
-                else shared.settings.PAYSTACK_PLAN_PRO
-            ),
-            PricingTier.ENTERPRISE: (
-                getattr(shared.settings, "PAYSTACK_PLAN_ENTERPRISE_ANNUAL", None)
-                if billing_cycle.lower() == "annual"
-                else shared.settings.PAYSTACK_PLAN_ENTERPRISE
-            ),
-        }
-        value = mapping.get(tier)
-        if value is None:
-            return None
-        normalized = str(value).strip()
-        return normalized or None
 
     def _resolve_checkout_currency(self, requested_currency: str | None) -> str:
         return _resolve_checkout_currency_impl(
@@ -233,12 +209,7 @@ class BillingService:
             fx_rate = 1.0
             fx_provider = shared.PAYSTACK_USD_FX_PROVIDER
 
-        plan_code = (
-            self._resolve_plan_code(tier=tier, billing_cycle=normalized_billing_cycle)
-            if checkout_currency == shared.PAYSTACK_CHECKOUT_CURRENCY
-            else None
-        )
-        pricing_mode = "fixed_plan_code" if plan_code else "dynamic_amount"
+        pricing_mode = "dynamic_authorization_charge"
 
         try:
             result = await self.db.execute(
@@ -251,7 +222,6 @@ class BillingService:
             response = await self.client.initialize_transaction(
                 email=email,
                 amount_kobo=amount_subunits,
-                plan_code=plan_code,
                 callback_url=callback_url,
                 metadata={
                     "tenant_id": str(tenant_id),
@@ -262,7 +232,6 @@ class BillingService:
                     "amount_subunits": amount_subunits,
                     "exchange_rate": fx_rate,
                     "fx_provider": fx_provider,
-                    "plan_code": plan_code,
                     "pricing_mode": pricing_mode,
                 },
             )
@@ -279,7 +248,6 @@ class BillingService:
                 reference=reference,
                 fx_rate=fx_rate,
                 usd_price=usd_price_float,
-                plan_code=plan_code,
                 pricing_mode=pricing_mode,
             )
 
@@ -289,19 +257,20 @@ class BillingService:
                     AuditLogger,
                 )
 
-                audit = AuditLogger(db=self.db, tenant_id=tenant_id, correlation_id=reference)
+                audit = AuditLogger(
+                    db=self.db, tenant_id=tenant_id, correlation_id=reference
+                )
                 await audit.log(
                     event_type=AuditEventType.BILLING_PAYMENT_INITIATED,
                     resource_type="tenant_subscription",
                     resource_id=str(tenant_id),
                     details={
-                    "provider": "paystack",
-                    "tier": tier.value,
-                    "usd_price": usd_price_float,
+                        "provider": "paystack",
+                        "tier": tier.value,
+                        "usd_price": usd_price_float,
                         "exchange_rate": fx_rate,
                         "amount_subunits": amount_subunits,
                         "settlement_currency": checkout_currency,
-                        "plan_code": plan_code,
                         "pricing_mode": pricing_mode,
                         "billing_cycle": normalized_billing_cycle,
                     },
@@ -316,7 +285,9 @@ class BillingService:
             if not sub:
                 import uuid
 
-                sub = TenantSubscription(id=uuid.uuid4(), tenant_id=tenant_id, tier=tier.value)
+                sub = TenantSubscription(
+                    id=uuid.uuid4(), tenant_id=tenant_id, tier=tier.value
+                )
                 self.db.add(sub)
             sub.billing_cycle = normalized_billing_cycle
             sub.billing_currency = checkout_currency
@@ -350,7 +321,9 @@ class BillingService:
             )
             return False
 
-        auth_code = shared.decrypt_string(subscription.paystack_auth_code, context="api_key")
+        auth_code = shared.decrypt_string(
+            subscription.paystack_auth_code, context="api_key"
+        )
         if not auth_code:
             shared.logger.error(
                 "renewal_failed_decryption_error", tenant_id=str(subscription.tenant_id)
@@ -501,8 +474,10 @@ class BillingService:
             if response.get("status") and response["data"].get("status") == "success":
                 charge_data = response.get("data", {})
                 reference = charge_data.get("reference")
-                subscription.next_payment_date = await self._resolve_renewal_next_payment_date(
-                    subscription, charge_data
+                subscription.next_payment_date = (
+                    await self._resolve_renewal_next_payment_date(
+                        subscription, charge_data
+                    )
                 )
                 charge_metadata = charge_data.get("metadata", {})
                 if isinstance(charge_metadata, dict):
@@ -576,7 +551,11 @@ class BillingService:
         )
         sub = result.scalar_one_or_none()
 
-        if not sub or not sub.paystack_subscription_code or not sub.paystack_email_token:
+        if (
+            not sub
+            or not sub.paystack_subscription_code
+            or not sub.paystack_email_token
+        ):
             raise ValueError("No active subscription to cancel")
 
         try:
@@ -590,5 +569,7 @@ class BillingService:
             shared.logger.info("subscription_canceled", tenant_id=str(tenant_id))
 
         except PAYSTACK_RUNTIME_RECOVERABLE_ERRORS as exc:
-            shared.logger.error("cancel_failed", tenant_id=str(tenant_id), error=str(exc))
+            shared.logger.error(
+                "cancel_failed", tenant_id=str(tenant_id), error=str(exc)
+            )
             raise

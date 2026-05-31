@@ -47,18 +47,6 @@ def configured_settings(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         billing_mod.settings, "PAYSTACK_SECRET_KEY", "sk_test_key", raising=False
     )
-    monkeypatch.setattr(
-        billing_mod.settings, "PAYSTACK_PLAN_STARTER", "PLN_STARTER", raising=False
-    )
-    monkeypatch.setattr(
-        billing_mod.settings, "PAYSTACK_PLAN_GROWTH", "PLN_GROWTH", raising=False
-    )
-    monkeypatch.setattr(
-        billing_mod.settings, "PAYSTACK_PLAN_PRO", "PLN_PRO", raising=False
-    )
-    monkeypatch.setattr(
-        billing_mod.settings, "PAYSTACK_PLAN_ENTERPRISE", "PLN_ENT", raising=False
-    )
 
 
 def test_email_hash_normalizes_and_truncates() -> None:
@@ -84,7 +72,7 @@ async def test_paystack_request_rejects_non_dict_payload(
 
 
 @pytest.mark.asyncio
-async def test_initialize_transaction_includes_plan_code(
+async def test_initialize_transaction_uses_dynamic_amount_payload(
     configured_settings: None,
 ) -> None:
     client = PaystackClient()
@@ -94,13 +82,17 @@ async def test_initialize_transaction_includes_plan_code(
         await client.initialize_transaction(
             email="user@example.com",
             amount_kobo=1000,
-            plan_code="PLN_123",
             callback_url="https://callback.example.com",
             metadata={"tenant_id": "t1"},
         )
     assert mock_req.await_args is not None
     payload = mock_req.await_args.args[2]
-    assert payload["plan"] == "PLN_123"
+    assert payload == {
+        "email": "user@example.com",
+        "amount": 1000,
+        "callback_url": "https://callback.example.com",
+        "metadata": {"tenant_id": "t1"},
+    }
 
 
 @pytest.mark.asyncio
@@ -138,16 +130,12 @@ async def test_billing_service_init_ignores_legacy_amount_config(
         patch("app.shared.core.pricing.TIER_CONFIG", invalid_config),
         patch.object(billing_mod.logger, "warning") as mock_warning,
     ):
-        service = BillingService(mock_db)
-    assert service._resolve_plan_code(
-        tier=PricingTier.STARTER, billing_cycle="monthly"
-    ) == "PLN_STARTER"
-    # Plan-code resolution no longer depends on eager amount map parsing.
+        BillingService(mock_db)
     mock_warning.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_create_checkout_session_uses_fixed_plan_code_when_available(
+async def test_create_checkout_session_uses_dynamic_authorization_charge(
     mock_db: MagicMock,
     configured_settings: None,
 ) -> None:
@@ -179,50 +167,9 @@ async def test_create_checkout_session_uses_fixed_plan_code_when_available(
     fx_runtime.get_ngn_rate.assert_awaited_once()
     assert service.client.initialize_transaction.await_args is not None
     init_kwargs = service.client.initialize_transaction.await_args.kwargs
-    assert init_kwargs["plan_code"] == "PLN_STARTER"
-    assert init_kwargs["metadata"]["plan_code"] == "PLN_STARTER"
-    assert init_kwargs["metadata"]["pricing_mode"] == "fixed_plan_code"
-
-
-@pytest.mark.asyncio
-async def test_create_checkout_session_falls_back_to_dynamic_mode_without_plan_code(
-    mock_db: MagicMock,
-    configured_settings: None,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        billing_mod.settings, "PAYSTACK_PLAN_STARTER", None, raising=False
-    )
-    fx_runtime = MagicMock()
-    fx_runtime.get_ngn_rate = AsyncMock(return_value=1500.0)
-    fx_runtime.convert_usd_to_ngn.return_value = 150000
-    service = BillingService(
-        mock_db, exchange_rate_service_factory=lambda _db: fx_runtime
-    )
-    mock_db.execute.return_value = _scalar_result(None)
-    service.client.initialize_transaction = AsyncMock(
-        return_value={
-            "data": {
-                "authorization_url": "https://pay.example/checkout",
-                "reference": "REFNGN2",
-            }
-        }
-    )
-
-    await service.create_checkout_session(
-        tenant_id=uuid4(),
-        tier=PricingTier.STARTER,
-        email="user@example.com",
-        callback_url="https://callback.example.com",
-        billing_cycle="monthly",
-        currency="NGN",
-    )
-
-    assert service.client.initialize_transaction.await_args is not None
-    init_kwargs = service.client.initialize_transaction.await_args.kwargs
-    assert init_kwargs["plan_code"] is None
-    assert init_kwargs["metadata"]["plan_code"] is None
-    assert init_kwargs["metadata"]["pricing_mode"] == "dynamic_amount"
+    assert "plan_code" not in init_kwargs
+    assert "plan_code" not in init_kwargs["metadata"]
+    assert init_kwargs["metadata"]["pricing_mode"] == "dynamic_authorization_charge"
 
 
 @pytest.mark.asyncio
@@ -230,7 +177,9 @@ async def test_create_checkout_session_invalid_tier_raises(
     mock_db: MagicMock,
     configured_settings: None,
 ) -> None:
-    with patch("app.modules.billing.domain.billing.paystack_service_impl.PaystackClient"):
+    with patch(
+        "app.modules.billing.domain.billing.paystack_service_impl.PaystackClient"
+    ):
         service = BillingService(mock_db)
     with patch("app.shared.core.pricing.TIER_CONFIG", {}):
         mock_db.execute.return_value = _scalar_result(None)
@@ -542,7 +491,9 @@ async def test_handle_subscription_create_edge_branches(mock_db: MagicMock) -> N
         WebhookRetryableError,
         match="subscription.create could not find tenant subscription",
     ):
-        await handler._handle_subscription_create({"customer": {"customer_code": "CUS"}})
+        await handler._handle_subscription_create(
+            {"customer": {"customer_code": "CUS"}}
+        )
 
     # Invalid date branch
     sub = MagicMock()
@@ -716,7 +667,9 @@ async def test_charge_renewal_uses_persisted_annual_cycle_for_db_pricing(
             "app.modules.billing.domain.billing.paystack_shared.decrypt_string",
             return_value="AUTH",
         ),
-        patch("app.shared.core.security.decrypt_string", return_value="user@example.com"),
+        patch(
+            "app.shared.core.security.decrypt_string", return_value="user@example.com"
+        ),
         patch.object(
             service.client,
             "charge_authorization",
@@ -750,7 +703,10 @@ async def test_handle_charge_success_creates_subscription_without_auth(
     ):
         await handler._handle_charge_success(
             {
-                "metadata": {"tenant_id": str(tenant_id), "tier": PricingTier.GROWTH.value},
+                "metadata": {
+                    "tenant_id": str(tenant_id),
+                    "tier": PricingTier.GROWTH.value,
+                },
                 "customer": {"customer_code": "CUS3", "email": "x@example.com"},
                 "authorization": {},
             }
@@ -761,8 +717,14 @@ async def test_handle_charge_success_creates_subscription_without_auth(
     mock_record_growth_funnel.assert_awaited_once()
     assert mock_record_growth_funnel.await_args.kwargs["tenant_id"] == tenant_id
     assert mock_record_growth_funnel.await_args.kwargs["stage"] == "paid_activated"
-    assert mock_record_growth_funnel.await_args.kwargs["source"] == "paystack_charge_success"
-    assert mock_record_growth_funnel.await_args.kwargs["current_tier"] == PricingTier.GROWTH
+    assert (
+        mock_record_growth_funnel.await_args.kwargs["source"]
+        == "paystack_charge_success"
+    )
+    assert (
+        mock_record_growth_funnel.await_args.kwargs["current_tier"]
+        == PricingTier.GROWTH
+    )
     assert mock_record_growth_funnel.await_args.kwargs["commit"] is False
     # Billing webhooks should also emit an immutable audit log event.
     assert any(obj.__class__.__name__ == "AuditLog" for obj in added_objects)
@@ -838,7 +800,10 @@ async def test_create_checkout_session_usd_enabled_uses_cents_without_fx_lookup(
     mock_db.execute.return_value = _scalar_result(None)
     service.client.initialize_transaction = AsyncMock(
         return_value={
-            "data": {"authorization_url": "https://pay.example/checkout", "reference": "REFUSD1"}
+            "data": {
+                "authorization_url": "https://pay.example/checkout",
+                "reference": "REFUSD1",
+            }
         }
     )
 
@@ -895,7 +860,9 @@ async def test_charge_renewal_uses_usd_without_fx_when_subscription_currency_usd
             "app.modules.billing.domain.billing.paystack_shared.decrypt_string",
             return_value="AUTH",
         ),
-        patch("app.shared.core.security.decrypt_string", return_value="user@example.com"),
+        patch(
+            "app.shared.core.security.decrypt_string", return_value="user@example.com"
+        ),
         patch(
             "app.shared.core.currency.ExchangeRateService.get_ngn_rate",
             new=AsyncMock(),
@@ -949,7 +916,9 @@ async def test_charge_renewal_uses_injected_exchange_runtime_for_ngn(
             "app.modules.billing.domain.billing.paystack_shared.decrypt_string",
             return_value="AUTH",
         ),
-        patch("app.shared.core.security.decrypt_string", return_value="user@example.com"),
+        patch(
+            "app.shared.core.security.decrypt_string", return_value="user@example.com"
+        ),
         patch.object(
             service.client,
             "charge_authorization",
@@ -988,7 +957,9 @@ async def test_charge_renewal_uses_provider_next_payment_date_when_available(
             "app.modules.billing.domain.billing.paystack_shared.decrypt_string",
             return_value="AUTH",
         ),
-        patch("app.shared.core.security.decrypt_string", return_value="user@example.com"),
+        patch(
+            "app.shared.core.security.decrypt_string", return_value="user@example.com"
+        ),
         patch.object(
             service.client,
             "charge_authorization",
@@ -1033,7 +1004,9 @@ async def test_charge_renewal_fallback_uses_annual_cycle_when_metadata_declares_
             "app.modules.billing.domain.billing.paystack_shared.decrypt_string",
             return_value="AUTH",
         ),
-        patch("app.shared.core.security.decrypt_string", return_value="user@example.com"),
+        patch(
+            "app.shared.core.security.decrypt_string", return_value="user@example.com"
+        ),
         patch.object(
             service.client,
             "charge_authorization",

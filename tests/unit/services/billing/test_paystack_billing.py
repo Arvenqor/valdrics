@@ -30,10 +30,6 @@ def mock_db():
 def mock_settings():
     with patch("app.modules.billing.domain.billing.paystack_shared.settings") as m:
         m.PAYSTACK_SECRET_KEY = "sk_test_123"
-        m.PAYSTACK_PLAN_STARTER = "PLN_1"
-        m.PAYSTACK_PLAN_GROWTH = "PLN_2"
-        m.PAYSTACK_PLAN_PRO = "PLN_3"
-        m.PAYSTACK_PLAN_ENTERPRISE = "PLN_4"
         yield m
 
 
@@ -84,7 +80,9 @@ class TestPaystackClient:
                 await client._request("GET", "test")
 
     @pytest.mark.asyncio
-    async def test_request_reads_live_secret_after_client_construction(self, mock_settings):
+    async def test_request_reads_live_secret_after_client_construction(
+        self, mock_settings
+    ):
         client = PaystackClient()
         mock_settings.PAYSTACK_SECRET_KEY = "sk_test_rotated"
 
@@ -145,7 +143,9 @@ class TestBillingService:
                 ) as audit_log_mock,
             ):
                 mock_plan_res = MagicMock()
-                mock_plan_res.scalar_one_or_none.return_value = MagicMock(price_usd=10.0)
+                mock_plan_res.scalar_one_or_none.return_value = MagicMock(
+                    price_usd=10.0
+                )
                 mock_sub_res = MagicMock()
                 mock_sub_res.scalar_one_or_none.return_value = None
                 mock_db.execute.side_effect = [mock_plan_res, mock_sub_res]
@@ -226,9 +226,7 @@ class TestBillingService:
 
                 mock_db.execute.side_effect = [mock_plan_res, mock_user_res]
 
-                with patch(
-                    "app.modules.billing.domain.billing.paystack_shared.logger"
-                ):
+                with patch("app.modules.billing.domain.billing.paystack_shared.logger"):
                     res = await service.charge_renewal(sub)
 
                     assert res is True
@@ -349,6 +347,4 @@ class TestWebhookHandler:
             new_callable=AsyncMock,
         ) as mock_dunning:
             await handler.handle(self._mock_request(), payload, signature)
-            mock_dunning.assert_called_once_with(
-                sub.id, is_webhook=True, commit=False
-            )
+            mock_dunning.assert_called_once_with(sub.id, is_webhook=True, commit=False)

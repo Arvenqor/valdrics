@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
@@ -70,26 +70,25 @@ class PaystackClient:
             )
             raise
         except httpx.HTTPError as exc:
-            shared.logger.error("paystack_api_transport_error", endpoint=endpoint, error=str(exc))
+            shared.logger.error(
+                "paystack_api_transport_error", endpoint=endpoint, error=str(exc)
+            )
             raise
 
     async def initialize_transaction(
         self,
         email: str,
         amount_kobo: int,
-        plan_code: Optional[str],
         callback_url: str,
         metadata: dict[str, Any],
     ) -> dict[str, Any]:
-        """Initialize a transaction to start a subscription."""
+        """Initialize a checkout transaction with an application-owned amount."""
         data: dict[str, Any] = {
             "email": email,
             "amount": amount_kobo,
             "callback_url": callback_url,
             "metadata": metadata,
         }
-        if plan_code:
-            data["plan"] = plan_code
 
         return await self._request("POST", "transaction/initialize", data)
 

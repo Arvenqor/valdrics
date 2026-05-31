@@ -200,6 +200,23 @@ describe('hooks.server handle', () => {
 		expect(resolve).not.toHaveBeenCalled();
 	});
 
+	it('redirects marketing-domain auth routes to the configured app host', async () => {
+		const event = createEvent('https://valdrics.com/auth/login?mode=signup&plan=growth');
+		const resolve = vi.fn();
+
+		const response = await handle({
+			event,
+			resolve
+		} as Parameters<typeof handle>[0]);
+
+		expect(response.status).toBe(307);
+		expect(response.headers.get('location')).toBe(
+			'https://app.valdrics.com/auth/login?mode=signup&plan=growth'
+		);
+		expect(resolve).not.toHaveBeenCalled();
+		expect(mocks.createServerClient).not.toHaveBeenCalled();
+	});
+
 	it('logs provider resolution faults and fails closed to null session', async () => {
 		mocks.createServerClient.mockReturnValue({
 			auth: {

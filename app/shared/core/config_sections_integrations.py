@@ -83,16 +83,6 @@ class IntegrationSettings:
     # Explicit offline-validation escape hatch for CI contract checks.
     # Never enable this in real staging/production deployments.
     ALLOW_SYNTHETIC_BILLING_KEYS_FOR_VALIDATION: bool = False
-    # Monthly plans
-    PAYSTACK_PLAN_STARTER: str | None = None
-    PAYSTACK_PLAN_GROWTH: str | None = None
-    PAYSTACK_PLAN_PRO: str | None = None
-    PAYSTACK_PLAN_ENTERPRISE: str | None = None
-    # Annual plans (17% discount - 2 months free)
-    PAYSTACK_PLAN_STARTER_ANNUAL: str | None = None
-    PAYSTACK_PLAN_GROWTH_ANNUAL: str | None = None
-    PAYSTACK_PLAN_PRO_ANNUAL: str | None = None
-    PAYSTACK_PLAN_ENTERPRISE_ANNUAL: str | None = None
     PAYSTACK_DEFAULT_CHECKOUT_CURRENCY: str = "NGN"
     PAYSTACK_ENABLE_USD_CHECKOUT: bool = False
     PAYSTACK_WEBHOOK_ALLOWED_IPS: list[str] = Field(

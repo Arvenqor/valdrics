@@ -145,6 +145,15 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const publicSupabaseUrl = String(publicEnv.PUBLIC_SUPABASE_URL || '').trim();
 	const publicSupabaseAnonKey = String(publicEnv.PUBLIC_SUPABASE_ANON_KEY || '').trim();
 	const hasSupabasePublicConfig = !!(publicSupabaseUrl && publicSupabaseAnonKey);
+	const authAppHref = buildPublicAuthHref(`${event.url.pathname}${event.url.search}`, event.url);
+	const isAuthRoute = event.url.pathname === '/auth' || event.url.pathname.startsWith('/auth/');
+
+	if (isAuthRoute && authAppHref.startsWith('https://')) {
+		return new Response(null, {
+			status: 307,
+			headers: { Location: authAppHref }
+		});
+	}
 
 	if (hasSupabasePublicConfig) {
 		// Create a Supabase client with cookie handling
