@@ -8,7 +8,7 @@
     },
     {
       "path": "app/modules/billing/domain/billing/paystack_service_impl.py",
-      "lines": 594,
+      "lines": 575,
       "preferred_max_lines": 500
     },
     {
