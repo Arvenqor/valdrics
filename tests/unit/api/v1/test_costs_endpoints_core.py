@@ -51,6 +51,10 @@ def test_cost_routes_bind_db_context_dependencies() -> None:
         is get_current_user_with_db_context
     )
     assert (
+        _dependency_for(costs_http_routes_core.get_cost_daily, "current_user")
+        is get_current_user_with_db_context
+    )
+    assert (
         _dependency_for(costs_http_routes_core.get_canonical_quality, "current_user")
         is get_current_user_with_db_context
     )
@@ -146,6 +150,138 @@ async def test_get_costs_and_breakdown(async_client: AsyncClient, app):
             assert response.json()["services"] == []
     finally:
         _clear_reporting_auth_overrides(app)
+
+
+@pytest.mark.asyncio
+async def test_get_cost_daily_rolls_up_final_costs_by_date_and_provider(
+    async_client: AsyncClient,
+    app,
+    db,
+) -> None:
+    tenant_id = uuid.uuid4()
+    user_id = uuid.uuid4()
+    aws_account_id = uuid.uuid4()
+    azure_account_id = uuid.uuid4()
+
+    db.add(Tenant(id=tenant_id, name="Daily Costs Tenant", plan=PricingTier.STARTER.value))
+    db.add_all(
+        [
+            CloudAccount(
+                id=aws_account_id,
+                tenant_id=tenant_id,
+                provider="aws",
+                name="AWS Prod",
+                is_active=True,
+            ),
+            CloudAccount(
+                id=azure_account_id,
+                tenant_id=tenant_id,
+                provider="azure",
+                name="Azure Prod",
+                is_active=True,
+            ),
+        ]
+    )
+    db.add_all(
+        [
+            CostRecord(
+                tenant_id=tenant_id,
+                account_id=aws_account_id,
+                service="EC2",
+                cost_usd=Decimal("12.50"),
+                carbon_kg=Decimal("1.25"),
+                cost_status="FINAL",
+                recorded_at=date(2026, 1, 1),
+                timestamp=datetime(2026, 1, 1, tzinfo=timezone.utc),
+            ),
+            CostRecord(
+                tenant_id=tenant_id,
+                account_id=aws_account_id,
+                service="S3",
+                cost_usd=Decimal("7.50"),
+                carbon_kg=Decimal("0.75"),
+                cost_status="FINAL",
+                recorded_at=date(2026, 1, 1),
+                timestamp=datetime(2026, 1, 1, 1, tzinfo=timezone.utc),
+            ),
+            CostRecord(
+                tenant_id=tenant_id,
+                account_id=azure_account_id,
+                service="VM",
+                cost_usd=Decimal("20.00"),
+                carbon_kg=Decimal("2.00"),
+                cost_status="FINAL",
+                recorded_at=date(2026, 1, 2),
+                timestamp=datetime(2026, 1, 2, tzinfo=timezone.utc),
+            ),
+            CostRecord(
+                tenant_id=tenant_id,
+                account_id=aws_account_id,
+                service="EC2",
+                cost_usd=Decimal("99.00"),
+                carbon_kg=Decimal("9.90"),
+                cost_status="PRELIMINARY",
+                recorded_at=date(2026, 1, 2),
+                timestamp=datetime(2026, 1, 2, 2, tzinfo=timezone.utc),
+            ),
+        ]
+    )
+    await db.commit()
+
+    mock_user = CurrentUser(
+        id=user_id,
+        tenant_id=tenant_id,
+        email="daily-costs@valdrics.io",
+        role=UserRole.MEMBER,
+        tier=PricingTier.STARTER,
+    )
+
+    _override_reporting_auth(app, mock_user)
+    try:
+        response = await async_client.get(
+            "/api/v1/costs/daily",
+            params={"start_date": "2026-01-01", "end_date": "2026-01-31"},
+        )
+        aws_response = await async_client.get(
+            "/api/v1/costs/daily",
+            params={
+                "start_date": "2026-01-01",
+                "end_date": "2026-01-31",
+                "provider": "aws",
+                "include_preliminary": "true",
+            },
+        )
+    finally:
+        _clear_reporting_auth_overrides(app)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total_cost_usd"] == 40.0
+    assert payload["total_carbon_kgco2e"] == 4.0
+    assert payload["points"] == [
+        {
+            "date": "2026-01-01",
+            "provider": "aws",
+            "cost_usd": 20.0,
+            "carbon_kgco2e": 2.0,
+        },
+        {
+            "date": "2026-01-02",
+            "provider": "azure",
+            "cost_usd": 20.0,
+            "carbon_kgco2e": 2.0,
+        },
+    ]
+
+    assert aws_response.status_code == 200
+    aws_payload = aws_response.json()
+    assert aws_payload["provider"] == "aws"
+    assert aws_payload["include_preliminary"] is True
+    assert aws_payload["total_cost_usd"] == 119.0
+    assert [point["date"] for point in aws_payload["points"]] == [
+        "2026-01-01",
+        "2026-01-02",
+    ]
 
 
 @pytest.mark.asyncio

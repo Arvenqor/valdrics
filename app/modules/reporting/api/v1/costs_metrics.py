@@ -58,6 +58,16 @@ def settings_to_response(
             settings.anomaly_threshold_percent,
             field_name="anomaly_threshold_percent",
         ),
+        target_spend_reduction_pct=_coerce_finite_float(
+            settings.target_spend_reduction_pct,
+            field_name="target_spend_reduction_pct",
+        ),
+        target_rollout_days=int(settings.target_rollout_days),
+        target_team_members=int(settings.target_team_members),
+        target_blended_hourly_rate=_coerce_finite_float(
+            settings.target_blended_hourly_rate,
+            field_name="target_blended_hourly_rate",
+        ),
     )
 
 
@@ -97,6 +107,10 @@ async def get_unit_settings_snapshot(
         default_workload_volume=100.0,
         default_customer_volume=50.0,
         anomaly_threshold_percent=20.0,
+        target_spend_reduction_pct=15.0,
+        target_rollout_days=30,
+        target_team_members=10,
+        target_blended_hourly_rate=75.0,
     )
 
 

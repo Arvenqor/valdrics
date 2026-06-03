@@ -31,9 +31,9 @@ if [ -f ".env" ]; then
 fi
 
 # 4. Frontend Audit
-if [ -d "dashboard" ]; then
+if [ -d "frontend" ]; then
     echo "Running Frontend Dependency Audit..."
-    cd dashboard && pnpm audit && cd ..
+    cd frontend && pnpm audit && cd ..
 fi
 
 echo "--- Audit Complete (PASSED) ---"

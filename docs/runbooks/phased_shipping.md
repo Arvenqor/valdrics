@@ -35,16 +35,16 @@ make ship-backend-slice \
   PYTEST_TARGETS="tests/unit/... tests/unit/..."
 ```
 
-### Changed dashboard/public surface
+### Changed frontend/public surface
 
 ```bash
-make ship-dashboard-slice
+make ship-frontend-slice
 ```
 
 Or:
 
 ```bash
-make ship-dashboard-slice DASHBOARD_URL=http://localhost:5174
+make ship-frontend-slice FRONTEND_URL=http://localhost:5174
 ```
 
 ### Managed deployment bundle preflight

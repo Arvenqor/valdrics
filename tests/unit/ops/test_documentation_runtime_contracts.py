@@ -196,7 +196,7 @@ def test_rollback_and_recovery_docs_match_supported_platforms() -> None:
     assert "required_runtime_gated_features" in release_gate_contract
 
     assert "Permanent public proof lane" in tiering
-    assert "dashboard/src/lib/pricing/publicPlans.ts" in tiering
+    assert "frontend/src/lib/pricing/publicPlans.ts" in tiering
     assert "app/shared/core/pricing.py" in tiering
     assert "supplemental evidence" in compliance_pack
     assert "docs/runbooks/unified_platform_release.md" in compliance_pack
@@ -292,9 +292,14 @@ def test_precommit_enforces_repo_native_release_hygiene_guards() -> None:
     assert "entry: uv run python3 scripts/verify_jwt_bcp_checklist.py" in precommit_text
     assert "id: verify-ssdf-traceability-matrix" in precommit_text
     assert "entry: uv run python3 scripts/verify_ssdf_traceability_matrix.py" in precommit_text
-    assert "id: verify-dashboard-runtime-contract" in precommit_text
+    assert "id: verify-frontend-runtime-contract" in precommit_text
     assert (
-        "entry: uv run python3 scripts/verify_dashboard_runtime_contract.py --build --skip-smoke"
+        "entry: uv run python3 scripts/verify_frontend_runtime_contract.py --build --skip-smoke"
+        in precommit_text
+    )
+    assert "id: verify-new-frontend-disposition-register" in precommit_text
+    assert (
+        "entry: uv run python3 scripts/verify_new_frontend_disposition_register.py"
         in precommit_text
     )
     assert "uv run pre-commit install --install-hooks" in makefile_text
@@ -311,6 +316,18 @@ def test_makefile_docs_hygiene_runs_docs_and_reports_archive_guards() -> None:
     assert "docs-hygiene:" in makefile_text
     assert "uv run python3 scripts/verify_docs_archive_hygiene.py" in makefile_text
     assert "uv run python3 scripts/verify_reports_archive_hygiene.py" in makefile_text
+
+
+def test_makefile_exposes_new_frontend_disposition_guard() -> None:
+    makefile_text = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
+
+    assert (
+        "make verify-frontend-disposition - Validate new_frontend reference migration disposition"
+        in makefile_text
+    )
+    assert "verify-frontend-disposition:" in makefile_text
+    assert "uv run python3 scripts/verify_new_frontend_disposition_register.py" in makefile_text
+    assert "$(MAKE) verify-frontend-disposition" in makefile_text
 
 
 def test_makefile_exposes_cross_environment_blocker_summary_helper() -> None:

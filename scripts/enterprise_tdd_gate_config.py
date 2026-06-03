@@ -88,6 +88,7 @@ ENTERPRISE_GATE_TEST_TARGETS: tuple[str, ...] = (
     "tests/unit/ops/test_verify_reports_archive_hygiene.py",
     "tests/unit/ops/test_verify_python_module_size_budget.py",
     "tests/unit/ops/test_verify_frontend_module_size_budget.py",
+    "tests/unit/ops/test_verify_new_frontend_disposition_register.py",
     "tests/unit/ops/test_verify_architecture_decision_records.py",
     "tests/unit/ops/test_verify_test_to_production_ratio.py",
     "tests/unit/ops/test_db_diagnostics.py",

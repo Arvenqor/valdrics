@@ -26,9 +26,9 @@ def build_public_quality_commands(
         (
             "public critical-path smoke",
             [
-                "pnpm",
-                "--dir",
-                "dashboard",
+				"pnpm",
+				"--dir",
+				"frontend",
                 "exec",
                 "playwright",
                 "test",
@@ -41,21 +41,21 @@ def build_public_quality_commands(
         commands.append(
             (
                 "public accessibility gate",
-                ["pnpm", "--dir", "dashboard", "run", "test:a11y:public"],
+                ["pnpm", "--dir", "frontend", "run", "test:a11y:public"],
             )
         )
     if include_perf:
         commands.append(
             (
                 "public performance gate",
-                ["pnpm", "--dir", "dashboard", "run", "test:perf:ci"],
+                ["pnpm", "--dir", "frontend", "run", "test:perf:ci"],
             )
         )
     if include_visual:
         commands.append(
             (
                 "public visual gate",
-                ["pnpm", "--dir", "dashboard", "run", "test:visual"],
+                ["pnpm", "--dir", "frontend", "run", "test:visual"],
             )
         )
     return commands
@@ -63,13 +63,13 @@ def build_public_quality_commands(
 
 def _build_environment(
     *,
-    dashboard_url: str | None,
+    frontend_url: str | None,
     skip_webserver: bool,
 ) -> dict[str, str]:
     env = os.environ.copy()
     env.pop("NO_COLOR", None)
-    if dashboard_url:
-        env["DASHBOARD_URL"] = dashboard_url
+    if frontend_url:
+        env["FRONTEND_URL"] = frontend_url
     if skip_webserver:
         env["PLAYWRIGHT_SKIP_WEBSERVER"] = "1"
     return env
@@ -77,7 +77,7 @@ def _build_environment(
 
 def run_public_frontend_quality_gate(
     *,
-    dashboard_url: str | None = None,
+    frontend_url: str | None = None,
     skip_webserver: bool = False,
     include_a11y: bool = True,
     include_perf: bool = True,
@@ -85,7 +85,7 @@ def run_public_frontend_quality_gate(
     runner: CommandRunner = subprocess.run,
 ) -> None:
     env = _build_environment(
-        dashboard_url=dashboard_url,
+        frontend_url=frontend_url,
         skip_webserver=skip_webserver,
     )
     commands = build_public_quality_commands(
@@ -112,10 +112,10 @@ def _build_parser() -> argparse.ArgumentParser:
         )
     )
     parser.add_argument(
-        "--dashboard-url",
+        "--frontend-url",
         default=None,
         help=(
-            "Existing dashboard URL to target (for example http://localhost:5174). "
+			"Existing frontend URL to target (for example http://localhost:5174). "
             "When provided with --skip-webserver, the gate will reuse that running app."
         ),
     )
@@ -145,7 +145,7 @@ def _build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
     run_public_frontend_quality_gate(
-        dashboard_url=args.dashboard_url,
+        frontend_url=args.frontend_url,
         skip_webserver=bool(args.skip_webserver),
         include_a11y=not bool(args.skip_a11y),
         include_perf=not bool(args.skip_perf),

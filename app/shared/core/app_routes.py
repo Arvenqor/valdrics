@@ -23,6 +23,7 @@ _REQUIRED_API_PREFIXES = {
     "/api/v1/currency",
     "/api/v1/enforcement",
     "/api/v1/internal",
+    "/api/v1/inventory",
     "/api/v1/jobs",
     "/api/v1/leaderboards",
     "/api/v1/leadership",
@@ -136,6 +137,7 @@ def register_api_routers(app: FastAPI) -> None:
     from app.modules.reporting.api.v1.carbon import router as carbon_router
     from app.modules.reporting.api.v1.costs import router as costs_router
     from app.modules.reporting.api.v1.currency import router as currency_router
+    from app.modules.reporting.api.v1.inventory import router as inventory_router
     from app.modules.reporting.api.v1.leadership import router as leadership_router
     from app.modules.reporting.api.v1.leaderboards import router as leaderboards_router
     from app.modules.reporting.api.v1.savings import router as savings_router
@@ -148,6 +150,7 @@ def register_api_routers(app: FastAPI) -> None:
         (leaderboards_router, "/api/v1/leaderboards"),
         (costs_router, "/api/v1/costs"),
         (savings_router, "/api/v1/savings"),
+        (inventory_router, "/api/v1/inventory"),
         (leadership_router, "/api/v1/leadership"),
         (attribution_router, "/api/v1/attribution"),
         (carbon_router, "/api/v1/carbon"),

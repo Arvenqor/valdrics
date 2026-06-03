@@ -6,9 +6,11 @@ from typing import Any, Optional
 
 import structlog
 from fastapi import HTTPException, Request, Response
+from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.cloud import CloudAccount, CostRecord
 from app.modules.reporting.domain.aggregator import LARGE_DATASET_THRESHOLD
 from app.shared.core.auth import CurrentUser
 from app.shared.core.pricing import (
@@ -91,6 +93,67 @@ async def get_cost_breakdown_impl(
         limit=limit,
         offset=offset,
     )
+
+
+async def get_cost_daily_impl(
+    *,
+    start_date: date,
+    end_date: date,
+    provider: Optional[str],
+    include_preliminary: bool,
+    db: AsyncSession,
+    current_user: CurrentUser,
+    require_tenant_id: Any,
+    normalize_provider_filter: Any,
+) -> dict[str, Any]:
+    if start_date > end_date:
+        raise HTTPException(status_code=400, detail="start_date must be <= end_date")
+
+    tenant_id = require_tenant_id(current_user)
+    normalized_provider = normalize_provider_filter(provider)
+    filters: list[Any] = [
+        CostRecord.tenant_id == tenant_id,
+        CostRecord.recorded_at >= start_date,
+        CostRecord.recorded_at <= end_date,
+    ]
+    if not include_preliminary:
+        filters.append(CostRecord.cost_status == "FINAL")
+    if normalized_provider:
+        filters.append(CloudAccount.provider == normalized_provider)
+
+    stmt = (
+        select(
+            CostRecord.recorded_at.label("recorded_at"),
+            CloudAccount.provider.label("provider"),
+            func.coalesce(func.sum(CostRecord.cost_usd), 0).label("cost_usd"),
+            func.coalesce(func.sum(CostRecord.carbon_kg), 0).label("carbon_kgco2e"),
+        )
+        .select_from(CostRecord)
+        .join(CloudAccount, CostRecord.account_id == CloudAccount.id)
+        .where(*filters)
+        .group_by(CostRecord.recorded_at, CloudAccount.provider)
+        .order_by(CostRecord.recorded_at.asc(), CloudAccount.provider.asc())
+    )
+    rows = (await db.execute(stmt)).all()
+    points = [
+        {
+            "date": row.recorded_at.isoformat(),
+            "provider": str(row.provider or "unknown").lower(),
+            "cost_usd": float(row.cost_usd or 0),
+            "carbon_kgco2e": float(row.carbon_kgco2e or 0),
+        }
+        for row in rows
+    ]
+
+    return {
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
+        "provider": normalized_provider,
+        "include_preliminary": bool(include_preliminary),
+        "total_cost_usd": round(sum(point["cost_usd"] for point in points), 4),
+        "total_carbon_kgco2e": round(sum(point["carbon_kgco2e"] for point in points), 4),
+        "points": points,
+    }
 
 
 async def get_cost_attribution_summary_impl(

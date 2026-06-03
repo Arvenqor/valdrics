@@ -110,13 +110,21 @@ repos:
         files: ^(docs/security/ssdf_traceability_matrix\.json|scripts/verify_ssdf_traceability_matrix\.py)$
         stages: [pre-push, manual]
 
-      - id: verify-dashboard-runtime-contract
-        name: verify-dashboard-runtime-contract
-        entry: uv run python3 scripts/verify_dashboard_runtime_contract.py --build --skip-smoke
+      - id: verify-frontend-runtime-contract
+        name: verify-frontend-runtime-contract
+        entry: uv run python3 scripts/verify_frontend_runtime_contract.py --build --skip-smoke
         language: system
         pass_filenames: false
-        files: ^(dashboard/|Dockerfile\.dashboard|scripts/verify_dashboard_runtime_contract\.py)$
+        files: ^(frontend/|Dockerfile\.frontend|scripts/verify_frontend_runtime_contract\.py)$
         stages: [manual]
+
+      - id: verify-new-frontend-disposition-register
+        name: verify-new-frontend-disposition-register
+        entry: uv run python3 scripts/verify_new_frontend_disposition_register.py
+        language: system
+        pass_filenames: false
+        files: ^(new_frontend/|docs/architecture/new_frontend_disposition_register\.json|scripts/verify_new_frontend_disposition_register\.py)$
+        stages: [pre-push, manual]
 
   # Ruff - Fast Python linter & formatter
   - repo: https://github.com/astral-sh/ruff-pre-commit

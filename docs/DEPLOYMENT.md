@@ -108,8 +108,8 @@ Repository evidence:
   - `.github/workflows/publish-artifact-registry-images.yml`
 - reusable unified deployment workflow:
   - `.github/workflows/deploy-unified-platform.yml`
-- dashboard runtime verifier:
-  - `scripts/verify_dashboard_runtime_contract.py`
+- frontend runtime verifier:
+  - `scripts/verify_frontend_runtime_contract.py`
 - release readiness verifier:
   - `scripts/verify_managed_release_readiness.py`
 - generated deploy-workspace artifacts:
@@ -163,7 +163,7 @@ Expected posture:
 5. Let the reusable deploy workflow run `scripts/generate_managed_deployment_artifacts.py`, `scripts/verify_managed_deployment_bundle.py`, and `scripts/render_managed_deployment_handoff.py` before any Terraform apply.
 6. Upload the non-secret managed deployment evidence bundle from the deploy workflow as the operator audit artifact for the environment, including `operator-handoff.md`. Keep the secret-bearing runtime env, Secret Manager payload, and Terraform tfvars on the deploy runner only.
 7. Let the deploy workflow refresh the codebase audit report and run `scripts/verify_managed_release_readiness.py` after the API smoke check.
-8. Verify the dashboard runtime contract with `scripts/verify_dashboard_runtime_contract.py`.
+8. Verify the frontend runtime contract with `scripts/verify_frontend_runtime_contract.py`.
 9. Let `.github/workflows/release-unified-platform.yml` render `.runtime/deploy/managed-release-blockers.md` after both staging and production non-secret bundles have passed readiness when `promote_production=true`. For preflight or incident-repair review, render the same file manually with `scripts/render_managed_release_blocker_summary.py` via `make render-managed-release-blockers NON_SECRET_BUNDLE=true` after downloading both bundles into the repo root.
 10. Let the release workflow apply infrastructure and run Alembic from the generated `.runtime/<environment>.migrate.env`.
 11. Deploy the dashboard from the generated `cloudflare-pages-env.json`.

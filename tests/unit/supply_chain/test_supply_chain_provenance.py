@@ -23,9 +23,9 @@ def test_generate_provenance_manifest_emits_sha256_for_dependency_inputs(tmp_pat
     _write(tmp_path / "pyproject.toml", "[project]\nname='x'\n")
     _write(tmp_path / "uv.lock", "version = 1\n")
     _write(tmp_path / "Dockerfile", "FROM python:3.12-slim\n")
-    _write(tmp_path / "Dockerfile.dashboard", "FROM node:24-alpine\n")
-    _write(tmp_path / "dashboard/package.json", '{"name":"x"}\n')
-    _write(tmp_path / "dashboard/pnpm-lock.yaml", "lockfileVersion: '9.0'\n")
+    _write(tmp_path / "Dockerfile.frontend", "FROM node:24-alpine\n")
+    _write(tmp_path / "frontend/package.json", '{"name":"x"}\n')
+    _write(tmp_path / "frontend/pnpm-lock.yaml", "lockfileVersion: '9.0'\n")
 
     _write(tmp_path / "sbom/python.json", '{"bomFormat":"CycloneDX"}\n')
 
@@ -67,8 +67,8 @@ def test_generate_provenance_manifest_emits_sha256_for_dependency_inputs(tmp_pat
 
 def test_generate_provenance_manifest_requires_all_dependency_inputs(tmp_path: Path) -> None:
     _write(tmp_path / "pyproject.toml", "[project]\nname='x'\n")
-    _write(tmp_path / "dashboard/package.json", '{"name":"x"}\n')
-    _write(tmp_path / "dashboard/pnpm-lock.yaml", "lockfileVersion: '9.0'\n")
+    _write(tmp_path / "frontend/package.json", '{"name":"x"}\n')
+    _write(tmp_path / "frontend/pnpm-lock.yaml", "lockfileVersion: '9.0'\n")
 
     with pytest.raises(FileNotFoundError):
         generate_provenance_manifest(
@@ -83,9 +83,9 @@ def test_generate_provenance_manifest_is_json_serializable(tmp_path: Path) -> No
     _write(tmp_path / "pyproject.toml", "[project]\nname='x'\n")
     _write(tmp_path / "uv.lock", "version = 1\n")
     _write(tmp_path / "Dockerfile", "FROM python:3.12-slim\n")
-    _write(tmp_path / "Dockerfile.dashboard", "FROM node:24-alpine\n")
-    _write(tmp_path / "dashboard/package.json", '{"name":"x"}\n')
-    _write(tmp_path / "dashboard/pnpm-lock.yaml", "lockfileVersion: '9.0'\n")
+    _write(tmp_path / "Dockerfile.frontend", "FROM node:24-alpine\n")
+    _write(tmp_path / "frontend/package.json", '{"name":"x"}\n')
+    _write(tmp_path / "frontend/pnpm-lock.yaml", "lockfileVersion: '9.0'\n")
 
     manifest = generate_provenance_manifest(
         repo_root=tmp_path,

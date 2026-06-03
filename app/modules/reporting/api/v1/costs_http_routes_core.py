@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.reporting.api.v1.costs_models import (
     CostAnomalyResponse,
+    CostDailySeriesResponse,
     IngestionSLAResponse,
     SpendLedgerResponse,
 )
@@ -69,6 +70,29 @@ async def get_cost_breakdown(
         offset=offset,
         db=db,
         current_user=current_user,
+    )
+
+
+@router.get("/daily", response_model=CostDailySeriesResponse)
+async def get_cost_daily(
+    start_date: date = Query(...),
+    end_date: date = Query(...),
+    provider: Optional[str] = Query(default=None),
+    include_preliminary: bool = Query(default=False),
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user_with_db_context),
+) -> CostDailySeriesResponse:
+    costs_api = _costs_api()
+    return cast(
+        CostDailySeriesResponse,
+        await costs_api.get_cost_daily(
+            start_date=start_date,
+            end_date=end_date,
+            provider=provider,
+            include_preliminary=include_preliminary,
+            db=db,
+            current_user=current_user,
+        ),
     )
 
 

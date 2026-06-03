@@ -2,12 +2,15 @@
 """Frontend hygiene checks for production safety and consistency.
 
 Checks:
+- The legacy `dashboard/` app root must not contain deployable frontend source.
 - `PUBLIC_API_URL` usage is restricted to approved proxy/config files.
 - Every `<button>` explicitly declares `type=...`.
 - Every `target="_blank"` anchor includes `rel="noopener noreferrer"`.
 - `{@html ...}` usage requires DOMPurify sanitization in the same file.
-- `dashboard/svelte.config.js` must not allow CSP `unsafe-inline`.
-- `dashboard/src/app.html` must not use manual inline style attributes.
+- `frontend/svelte.config.js` must not allow CSP `unsafe-inline`.
+- `frontend/src/app.html` must not use manual inline style attributes.
+- `frontend/src/app.html` must not include manual inline `<script>` or `<style>` blocks.
+- `frontend/src/app.html` must not load Google-hosted fonts or stylesheet fonts.
 - Svelte transition directives are disallowed because they require inline `<style>` tags under strict CSP.
 """
 
@@ -24,11 +27,11 @@ from scripts.env_generation_common import (
 
 
 ALLOWED_PUBLIC_API_URL_FILES = {
-    Path("dashboard/src/lib/edgeProxy.ts"),
-    Path("dashboard/src/lib/server/backend-origin.ts"),
-    Path("dashboard/src/routes/api/edge/[...path]/+server.ts"),
-    Path("dashboard/src/lib/components/IdentitySettingsCard.svelte"),
-    Path("dashboard/src/lib/components/IdentitySettingsCardContent.svelte"),
+    Path("frontend/src/lib/edgeProxy.ts"),
+    Path("frontend/src/lib/server/backend-origin.ts"),
+    Path("frontend/src/routes/api/edge/[...path]/+server.ts"),
+    Path("frontend/src/lib/components/IdentitySettingsCard.svelte"),
+    Path("frontend/src/lib/components/IdentitySettingsCardContent.svelte"),
 }
 
 SOURCE_EXTENSIONS = {".svelte", ".ts"}
@@ -47,7 +50,28 @@ SVELTE_TRANSITION_DIRECTIVE_PATTERN = re.compile(
     flags=re.IGNORECASE | re.DOTALL,
 )
 INLINE_STYLE_ATTRIBUTE_PATTERN = re.compile(r"\bstyle\s*=", flags=re.IGNORECASE)
+INLINE_SCRIPT_BLOCK_PATTERN = re.compile(r"<script\b[^>]*>.*?</script>", flags=re.IGNORECASE | re.DOTALL)
+INLINE_STYLE_BLOCK_PATTERN = re.compile(r"<style\b[^>]*>.*?</style>", flags=re.IGNORECASE | re.DOTALL)
+GOOGLE_FONT_HOST_PATTERN = re.compile(r"https://fonts\.(?:googleapis|gstatic)\.com", flags=re.IGNORECASE)
+STYLESHEET_FONT_HOST_PATTERN = re.compile(
+    r"<link\b[^>]*\brel\s*=\s*([\"'])stylesheet\1[^>]*\bhref\s*=\s*([\"'])https?://",
+    flags=re.IGNORECASE | re.DOTALL,
+)
 UNSAFE_INLINE_PATTERN = re.compile(r"['\"]unsafe-inline['\"]")
+
+LEGACY_DASHBOARD_DEPLOYABLE_PATHS = (
+    Path("package.json"),
+    Path("pnpm-lock.yaml"),
+    Path("svelte.config.js"),
+    Path("vite.config.ts"),
+    Path("playwright.config.ts"),
+    Path("server.node.mjs"),
+    Path("wrangler.toml"),
+    Path("src"),
+    Path("static"),
+    Path("e2e"),
+    Path("tests"),
+)
 
 
 @dataclass(frozen=True)
@@ -70,7 +94,7 @@ def _read_text(path: Path) -> str:
 
 
 def _iter_source_files(repo_root: Path) -> list[Path]:
-    src_root = repo_root / "dashboard" / "src"
+    src_root = repo_root / "frontend" / "src"
     files: list[Path] = []
     for path in src_root.rglob("*"):
         if not path.is_file():
@@ -108,10 +132,35 @@ def _allows_safe_json_ld_html_injection(source: str) -> bool:
     return all(fragment in source for fragment in required_fragments)
 
 
+def _find_legacy_dashboard_sources(repo_root: Path) -> list[Path]:
+    dashboard_root = repo_root / "dashboard"
+    if not dashboard_root.exists():
+        return []
+
+    matches: list[Path] = []
+    for relative_path in LEGACY_DASHBOARD_DEPLOYABLE_PATHS:
+        path = dashboard_root / relative_path
+        if path.exists():
+            matches.append(path.relative_to(repo_root))
+    return sorted(matches)
+
+
 def run(repo_root: Path) -> int:
     issues: list[Issue] = []
-    svelte_config = repo_root / "dashboard" / "svelte.config.js"
-    app_html = repo_root / "dashboard" / "src" / "app.html"
+    svelte_config = repo_root / "frontend" / "svelte.config.js"
+    app_html = repo_root / "frontend" / "src" / "app.html"
+
+    for legacy_source in _find_legacy_dashboard_sources(repo_root):
+        issues.append(
+            Issue(
+                file_path=legacy_source,
+                message=(
+                    "legacy dashboard deployable source is not allowed; "
+                    "migrate production frontend code to frontend/."
+                ),
+                snippet=legacy_source.as_posix(),
+            )
+        )
 
     if svelte_config.exists():
         config_source = _read_text(svelte_config)
@@ -119,7 +168,7 @@ def run(repo_root: Path) -> int:
             issues.append(
                 Issue(
                     file_path=svelte_config.relative_to(repo_root),
-                    message="dashboard CSP must not allow unsafe-inline.",
+                    message="frontend CSP must not allow unsafe-inline.",
                     snippet="unsafe-inline",
                 )
             )
@@ -130,8 +179,52 @@ def run(repo_root: Path) -> int:
             issues.append(
                 Issue(
                     file_path=app_html.relative_to(repo_root),
-                    message="dashboard app.html must not include manual inline styles.",
+                    message="frontend app.html must not include manual inline styles.",
                     snippet='style="..."',
+                )
+            )
+        if INLINE_SCRIPT_BLOCK_PATTERN.search(app_html_source):
+            issues.append(
+                Issue(
+                    file_path=app_html.relative_to(repo_root),
+                    message=(
+                        "frontend app.html must not include manual inline script blocks; "
+                        "use SvelteKit-managed scripts and CSP nonces instead."
+                    ),
+                    snippet="<script>...</script>",
+                )
+            )
+        if INLINE_STYLE_BLOCK_PATTERN.search(app_html_source):
+            issues.append(
+                Issue(
+                    file_path=app_html.relative_to(repo_root),
+                    message=(
+                        "frontend app.html must not include manual inline style blocks; "
+                        "keep critical styling in versioned CSS assets."
+                    ),
+                    snippet="<style>...</style>",
+                )
+            )
+        if GOOGLE_FONT_HOST_PATTERN.search(app_html_source):
+            issues.append(
+                Issue(
+                    file_path=app_html.relative_to(repo_root),
+                    message=(
+                        "frontend app.html must not load Google-hosted fonts; "
+                        "use self-hosted fonts/assets that fit the production CSP."
+                    ),
+                    snippet="fonts.googleapis.com / fonts.gstatic.com",
+                )
+            )
+        if STYLESHEET_FONT_HOST_PATTERN.search(app_html_source):
+            issues.append(
+                Issue(
+                    file_path=app_html.relative_to(repo_root),
+                    message=(
+                        "frontend app.html must not load external stylesheet font resources; "
+                        "ship fonts as controlled first-party assets."
+                    ),
+                    snippet='<link rel="stylesheet" href="https://...">',
                 )
             )
 

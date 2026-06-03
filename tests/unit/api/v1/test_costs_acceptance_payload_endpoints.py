@@ -135,6 +135,10 @@ async def test_unit_economics_settings_endpoints_direct_paths() -> None:
         default_workload_volume=100.0,
         default_customer_volume=20.0,
         anomaly_threshold_percent=15.0,
+        target_spend_reduction_pct=15.0,
+        target_rollout_days=30,
+        target_team_members=5,
+        target_blended_hourly_rate=80.0,
     )
     db = FakeDB()
 

@@ -102,8 +102,8 @@ def test_main_resolves_relative_paths_from_repo_root_when_run_outside_repo(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     repo_root = tmp_path / "repo"
-    hero_path = repo_root / "dashboard" / "src" / "lib" / "components" / "LandingHero.svelte"
-    component_dir = repo_root / "dashboard" / "src" / "lib" / "components" / "landing"
+    hero_path = repo_root / "frontend" / "src" / "lib" / "components" / "LandingHero.svelte"
+    component_dir = repo_root / "frontend" / "src" / "lib" / "components" / "landing"
     outside_cwd = tmp_path / "outside"
     outside_cwd.mkdir(parents=True, exist_ok=True)
     monkeypatch.chdir(outside_cwd)
@@ -127,9 +127,9 @@ def test_main_resolves_relative_paths_from_repo_root_when_run_outside_repo(
     exit_code = main(
         [
             "--hero-path",
-            "dashboard/src/lib/components/LandingHero.svelte",
+            "frontend/src/lib/components/LandingHero.svelte",
             "--component-dir",
-            "dashboard/src/lib/components/landing",
+            "frontend/src/lib/components/landing",
         ]
     )
 

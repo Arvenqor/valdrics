@@ -22,14 +22,14 @@ from scripts.env_generation_common import (
 )
 from scripts.run_public_frontend_quality_gate import run_public_frontend_quality_gate
 from scripts.verify_codebase_audit_report import verify_audit_report
-from scripts.verify_dashboard_runtime_contract import verify_dashboard_runtime_contract
+from scripts.verify_frontend_runtime_contract import verify_frontend_runtime_contract
 from scripts.verify_managed_deployment_bundle import verify_managed_deployment_bundle
 
 
 DEFAULT_ROOT = repo_root_for(__file__)
 SUPPORTED_ENVIRONMENTS = ("staging", "production")
 
-DashboardRuntimeVerifier = Callable[..., list[str]]
+FrontendRuntimeVerifier = Callable[..., list[str]]
 BundleVerifier = Callable[..., list[str]]
 PublicQualityRunner = Callable[..., None]
 AuditReportVerifier = Callable[..., list[str]]
@@ -70,7 +70,7 @@ def _is_placeholder_value(value: str) -> bool:
     return not normalized or "REPLACE_WITH_" in normalized
 
 
-def _derive_dashboard_url_from_runtime_report(
+def _derive_frontend_url_from_runtime_report(
     *,
     repo_root: Path,
     runtime_report_path: Path,
@@ -125,14 +125,14 @@ def verify_managed_release_readiness(
     runtime_report_path: Path | None = None,
     migration_report_path: Path | None = None,
     deployment_report_path: Path | None = None,
-    dashboard_url: str | None = None,
-    skip_dashboard_runtime: bool = False,
-    reuse_built_dashboard_runtime: bool = False,
+    frontend_url: str | None = None,
+    skip_frontend_runtime: bool = False,
+    reuse_built_frontend_runtime: bool = False,
     skip_public_browser: bool = False,
     skip_webserver: bool = False,
     allow_non_secret_artifact_bundle: bool = False,
     audit_report_verifier: AuditReportVerifier = verify_audit_report,
-    dashboard_runtime_verifier: DashboardRuntimeVerifier = verify_dashboard_runtime_contract,
+    frontend_runtime_verifier: FrontendRuntimeVerifier = verify_frontend_runtime_contract,
     bundle_verifier: BundleVerifier = verify_managed_deployment_bundle,
     public_quality_runner: PublicQualityRunner = run_public_frontend_quality_gate,
 ) -> list[str]:
@@ -178,42 +178,42 @@ def verify_managed_release_readiness(
         )
     )
 
-    normalized_dashboard_url = str(dashboard_url or "").strip()
-    if not normalized_dashboard_url and not skip_public_browser:
-        derived_dashboard_url = _derive_dashboard_url_from_runtime_report(
+    normalized_frontend_url = str(frontend_url or "").strip()
+    if not normalized_frontend_url and not skip_public_browser:
+        derived_frontend_url = _derive_frontend_url_from_runtime_report(
             repo_root=repo_root,
             runtime_report_path=runtime_report,
         )
-        if derived_dashboard_url:
-            normalized_dashboard_url = derived_dashboard_url
-    parsed_dashboard_url = (
-        urlparse(normalized_dashboard_url) if normalized_dashboard_url else None
+        if derived_frontend_url:
+            normalized_frontend_url = derived_frontend_url
+    parsed_frontend_url = (
+        urlparse(normalized_frontend_url) if normalized_frontend_url else None
     )
-    dashboard_host = (
-        (parsed_dashboard_url.hostname or "").strip().lower()
-        if parsed_dashboard_url
+    frontend_host = (
+        (parsed_frontend_url.hostname or "").strip().lower()
+        if parsed_frontend_url
         else ""
     )
 
     if (
-        not skip_dashboard_runtime
+        not skip_frontend_runtime
         and skip_webserver
-        and dashboard_host in {"127.0.0.1", "localhost"}
-        and not reuse_built_dashboard_runtime
+        and frontend_host in {"127.0.0.1", "localhost"}
+        and not reuse_built_frontend_runtime
     ):
         errors.append(
-            "reuse_built_dashboard_runtime is required when using --skip-webserver "
-            "with a local dashboard_url because rebuilding invalidates the live preview assets."
+            "reuse_built_frontend_runtime is required when using --skip-webserver "
+            "with a local frontend_url because rebuilding invalidates the live preview assets."
         )
         return errors
 
-    if not skip_dashboard_runtime:
+    if not skip_frontend_runtime:
         errors.extend(
             _run_list_gate(
-                "dashboard runtime contract verification",
-                dashboard_runtime_verifier,
+                "frontend runtime contract verification",
+                frontend_runtime_verifier,
                 root=repo_root,
-                build=not reuse_built_dashboard_runtime,
+                build=not reuse_built_frontend_runtime,
             )
         )
 
@@ -232,16 +232,16 @@ def verify_managed_release_readiness(
     if skip_public_browser:
         return errors
 
-    if not normalized_dashboard_url:
+    if not normalized_frontend_url:
         errors.append(
-            "dashboard_url is required unless --skip-public-browser is used, or "
+            "frontend_url is required unless --skip-public-browser is used, or "
             "FRONTEND_URL is set to a live http(s) value in the managed runtime env."
         )
         return errors
 
     try:
         public_quality_runner(
-            dashboard_url=normalized_dashboard_url,
+            frontend_url=normalized_frontend_url,
             skip_webserver=skip_webserver,
         )
     except subprocess.CalledProcessError as exc:
@@ -257,7 +257,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Run the managed release readiness gates: codebase audit verification, "
-            "dashboard runtime contract, deployment bundle verification, and optionally "
+            "frontend runtime contract, deployment bundle verification, and optionally "
             "the public browser gate."
         )
     )
@@ -297,23 +297,23 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Override deployment report path.",
     )
     parser.add_argument(
-        "--dashboard-url",
+        "--frontend-url",
         default=None,
         help=(
-            "Deployed dashboard URL for the public browser gate. Optional when the "
+            "Deployed frontend URL for the public browser gate. Optional when the "
             "managed runtime env already contains a live FRONTEND_URL."
         ),
     )
     parser.add_argument(
-        "--skip-dashboard-runtime",
+        "--skip-frontend-runtime",
         action="store_true",
-        help="Skip the dashboard container runtime contract verification.",
+        help="Skip the frontend container runtime contract verification.",
     )
     parser.add_argument(
-        "--reuse-built-dashboard-runtime",
+        "--reuse-built-frontend-runtime",
         action="store_true",
         help=(
-            "Verify the dashboard runtime contract against existing build artifacts instead "
+            "Verify the frontend runtime contract against existing build artifacts instead "
             "of rebuilding first. Required when reusing a local vite preview URL."
         ),
     )
@@ -325,7 +325,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--skip-webserver",
         action="store_true",
-        help="Pass through to the public browser gate to reuse an existing dashboard URL.",
+        help="Pass through to the public browser gate to reuse an existing frontend URL.",
     )
     parser.add_argument(
         "--non-secret-deployment-bundle",
@@ -348,9 +348,9 @@ def main(argv: list[str] | None = None) -> int:
         runtime_report_path=args.runtime_report,
         migration_report_path=args.migration_report,
         deployment_report_path=args.deployment_report,
-        dashboard_url=args.dashboard_url,
-        skip_dashboard_runtime=bool(args.skip_dashboard_runtime),
-        reuse_built_dashboard_runtime=bool(args.reuse_built_dashboard_runtime),
+        frontend_url=args.frontend_url,
+        skip_frontend_runtime=bool(args.skip_frontend_runtime),
+        reuse_built_frontend_runtime=bool(args.reuse_built_frontend_runtime),
         skip_public_browser=bool(args.skip_public_browser),
         skip_webserver=bool(args.skip_webserver),
         allow_non_secret_artifact_bundle=bool(args.non_secret_deployment_bundle),

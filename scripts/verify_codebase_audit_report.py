@@ -67,16 +67,16 @@ VALIDATION_RUN_FINDING_SECTIONS = (
 )
 TEST_AND_SPEC_GLOBS = (
     "tests/**/*.py",
-    "dashboard/**/*.test.ts",
-    "dashboard/**/*.test.js",
-    "dashboard/**/*.test.tsx",
-    "dashboard/**/*.test.jsx",
-    "dashboard/**/*.test.svelte",
-    "dashboard/**/*.spec.ts",
-    "dashboard/**/*.spec.js",
-    "dashboard/**/*.spec.tsx",
-    "dashboard/**/*.spec.jsx",
-    "dashboard/**/*.spec.svelte",
+    "frontend/**/*.test.ts",
+    "frontend/**/*.test.js",
+    "frontend/**/*.test.tsx",
+    "frontend/**/*.test.jsx",
+    "frontend/**/*.test.svelte",
+    "frontend/**/*.spec.ts",
+    "frontend/**/*.spec.js",
+    "frontend/**/*.spec.tsx",
+    "frontend/**/*.spec.jsx",
+    "frontend/**/*.spec.svelte",
 )
 TEST_AND_SPEC_EXCLUDED_PARTS = frozenset(
     {"node_modules", ".svelte-kit", "dist", "coverage", "playwright-report"}
@@ -240,8 +240,8 @@ def _load_pyproject_metadata(*, root: Path) -> dict[str, Any]:
     return tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
 
 
-def _load_dashboard_package_json(*, root: Path) -> dict[str, Any]:
-    package_path = root / "dashboard" / "package.json"
+def _load_frontend_package_json(*, root: Path) -> dict[str, Any]:
+    package_path = root / "frontend" / "package.json"
     return json.loads(package_path.read_text(encoding="utf-8"))
 
 
@@ -276,11 +276,11 @@ def _package_version(
             if isinstance(value, str) and value.strip():
                 return value
     raise ValueError(
-        f"could not determine version for {package_name} from dashboard/package.json"
+        f"could not determine version for {package_name} from frontend/package.json"
     )
 
 
-def _has_dashboard_dependency(
+def _has_frontend_dependency(
     package_payload: dict[str, Any], package_name: str
 ) -> bool:
     for section_name in ("dependencies", "devDependencies"):
@@ -291,7 +291,7 @@ def _has_dashboard_dependency(
 
 
 def _derive_frontend_stack_phrase(*, root: Path) -> str:
-    package_payload = _load_dashboard_package_json(root=root)
+    package_payload = _load_frontend_package_json(root=root)
     stack = [
         "SvelteKit",
         "Svelte 5",
@@ -300,7 +300,7 @@ def _derive_frontend_stack_phrase(*, root: Path) -> str:
         "Vitest",
         "Playwright",
     ]
-    if _has_dashboard_dependency(package_payload, "chart.js"):
+    if _has_frontend_dependency(package_payload, "chart.js"):
         stack.append("Chart.js")
     if len(stack) == 1:
         return stack[0]
@@ -309,7 +309,7 @@ def _derive_frontend_stack_phrase(*, root: Path) -> str:
 
 def collect_live_measured_facts(*, root: Path) -> dict[str, Any]:
     pyproject_payload = _load_pyproject_metadata(root=root)
-    package_payload = _load_dashboard_package_json(root=root)
+    package_payload = _load_frontend_package_json(root=root)
     return {
         "python_requires": str(
             pyproject_payload.get("project", {}).get("requires-python", "")

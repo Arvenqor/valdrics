@@ -21,7 +21,7 @@ def _write_json(path: Path, payload: dict[str, object]) -> None:
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
-def _seed_dashboard_package_json(
+def _seed_frontend_package_json(
     tmp_path: Path, *, include_chart_js: bool = False
 ) -> None:
     dependencies: dict[str, str] = {
@@ -32,7 +32,7 @@ def _seed_dashboard_package_json(
     if include_chart_js:
         dependencies["chart.js"] = "^4.5.1"
     package_payload = {
-        "name": "dashboard",
+        "name": "valdrics-frontend",
         "private": True,
         "devDependencies": {
             "playwright": "^1.58.0",
@@ -41,7 +41,7 @@ def _seed_dashboard_package_json(
         },
         "dependencies": dependencies,
     }
-    _write_json(tmp_path / "dashboard/package.json", package_payload)
+    _write_json(tmp_path / "frontend/package.json", package_payload)
 
 
 def _valid_report_payload() -> dict[str, object]:
@@ -96,7 +96,7 @@ def _valid_report_payload() -> dict[str, object]:
                 "claim": "Frontend stack includes SvelteKit, Svelte 5, TypeScript, Tailwind CSS v4, Vitest, and Playwright.",
                 "evidence": [
                     {
-                        "path": "dashboard/package.json",
+                        "path": "frontend/package.json",
                         "line": 1,
                     }
                 ],
@@ -136,7 +136,7 @@ def _valid_report_payload() -> dict[str, object]:
                 "correction": "A structural scan found 56 ZombiePlugin subclasses across provider adapters.",
                 "evidence": [
                     {
-                        "path": "dashboard/svelte.config.js",
+                        "path": "frontend/svelte.config.js",
                         "line": 1,
                     }
                 ],
@@ -167,7 +167,7 @@ def _valid_report_payload() -> dict[str, object]:
                         "finding": "The /api/v1/public CSRF exemption should stay limited to public flows.",
                         "evidence": [
                             {
-                                "path": "dashboard/svelte.config.js",
+                                "path": "frontend/svelte.config.js",
                                 "line": 1,
                             }
                         ],
@@ -189,7 +189,7 @@ def _valid_report_payload() -> dict[str, object]:
                         "finding": "Dashboard origin handling no longer trusts the raw Host header.",
                         "evidence": [
                             {
-                                "path": "dashboard/svelte.config.js",
+                                "path": "frontend/svelte.config.js",
                                 "line": 1,
                             }
                         ],
@@ -220,11 +220,11 @@ def test_verify_audit_report_accepts_valid_report(tmp_path: Path) -> None:
         "name: deploy-unified-platform\n",
         encoding="utf-8",
     )
-    (tmp_path / "dashboard").mkdir(parents=True, exist_ok=True)
-    (tmp_path / "dashboard/svelte.config.js").write_text(
+    (tmp_path / "frontend").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "frontend/svelte.config.js").write_text(
         "export default {};\n", encoding="utf-8"
     )
-    _seed_dashboard_package_json(tmp_path)
+    _seed_frontend_package_json(tmp_path)
 
     errors = verify_audit_report(
         root=tmp_path,
@@ -256,7 +256,7 @@ def test_verify_audit_report_flags_schema_drift(tmp_path: Path) -> None:
         "reason": "left untouched",
     }
     _write_json(tmp_path / ".runtime/staging.audit.report.json", payload)
-    _seed_dashboard_package_json(tmp_path)
+    _seed_frontend_package_json(tmp_path)
 
     errors = verify_audit_report(
         root=tmp_path,
@@ -302,11 +302,11 @@ def test_verify_audit_report_flags_invalid_validation_runs(tmp_path: Path) -> No
     _write_json(tmp_path / ".runtime/staging.audit.report.json", payload)
 
     (tmp_path / "pyproject.toml").write_text("[project]\n", encoding="utf-8")
-    (tmp_path / "dashboard").mkdir(parents=True, exist_ok=True)
-    (tmp_path / "dashboard/svelte.config.js").write_text(
+    (tmp_path / "frontend").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "frontend/svelte.config.js").write_text(
         "export default {};\n", encoding="utf-8"
     )
-    _seed_dashboard_package_json(tmp_path)
+    _seed_frontend_package_json(tmp_path)
 
     errors = verify_audit_report(
         root=tmp_path,
@@ -495,7 +495,7 @@ def test_verify_audit_report_flags_live_measured_fact_drift(
 ) -> None:
     payload = _valid_report_payload()
     _write_json(tmp_path / ".runtime/staging.audit.report.json", payload)
-    _seed_dashboard_package_json(tmp_path)
+    _seed_frontend_package_json(tmp_path)
 
     monkeypatch.setattr(
         codebase_audit_report,
@@ -558,11 +558,11 @@ def test_verify_audit_report_flags_claim_consistency_drift(tmp_path: Path) -> No
         {
             "claim": "FinOps capabilities include 11 zombie detection plugins",
             "correction": "wrong",
-            "evidence": [{"path": "dashboard/svelte.config.js", "line": 1}],
+            "evidence": [{"path": "frontend/svelte.config.js", "line": 1}],
         },
     ]
     _write_json(tmp_path / ".runtime/staging.audit.report.json", payload)
-    _seed_dashboard_package_json(tmp_path)
+    _seed_frontend_package_json(tmp_path)
 
     errors = verify_audit_report(
         root=tmp_path,

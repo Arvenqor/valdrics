@@ -23,6 +23,7 @@ from app.modules.reporting.api.v1.costs_core_routes import (
     get_cost_attribution_coverage_impl,
     get_cost_attribution_summary_impl,
     get_cost_breakdown_impl,
+    get_cost_daily_impl,
     get_cost_forecast_impl,
     get_costs_impl,
     get_ingestion_sla_impl,
@@ -58,6 +59,7 @@ from app.modules.reporting.api.v1.costs_models import (
     AcceptanceKpisResponse,
     CostAnomalyItem,
     CostAnomalyResponse,
+    CostDailySeriesResponse,
     IngestionSLAResponse,
     ProviderInvoiceStatusUpdateRequest,
     ProviderInvoiceUpsertRequest,
@@ -139,6 +141,7 @@ __all__ = [
     "get_cost_attribution_coverage_impl",
     "get_cost_attribution_summary_impl",
     "get_cost_breakdown_impl",
+    "get_cost_daily_impl",
     "get_cost_forecast_impl",
     "get_costs_impl",
     "get_ingestion_sla_impl",
@@ -275,6 +278,17 @@ async def get_cost_breakdown(**kwargs: Any) -> Any:
         cost_aggregator_cls=CostAggregator,
         **kwargs,
     )
+
+
+async def get_cost_daily(**kwargs: Any) -> CostDailySeriesResponse:
+    payload = await get_cost_daily_impl(
+        require_tenant_id=_require_tenant_id,
+        normalize_provider_filter=_normalize_provider_filter,
+        **kwargs,
+    )
+    if isinstance(payload, CostDailySeriesResponse):
+        return payload
+    return CostDailySeriesResponse.model_validate(payload)
 
 
 async def get_cost_attribution_summary(**kwargs: Any) -> dict[str, Any]:

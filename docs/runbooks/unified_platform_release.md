@@ -308,7 +308,7 @@ The deploy workflow performs:
 8. Dashboard build from `.runtime/deploy/<environment>/cloudflare-pages-env.json`; Terraform also applies the matching Cloudflare Pages runtime variables for Pages Functions
 9. Cloudflare Pages direct upload deploy with a Wrangler config rendered from the managed release bundle
 10. API liveness smoke check
-11. Cache and install the Playwright Chromium browser required by the public dashboard readiness gate
+11. Cache and install the Playwright Chromium browser required by the public frontend readiness gate
 12. Refresh the codebase audit report and run the managed release readiness verifier against the uploaded non-secret bundle
 
 ## 3a. Staging cutover operator sequence
@@ -326,7 +326,7 @@ uv run python scripts/validate_migration_env.py --env-file .runtime/staging.migr
 uv run python scripts/generate_managed_deployment_artifacts.py --environment staging --runtime-env-file .runtime/staging.env --release-tag <release-tag> --api-promotion-ref <repo@sha256:...> --batch-promotion-ref <repo@sha256:...>
 uv run python scripts/verify_managed_deployment_bundle.py --environment staging
 uv run python scripts/render_managed_deployment_handoff.py --environment staging
-uv run python scripts/verify_dashboard_runtime_contract.py --build
+uv run python scripts/verify_frontend_runtime_contract.py --build
 ```
 
 Release dispatch:
@@ -338,8 +338,8 @@ Release dispatch:
 Staging evidence and validation gates:
 
 - `managed-deployment-bundle-staging-<release-tag>` must contain `.runtime/deploy/staging/operator-handoff.md`, `.runtime/staging.report.json`, `.runtime/staging.migrate.report.json`, and `.runtime/deploy/staging/deployment.report.json`.
-- Run `uv run python scripts/verify_managed_release_readiness.py --environment staging --runtime-report .runtime/staging.report.json --migration-report .runtime/staging.migrate.report.json --deployment-report .runtime/deploy/staging/deployment.report.json --non-secret-deployment-bundle --dashboard-url https://REPLACE_WITH_REAL_STAGING_FRONTEND --skip-webserver` against the downloaded non-secret bundle when performing clean-runner review. If the bundle already contains a live `FRONTEND_URL`, the dashboard URL may be omitted.
-- Confirm the live staging environment passes `/health/live`, background task dispatch, Cloud Scheduler execution, Cloud Run Job execution, dashboard/public browser checks, and rollback rehearsal before production promotion.
+- Run `uv run python scripts/verify_managed_release_readiness.py --environment staging --runtime-report .runtime/staging.report.json --migration-report .runtime/staging.migrate.report.json --deployment-report .runtime/deploy/staging/deployment.report.json --non-secret-deployment-bundle --frontend-url https://REPLACE_WITH_REAL_STAGING_FRONTEND --skip-webserver` against the downloaded non-secret bundle when performing clean-runner review. If the bundle already contains a live `FRONTEND_URL`, the frontend URL may be omitted.
+- Confirm the live staging environment passes `/health/live`, background task dispatch, Cloud Scheduler execution, Cloud Run Job execution, frontend/public browser checks, and rollback rehearsal before production promotion.
 - Do not promote production until the staging evidence packet is complete and release operations signs off on the live cutover facts.
 
 ## 4. Terraform source of truth

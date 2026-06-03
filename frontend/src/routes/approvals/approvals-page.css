@@ -1,0 +1,226 @@
+.approvals-page {
+	display: grid;
+	gap: 1.15rem;
+}
+
+.approvals-page .page-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.approvals-page .page-kicker {
+	margin: 0 0 0.25rem;
+	color: var(--color-ink-400);
+	font-size: var(--text-xs);
+	font-weight: 750;
+	text-transform: uppercase;
+}
+
+.approvals-page h1,
+.approvals-page h2 {
+	margin: 0;
+	color: var(--color-ink-50);
+	letter-spacing: 0;
+}
+
+.approvals-page h1 {
+	font-size: var(--text-2xl);
+	font-weight: 850;
+}
+
+.approvals-page h2 {
+	font-size: var(--text-lg);
+	font-weight: 780;
+}
+
+.approvals-page .page-header p:not(.page-kicker),
+.approvals-page .queue-panel p,
+.approvals-page .upgrade-panel p {
+	max-width: 48rem;
+	margin: 0.35rem 0 0;
+	color: var(--color-ink-400);
+	font-size: var(--text-sm);
+}
+
+.approvals-page .icon-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.45rem;
+	border: 1px solid rgb(128 154 176 / 0.24);
+	border-radius: var(--radius-md);
+	color: var(--color-ink-100);
+	background: rgb(24 32 40 / 0.72);
+	cursor: pointer;
+	transition:
+		transform var(--duration-fast) var(--ease-out),
+		border-color var(--duration-fast) var(--ease-out),
+		background var(--duration-fast) var(--ease-out);
+}
+
+.approvals-page .icon-button {
+	width: 2.4rem;
+	height: 2.4rem;
+}
+
+.approvals-page .icon-button:hover {
+	border-color: rgb(34 211 238 / 0.42);
+	transform: translateY(-1px);
+}
+
+.approvals-page button:disabled {
+	cursor: not-allowed;
+	opacity: 0.56;
+	transform: none;
+}
+
+.approvals-page .upgrade-panel,
+.approvals-page .queue-panel,
+.approvals-page .status-panel,
+.approvals-page .stat-chip {
+	border: 1px solid rgb(128 154 176 / 0.18);
+	border-radius: var(--radius-md);
+	background: linear-gradient(180deg, rgb(24 32 40 / 0.78), rgb(10 13 18 / 0.62));
+}
+
+.approvals-page .queue-stats {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+.approvals-page .stat-chip {
+	display: grid;
+	gap: 0.35rem;
+	min-height: 6.35rem;
+	padding: 0.95rem;
+	color: var(--color-accent-300);
+}
+
+.approvals-page .stat-chip__value {
+	align-self: end;
+	color: var(--color-ink-50);
+	font-family: var(--font-mono);
+	font-size: clamp(1.05rem, 1.8vw, 1.5rem);
+	font-weight: 850;
+	line-height: 1.1;
+	overflow-wrap: anywhere;
+}
+
+.approvals-page .stat-chip__value--warning {
+	color: var(--color-warning-400);
+}
+
+.approvals-page .stat-chip small {
+	color: var(--color-ink-400);
+	font-size: var(--text-xs);
+}
+
+.approvals-page .upgrade-panel {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 1rem;
+	padding: 1.25rem;
+	color: var(--color-accent-300);
+}
+
+.approvals-page .upgrade-panel a {
+	padding: 0.55rem 0.8rem;
+	border: 1px solid rgb(34 211 238 / 0.34);
+	border-radius: var(--radius-md);
+	color: var(--color-accent-200);
+	font-size: var(--text-sm);
+	font-weight: 750;
+	text-decoration: none;
+}
+
+.approvals-page .status-panel {
+	padding: 0.85rem 1rem;
+	font-size: var(--text-sm);
+}
+
+.approvals-page .status-panel--error {
+	border-color: rgb(244 63 94 / 0.34);
+	color: var(--color-danger-400);
+	background: rgb(244 63 94 / 0.08);
+}
+
+.approvals-page .status-panel--success {
+	border-color: rgb(52 211 153 / 0.34);
+	color: var(--color-success-300);
+	background: rgb(52 211 153 / 0.08);
+}
+
+.approvals-page .filter-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.45rem;
+	padding: 0.35rem;
+	border: 1px solid rgb(128 154 176 / 0.16);
+	border-radius: var(--radius-md);
+	background: rgb(10 13 18 / 0.48);
+}
+
+.approvals-page .filter-tab {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.45rem;
+	min-height: 2.15rem;
+	padding: 0.45rem 0.7rem;
+	border: 1px solid transparent;
+	border-radius: var(--radius-sm);
+	color: var(--color-ink-300);
+	background: transparent;
+	font-size: var(--text-xs);
+	font-weight: 750;
+	cursor: pointer;
+	transition:
+		background var(--duration-fast) var(--ease-out),
+		border-color var(--duration-fast) var(--ease-out),
+		color var(--duration-fast) var(--ease-out);
+}
+
+.approvals-page .filter-tab span {
+	min-width: 1.35rem;
+	padding: 0.1rem 0.35rem;
+	border-radius: var(--radius-full);
+	background: rgb(128 154 176 / 0.12);
+	color: var(--color-ink-200);
+	font-family: var(--font-mono);
+	text-align: center;
+}
+
+.approvals-page .filter-tab:hover,
+.approvals-page .filter-tab--active {
+	border-color: rgb(34 211 238 / 0.28);
+	color: var(--color-ink-50);
+	background: rgb(34 211 238 / 0.1);
+}
+
+.approvals-page .queue-panel {
+	display: grid;
+	min-height: 16rem;
+	place-items: center;
+	align-content: center;
+	gap: 0.65rem;
+	padding: 2rem;
+	text-align: center;
+}
+
+.approvals-page .queue-panel--empty {
+	color: var(--color-success-300);
+}
+
+@media (max-width: 760px) {
+	.approvals-page .page-header {
+		flex-direction: column;
+	}
+
+	.approvals-page .queue-stats,
+	.approvals-page .upgrade-panel {
+		grid-template-columns: 1fr;
+	}
+}

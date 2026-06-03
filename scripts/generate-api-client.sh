@@ -7,7 +7,7 @@ set -euo pipefail
 # Configuration
 API_URL="${API_URL:-https://api.valdrics.ai}"
 OPENAPI_URL="${API_URL}/openapi.json"
-OUTPUT_DIR="dashboard/src/lib/api"
+OUTPUT_DIR="frontend/src/lib/api"
 
 if [[ ! "${API_URL}" =~ ^https?:// ]]; then
     echo "❌ API_URL must start with http:// or https://"

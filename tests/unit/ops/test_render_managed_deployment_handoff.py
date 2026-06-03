@@ -130,7 +130,7 @@ def _build_bundle(
                 "gcp_region": "us-central1",
                 "cloudflare_account_id": "cf-account-prod",
                 "cloudflare_zone_id": "cf-zone-prod",
-                "cloudflare_pages_project_name": "valdrics-dashboard",
+                "cloudflare_pages_project_name": "valdrics-frontend",
                 "cloudflare_pages_production_branch": "main",
                 "supabase_organization_id": "supabase-org-prod",
                 "supabase_project_name": "valdrics",
@@ -170,7 +170,7 @@ def test_render_managed_deployment_handoff_renders_blocked_bundle_summary(
     assert "Terraform infrastructure contract: BLOCKED" in content
     assert "verify_managed_release_readiness.py" in content
     assert "verify_codebase_audit_report.py" in content
-    assert "verify_dashboard_runtime_contract.py" in content
+    assert "verify_frontend_runtime_contract.py" in content
     assert "technology-value-admission-receipt.json" in content
     assert "render_managed_release_blocker_summary.py" in content
     assert "after both staging and production bundles are available" in content

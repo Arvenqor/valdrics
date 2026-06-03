@@ -1,7 +1,7 @@
 # Valdrics Makefile
 # Developer convenience commands using uv
 
-.PHONY: help install dev test lint format security clean docker-build docker-up docker-down observability observability-down env-dev env-compose bootstrap-local-db clean-local-db smoke-local-db verify-managed-bundle render-managed-release-blockers verify-value-contracts public-quality docs-hygiene ship-baseline ship-backend-slice ship-dashboard-slice ship-managed-bundle
+.PHONY: help install dev test lint format security clean docker-build docker-up docker-down observability observability-down env-dev env-compose bootstrap-local-db clean-local-db smoke-local-db verify-managed-bundle render-managed-release-blockers verify-value-contracts verify-frontend-disposition public-quality docs-hygiene ship-baseline ship-backend-slice ship-frontend-slice ship-managed-bundle
 
 # Default target
 help:
@@ -16,11 +16,12 @@ help:
 	@echo "  make verify-managed-bundle ENVIRONMENT=<staging|production> - Verify runtime, migration, and deployment artifacts stay coherent"
 	@echo "  make render-managed-release-blockers [NON_SECRET_BUNDLE=true] - Render the cross-environment blocker summary from staging + production bundles"
 	@echo "  make verify-value-contracts - Validate the draft TVC schema, example contract, and example receipt"
-	@echo "  make public-quality [DASHBOARD_URL=http://localhost:5174] - Run public smoke + a11y + perf + visual gates"
+	@echo "  make verify-frontend-disposition - Validate new_frontend reference migration disposition"
+	@echo "  make public-quality [FRONTEND_URL=http://localhost:5174] - Run public smoke + a11y + perf + visual gates"
 	@echo "  make docs-hygiene - Fail on orphaned dated docs/reports and prohibited active duplicates"
 	@echo "  make ship-baseline - Run the fast repo-wide shipping baseline (audit, env/docs contracts, TVC, archive hygiene)"
 	@echo "  make ship-backend-slice PY_PATHS=\"...\" [PYTEST_TARGETS=\"...\"] - Run changed-backend lint + focused tests only"
-	@echo "  make ship-dashboard-slice [DASHBOARD_URL=http://localhost:5174] - Run the public dashboard quality slice"
+	@echo "  make ship-frontend-slice [FRONTEND_URL=http://localhost:5174] - Run the public frontend quality slice"
 	@echo "  make ship-managed-bundle ENVIRONMENT=<staging|production> VERSION=<tag> API_PROMOTION_REF=<repo@sha256:...> [BATCH_PROMOTION_REF=<repo@sha256:...>] - Generate + verify the managed deployment bundle"
 	@echo "  make dev         - Start development servers (auto-uses .env.dev when present)"
 	@echo "  make test        - Run test suite"
@@ -31,7 +32,7 @@ help:
 	@echo ""
 	@echo "Docker Commands:"
 	@echo "  make docker-build  - Build Docker image"
-	@echo "  make docker-up     - Start the default local docker compose stack (Postgres + API + dashboard)"
+	@echo "  make docker-up     - Start the default local docker compose stack (Postgres + API + frontend)"
 	@echo "  make observability - Start Prometheus/Grafana stack for local compose"
 	@echo ""
 	@echo "Deployment:"
@@ -41,7 +42,7 @@ help:
 # Development
 install:
 	uv sync --dev
-	cd dashboard && pnpm install
+	cd frontend && pnpm install
 
 env-dev:
 	uv run python3 scripts/generate_local_dev_env.py
@@ -70,8 +71,11 @@ verify-value-contracts:
 	uv run python3 scripts/verify_technology_value_contract.py --contract-path contracts/examples/unified-platform-deploy-staging.yaml
 	uv run python3 scripts/verify_technology_value_contract.py --contract-path contracts/examples/unified-platform-deploy-production.yaml
 
+verify-frontend-disposition:
+	uv run python3 scripts/verify_new_frontend_disposition_register.py
+
 public-quality:
-	@/bin/bash -lc 'ARGS=""; if [ -n "$(DASHBOARD_URL)" ]; then ARGS="--dashboard-url $(DASHBOARD_URL) --skip-webserver"; fi; uv run python3 scripts/run_public_frontend_quality_gate.py $$ARGS'
+	@/bin/bash -lc 'ARGS=""; if [ -n "$(FRONTEND_URL)" ]; then ARGS="--frontend-url $(FRONTEND_URL) --skip-webserver"; fi; uv run python3 scripts/run_public_frontend_quality_gate.py $$ARGS'
 
 docs-hygiene:
 	uv run python3 scripts/verify_docs_archive_hygiene.py
@@ -82,6 +86,7 @@ ship-baseline:
 	uv run python3 scripts/verify_env_hygiene.py
 	uv run python3 scripts/verify_dependency_locking.py
 	uv run python3 scripts/verify_documentation_runtime_contracts.py
+	$(MAKE) verify-frontend-disposition
 	$(MAKE) verify-value-contracts
 	$(MAKE) docs-hygiene
 
@@ -90,8 +95,9 @@ ship-backend-slice:
 	uv run ruff check $(PY_PATHS)
 	@/bin/bash -lc 'if [ -n "$(PYTEST_TARGETS)" ]; then uv run pytest -q --tb=short --no-cov $(PYTEST_TARGETS); else echo "Skipping pytest. Set PYTEST_TARGETS to the focused test targets for this change."; fi'
 
-ship-dashboard-slice:
-	$(MAKE) public-quality DASHBOARD_URL="$(DASHBOARD_URL)"
+ship-frontend-slice:
+	$(MAKE) verify-frontend-disposition
+	$(MAKE) public-quality FRONTEND_URL="$(FRONTEND_URL)"
 
 ship-managed-bundle:
 	$(MAKE) deploy ENVIRONMENT=$(ENVIRONMENT) VERSION=$(VERSION) API_PROMOTION_REF=$(API_PROMOTION_REF) BATCH_PROMOTION_REF=$(BATCH_PROMOTION_REF)
@@ -104,8 +110,8 @@ dev:
 		echo "Starting API server..."; \
 		uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 & \
 	fi
-	@echo "Starting dashboard..."
-	cd dashboard && pnpm run dev
+	@echo "Starting frontend..."
+	cd frontend && pnpm run dev
 
 test:
 	uv run pytest tests/ -v --tb=short --cov=app --cov-report=term-missing

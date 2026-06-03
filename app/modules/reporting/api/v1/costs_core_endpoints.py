@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.reporting.api.v1.costs_models import (
     CostAnomalyResponse,
+    CostDailySeriesResponse,
     IngestionSLAResponse,
     SpendLedgerResponse,
 )
@@ -66,6 +67,29 @@ async def get_cost_breakdown(
         require_tenant_id=costs_module._require_tenant_id,
         cost_aggregator_cls=costs_module.CostAggregator,
     )
+
+
+async def get_cost_daily(
+    start_date: date = Query(...),
+    end_date: date = Query(...),
+    provider: Optional[str] = Query(default=None),
+    include_preliminary: bool = Query(default=False),
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user_with_db_context),
+) -> CostDailySeriesResponse:
+    from app.modules.reporting.api.v1 import costs as costs_module
+
+    payload = await costs_module.get_cost_daily_impl(
+        start_date=start_date,
+        end_date=end_date,
+        provider=provider,
+        include_preliminary=include_preliminary,
+        db=db,
+        current_user=current_user,
+        require_tenant_id=costs_module._require_tenant_id,
+        normalize_provider_filter=costs_module._normalize_provider_filter,
+    )
+    return CostDailySeriesResponse.model_validate(payload)
 
 
 async def get_cost_attribution_summary(
@@ -280,6 +304,12 @@ async def get_ingestion_sla(
 def register_core_routes(router: APIRouter) -> None:
     router.add_api_route("", get_costs, methods=["GET"])
     router.add_api_route("/breakdown", get_cost_breakdown, methods=["GET"])
+    router.add_api_route(
+        "/daily",
+        get_cost_daily,
+        methods=["GET"],
+        response_model=CostDailySeriesResponse,
+    )
     router.add_api_route(
         "/attribution/summary",
         get_cost_attribution_summary,

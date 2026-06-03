@@ -14,7 +14,7 @@ def _write(path: Path, content: str) -> None:
 
 def _seed_safe_dashboard(repo_root: Path) -> None:
     _write(
-        repo_root / "dashboard/svelte.config.js",
+        repo_root / "frontend/svelte.config.js",
         """
 export default {
   kit: {
@@ -30,7 +30,7 @@ export default {
 """.strip(),
     )
     _write(
-        repo_root / "dashboard/src/app.html",
+        repo_root / "frontend/src/app.html",
         """
 <!doctype html>
 <html lang="en">
@@ -41,11 +41,29 @@ export default {
 """.strip(),
     )
     _write(
-        repo_root / "dashboard/src/lib/SafeWidget.svelte",
+        repo_root / "frontend/src/lib/SafeWidget.svelte",
         """
 <button type="button">Safe</button>
 """.strip(),
     )
+
+
+def test_run_fails_when_legacy_dashboard_deployable_source_exists(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    _seed_safe_dashboard(tmp_path)
+    _write(
+        tmp_path / "dashboard/src/routes/+page.svelte",
+        """
+<h1>Legacy dashboard</h1>
+""".strip(),
+    )
+
+    assert run(tmp_path) == 1
+    output = capsys.readouterr().out
+    assert "legacy dashboard deployable source is not allowed" in output
+    assert "dashboard/src" in output
 
 
 def test_run_passes_for_hash_csp_without_transitions(tmp_path: Path) -> None:
@@ -60,7 +78,7 @@ def test_run_fails_when_dashboard_csp_allows_unsafe_inline(
 ) -> None:
     _seed_safe_dashboard(tmp_path)
     _write(
-        tmp_path / "dashboard/svelte.config.js",
+        tmp_path / "frontend/svelte.config.js",
         """
 export default {
   kit: {
@@ -81,7 +99,7 @@ export default {
 def test_run_fails_when_app_html_uses_inline_style(tmp_path: Path, capsys) -> None:
     _seed_safe_dashboard(tmp_path)
     _write(
-        tmp_path / "dashboard/src/app.html",
+        tmp_path / "frontend/src/app.html",
         """
 <!doctype html>
 <html lang="en">
@@ -96,13 +114,78 @@ def test_run_fails_when_app_html_uses_inline_style(tmp_path: Path, capsys) -> No
     assert "app.html must not include manual inline styles" in capsys.readouterr().out
 
 
+def test_run_fails_when_app_html_uses_inline_script_block(tmp_path: Path, capsys) -> None:
+    _seed_safe_dashboard(tmp_path)
+    _write(
+        tmp_path / "frontend/src/app.html",
+        """
+<!doctype html>
+<html lang="en">
+  <body>
+    <div class="app-shell">%sveltekit.body%</div>
+    <script>document.documentElement.classList.remove('no-js');</script>
+  </body>
+</html>
+""".strip(),
+    )
+
+    assert run(tmp_path) == 1
+    assert "app.html must not include manual inline script blocks" in capsys.readouterr().out
+
+
+def test_run_fails_when_app_html_uses_inline_style_block(tmp_path: Path, capsys) -> None:
+    _seed_safe_dashboard(tmp_path)
+    _write(
+        tmp_path / "frontend/src/app.html",
+        """
+<!doctype html>
+<html lang="en">
+  <head>
+    <style>html { background: #030912; }</style>
+  </head>
+  <body>
+    <div class="app-shell">%sveltekit.body%</div>
+  </body>
+</html>
+""".strip(),
+    )
+
+    assert run(tmp_path) == 1
+    assert "app.html must not include manual inline style blocks" in capsys.readouterr().out
+
+
+def test_run_fails_when_app_html_loads_google_fonts(tmp_path: Path, capsys) -> None:
+    _seed_safe_dashboard(tmp_path)
+    _write(
+        tmp_path / "frontend/src/app.html",
+        """
+<!doctype html>
+<html lang="en">
+  <head>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne&display=swap" />
+  </head>
+  <body>
+    <div class="app-shell">%sveltekit.body%</div>
+  </body>
+</html>
+""".strip(),
+    )
+
+    assert run(tmp_path) == 1
+    output = capsys.readouterr().out
+    assert "app.html must not load Google-hosted fonts" in output
+    assert "app.html must not load external stylesheet font resources" in output
+
+
 def test_run_fails_when_svelte_transition_directive_is_present(
     tmp_path: Path,
     capsys,
 ) -> None:
     _seed_safe_dashboard(tmp_path)
     _write(
-        tmp_path / "dashboard/src/lib/AnimatedWidget.svelte",
+        tmp_path / "frontend/src/lib/AnimatedWidget.svelte",
         """
 <script>
   import { fade } from 'svelte/transition';
@@ -123,7 +206,7 @@ def test_run_fails_when_svelte_transition_directive_is_present(
 def test_run_allows_public_api_url_in_approved_backend_origin_file(tmp_path: Path) -> None:
     _seed_safe_dashboard(tmp_path)
     _write(
-        tmp_path / "dashboard/src/lib/server/backend-origin.ts",
+        tmp_path / "frontend/src/lib/server/backend-origin.ts",
         """
 import { PUBLIC_API_URL } from '$env/static/public';
 
@@ -140,7 +223,7 @@ def test_run_fails_when_svelte_uses_html_injection_without_sanitization(
 ) -> None:
     _seed_safe_dashboard(tmp_path)
     _write(
-        tmp_path / "dashboard/src/lib/UnsafeMeta.svelte",
+        tmp_path / "frontend/src/lib/UnsafeMeta.svelte",
         """
 <svelte:head>
   {@html '<script type="application/ld+json">{}</script>'}
@@ -155,7 +238,7 @@ def test_run_fails_when_svelte_uses_html_injection_without_sanitization(
 def test_run_allows_preescaped_json_ld_html_injection(tmp_path: Path) -> None:
     _seed_safe_dashboard(tmp_path)
     _write(
-        tmp_path / "dashboard/src/lib/PublicPageMeta.svelte",
+        tmp_path / "frontend/src/lib/PublicPageMeta.svelte",
         """
 <script lang="ts">
   const structuredDataJson = [

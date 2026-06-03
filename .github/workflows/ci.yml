@@ -29,7 +29,7 @@ jobs:
     timeout-minutes: 10
     outputs:
       backend_ci: ${{ steps.classify.outputs.backend_ci }}
-      dashboard_ci: ${{ steps.classify.outputs.dashboard_ci }}
+      frontend_ci: ${{ steps.classify.outputs.frontend_ci }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -43,7 +43,7 @@ jobs:
           set -euo pipefail
 
           backend_ci=false
-          dashboard_ci=false
+          frontend_ci=false
 
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
             base_sha="${{ github.event.pull_request.base.sha }}"
@@ -58,19 +58,19 @@ jobs:
 
           if [[ -z "${base_sha}" || -z "${head_sha}" ]]; then
             backend_ci=true
-            dashboard_ci=true
+            frontend_ci=true
           else
             mapfile -t changed_files < <(git diff --name-only "${base_sha}" "${head_sha}")
 
             if [[ ${#changed_files[@]} -eq 0 ]]; then
               backend_ci=true
-              dashboard_ci=true
+              frontend_ci=true
             else
               for path in "${changed_files[@]}"; do
                 case "${path}" in
                   .github/workflows/ci.yml)
                     backend_ci=true
-                    dashboard_ci=true
+                    frontend_ci=true
                     ;;
                   contracts/*)
                     backend_ci=true
@@ -78,8 +78,8 @@ jobs:
                   app/*|tests/*|migrations/*|alembic.ini|pyproject.toml|uv.lock|scripts/*)
                     backend_ci=true
                     ;;
-                  dashboard/*|scripts/check_frontend_api_contracts.py|scripts/check_frontend_hygiene.py|scripts/verify_dashboard_runtime_contract.py|scripts/verify_frontend_module_size_budget.py)
-                    dashboard_ci=true
+                  frontend/*|new_frontend/*|docs/architecture/new_frontend_disposition_register.json|scripts/check_frontend_api_contracts.py|scripts/check_frontend_hygiene.py|scripts/verify_frontend_runtime_contract.py|scripts/verify_frontend_module_size_budget.py|scripts/verify_new_frontend_disposition_register.py)
+                    frontend_ci=true
                     ;;
                 esac
               done
@@ -88,7 +88,7 @@ jobs:
 
           {
             echo "backend_ci=${backend_ci}"
-            echo "dashboard_ci=${dashboard_ci}"
+            echo "frontend_ci=${frontend_ci}"
           } >> "${GITHUB_OUTPUT}"
 
   # JOB 1: QUALITY ASSURANCE
@@ -231,6 +231,9 @@ jobs:
 
       - name: Verify Frontend Hygiene
         run: uv run python scripts/check_frontend_hygiene.py
+
+      - name: Verify New Frontend Disposition Register
+        run: uv run python3 scripts/verify_new_frontend_disposition_register.py
 
       - name: Enforce Frontend Module Size Budget
         run: uv run python3 scripts/verify_frontend_module_size_budget.py
@@ -461,11 +464,11 @@ jobs:
       - name: Run Mypy
         run: uv run mypy app
 
-  # JOB 1B: DASHBOARD QUALITY (2026 Frontend Standards)
-  dashboard-quality:
-    name: Dashboard Lint / Typecheck / Unit
+  # JOB 1B: FRONTEND QUALITY (2026 Frontend Standards)
+  frontend-quality:
+    name: Frontend Lint / Typecheck / Unit
     needs: [classify-changes]
-    if: github.event_name != 'pull_request' || needs.classify-changes.outputs.dashboard_ci == 'true'
+    if: github.event_name != 'pull_request' || needs.classify-changes.outputs.frontend_ci == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
@@ -476,53 +479,53 @@ jobs:
       PUBLIC_SUPABASE_ANON_KEY: "ci-public-anon-key"
     steps:
       - *checkout_code_step
-      - name: Setup Dashboard Toolchain
-        uses: ./.github/actions/setup-dashboard
+      - name: Setup Frontend Toolchain
+        uses: ./.github/actions/setup-frontend
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
 
-      - name: Dashboard Lint
-        working-directory: ./dashboard
+      - name: Frontend Lint
+        working-directory: ./frontend
         run: pnpm run lint
 
-      - name: Dashboard Typecheck
-        working-directory: ./dashboard
+      - name: Frontend Typecheck
+        working-directory: ./frontend
         run: pnpm run check
 
-      - name: Dashboard Unit Tests
-        working-directory: ./dashboard
+      - name: Frontend Unit Tests
+        working-directory: ./frontend
         run: pnpm run test:unit -- --run
 
-      - name: Dashboard Build (Vite/SvelteKit)
-        working-directory: ./dashboard
+      - name: Frontend Build (Vite/SvelteKit)
+        working-directory: ./frontend
         run: pnpm run build
 
-      - name: Package Dashboard Preview Build
-        working-directory: ./dashboard
+      - name: Package Frontend Preview Build
+        working-directory: ./frontend
         run: |
-          tar -czf "${RUNNER_TEMP}/dashboard-preview-output.tar.gz" .svelte-kit/output
+          tar -czf "${RUNNER_TEMP}/frontend-preview-output.tar.gz" .svelte-kit/output
 
-      - name: Upload Dashboard Preview Build
+      - name: Upload Frontend Preview Build
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: dashboard-preview-output
-          path: ${{ runner.temp }}/dashboard-preview-output.tar.gz
+          name: frontend-preview-output
+          path: ${{ runner.temp }}/frontend-preview-output.tar.gz
           if-no-files-found: error
           retention-days: 3
 
-      - name: Verify Dashboard Managed Runtime Contract
-        run: python3 scripts/verify_dashboard_runtime_contract.py
+      - name: Verify Frontend Managed Runtime Contract
+        run: python3 scripts/verify_frontend_runtime_contract.py
 
-      - name: Dashboard Bundle Budgets
-        working-directory: ./dashboard
+      - name: Frontend Bundle Budgets
+        working-directory: ./frontend
         run: pnpm run check:bundle
 
-  dashboard-public-browser-gates:
-    name: Dashboard Public ${{ matrix.label }}
+  frontend-public-browser-gates:
+    name: Frontend Public ${{ matrix.label }}
     runs-on: ubuntu-24.04
-    needs: [classify-changes, dashboard-quality]
-    if: github.event_name != 'pull_request' || needs.classify-changes.outputs.dashboard_ci == 'true'
+    needs: [classify-changes, frontend-quality]
+    if: github.event_name != 'pull_request' || needs.classify-changes.outputs.frontend_ci == 'true'
     timeout-minutes: 30
     env:
       PUBLIC_API_URL: "https://api.example.com/api/v1"
@@ -549,48 +552,48 @@ jobs:
             artifact: playwright-report-public-progressive
     steps:
       - *checkout_code_step
-      - name: Setup Dashboard Toolchain
-        uses: ./.github/actions/setup-dashboard
+      - name: Setup Frontend Toolchain
+        uses: ./.github/actions/setup-frontend
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
 
-      - name: Download Dashboard Preview Build
+      - name: Download Frontend Preview Build
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: dashboard-preview-output
-          path: ${{ runner.temp }}/dashboard-preview-output
+          name: frontend-preview-output
+          path: ${{ runner.temp }}/frontend-preview-output
 
-      - name: Restore Dashboard Preview Build
-        working-directory: ./dashboard
+      - name: Restore Frontend Preview Build
+        working-directory: ./frontend
         run: |
           rm -rf .svelte-kit/output
-          tar -xzf "${RUNNER_TEMP}/dashboard-preview-output/dashboard-preview-output.tar.gz"
+          tar -xzf "${RUNNER_TEMP}/frontend-preview-output/frontend-preview-output.tar.gz"
 
       - name: Cache Playwright Browsers
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         id: playwright-cache-public
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('dashboard/pnpm-lock.yaml') }}
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/pnpm-lock.yaml') }}
 
       - name: Install Playwright Browsers
         if: steps.playwright-cache-public.outputs.cache-hit != 'true'
-        working-directory: ./dashboard
+        working-directory: ./frontend
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Run Public Playwright Suite
-        working-directory: ./dashboard
+        working-directory: ./frontend
         run: pnpm exec playwright test ${{ matrix.spec }} --reporter=html
         env:
           PLAYWRIGHT_PUBLIC_ONLY: "1"
           PLAYWRIGHT_USE_PREBUILT_PREVIEW: "1"
-          DASHBOARD_URL: http://localhost:4173
+          FRONTEND_URL: http://localhost:4173
 
       - name: Upload Public Playwright Report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: ${{ matrix.artifact }}
-          path: dashboard/playwright-report/
+          path: frontend/playwright-report/
           retention-days: 7

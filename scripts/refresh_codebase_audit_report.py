@@ -93,7 +93,7 @@ def _bootstrap_payload(
         "confirmed_claims": [
             {
                 "claim": f"Frontend stack includes {frontend_stack_phrase}.",
-                "evidence": [{"path": "dashboard/package.json", "line": 1}],
+                "evidence": [{"path": "frontend/package.json", "line": 1}],
             }
         ],
         "partial_or_overstated_claims": [
@@ -245,7 +245,7 @@ def refresh_audit_report(
             match_claim="Frontend stack includes SvelteKit, Svelte 5, TypeScript, Tailwind CSS v4, Vitest, and Playwright.",
             replacement={
                 "claim": f"Frontend stack includes {stack_phrase}.",
-                "evidence": [{"path": "dashboard/package.json", "line": 1}],
+                "evidence": [{"path": "frontend/package.json", "line": 1}],
             },
         )
 

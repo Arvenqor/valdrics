@@ -25,7 +25,7 @@ For the supported production profile:
 
 1. Redeploy the prior known-good digest-pinned Artifact Registry release for the API.
 2. Re-run the matching Cloud Run Job image when batch parity matters.
-3. Confirm `/health/live`, `/health`, and key dashboard/API flows after rollback.
+3. Confirm `/health/live`, `/health`, and key frontend/API flows after rollback.
 4. Re-check internal metrics scraping via `/_internal/metrics`.
 5. Confirm the rollback used immutable release artifacts rather than an ad hoc rebuild.
 

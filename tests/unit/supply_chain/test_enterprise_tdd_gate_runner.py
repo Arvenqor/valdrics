@@ -93,6 +93,11 @@ def test_build_gate_commands_includes_required_test_targets() -> None:
     reports_archive_cmd = next(
         cmd for cmd in commands if "scripts/verify_reports_archive_hygiene.py" in cmd
     )
+    new_frontend_disposition_cmd = next(
+        cmd
+        for cmd in commands
+        if "scripts/verify_new_frontend_disposition_register.py" in cmd
+    )
     alembic_head_cmd = next(
         cmd for cmd in commands if "scripts/verify_alembic_head_integrity.py" in cmd
     )
@@ -181,6 +186,12 @@ def test_build_gate_commands_includes_required_test_targets() -> None:
         "run",
         "python3",
         "scripts/verify_reports_archive_hygiene.py",
+    ]
+    assert new_frontend_disposition_cmd[:4] == [
+        "uv",
+        "run",
+        "python3",
+        "scripts/verify_new_frontend_disposition_register.py",
     ]
     assert alembic_head_cmd[:4] == [
         "uv",

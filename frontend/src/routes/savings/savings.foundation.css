@@ -1,0 +1,359 @@
+.savings-page {
+	--savings-panel: rgb(15 23 33 / 0.82);
+	--savings-panel-strong: rgb(8 13 21 / 0.9);
+	--savings-panel-soft: rgb(128 154 176 / 0.08);
+	--savings-border: rgb(128 154 176 / 0.16);
+	--savings-border-strong: rgb(128 154 176 / 0.24);
+	--savings-text: var(--color-ink-50);
+	--savings-muted: var(--color-ink-400);
+	--savings-subtle: var(--color-ink-500);
+	--savings-good: var(--color-success-300);
+	--savings-cyan: var(--color-accent-300);
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	width: min(100%, 1480px);
+	margin: 0 auto;
+	color: var(--savings-text);
+}
+
+.savings-page :where(h1, h2, h3, p, dl, dd) {
+	margin: 0;
+}
+
+.savings-hero,
+.savings-toolbar,
+.savings-panel,
+.savings-proof-meta,
+.savings-upgrade-panel,
+.savings-alert,
+.savings-loading {
+	border: 1px solid var(--savings-border);
+	border-radius: 8px;
+	background: linear-gradient(180deg, rgb(255 255 255 / 0.035), transparent), var(--savings-panel);
+	box-shadow: 0 18px 46px rgb(0 0 0 / 0.2);
+}
+
+.savings-hero {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: clamp(1rem, 2vw, 1.4rem);
+	background:
+		linear-gradient(135deg, rgb(34 211 238 / 0.1), transparent 42%),
+		linear-gradient(180deg, rgb(255 255 255 / 0.04), transparent), var(--savings-panel-strong);
+}
+
+.savings-hero__copy {
+	min-width: 0;
+}
+
+.savings-hero__copy h1 {
+	color: var(--savings-text);
+	font-size: clamp(1.5rem, 3vw, 2.2rem);
+	font-weight: 850;
+	letter-spacing: 0;
+	line-height: 1.05;
+}
+
+.savings-hero__copy p {
+	max-width: 58rem;
+	margin-top: 0.45rem;
+	color: var(--savings-muted);
+	font-size: 0.92rem;
+	line-height: 1.6;
+}
+
+.savings-hero__status {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.7rem;
+	min-width: min(100%, 19rem);
+	padding: 0.75rem 0.85rem;
+	border: 1px solid rgb(34 211 238 / 0.2);
+	border-radius: 8px;
+	background: rgb(34 211 238 / 0.07);
+	color: var(--savings-cyan);
+}
+
+.savings-hero__status svg {
+	flex: 0 0 auto;
+}
+
+.savings-hero__status div {
+	min-width: 0;
+}
+
+.savings-hero__status span,
+.savings-proof-meta span,
+.savings-kpi-card span,
+.savings-panel__meta,
+.savings-select-field span,
+.savings-drilldown-summary span,
+.savings-provider-row__amounts span,
+.savings-event-row__amount span,
+.savings-drilldown-row__amount span {
+	color: var(--savings-subtle);
+	font-family: var(--font-mono);
+	font-size: 0.68rem;
+	font-weight: 800;
+	line-height: 1.2;
+	text-transform: uppercase;
+}
+
+.savings-hero__status strong {
+	display: block;
+	overflow-wrap: anywhere;
+	color: var(--savings-text);
+	font-size: 0.82rem;
+	line-height: 1.35;
+}
+
+.savings-auth-empty {
+	display: grid;
+	place-items: center;
+	min-height: 16rem;
+	padding: 2rem;
+	border: 1px solid var(--savings-border);
+	border-radius: 8px;
+	background: var(--savings-panel);
+	text-align: center;
+}
+
+.savings-auth-empty a {
+	color: var(--savings-cyan);
+	font-weight: 800;
+}
+
+.savings-upgrade-panel {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: clamp(1rem, 3vw, 1.5rem);
+}
+
+.savings-upgrade-panel h2 {
+	color: var(--savings-text);
+	font-size: 1.1rem;
+	font-weight: 850;
+}
+
+.savings-upgrade-panel p {
+	max-width: 42rem;
+	margin-top: 0.4rem;
+	color: var(--savings-muted);
+	font-size: 0.9rem;
+	line-height: 1.55;
+}
+
+.savings-upgrade-panel span {
+	display: block;
+	margin-top: 0.45rem;
+	color: var(--savings-subtle);
+	font-size: 0.78rem;
+}
+
+.savings-toolbar {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 0.95rem;
+}
+
+.savings-toolbar__filters,
+.savings-toolbar__actions,
+.savings-panel__actions {
+	display: flex;
+	align-items: center;
+	gap: 0.7rem;
+	flex-wrap: wrap;
+}
+
+.savings-toolbar__filters {
+	min-width: 0;
+}
+
+.savings-page .date-range-picker {
+	gap: 0.5rem;
+}
+
+.savings-page .presets {
+	gap: 0.35rem;
+}
+
+.savings-page .preset-btn,
+.savings-select,
+.savings-secondary-button,
+.savings-primary-button,
+.savings-primary-link,
+.savings-icon-button {
+	min-height: 2.35rem;
+	border-radius: 8px;
+	font: inherit;
+	font-size: 0.82rem;
+	font-weight: 800;
+}
+
+.savings-page .preset-btn {
+	border-color: var(--savings-border);
+	background: rgb(128 154 176 / 0.08);
+	color: var(--savings-muted);
+}
+
+.savings-page .preset-btn:hover {
+	border-color: rgb(34 211 238 / 0.28);
+	color: var(--savings-text);
+}
+
+.savings-page .preset-btn.active {
+	border-color: rgb(52 211 153 / 0.34);
+	background: rgb(52 211 153 / 0.12);
+	color: var(--savings-good);
+}
+
+.savings-page .custom-range {
+	border-color: var(--savings-border);
+	border-radius: 8px;
+	background: rgb(8 13 21 / 0.82);
+}
+
+.savings-page .date-field input {
+	border-color: var(--savings-border);
+	border-radius: 8px;
+	background: rgb(8 13 21 / 0.88);
+	color: var(--savings-text);
+}
+
+.savings-select-field {
+	display: grid;
+	gap: 0.3rem;
+	min-width: 11rem;
+}
+
+.savings-select {
+	min-width: 11rem;
+	padding: 0 2rem 0 0.8rem;
+	border: 1px solid var(--savings-border);
+	background: rgb(8 13 21 / 0.86);
+	color: var(--savings-text);
+	cursor: pointer;
+}
+
+.savings-select:focus-visible,
+.savings-page .preset-btn:focus-visible,
+.savings-secondary-button:focus-visible,
+.savings-primary-button:focus-visible,
+.savings-primary-link:focus-visible,
+.savings-icon-button:focus-visible {
+	outline: 2px solid var(--color-success-400);
+	outline-offset: 2px;
+}
+
+.savings-secondary-button,
+.savings-primary-button,
+.savings-primary-link,
+.savings-icon-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid;
+	text-decoration: none;
+	cursor: pointer;
+	transition:
+		background var(--duration-fast) var(--ease-out),
+		border-color var(--duration-fast) var(--ease-out),
+		color var(--duration-fast) var(--ease-out);
+}
+
+.savings-secondary-button,
+.savings-primary-button {
+	gap: 0.45rem;
+	padding: 0 0.85rem;
+	white-space: nowrap;
+}
+
+.savings-secondary-button {
+	border-color: rgb(128 154 176 / 0.2);
+	background: rgb(128 154 176 / 0.08);
+	color: var(--savings-muted);
+}
+
+.savings-secondary-button:hover:not(:disabled) {
+	border-color: rgb(128 154 176 / 0.34);
+	color: var(--savings-text);
+}
+
+.savings-primary-button,
+.savings-primary-link {
+	border-color: rgb(52 211 153 / 0.32);
+	background: rgb(52 211 153 / 0.13);
+	color: var(--savings-good);
+}
+
+.savings-primary-button:hover:not(:disabled),
+.savings-primary-link:hover {
+	background: rgb(52 211 153 / 0.2);
+}
+
+.savings-primary-link {
+	padding: 0.68rem 0.95rem;
+	white-space: nowrap;
+}
+
+.savings-icon-button {
+	width: 2.35rem;
+	padding: 0;
+	border-color: rgb(128 154 176 / 0.2);
+	background: rgb(128 154 176 / 0.08);
+	color: var(--savings-muted);
+}
+
+.savings-icon-button:hover:not(:disabled) {
+	border-color: rgb(34 211 238 / 0.3);
+	color: var(--savings-cyan);
+}
+
+.savings-secondary-button:disabled,
+.savings-primary-button:disabled,
+.savings-icon-button:disabled {
+	cursor: not-allowed;
+	opacity: 0.54;
+}
+
+.savings-alert,
+.savings-inline-alert {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.7rem;
+	padding: 0.82rem 0.95rem;
+	font-size: 0.86rem;
+	line-height: 1.45;
+}
+
+.savings-alert svg,
+.savings-inline-alert svg {
+	flex: 0 0 auto;
+	margin-top: 0.12rem;
+}
+
+.savings-alert--danger {
+	border-color: rgb(244 63 94 / 0.32);
+	background: rgb(244 63 94 / 0.1);
+	color: var(--color-danger-400);
+}
+
+.savings-alert--success {
+	border-color: rgb(52 211 153 / 0.32);
+	background: rgb(52 211 153 / 0.1);
+	color: var(--savings-good);
+}
+
+.savings-alert--warning,
+.savings-inline-alert--warning {
+	border-color: rgb(251 191 36 / 0.28);
+	background: rgb(251 191 36 / 0.1);
+	color: var(--color-warning-400);
+}

@@ -1,0 +1,59 @@
+@media (max-width: 1100px) {
+	.inventory-toolbar {
+		align-items: stretch;
+	}
+
+	.inventory-segment,
+	.inventory-select-field {
+		width: 100%;
+	}
+
+	.inventory-segment {
+		overflow-x: auto;
+	}
+
+	.inventory-segment__button {
+		flex: 1 0 auto;
+	}
+}
+
+@media (max-width: 900px) {
+	.inventory-page {
+		gap: var(--space-4);
+	}
+
+	.inventory-page-header {
+		flex-direction: column;
+	}
+
+	.inventory-page-header__actions {
+		width: 100%;
+		align-items: stretch;
+	}
+
+	.inventory-primary-link {
+		flex: 1 1 auto;
+	}
+
+	.inventory-table__header,
+	.inventory-row {
+		grid-template-columns: minmax(0, 1fr) minmax(5rem, 6rem) minmax(5rem, 6rem);
+	}
+
+	.inventory-table__header span:nth-child(2),
+	.inventory-table__header span:nth-child(5),
+	.inventory-row__owner,
+	.inventory-row__source {
+		display: none;
+	}
+
+	.inventory-pagination {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.inventory-pagination div {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}

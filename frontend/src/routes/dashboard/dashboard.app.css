@@ -1,0 +1,117 @@
+@import 'tailwindcss' source(none);
+@import '../../app.theme.css';
+
+@source not './**/*.test.ts';
+@source not './**/*.spec.ts';
+@source not './**/*.test.js';
+@source not './**/*.spec.js';
+@source '.';
+@source '../../lib/components/AllocationBreakdown.svelte';
+@source '../../lib/components/CloudDistributionMatrix.svelte';
+@source '../../lib/components/FindingsTable.svelte';
+@source '../../lib/components/GreenOpsWidget.svelte';
+@source '../../lib/components/ProviderSelector.svelte';
+@source '../../lib/components/RemediationModal.svelte';
+@source '../../lib/components/ROAChart.svelte';
+@source '../../lib/components/SavingsHero.svelte';
+@source '../../lib/components/StatsGrid.svelte';
+@source '../../lib/components/UnitEconomicsCards.svelte';
+@source '../../lib/components/ZombieTable.svelte';
+
+.dashboard-page {
+	display: grid;
+	gap: 1.25rem;
+}
+
+.dashboard-command {
+	display: grid;
+	gap: 1rem;
+}
+
+.dashboard-command__header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.dashboard-command h1 {
+	margin: 0 0 0.25rem;
+	color: var(--color-ink-50);
+	font-size: var(--text-2xl);
+	font-weight: 800;
+	letter-spacing: 0;
+}
+
+.dashboard-command p {
+	margin: 0;
+	color: var(--color-ink-400);
+	font-size: var(--text-sm);
+}
+
+.dashboard-warning {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.6rem;
+	padding: 0.85rem 1rem;
+	border: 1px solid rgb(251 191 36 / 0.32);
+	border-radius: var(--radius-md);
+	background: rgb(251 191 36 / 0.08);
+	color: var(--color-warning-400);
+}
+
+.dashboard-warning p {
+	margin: 0;
+	color: var(--color-ink-200);
+	font-size: var(--text-sm);
+	line-height: 1.45;
+}
+
+.dashboard-next-actions {
+	padding: 1rem;
+	border: 1px solid rgb(128 154 176 / 0.18);
+	border-radius: var(--radius-md);
+	background: rgb(10 13 18 / 0.32);
+}
+
+.dashboard-next-actions__body {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.dashboard-next-actions h2 {
+	margin: 0;
+	color: var(--color-ink-100);
+	font-size: var(--text-sm);
+	font-weight: 750;
+	letter-spacing: 0;
+}
+
+.dashboard-next-actions p {
+	margin: 0.25rem 0 0;
+	color: var(--color-ink-400);
+	font-size: var(--text-xs);
+	line-height: 1.45;
+}
+
+.dashboard-action-list {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 0.5rem;
+}
+
+@media (max-width: 760px) {
+	.dashboard-command__header,
+	.dashboard-next-actions__body {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.dashboard-action-list {
+		justify-content: flex-start;
+	}
+}

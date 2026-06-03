@@ -264,6 +264,8 @@ def _register_models():
     from app.models.gcp_connection import GCPConnection  # noqa: F401
     from app.models.saas_connection import SaaSConnection  # noqa: F401
     from app.models.license_connection import LicenseConnection  # noqa: F401
+    from app.models.platform_connection import PlatformConnection  # noqa: F401
+    from app.models.hybrid_connection import HybridConnection  # noqa: F401
     from app.models.tenant import Tenant  # noqa: F401
     from app.models.remediation import RemediationRequest  # noqa: F401
     from app.models.security import OIDCKey  # noqa: F401

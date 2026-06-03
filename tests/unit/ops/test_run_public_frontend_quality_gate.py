@@ -22,7 +22,7 @@ def test_build_public_quality_commands_includes_expected_suites() -> None:
     assert any(label == "public visual gate" for label, _ in commands)
 
 
-def test_run_public_frontend_quality_gate_applies_dashboard_url_and_skip_webserver() -> None:
+def test_run_public_frontend_quality_gate_applies_frontend_url_and_skip_webserver() -> None:
     calls: list[tuple[list[str], dict[str, str]]] = []
 
     def _runner(
@@ -40,7 +40,7 @@ def test_run_public_frontend_quality_gate_applies_dashboard_url_and_skip_webserv
         return subprocess.CompletedProcess(cmd, 0, "", "")
 
     run_public_frontend_quality_gate(
-        dashboard_url="http://localhost:5174",
+        frontend_url="http://localhost:5174",
         skip_webserver=True,
         include_a11y=False,
         include_perf=True,
@@ -49,7 +49,7 @@ def test_run_public_frontend_quality_gate_applies_dashboard_url_and_skip_webserv
     )
 
     assert len(calls) == 2
-    assert calls[0][1]["DASHBOARD_URL"] == "http://localhost:5174"
+    assert calls[0][1]["FRONTEND_URL"] == "http://localhost:5174"
     assert calls[0][1]["PLAYWRIGHT_SKIP_WEBSERVER"] == "1"
     assert "test:a11y:public" not in " ".join(" ".join(cmd) for cmd, _ in calls)
     assert "test:visual" not in " ".join(" ".join(cmd) for cmd, _ in calls)

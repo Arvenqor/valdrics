@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="theme-color" content="#0a0d12" />
+		<meta name="color-scheme" content="light dark" />
+		<meta name="application-name" content="Valdrics" />
+		<meta name="apple-mobile-web-app-title" content="Valdrics" />
+		<meta name="format-detection" content="telephone=no" />
+		<link
+			rel="preload"
+			href="%sveltekit.assets%/valdrics_icon.png"
+			as="image"
+			type="image/png"
+			fetchpriority="high"
+		/>
+		<link
+			rel="preload"
+			href="%sveltekit.assets%/valdrics_wordmark.svg"
+			as="image"
+			type="image/svg+xml"
+		/>
+		<link rel="icon" href="%sveltekit.assets%/valdrics_icon.png" type="image/png" />
+		<link rel="apple-touch-icon" href="%sveltekit.assets%/valdrics_icon1.png" />
+		<link rel="manifest" href="%sveltekit.assets%/manifest.webmanifest" />
+		<meta property="og:site_name" content="Valdrics" />
+		%sveltekit.head%
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div class="app-shell">%sveltekit.body%</div>
+	</body>
+</html>

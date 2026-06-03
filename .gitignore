@@ -24,7 +24,7 @@ eggs/
 lib/
 lib64/
 # Exception: SvelteKit uses src/lib for components
-!dashboard/src/lib/
+!frontend/src/lib/
 parts/
 sdist/
 var/
@@ -270,7 +270,7 @@ test_results.log
 /codealike.json
 /coverage-enterprise-gate.xml
 /inspect_httpx.py
-dashboard/vitest_*.txt
+frontend/vitest_*.txt
 
 # Performance evidence artifacts (generated locally/CI)
 reports/performance/*.json

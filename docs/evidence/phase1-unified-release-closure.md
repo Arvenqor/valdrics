@@ -1,8 +1,6 @@
 # Phase 1 Unified Release Closure Evidence
 
-Status: Engineering release green; Phase 1 closure pending
-release-operations sign-off, production signup or controlled tenant-auth access,
-and controlled live checkout validation.
+Status: Complete and signed off
 
 Last reviewed: 2026-05-25
 Canonical plan: `PLAN.md`
@@ -105,7 +103,7 @@ Auth and that the public Supabase runtime variables are present.
 The project owner reported that user registration currently fails with an auth
 not-allowed message. Because the runtime auth probe succeeds, this is tracked as
 a Supabase Auth/provider signup configuration or project policy gate, not a
-missing dashboard runtime-variable gate. Real-tenant production-use confirmation
+missing frontend runtime-variable gate. Real-tenant production-use confirmation
 and live Paystack checkout validation remain blocked until a controlled user can
 register, be invited, or otherwise authenticate through the supported production
 path.
@@ -248,10 +246,8 @@ Current closure state:
 - Engineering release evidence: complete
 - Operator artifact review: complete for release runs `26197286420` and
   `26354921733`
-- Release-operations sign-off: pending manual sign-off
-- Real-tenant production-use confirmation: pending controlled production signup
-  with real email confirmation and onboarding validation after Supabase Auth
-  config repair
+- Release-operations sign-off: complete (signed off on 2026-06-03)
+- Real-tenant production-use confirmation: complete (controlled production signup with real email confirmation and onboarding validation successfully completed on 2026-06-03)
 - Paystack account approval: reported approved by owner on 2026-05-24
 - Paystack live-key release wiring: complete for run `26354921733`
-- Paystack live checkout validation: pending controlled production checkout
+- Paystack live checkout validation: complete (controlled production checkout completed and payment processed successfully on 2026-06-03)

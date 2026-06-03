@@ -18,7 +18,7 @@ PINNED_WORKFLOW_PATHS = (
     REPO_ROOT / ".github/workflows/enterprise-tdd-mainline.yml",
     REPO_ROOT / ".github/workflows/performance-mainline.yml",
     REPO_ROOT / ".github/workflows/carbon-footprint.yml",
-    REPO_ROOT / ".github/workflows/dashboard-browser-mainline.yml",
+    REPO_ROOT / ".github/workflows/frontend-browser-mainline.yml",
     REPO_ROOT / ".github/workflows/sbom.yml",
     REPO_ROOT / ".github/workflows/release-unified-platform.yml",
     REPO_ROOT / ".github/workflows/publish-artifact-registry-images.yml",
@@ -29,7 +29,7 @@ PINNED_WORKFLOW_PATHS = (
 )
 PINNED_COMPOSITE_ACTION_PATHS = (
     REPO_ROOT / ".github/actions/setup-python-uv/action.yml",
-    REPO_ROOT / ".github/actions/setup-dashboard/action.yml",
+    REPO_ROOT / ".github/actions/setup-frontend/action.yml",
 )
 PIP_AUDIT_WRAPPER_COMMAND = "uv run python scripts/run_pip_audit.py"
 
@@ -72,8 +72,8 @@ def test_sbom_workflow_push_paths_cover_frontend_dependency_surface() -> None:
 
     assert "scripts/generate_provenance_manifest.py" in text
     assert "scripts/verify_supply_chain_attestations.py" in text
-    assert "dashboard/package.json" in text
-    assert "dashboard/pnpm-lock.yaml" in text
+    assert "frontend/package.json" in text
+    assert "frontend/pnpm-lock.yaml" in text
     assert ".github/workflows/sbom.yml" in text
 
 
@@ -197,10 +197,14 @@ def test_ci_workflow_shards_backend_pytest_and_combines_coverage() -> None:
     assert "classify-changes:" in text
     assert "name: Classify CI Surfaces" in text
     assert "backend_ci: ${{ steps.classify.outputs.backend_ci }}" in text
-    assert "dashboard_ci: ${{ steps.classify.outputs.dashboard_ci }}" in text
+    assert "frontend_ci: ${{ steps.classify.outputs.frontend_ci }}" in text
     assert "github.event_name != 'pull_request' || needs.classify-changes.outputs.backend_ci == 'true'" in text
-    assert "github.event_name != 'pull_request' || needs.classify-changes.outputs.dashboard_ci == 'true'" in text
+    assert "github.event_name != 'pull_request' || needs.classify-changes.outputs.frontend_ci == 'true'" in text
     assert "app/*|tests/*|migrations/*|alembic.ini|pyproject.toml|uv.lock|scripts/*" in text
+    assert "new_frontend/*" in text
+    assert "docs/architecture/new_frontend_disposition_register.json" in text
+    assert "scripts/verify_new_frontend_disposition_register.py" in text
+    assert "Verify New Frontend Disposition Register" in text
     assert "pytest:" in text
     assert "Backend Pytest Shard ${{ matrix.shard_id }}" in text
     assert "name: Run Unit Tests" in text
@@ -269,7 +273,7 @@ def test_ci_and_release_related_workflows_use_local_setup_composite_actions() ->
         encoding="utf-8"
     )
     browser_text = (
-        REPO_ROOT / ".github/workflows/dashboard-browser-mainline.yml"
+        REPO_ROOT / ".github/workflows/frontend-browser-mainline.yml"
     ).read_text(encoding="utf-8")
     enterprise_text = (
         REPO_ROOT / ".github/workflows/enterprise-tdd-mainline.yml"
@@ -282,15 +286,15 @@ def test_ci_and_release_related_workflows_use_local_setup_composite_actions() ->
     ).read_text(encoding="utf-8")
 
     assert "uses: ./.github/actions/setup-python-uv" in ci_text
-    assert "uses: ./.github/actions/setup-dashboard" in ci_text
+    assert "uses: ./.github/actions/setup-frontend" in ci_text
     assert "uses: ./.github/actions/setup-python-uv" in security_text
     assert "uses: ./.github/actions/setup-python-uv" in browser_text
-    assert "uses: ./.github/actions/setup-dashboard" in browser_text
+    assert "uses: ./.github/actions/setup-frontend" in browser_text
     assert "uses: ./.github/actions/setup-python-uv" in enterprise_text
     assert "uses: ./.github/actions/setup-python-uv" in release_text
-    assert "uses: ./.github/actions/setup-dashboard" in release_text
+    assert "uses: ./.github/actions/setup-frontend" in release_text
     assert "uses: ./.github/actions/setup-python-uv" in deploy_text
-    assert "uses: ./.github/actions/setup-dashboard" in deploy_text
+    assert "uses: ./.github/actions/setup-frontend" in deploy_text
 
 
 def test_workflow_triggers_cover_local_composite_actions_and_container_entrypoints() -> (
@@ -300,7 +304,7 @@ def test_workflow_triggers_cover_local_composite_actions_and_container_entrypoin
         encoding="utf-8"
     )
     browser_text = (
-        REPO_ROOT / ".github/workflows/dashboard-browser-mainline.yml"
+        REPO_ROOT / ".github/workflows/frontend-browser-mainline.yml"
     ).read_text(encoding="utf-8")
     enterprise_text = (
         REPO_ROOT / ".github/workflows/enterprise-tdd-mainline.yml"
@@ -320,7 +324,7 @@ def test_long_running_workflows_define_timeouts_and_serialized_release_concurren
     timeout_workflow_paths = (
         REPO_ROOT / ".github/workflows/ci.yml",
         REPO_ROOT / ".github/workflows/security-scan.yml",
-        REPO_ROOT / ".github/workflows/dashboard-browser-mainline.yml",
+        REPO_ROOT / ".github/workflows/frontend-browser-mainline.yml",
         REPO_ROOT / ".github/workflows/enterprise-tdd-mainline.yml",
         REPO_ROOT / ".github/workflows/sbom.yml",
         REPO_ROOT / ".github/workflows/publish-artifact-registry-images.yml",
@@ -419,7 +423,7 @@ def test_dashboard_mainline_browser_workflow_keeps_authenticated_playwright_matr
     None
 ):
     text = (
-        REPO_ROOT / ".github/workflows/dashboard-browser-mainline.yml"
+        REPO_ROOT / ".github/workflows/frontend-browser-mainline.yml"
     ).read_text(encoding="utf-8")
 
     assert "Authenticated Shell" in text
@@ -431,17 +435,17 @@ def test_dashboard_mainline_browser_workflow_keeps_authenticated_playwright_matr
     assert "pnpm exec playwright test" in text
 
 
-def test_ci_workflow_reuses_dashboard_preview_build_for_public_browser_gates() -> None:
+def test_ci_workflow_reuses_frontend_preview_build_for_public_browser_gates() -> None:
     ci_text = (REPO_ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
-    playwright_text = (REPO_ROOT / "dashboard/playwright.config.ts").read_text(
+    playwright_text = (REPO_ROOT / "frontend/playwright.config.ts").read_text(
         encoding="utf-8"
     )
 
-    assert "Package Dashboard Preview Build" in ci_text
-    assert "Upload Dashboard Preview Build" in ci_text
-    assert "name: dashboard-preview-output" in ci_text
-    assert "Download Dashboard Preview Build" in ci_text
-    assert "Restore Dashboard Preview Build" in ci_text
+    assert "Package Frontend Preview Build" in ci_text
+    assert "Upload Frontend Preview Build" in ci_text
+    assert "name: frontend-preview-output" in ci_text
+    assert "Download Frontend Preview Build" in ci_text
+    assert "Restore Frontend Preview Build" in ci_text
     assert 'PLAYWRIGHT_USE_PREBUILT_PREVIEW: "1"' in ci_text
     assert "const usePrebuiltPreview = process.env.PLAYWRIGHT_USE_PREBUILT_PREVIEW === '1';" in playwright_text
     assert "? `${frontendEnv} pnpm run preview`" in playwright_text
@@ -552,9 +556,9 @@ def test_security_scan_uses_hermetic_compose_env_for_dast() -> None:
     assert "terraform -chdir=terraform init -backend=false" in text
     assert "terraform -chdir=terraform validate -no-color" in text
     assert "cache-from: type=gha,scope=backend-image" in text
-    assert "cache-from: type=gha,scope=dashboard-image" in text
+    assert "cache-from: type=gha,scope=frontend-image" in text
     assert "needs.classify-changes.outputs.backend_container == 'true'" in text
-    assert "needs.classify-changes.outputs.dashboard_container == 'true'" in text
+    assert "needs.classify-changes.outputs.frontend_container == 'true'" in text
     assert "needs: [security-scan, container-scan]" in text
     assert "github.event_name != 'pull_request'" in text
     assert (
@@ -564,11 +568,11 @@ def test_security_scan_uses_hermetic_compose_env_for_dast() -> None:
     assert '"PUBLIC_API_RATE_LIMITING_BACKEND": "cloudflare"' in text
     assert '"RATELIMIT_ENABLED": "false"' in text
     assert (
-        "docker compose --env-file .env.compose.dev up -d --build postgres api dashboard"
+        "docker compose --env-file .env.compose.dev up -d --build postgres api frontend"
         in text
     )
     assert "docker compose --env-file .env.compose.dev down -v" in text
-    assert "docker compose up -d --build postgres redis api dashboard" not in text
+    assert "docker compose up -d --build postgres redis api frontend" not in text
 
 
 def test_security_scan_workflow_pins_tflint_setup_version() -> None:

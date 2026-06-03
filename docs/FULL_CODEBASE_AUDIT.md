@@ -11,7 +11,7 @@ This file remains intentionally checked in because downstream controls and compl
 - Current source inventory at snapshot time:
   - `app/`: 599 Python files
   - `tests/`: 831 Python files
-  - `dashboard/src/`: 425 TypeScript/JavaScript/Svelte files
+  - `frontend/src/`: 425 TypeScript/JavaScript/Svelte files
   - `scripts/`: 151 Python files
   - `migrations/versions/`: 116 Python files
 - Pattern sweeps on 2026-04-02 found `13` `TODO/FIXME/HACK` matches across `4` files in the active source roots. App-side hits were limited to vendored static assets under `app/static`, not first-party runtime modules.

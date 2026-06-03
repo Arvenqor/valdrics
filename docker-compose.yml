@@ -55,12 +55,12 @@ services:
     depends_on:
       - prometheus
 
-  dashboard:
-    container_name: valdrics-dashboard
-    image: valdrics-dashboard
+  frontend:
+    container_name: valdrics-frontend
+    image: valdrics-frontend
     build:
       context: .
-      dockerfile: Dockerfile.dashboard
+      dockerfile: Dockerfile.frontend
     ports:
       - "3000:3000"
     depends_on:

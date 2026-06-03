@@ -14,7 +14,7 @@ from scripts.env_generation_common import (
 DEFAULT_MAX_LINES = 500
 PREFERRED_MAX_LINES = 400
 FRONTEND_EXTENSIONS = {".svelte", ".ts", ".js", ".css"}
-FRONTEND_SOURCE_ROOT = Path("dashboard/src")
+FRONTEND_SOURCE_ROOT = Path("frontend/src")
 
 FRONTEND_MODULE_LINE_BUDGET_OVERRIDES: dict[str, int] = {}
 
@@ -109,7 +109,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Fail when frontend modules exceed line-count budgets. "
-            "Default budget applies to all dashboard/src source files unless overridden."
+            "Default budget applies to all frontend/src source files unless overridden."
         )
     )
     parser.add_argument(

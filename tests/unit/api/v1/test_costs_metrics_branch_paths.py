@@ -46,11 +46,19 @@ def test_settings_to_response_and_connection_active_delegate() -> None:
         default_workload_volume=Decimal("20"),
         default_customer_volume=Decimal("5"),
         anomaly_threshold_percent=Decimal("35"),
+        target_spend_reduction_pct=Decimal("15"),
+        target_rollout_days=30,
+        target_team_members=5,
+        target_blended_hourly_rate=Decimal("80"),
     )
 
     out = costs_metrics.settings_to_response(settings)
     assert out.default_request_volume == 100.0
     assert out.anomaly_threshold_percent == 35.0
+    assert out.target_spend_reduction_pct == 15.0
+    assert out.target_rollout_days == 30
+    assert out.target_team_members == 5
+    assert out.target_blended_hourly_rate == 80.0
 
     connection = SimpleNamespace(status="active")
     with patch.object(
@@ -67,6 +75,10 @@ def test_settings_to_response_rejects_non_finite_numeric_fields() -> None:
         default_workload_volume=Decimal("20"),
         default_customer_volume=Decimal("5"),
         anomaly_threshold_percent=Decimal("35"),
+        target_spend_reduction_pct=Decimal("15"),
+        target_rollout_days=30,
+        target_team_members=5,
+        target_blended_hourly_rate=Decimal("80"),
     )
 
     with pytest.raises(ValueError, match="default_request_volume must be finite"):

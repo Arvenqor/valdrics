@@ -51,7 +51,7 @@ def test_path_matches_rejects_different_path_shape() -> None:
 def test_parse_frontend_paths_includes_direct_base_api_refs(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     _write(
-        repo_root / "dashboard/src/lib/components/LandingHero.svelte",
+        repo_root / "frontend/src/lib/components/LandingHero.svelte",
         """
         <script lang="ts">
             import { base } from '$app/paths';
@@ -70,8 +70,8 @@ def test_parse_frontend_paths_includes_direct_base_api_refs(tmp_path: Path) -> N
 
 def test_parse_dashboard_server_paths_discovers_local_api_routes(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
-    _write(repo_root / "dashboard/src/routes/api/geo/currency/+server.ts", "export const GET = () => {};")
-    _write(repo_root / "dashboard/src/routes/api/edge/[...path]/+server.ts", "export const GET = () => {};")
+    _write(repo_root / "frontend/src/routes/api/geo/currency/+server.ts", "export const GET = () => {};")
+    _write(repo_root / "frontend/src/routes/api/edge/[...path]/+server.ts", "export const GET = () => {};")
 
     declared_paths = script_module.parse_dashboard_server_paths(repo_root)
 
@@ -85,9 +85,9 @@ def test_run_accepts_frontend_refs_backed_by_local_dashboard_routes(
     capsys,
 ) -> None:
     repo_root = tmp_path / "repo"
-    _write(repo_root / "dashboard/src/routes/api/geo/currency/+server.ts", "export const GET = () => {};")
+    _write(repo_root / "frontend/src/routes/api/geo/currency/+server.ts", "export const GET = () => {};")
     _write(
-        repo_root / "dashboard/src/routes/roi-planner/+page.svelte",
+        repo_root / "frontend/src/routes/roi-planner/+page.svelte",
         """
         <script lang="ts">
             import { base } from '$app/paths';
@@ -104,7 +104,7 @@ def test_run_accepts_frontend_refs_backed_by_local_dashboard_routes(
 def test_run_flags_missing_direct_api_refs(tmp_path: Path, monkeypatch, capsys) -> None:
     repo_root = tmp_path / "repo"
     _write(
-        repo_root / "dashboard/src/routes/roi-planner/+page.svelte",
+        repo_root / "frontend/src/routes/roi-planner/+page.svelte",
         """
         <script lang="ts">
             import { base } from '$app/paths';

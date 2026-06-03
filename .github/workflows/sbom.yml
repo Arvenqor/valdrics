@@ -9,8 +9,8 @@ on:
       - 'Dockerfile'
       - 'scripts/generate_provenance_manifest.py'
       - 'scripts/verify_supply_chain_attestations.py'
-      - 'dashboard/package.json'
-      - 'dashboard/pnpm-lock.yaml'
+      - 'frontend/package.json'
+      - 'frontend/pnpm-lock.yaml'
       - '.github/workflows/sbom.yml'
   release:
     types: [published]
@@ -71,12 +71,12 @@ jobs:
           corepack enable
           corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
 
-      - name: Verify dashboard lockfile
-        working-directory: ./dashboard
+      - name: Verify frontend lockfile
+        working-directory: ./frontend
         run: pnpm install --frozen-lockfile
 
-      - name: Audit dashboard dependencies
-        working-directory: ./dashboard
+      - name: Audit frontend dependencies
+        working-directory: ./frontend
         run: pnpm audit --audit-level=high
       
       - name: Create supply-chain output directories

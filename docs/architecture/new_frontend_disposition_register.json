@@ -1,0 +1,530 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-01",
+  "policy": "new_frontend is the non-deployable design/product source of truth for the new Valdrics frontend. Production code lives in frontend, but each new_frontend file must either be migrated with visual fidelity and real contracts, deferred behind a precise contract blocker, or rejected with evidence before deletion.",
+  "entries": [
+    {
+      "source_file": "new_frontend/ApprovalCard.svelte",
+      "status": "migrated",
+      "decision": "Migrated into the production approvals queue card using the real approval queue model and entitlement behavior.",
+      "target_paths": [
+        "frontend/src/routes/approvals/ApprovalQueueCard.svelte",
+        "frontend/src/routes/approvals/ApprovalQueueCard.css",
+        "frontend/src/routes/approvals/approvalQueueModel.ts"
+      ],
+      "evidence": [
+        "corepack pnpm@10.32.1 --dir frontend test:unit -- --run",
+        "corepack pnpm@10.32.1 --dir frontend build",
+        "browser QA /approvals desktop and mobile"
+      ],
+      "deletion_blocker": ""
+    },
+    {
+      "source_file": "new_frontend/InventoryPanel.svelte",
+      "status": "migrated",
+      "decision": "Migrated the dashboard panel intent into production Operational Signals using real zombie, service-spend, and approval queue contracts. First-class cloud/SaaS/service inventory now belongs to the production /inventory route and /api/v1/inventory contract created in FME-007.",
+      "target_paths": [
+        "frontend/src/lib/components/dashboard/InventoryPanel.svelte",
+        "frontend/src/lib/components/dashboard/overviewTypes.ts",
+        "frontend/src/routes/dashboard/dashboardOverviewModel.ts",
+        "frontend/src/routes/dashboard/dashboardOverviewModel.test.ts"
+      ],
+      "evidence": [
+        "corepack pnpm@10.32.1 --dir frontend check",
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run src/routes/dashboard.load.test.ts src/routes/dashboard/dashboardOverviewModel.test.ts src/routes/dashboard/dashboard-page.svelte.test.ts",
+        "browser QA /__capture/dashboard-hero desktop 1440x960 and mobile 390x844"
+      ],
+      "deletion_blocker": ""
+    },
+    {
+      "source_file": "new_frontend/PolicyHealthRings.svelte",
+      "status": "migrated",
+      "decision": "Migrated into production policy health rings using current leadership KPI evidence for carbon coverage, recommendation application, remediation completion, and security decision counts.",
+      "target_paths": [
+        "frontend/src/lib/components/dashboard/PolicyHealthRings.svelte",
+        "frontend/src/lib/components/dashboard/overviewTypes.ts",
+        "frontend/src/routes/dashboard/dashboardOverviewModel.ts",
+        "frontend/src/routes/dashboard/dashboardOverviewModel.test.ts"
+      ],
+      "evidence": [
+        "corepack pnpm@10.32.1 --dir frontend check",
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run src/routes/dashboard.load.test.ts src/routes/dashboard/dashboardOverviewModel.test.ts src/routes/dashboard/dashboard-page.svelte.test.ts",
+        "browser QA /__capture/dashboard-hero desktop 1440x960 and mobile 390x844"
+      ],
+      "deletion_blocker": ""
+    },
+    {
+      "source_file": "new_frontend/SavingsPanel.svelte",
+      "status": "migrated",
+      "decision": "Migrated into the production dashboard savings panel using current leadership KPI savings opportunity, realized savings, recommendation, and remediation contracts.",
+      "target_paths": [
+        "frontend/src/lib/components/dashboard/SavingsPanel.svelte",
+        "frontend/src/lib/components/dashboard/overviewTypes.ts",
+        "frontend/src/routes/dashboard/dashboardOverviewModel.ts",
+        "frontend/src/routes/dashboard/dashboardOverviewModel.test.ts"
+      ],
+      "evidence": [
+        "corepack pnpm@10.32.1 --dir frontend check",
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run src/routes/dashboard.load.test.ts src/routes/dashboard/dashboardOverviewModel.test.ts src/routes/dashboard/dashboard-page.svelte.test.ts",
+        "browser QA /__capture/dashboard-hero desktop 1440x960 and mobile 390x844"
+      ],
+      "deletion_blocker": ""
+    },
+    {
+      "source_file": "new_frontend/Sidebar.svelte",
+      "status": "migrated",
+      "decision": "Migrated into the authenticated application rail without preserving a legacy dashboard root.",
+      "target_paths": [
+        "frontend/src/routes/layout/AppAuthenticatedShell.svelte",
+        "frontend/src/routes/layout/AuthenticatedRailLink.svelte",
+        "frontend/static/authenticated-shell.css"
+      ],
+      "evidence": [
+        "corepack pnpm@10.32.1 --dir frontend test:unit -- --run",
+        "corepack pnpm@10.32.1 --dir frontend build",
+        "browser QA authenticated shell desktop and mobile"
+      ],
+      "deletion_blocker": ""
+    },
+    {
+      "source_file": "new_frontend/SpendTopologyChart.svelte",
+      "status": "migrated",
+      "decision": "Migrated into the production spend topology chart using current /costs/daily and /leadership/kpis provider-spend contracts without synthetic cloud/software/service split fields.",
+      "target_paths": [
+        "frontend/src/lib/components/dashboard/SpendTopologyChart.svelte",
+        "frontend/src/lib/components/dashboard/overviewTypes.ts",
+        "frontend/src/routes/dashboard/+page.ts",
+        "frontend/src/routes/dashboard/dashboardOverviewModel.ts",
+        "frontend/src/routes/dashboard.load.test.ts",
+        "frontend/src/routes/dashboard/dashboardOverviewModel.test.ts"
+      ],
+      "evidence": [
+        "corepack pnpm@10.32.1 --dir frontend check",
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run src/routes/dashboard.load.test.ts src/routes/dashboard/dashboardOverviewModel.test.ts src/routes/dashboard/dashboard-page.svelte.test.ts",
+        "browser QA /__capture/dashboard-hero desktop 1440x960 and mobile 390x844"
+      ],
+      "deletion_blocker": ""
+    },
+    {
+      "source_file": "new_frontend/TopBar.svelte",
+      "status": "migrated",
+      "decision": "Migrated into the authenticated top bar actions and shell state.",
+      "target_paths": [
+        "frontend/src/routes/layout/AppAuthenticatedShell.svelte",
+        "frontend/src/routes/layout/AuthenticatedTopbarAction.svelte",
+        "frontend/static/authenticated-shell.css"
+      ],
+      "evidence": [
+        "corepack pnpm@10.32.1 --dir frontend test:unit -- --run",
+        "corepack pnpm@10.32.1 --dir frontend build",
+        "browser QA authenticated shell desktop and mobile"
+      ],
+      "deletion_blocker": ""
+    },
+    {
+      "source_file": "new_frontend/app.d.ts",
+      "status": "migrated",
+      "decision": "Audited against the production SvelteKit type surface. The handoff FastAPI token/session globals and global Approval/PaginatedResponse declarations were rejected because production uses Supabase session locals, AppSession normalization, and route-local domain models. Production frontend/src/app.d.ts now keeps the Supabase Locals contract and explicitly types root PageData subscription/profile fields returned by +layout.server.ts.",
+      "target_paths": [
+        "frontend/src/app.d.ts",
+        "frontend/src/routes/+layout.server.ts"
+      ],
+      "evidence": [
+        "corepack pnpm@10.32.1 --dir frontend check",
+        "uv run python3 scripts/verify_new_frontend_disposition_register.py"
+      ],
+      "deletion_blocker": ""
+    },
+    {
+      "source_file": "new_frontend/valdrics-app-html.html",
+      "status": "migrated",
+      "decision": "Audited against the production SvelteKit shell. The useful handoff intent is covered by frontend/src/app.html through Valdrics application metadata, icon preloads, favicon/apple-touch assets, manifest.webmanifest, theme-color, color-scheme, and the required SvelteKit head/body placeholders. Handoff Google Fonts, inline FOUC style, inline no-js script, and inline display style were rejected because production uses strict CSP nonce mode, first-party assets, and app-shell CSS instead.",
+      "target_paths": [
+        "frontend/src/app.html",
+        "frontend/svelte.config.js",
+        "scripts/check_frontend_hygiene.py",
+        "tests/unit/ops/test_check_frontend_hygiene.py"
+      ],
+      "evidence": [
+        "Official SvelteKit project-structure docs confirm src/app.html is the page template and %sveltekit.head%/%sveltekit.body% are the shell placeholders.",
+        "Official SvelteKit CSP docs confirm nonce/hash-managed CSP behavior; production keeps nonce mode and avoids manual inline shell code.",
+        "uv run pytest tests/unit/ops/test_check_frontend_hygiene.py",
+        "uv run python3 scripts/check_frontend_hygiene.py",
+        "uv run python3 scripts/verify_new_frontend_disposition_register.py"
+      ],
+      "deletion_blocker": ""
+    },
+    {
+      "source_file": "new_frontend/valdrics-app-layout-server.ts",
+      "status": "migrated",
+      "decision": "Audited against the production root layout server contract. The useful intent is covered by frontend/src/routes/+layout.server.ts and hooks.server.ts: public-path session skipping, Supabase safeGetSession, backend-validated profiles, subscription/profile hydration through edge proxy paths, AppSession normalization, and protected-path failure behavior. The handoff direct FASTAPI_URL calls, locals.token/workspaceId assumptions, forced onboarding redirect, and layout-level approvals payload were rejected because production keeps auth/session, onboarding, and approvals as explicit route/domain contracts.",
+      "target_paths": [
+        "frontend/src/routes/+layout.server.ts",
+        "frontend/src/hooks.server.ts",
+        "frontend/src/lib/routeProtection.ts",
+        "frontend/src/routes/layout.server.load.test.ts",
+        "frontend/src/lib/routeProtection.test.ts"
+      ],
+      "evidence": [
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run src/routes/layout.server.load.test.ts src/lib/routeProtection.test.ts --reporter=verbose",
+        "corepack pnpm@10.32.1 --dir frontend check",
+        "uv run python3 scripts/verify_new_frontend_disposition_register.py"
+      ],
+      "deletion_blocker": ""
+    },
+    {
+      "source_file": "new_frontend/valdrics-app-layout.svelte",
+      "status": "migrated",
+      "decision": "Migrated into the production authenticated shell while preserving real navigation and current Valdrics logo geometry.",
+      "target_paths": [
+        "frontend/src/routes/layout/AppAuthenticatedShell.svelte",
+        "frontend/src/routes/layout/AuthenticatedBrandMark.svelte",
+        "frontend/src/routes/layout/AuthenticatedRailLink.svelte",
+        "frontend/src/routes/layout/AuthenticatedTopbarAction.svelte",
+        "frontend/static/authenticated-shell.css"
+      ],
+      "evidence": [
+        "corepack pnpm@10.32.1 --dir frontend test:unit -- --run",
+        "corepack pnpm@10.32.1 --dir frontend build",
+        "browser QA logo asset /valdrics_icon.png desktop and mobile"
+      ],
+      "deletion_blocker": ""
+    },
+    {
+      "source_file": "new_frontend/valdrics-approval-email.html",
+      "status": "pending",
+      "decision": "Pending transactional email ownership decision.",
+      "target_paths": [],
+      "evidence": [],
+      "deletion_blocker": "Requires identifying the production email rendering path and approval notification backend contract."
+    },
+    {
+      "source_file": "new_frontend/valdrics-approvals-page.svelte",
+      "status": "migrated",
+      "decision": "Migrated into the production approvals route with entitlement gates and real queue contracts.",
+      "target_paths": [
+        "frontend/src/routes/approvals/+page.svelte",
+        "frontend/src/routes/approvals/approvals-page.css",
+        "frontend/src/routes/approvals/approvalQueueModel.ts",
+        "frontend/src/routes/approvals/approvals-page.svelte.test.ts"
+      ],
+      "evidence": [
+        "corepack pnpm@10.32.1 --dir frontend test:unit -- --run",
+        "corepack pnpm@10.32.1 --dir frontend build",
+        "browser QA /approvals desktop and mobile"
+      ],
+      "deletion_blocker": ""
+    },
+    {
+      "source_file": "new_frontend/valdrics-backend-requirements.html",
+      "status": "pending",
+      "decision": "Requirements input only; not implementation evidence.",
+      "target_paths": [],
+      "evidence": [],
+      "deletion_blocker": "Requires extracting actionable backend gaps into contract tests or rejecting unsupported requirements."
+    },
+    {
+      "source_file": "new_frontend/valdrics-config-files.js",
+      "status": "pending",
+      "decision": "Pending config audit against production SvelteKit, Vite, Tailwind, and deployment config.",
+      "target_paths": [],
+      "evidence": [],
+      "deletion_blocker": "Requires verifying no handoff config weakens CSP, runtime target, or CI behavior."
+    },
+    {
+      "source_file": "new_frontend/valdrics-dashboard-page.svelte",
+      "status": "migrated",
+      "decision": "Migrated the authenticated dashboard overview into the production SvelteKit route with real loader contracts, non-fatal widget warnings, handoff-style summary metrics, dashboard panels, responsive capture QA, and no legacy dashboard app root.",
+      "target_paths": [
+        "frontend/src/routes/dashboard/+page.svelte",
+        "frontend/src/routes/dashboard/+page.ts",
+        "frontend/src/routes/dashboard/dashboardOverviewModel.ts",
+        "frontend/src/routes/dashboard/dashboard-page.svelte.test.ts",
+        "frontend/src/routes/dashboard/dashboardOverviewModel.test.ts",
+        "frontend/src/routes/dashboard.load.test.ts",
+        "frontend/src/routes/dashboard/dashboardHeroCaptureFixture.ts",
+        "frontend/src/routes/__capture/dashboard-hero/+page.svelte"
+      ],
+      "evidence": [
+        "corepack pnpm@10.32.1 --dir frontend check",
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run src/routes/dashboard.load.test.ts src/routes/dashboard/dashboardOverviewModel.test.ts src/routes/dashboard/dashboard-page.svelte.test.ts",
+        "browser QA /__capture/dashboard-hero desktop 1440x960 and mobile 390x844"
+      ],
+      "deletion_blocker": ""
+    },
+    {
+      "source_file": "new_frontend/valdrics-dashboard.jsx",
+      "status": "pending",
+      "decision": "Pending rejection or extraction of product intent only; production app is SvelteKit.",
+      "target_paths": [],
+      "evidence": [],
+      "deletion_blocker": "Requires confirming whether this JSX contains unique product behavior not present in Svelte references."
+    },
+    {
+      "source_file": "new_frontend/valdrics-handoff.html",
+      "status": "pending",
+      "decision": "Reference note only.",
+      "target_paths": [],
+      "evidence": [],
+      "deletion_blocker": "Requires extracting remaining actionable decisions into ADR/backlog entries or rejecting them."
+    },
+    {
+      "source_file": "new_frontend/valdrics-hooks-server.ts",
+      "status": "pending",
+      "decision": "Pending server hooks audit.",
+      "target_paths": [],
+      "evidence": [],
+      "deletion_blocker": "Requires comparison with frontend/src/hooks.server.ts and current auth/security tests."
+    },
+    {
+      "source_file": "new_frontend/valdrics-inventory-page.svelte",
+      "status": "migrated",
+      "decision": "Migrated into a production /inventory route backed by /api/v1/inventory. Rows are derived from tenant-scoped AWS, Azure, GCP, AWS Organizations discovery, SaaS, license, platform, and hybrid connector/feed sources. The production view now follows the handoff compact inventory design with quick tabs, owner chips, dense table rows, status badges, and mobile column collapse. Handoff-only /inventory/add, /inventory/{id}, /ownership, /approvals/new, and unsupported owner workflow links were not copied because those require separate backend/product contracts.",
+      "target_paths": [
+        "app/schemas/inventory.py",
+        "app/modules/reporting/api/v1/inventory.py",
+        "app/modules/reporting/domain/inventory_service.py",
+        "app/shared/core/app_routes.py",
+        "tests/unit/reporting/test_inventory_api.py",
+        "frontend/src/routes/inventory/+page.svelte",
+        "frontend/src/routes/inventory/+page.ts",
+        "frontend/src/routes/inventory/InventoryPageViewContent.svelte",
+        "frontend/src/routes/inventory/inventoryDataApi.ts",
+        "frontend/src/routes/inventory/inventoryTypes.ts",
+        "frontend/src/routes/inventory/inventory.app.css",
+        "frontend/src/routes/inventory/inventory.layout.css",
+        "frontend/src/routes/inventory/inventory.table.css",
+        "frontend/src/routes/inventory/inventory.responsive.css",
+        "frontend/src/routes/inventory/inventoryCaptureFixture.ts",
+        "frontend/src/routes/inventory/inventory-page.svelte.test.ts",
+        "frontend/src/routes/__capture/inventory/+page.svelte",
+        "frontend/src/routes/__capture/inventory/+page.server.ts",
+        "frontend/src/routes/connections/ConnectionsInventoryReconciliation.svelte",
+        "frontend/src/routes/connections/ConnectionsPageViewContent.inventory.css",
+        "frontend/src/routes/connections/connectionsDataApi.ts",
+        "frontend/src/routes/connections/connections-page.svelte.test.ts",
+        "frontend/src/lib/lazyComponent.ts",
+        "frontend/src/lib/persona.ts",
+        "frontend/src/lib/persona.test.ts",
+        "frontend/src/routes/+layout.svelte",
+        "tests/conftest.py"
+      ],
+      "evidence": [
+        "uv run pytest tests/unit/reporting/test_inventory_api.py",
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run src/lib/lazyComponent.test.ts src/routes/inventory/inventory-page.svelte.test.ts src/routes/connections/connections-page.svelte.test.ts src/lib/persona.test.ts --reporter=verbose",
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run --reporter=dot",
+        "corepack pnpm@10.32.1 --dir frontend check",
+        "corepack pnpm@10.32.1 --dir frontend lint",
+        "corepack pnpm@10.32.1 --dir frontend build",
+        "corepack pnpm@10.32.1 --dir frontend run check:bundle",
+        "uv run python3 scripts/check_frontend_hygiene.py",
+        "uv run python3 scripts/verify_frontend_runtime_contract.py",
+        "uv run python3 scripts/verify_frontend_module_size_budget.py",
+        "uv run python3 scripts/verify_documentation_runtime_contracts.py",
+        "uv run python3 scripts/verify_new_frontend_disposition_register.py",
+        "Playwright MCP rendered QA at /__capture/inventory: desktop 1440x1100 and mobile 390x844, screenshots inspected with view_image, compact header/table/owner-chip/mobile-collapse verified, quick tabs filter fixture rows, table roles exposed, expiring badge orange verified, console warnings/errors 0, document overflow 0"
+      ],
+      "deletion_blocker": ""
+    },
+    {
+      "source_file": "new_frontend/valdrics-landing-page.svelte",
+      "status": "migrated",
+      "decision": "Migrated the landing visual direction into the production public landing route while preserving authenticated redirect behavior, public auth-intent links, SEO metadata, current production pricing, and the primary Valdrics logo asset at frontend/static/valdrics_icon.png. Handoff-only /login and /signup routes, $299 Starter / $799 Team pricing, 14-day trial/no-card claims, and custom SVG logo marks were rejected.",
+      "target_paths": [
+        "frontend/src/routes/+page.svelte",
+        "frontend/src/routes/+page.server.ts",
+        "frontend/src/lib/landing/LandingHead.svelte",
+        "frontend/src/lib/landing/LandingNav.svelte",
+        "frontend/src/lib/landing/LandingHero.svelte",
+        "frontend/src/lib/landing/LandingFaqPricing.svelte",
+        "frontend/src/lib/landing/LandingCtaFooter.svelte",
+        "frontend/src/lib/landing/landingContent.ts",
+        "frontend/src/lib/components/landing/LandingPlansSection.svelte",
+        "frontend/src/lib/components/landing/LandingHeroTrustSections.svelte",
+        "frontend/src/lib/landing/landingPricingContract.test.ts"
+      ],
+      "evidence": [
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run src/lib/landing/landingPricingContract.test.ts src/routes/pricing/pricing-page.svelte.test.ts src/routes/pricing/pricing.load.test.ts --reporter=verbose",
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run src/lib/landing/landingPricingContract.test.ts src/routes/pricing/pricing-page.svelte.test.ts src/routes/pricing/pricing.load.test.ts src/routes/page.server.motion.test.ts src/lib/landing/publicNav.test.ts src/routes/layout-public-menu.svelte.test.ts --reporter=verbose",
+        "corepack pnpm@10.32.1 --dir frontend check",
+        "uv run python3 scripts/check_frontend_hygiene.py",
+        "Playwright rendered QA on http://localhost:5174/: desktop 1440x1100 and mobile 390x844 pricing screenshots saved under /tmp/valdrics-landing-*-20260602-v2.png; hero logo screenshots saved under /tmp/valdrics-landing-hero-*-20260602.png and /tmp/valdrics-landing-hero-desktop-preview-wait.png; verified /valdrics_icon.png loads, Free/Starter/Growth/Pro pricing is visible, stale $799 Team/trial/no-card claims absent, legacy /login and /signup absent, console errors 0, horizontal overflow 0"
+      ],
+      "deletion_blocker": ""
+    },
+    {
+      "source_file": "new_frontend/valdrics-login-page.svelte",
+      "status": "pending",
+      "decision": "Pending auth surface audit.",
+      "target_paths": [],
+      "evidence": [],
+      "deletion_blocker": "Requires preserving current auth/session contracts and public auth intent behavior."
+    },
+    {
+      "source_file": "new_frontend/valdrics-marketing-layout.svelte",
+      "status": "migrated",
+      "decision": "Resolved through the existing production public shell and root layout. The useful no-sidebar marketing/public intent is already represented by PublicSiteShell and the public-route branch in +layout.svelte; the handoff route-group structure and stale app-layout server notes were not copied.",
+      "target_paths": [
+        "frontend/src/routes/+layout.svelte",
+        "frontend/src/routes/layout/PublicSiteShell.svelte",
+        "frontend/src/routes/layout/PublicMobileMenuDialog.svelte",
+        "frontend/src/routes/layout-public-menu.svelte.test.ts"
+      ],
+      "evidence": [
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run src/lib/landing/landingPricingContract.test.ts src/routes/pricing/pricing-page.svelte.test.ts src/routes/pricing/pricing.load.test.ts --reporter=verbose",
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run src/lib/landing/landingPricingContract.test.ts src/routes/pricing/pricing-page.svelte.test.ts src/routes/pricing/pricing.load.test.ts src/routes/page.server.motion.test.ts src/lib/landing/publicNav.test.ts src/routes/layout-public-menu.svelte.test.ts --reporter=verbose",
+        "corepack pnpm@10.32.1 --dir frontend check",
+        "uv run python3 scripts/check_frontend_hygiene.py",
+        "Playwright rendered QA on http://localhost:5174/: public landing tone, primary logo asset, current pricing, auth-intent links, console errors 0, and horizontal overflow 0 verified on desktop and mobile"
+      ],
+      "deletion_blocker": ""
+    },
+    {
+      "source_file": "new_frontend/valdrics-onboarding-page.svelte",
+      "status": "migrated",
+      "decision": "Migrated the onboarding wizard visual intent into the production provider setup flow while preserving the existing AWS, Azure, GCP, SaaS, License/ITAM, discovery, tier-gate, and connector validation contracts. Handoff-only SaaS tools, policy defaults, team invite, and complete-workspace actions were not copied because they are not backed by the current onboarding route contract.",
+      "target_paths": [
+        "frontend/src/routes/onboarding/+page.svelte",
+        "frontend/src/routes/onboarding/OnboardingPageView.svelte",
+        "frontend/src/routes/onboarding/OnboardingPageViewBody.svelte",
+        "frontend/src/routes/onboarding/OnboardingProgressRail.svelte",
+        "frontend/src/routes/onboarding/OnboardingStepSelectProviderSection.svelte",
+        "frontend/src/routes/onboarding/OnboardingStepConfigurationSection.svelte",
+        "frontend/src/routes/onboarding/OnboardingStepNavigationActions.svelte",
+        "frontend/src/routes/onboarding/OnboardingVerifySuccessSection.svelte",
+        "frontend/src/routes/onboarding/OnboardingPageViewContent.base.css",
+        "frontend/src/routes/onboarding/OnboardingPageViewContent.discovery.css",
+        "frontend/src/routes/onboarding/OnboardingPageViewContent.flow.css",
+        "frontend/src/routes/onboarding/OnboardingPageViewContent.provider.css",
+        "frontend/src/routes/onboarding/onboarding-page.svelte.test.ts",
+        "frontend/src/routes/__capture/onboarding/+page.svelte",
+        "frontend/src/routes/__capture/onboarding/+page.server.ts"
+      ],
+      "evidence": [
+        "corepack pnpm@10.32.1 --dir frontend check",
+        "corepack pnpm@10.32.1 --dir frontend lint",
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run src/routes/onboarding/onboarding-page.svelte.test.ts",
+        "browser QA /__capture/onboarding desktop 1440x1100 and mobile 390x844"
+      ],
+      "deletion_blocker": ""
+    },
+    {
+      "source_file": "new_frontend/valdrics-onboarding.html",
+      "status": "migrated",
+      "decision": "Extracted the focused wizard shell, progress rail, provider card density, discovery panel, and success-state styling into the production onboarding route. Static HTML-only state, hand-rolled store assumptions, and backend endpoint guesses were rejected in favor of the existing SvelteKit route modules and tested onboarding API helpers.",
+      "target_paths": [
+        "frontend/src/routes/onboarding/OnboardingProgressRail.svelte",
+        "frontend/src/routes/onboarding/OnboardingPageViewBody.svelte",
+        "frontend/src/routes/onboarding/OnboardingStepSelectProviderSection.svelte",
+        "frontend/src/routes/onboarding/OnboardingPageViewContent.base.css",
+        "frontend/src/routes/onboarding/OnboardingPageViewContent.discovery.css",
+        "frontend/src/routes/onboarding/OnboardingPageViewContent.flow.css",
+        "frontend/src/routes/onboarding/OnboardingPageViewContent.provider.css",
+        "frontend/src/routes/onboarding/onboarding-page.svelte.test.ts",
+        "frontend/src/routes/__capture/onboarding/+page.svelte",
+        "frontend/src/routes/__capture/onboarding/+page.server.ts"
+      ],
+      "evidence": [
+        "corepack pnpm@10.32.1 --dir frontend check",
+        "corepack pnpm@10.32.1 --dir frontend lint",
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run src/routes/onboarding/onboarding-page.svelte.test.ts",
+        "browser QA /__capture/onboarding desktop 1440x1100 and mobile 390x844"
+      ],
+      "deletion_blocker": ""
+    },
+    {
+      "source_file": "new_frontend/valdrics-ownership-page.svelte",
+      "status": "pending",
+      "decision": "Pending product route ownership decision.",
+      "target_paths": [],
+      "evidence": [],
+      "deletion_blocker": "Requires deciding whether ownership belongs in settings, connections, or another production route."
+    },
+    {
+      "source_file": "new_frontend/valdrics-package.json",
+      "status": "rejected",
+      "decision": "Rejected as a deployable dependency manifest. The production dependency graph is governed by frontend/package.json and frontend/pnpm-lock.yaml, which already pin the active SvelteKit 2, Svelte 5, Vite 7, Cloudflare adapter, Playwright, Vitest, Supabase, Tailwind, and lucide stack. Handoff-only Slack, Resend, MJML, Supabase CLI, and ESLint manifest entries are not production frontend requirements until a real route/backend contract needs them.",
+      "target_paths": ["frontend/package.json", "frontend/pnpm-lock.yaml"],
+      "evidence": [
+        "Compared dependency manifests: handoff-only runtime deps were @slack/web-api, mjml, and resend; production-only/current deps include @sveltejs/kit 2.57.1, svelte 5.53.0, vite 7.3.2, @sveltejs/adapter-cloudflare 7.2.8, @playwright/test 1.58.0, vitest 4.0.16, typescript 5.9.3, @supabase/supabase-js 2.90.1, tailwindcss 4.1.18, @tailwindcss/postcss 4.1.18, @lucide/svelte 0.562.0, and dompurify 3.3.1",
+        "corepack pnpm@10.32.1 --dir frontend check",
+        "corepack pnpm@10.32.1 --dir frontend run check:bundle",
+        "uv run python3 scripts/verify_new_frontend_disposition_register.py"
+      ],
+      "deletion_blocker": ""
+    },
+    {
+      "source_file": "new_frontend/valdrics-policies-page.svelte",
+      "status": "migrated",
+      "decision": "Migrated the useful policy-engine visual intent into the production /settings enforcement control plane. Production keeps the existing edge-proxy /enforcement/policies, /enforcement/budgets, and /enforcement/credits contracts, Pro entitlement gating, and route-local settings architecture. Handoff-only /policies, /policies/new, /policies/{id}/edit, direct FASTAPI_URL calls, locals.token assumptions, unsupported trigger counters, and copied policy catalog records were rejected because they are not backed by the current production contract.",
+      "target_paths": [
+        "frontend/src/lib/components/EnforcementSettingsCard.svelte",
+        "frontend/src/lib/components/EnforcementSettingsCardView.svelte",
+        "frontend/src/lib/components/EnforcementSettingsAdvancedSection.svelte",
+        "frontend/src/lib/components/enforcementSettingsApi.ts",
+        "frontend/src/lib/components/enforcementSettingsModel.ts",
+        "frontend/src/lib/components/enforcementSettingsModel.test.ts",
+        "frontend/src/lib/components/EnforcementSettingsCard.svelte.test.ts",
+        "frontend/src/routes/settings/SettingsDeferredSection.svelte"
+      ],
+      "evidence": [
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run src/lib/components/enforcementSettingsModel.test.ts src/lib/components/EnforcementSettingsCard.svelte.test.ts --reporter=verbose --testTimeout=20000",
+        "corepack pnpm@10.32.1 --dir frontend check",
+        "Local route/API audit confirmed there is no production /policies route; the real policy surface is /settings via edge-proxy /enforcement/* endpoints"
+      ],
+      "deletion_blocker": ""
+    },
+    {
+      "source_file": "new_frontend/valdrics-savings-page.svelte",
+      "status": "migrated",
+      "decision": "Migrated the savings page visual intent into the production Savings Proof route using current /savings/proof, /savings/proof/drilldown, and /savings/realized/events contracts. Handoff-only /savings/summary, /savings/events, saving type, team name, event description, and annual-total fields were rejected because they are not backed by the current backend contract.",
+      "target_paths": [
+        "frontend/src/routes/savings/+page.svelte",
+        "frontend/src/routes/savings/SavingsPageViewContent.svelte",
+        "frontend/src/routes/savings/SavingsProviderBreakdown.svelte",
+        "frontend/src/routes/savings/SavingsDrilldownPanel.svelte",
+        "frontend/src/routes/savings/SavingsEvidenceTimeline.svelte",
+        "frontend/src/routes/savings/savingsViewModel.ts",
+        "frontend/src/routes/savings/savingsCaptureFixture.ts",
+        "frontend/src/routes/savings/savings.app.css",
+        "frontend/src/routes/savings/savings.foundation.css",
+        "frontend/src/routes/savings/savings.summary.css",
+        "frontend/src/routes/savings/savings.evidence.css",
+        "frontend/src/routes/savings/savings.responsive.css",
+        "frontend/src/routes/savings/savings-page.svelte.test.ts",
+        "frontend/src/routes/__capture/savings/+page.svelte",
+        "frontend/src/routes/__capture/savings/+page.server.ts"
+      ],
+      "evidence": [
+        "corepack pnpm@10.32.1 --dir frontend check",
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run src/routes/savings/savings-page.svelte.test.ts",
+        "browser QA /__capture/savings desktop 1440x1100 and mobile 390x844"
+      ],
+      "deletion_blocker": ""
+    },
+    {
+      "source_file": "new_frontend/valdrics-signup-page.svelte",
+      "status": "pending",
+      "decision": "Pending auth surface audit.",
+      "target_paths": [],
+      "evidence": [],
+      "deletion_blocker": "Requires preserving signup intent, auth redirect, session security behavior, and current production pricing plan intent."
+    },
+    {
+      "source_file": "new_frontend/valdrics-stores.ts",
+      "status": "pending",
+      "decision": "Pending state model audit; do not import handoff stores blindly.",
+      "target_paths": [],
+      "evidence": [],
+      "deletion_blocker": "Requires mapping useful state to current route-local models or existing stores."
+    },
+    {
+      "source_file": "new_frontend/valdrics-svelte-stack.html",
+      "status": "pending",
+      "decision": "Reference documentation only.",
+      "target_paths": [],
+      "evidence": [],
+      "deletion_blocker": "Requires extracting any still-current stack notes into ADR/backlog and rejecting stale guidance."
+    }
+  ]
+}

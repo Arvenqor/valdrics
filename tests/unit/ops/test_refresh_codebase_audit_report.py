@@ -45,7 +45,7 @@ def _base_payload() -> dict[str, object]:
         "confirmed_claims": [
             {
                 "claim": "Frontend stack includes SvelteKit, Svelte 5, TypeScript, Tailwind CSS v4, Vitest, and Playwright.",
-                "evidence": [{"path": "dashboard/package.json", "line": 1}],
+                "evidence": [{"path": "frontend/package.json", "line": 1}],
             }
         ],
         "partial_or_overstated_claims": [],
@@ -58,7 +58,7 @@ def _base_payload() -> dict[str, object]:
             {
                 "claim": "FinOps capabilities include 11 zombie detection plugins",
                 "correction": "wrong",
-                "evidence": [{"path": "dashboard/svelte.config.js", "line": 1}],
+                "evidence": [{"path": "frontend/svelte.config.js", "line": 1}],
             },
         ],
         "validation_runs": [],

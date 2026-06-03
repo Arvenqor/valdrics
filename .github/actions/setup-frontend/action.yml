@@ -1,0 +1,40 @@
+name: Setup Frontend Toolchain
+description: Bootstrap Node, pnpm cache, and frontend dependencies for repository workflows.
+
+inputs:
+  node-version:
+    description: Node.js version to activate.
+    required: true
+  pnpm-version:
+    description: pnpm version to activate through Corepack.
+    required: true
+  working-directory:
+    description: Working directory for frontend package installation.
+    required: false
+    default: ./frontend
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node
+      uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Setup pnpm via Corepack
+      shell: bash
+      run: |
+        corepack enable
+        corepack prepare pnpm@${{ inputs.pnpm-version }} --activate
+
+    - name: Cache pnpm dependencies
+      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+      with:
+        path: ~/.pnpm-store
+        key: pnpm-${{ runner.os }}-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+        restore-keys: pnpm-${{ runner.os }}-
+
+    - name: Install Frontend Dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: pnpm install --frozen-lockfile

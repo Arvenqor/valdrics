@@ -39,6 +39,16 @@ class UnitEconomicsSettings(Base):
         Numeric(8, 2), default=20.0
     )
 
+    # ROI target KPIs
+    target_spend_reduction_pct: Mapped[float] = mapped_column(
+        Numeric(8, 2), default=15.0
+    )
+    target_rollout_days: Mapped[int] = mapped_column(default=30)
+    target_team_members: Mapped[int] = mapped_column(default=10)
+    target_blended_hourly_rate: Mapped[float] = mapped_column(
+        Numeric(8, 2), default=75.0
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

@@ -5,10 +5,10 @@ on:
     branches: [ main, develop ]
     paths:
       - "app/**"
-      - "dashboard/**"
+      - "frontend/**"
       - "terraform/**"
       - "Dockerfile"
-      - "Dockerfile.dashboard"
+      - "Dockerfile.frontend"
       - ".dockerignore"
       - "scripts/docker-entrypoint.sh"
       - "pyproject.toml"
@@ -20,10 +20,10 @@ on:
     branches: [ main ]
     paths:
       - "app/**"
-      - "dashboard/**"
+      - "frontend/**"
       - "terraform/**"
       - "Dockerfile"
-      - "Dockerfile.dashboard"
+      - "Dockerfile.frontend"
       - ".dockerignore"
       - "scripts/docker-entrypoint.sh"
       - "pyproject.toml"
@@ -57,7 +57,7 @@ jobs:
     timeout-minutes: 10
     outputs:
       backend_container: ${{ steps.classify.outputs.backend_container }}
-      dashboard_container: ${{ steps.classify.outputs.dashboard_container }}
+      frontend_container: ${{ steps.classify.outputs.frontend_container }}
       terraform: ${{ steps.classify.outputs.terraform }}
     steps:
       - name: Checkout Code
@@ -72,7 +72,7 @@ jobs:
           set -euo pipefail
 
           backend_container=false
-          dashboard_container=false
+          frontend_container=false
           terraform=false
 
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
@@ -88,28 +88,28 @@ jobs:
 
           if [[ -z "${base_sha}" || -z "${head_sha}" ]]; then
             backend_container=true
-            dashboard_container=true
+            frontend_container=true
             terraform=true
           else
             mapfile -t changed_files < <(git diff --name-only "${base_sha}" "${head_sha}")
 
             if [[ ${#changed_files[@]} -eq 0 ]]; then
               backend_container=true
-              dashboard_container=true
+              frontend_container=true
               terraform=true
             else
               for path in "${changed_files[@]}"; do
                 case "${path}" in
                   .github/workflows/security-scan.yml|.github/workflows/ci.yml|.github/actions/*/action.yml|.dockerignore)
                     backend_container=true
-                    dashboard_container=true
+                    frontend_container=true
                     terraform=true
                     ;;
                   Dockerfile|pyproject.toml|uv.lock|app/*|scripts/docker-entrypoint.sh)
                     backend_container=true
                     ;;
-                  Dockerfile.dashboard|dashboard/*)
-                    dashboard_container=true
+                  Dockerfile.frontend|frontend/*)
+                    frontend_container=true
                     ;;
                   terraform/*)
                     terraform=true
@@ -121,7 +121,7 @@ jobs:
 
           {
             echo "backend_container=${backend_container}"
-            echo "dashboard_container=${dashboard_container}"
+            echo "frontend_container=${frontend_container}"
             echo "terraform=${terraform}"
           } >> "${GITHUB_OUTPUT}"
 
@@ -218,7 +218,7 @@ jobs:
   container-scan:
     runs-on: ubuntu-24.04
     needs: [classify-changes]
-    if: needs.classify-changes.outputs.backend_container == 'true' || needs.classify-changes.outputs.dashboard_container == 'true'
+    if: needs.classify-changes.outputs.backend_container == 'true' || needs.classify-changes.outputs.frontend_container == 'true'
     timeout-minutes: 40
     steps:
       - name: Checkout Code
@@ -240,19 +240,19 @@ jobs:
           cache-from: type=gha,scope=backend-image
           cache-to: type=gha,scope=backend-image,mode=max
 
-      - name: Build Dashboard Docker Image
-        if: needs.classify-changes.outputs.dashboard_container == 'true'
+      - name: Build Frontend Docker Image
+        if: needs.classify-changes.outputs.frontend_container == 'true'
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         with:
           context: .
-          file: ./Dockerfile.dashboard
+          file: ./Dockerfile.frontend
           push: false
           load: true
           pull: true
           no-cache-filters: runtime
-          tags: valdrics-dashboard:${{ github.sha }}
-          cache-from: type=gha,scope=dashboard-image
-          cache-to: type=gha,scope=dashboard-image,mode=max
+          tags: valdrics-frontend:${{ github.sha }}
+          cache-from: type=gha,scope=frontend-image
+          cache-to: type=gha,scope=frontend-image,mode=max
 
       - name: Prepare Trivy cache
         run: mkdir -p .cache/trivy
@@ -279,8 +279,8 @@ jobs:
             --exit-code 1 \
             valdrics-backend:${{ github.sha }}
 
-      - name: Run Trivy vulnerability scanner (Dashboard)
-        if: needs.classify-changes.outputs.dashboard_container == 'true'
+      - name: Run Trivy vulnerability scanner (Frontend)
+        if: needs.classify-changes.outputs.frontend_container == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -297,9 +297,9 @@ jobs:
             --severity CRITICAL,HIGH \
             --format sarif \
             --skip-version-check \
-            --output /work/trivy-dashboard-results.sarif \
+            --output /work/trivy-frontend-results.sarif \
             --exit-code 1 \
-            valdrics-dashboard:${{ github.sha }}
+            valdrics-frontend:${{ github.sha }}
 
       - name: Upload Backend Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@0c0c5dc2f136b98cb0537075ccfa21f94cd9a63e # codeql-bundle-v2.24.3
@@ -308,12 +308,12 @@ jobs:
           sarif_file: 'trivy-backend-results.sarif'
           category: 'trivy-backend'
 
-      - name: Upload Dashboard Trivy results to GitHub Security
+      - name: Upload Frontend Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@0c0c5dc2f136b98cb0537075ccfa21f94cd9a63e # codeql-bundle-v2.24.3
-        if: always() && hashFiles('trivy-dashboard-results.sarif') != ''
+        if: always() && hashFiles('trivy-frontend-results.sarif') != ''
         with:
-          sarif_file: 'trivy-dashboard-results.sarif'
-          category: 'trivy-dashboard'
+          sarif_file: 'trivy-frontend-results.sarif'
+          category: 'trivy-frontend'
 
   dast-zap-baseline:
     name: DAST (OWASP ZAP Baseline)
@@ -364,7 +364,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker compose --env-file .env.compose.dev up -d --build postgres api dashboard
+          docker compose --env-file .env.compose.dev up -d --build postgres api frontend
 
       - name: Wait for QA readiness
         shell: bash

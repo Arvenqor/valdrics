@@ -10,8 +10,8 @@ from scripts.env_generation_common import (
 )
 from typing import Any
 
-DEFAULT_HERO_PATH = Path("dashboard/src/lib/components/LandingHero.svelte")
-DEFAULT_COMPONENT_DIR = Path("dashboard/src/lib/components/landing")
+DEFAULT_HERO_PATH = Path("frontend/src/lib/components/LandingHero.svelte")
+DEFAULT_COMPONENT_DIR = Path("frontend/src/lib/components/landing")
 DEFAULT_MAX_HERO_LINES = 800
 REQUIRED_COMPONENT_FILES = (
     "LandingHeroCopy.svelte",

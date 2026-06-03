@@ -13,6 +13,10 @@ class UnitEconomicsSettingsResponse(BaseModel):
     default_workload_volume: float
     default_customer_volume: float
     anomaly_threshold_percent: float
+    target_spend_reduction_pct: float
+    target_rollout_days: int
+    target_team_members: int
+    target_blended_hourly_rate: float
 
 
 class UnitEconomicsSettingsUpdate(BaseModel):
@@ -20,6 +24,10 @@ class UnitEconomicsSettingsUpdate(BaseModel):
     default_workload_volume: Optional[float] = Field(default=None, gt=0)
     default_customer_volume: Optional[float] = Field(default=None, gt=0)
     anomaly_threshold_percent: Optional[float] = Field(default=None, gt=0, le=1000)
+    target_spend_reduction_pct: Optional[float] = Field(default=None, ge=0, le=100)
+    target_rollout_days: Optional[int] = Field(default=None, ge=1, le=3650)
+    target_team_members: Optional[int] = Field(default=None, ge=1, le=10000)
+    target_blended_hourly_rate: Optional[float] = Field(default=None, ge=0, le=1000)
 
 
 class UnitEconomicsMetric(BaseModel):
@@ -137,6 +145,23 @@ class CostAnomalyResponse(BaseModel):
     count: int
     alerted_count: int
     anomalies: list[CostAnomalyItem]
+
+
+class CostDailyPoint(BaseModel):
+    date: str
+    provider: str
+    cost_usd: float
+    carbon_kgco2e: float
+
+
+class CostDailySeriesResponse(BaseModel):
+    start_date: str
+    end_date: str
+    provider: Optional[str]
+    include_preliminary: bool
+    total_cost_usd: float
+    total_carbon_kgco2e: float
+    points: list[CostDailyPoint]
 
 
 class SpendLedgerAllocation(BaseModel):

@@ -362,8 +362,8 @@ jobs:
           set +a
           uv run alembic upgrade head
 
-      - name: Setup Dashboard Toolchain
-        uses: ./.github/actions/setup-dashboard
+      - name: Setup Frontend Toolchain
+        uses: ./.github/actions/setup-frontend
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
@@ -373,14 +373,14 @@ jobs:
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('dashboard/pnpm-lock.yaml') }}
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/pnpm-lock.yaml') }}
 
       - name: Install Playwright Browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        working-directory: ./dashboard
+        working-directory: ./frontend
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Build dashboard
+      - name: Build frontend
         shell: bash
         env:
           PUBLIC_API_URL: ${{ steps.managed_bundle.outputs.public_api_url }}
@@ -388,9 +388,9 @@ jobs:
           PUBLIC_SUPABASE_ANON_KEY: ${{ steps.managed_bundle.outputs.public_supabase_anon_key }}
         run: |
           set -euo pipefail
-          pnpm --dir dashboard run build
+          pnpm --dir frontend run build
 
-      - name: Deploy dashboard to Cloudflare Pages
+      - name: Deploy frontend to Cloudflare Pages
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -427,9 +427,9 @@ jobs:
                   "",
               ]
           )
-          Path("dashboard/wrangler.toml").write_text(wrangler_config, encoding="utf-8")
+          Path("frontend/wrangler.toml").write_text(wrangler_config, encoding="utf-8")
           PY
-          pnpm --dir dashboard exec wrangler pages deploy .svelte-kit/cloudflare --project-name "${{ steps.managed_bundle.outputs.cloudflare_pages_project_name }}" --branch "${{ steps.managed_bundle.outputs.cloudflare_pages_production_branch }}"
+          pnpm --dir frontend exec wrangler pages deploy .svelte-kit/cloudflare --project-name "${{ steps.managed_bundle.outputs.cloudflare_pages_project_name }}" --branch "${{ steps.managed_bundle.outputs.cloudflare_pages_production_branch }}"
 
       - name: Smoke check API liveness
         shell: bash

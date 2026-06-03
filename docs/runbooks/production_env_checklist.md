@@ -143,7 +143,7 @@ Operator preflight or incident-repair path:
 
 ```bash
 uv run python scripts/generate_managed_deployment_artifacts.py --environment production --runtime-env-file .runtime/production.env --release-tag <release-tag> --api-promotion-ref <repo@sha256:...> --batch-promotion-ref <repo@sha256:...>
-uv run python scripts/verify_dashboard_runtime_contract.py --build
+uv run python scripts/verify_frontend_runtime_contract.py --build
 uv run python scripts/verify_managed_deployment_bundle.py --environment production
 uv run python scripts/render_managed_deployment_handoff.py --environment production
 ```
@@ -219,7 +219,7 @@ Infrastructure values still required outside the runtime env:
 2. Run the release workflow once for staging.
 3. Confirm the publish job produced `artifact-registry-release.json` and `artifact-registry-release.env`.
 4. Confirm the deploy job uploaded `managed-deployment-bundle-production-<release-tag>`.
-5. Verify the dashboard runtime contract.
+5. Verify the frontend runtime contract.
 6. Verify the managed deployment bundle.
 7. Render the operator handoff and, when both staging and production bundles are available locally, refresh the cross-environment blocker rollup with `make render-managed-release-blockers NON_SECRET_BUNDLE=true`.
 8. Confirm the reusable deploy workflow migration step succeeds from `.runtime/production.migrate.env`.

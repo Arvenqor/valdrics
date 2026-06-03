@@ -39,7 +39,7 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
     )
     _write(
         tmp_path / "docs/DEPLOYMENT.md",
-        "Current supported production deployment profile\nGoogle Cloud Run + Cloudflare Pages + Supabase\n.github/workflows/release-unified-platform.yml\n.github/workflows/publish-artifact-registry-images.yml\n.github/workflows/deploy-unified-platform.yml\nverify_codebase_audit_report.py\nverify_dashboard_runtime_contract.py\nverify_managed_release_readiness.py\nrender_managed_release_blocker_summary.py\nArtifact Registry\nartifact-registry-release.json\ncloudflare-pages-env.json\nunified-platform-manifest.json\ndeployment.report.json\noperator-handoff.md\nmanaged-release-blockers.md\nmanaged-release-blocker-summary-<release-tag>\nnon-secret deployment evidence bundle\nCloudflare WAF rate limiting rules\nGCP external HTTPS load balancer\nPUBLIC_API_RATE_LIMITING_BACKEND=cloudflare\nCloud Run custom audiences\nPAYSTACK_ACTIVATION_PENDING=true\n",
+        "Current supported production deployment profile\nGoogle Cloud Run + Cloudflare Pages + Supabase\n.github/workflows/release-unified-platform.yml\n.github/workflows/publish-artifact-registry-images.yml\n.github/workflows/deploy-unified-platform.yml\nverify_codebase_audit_report.py\nverify_frontend_runtime_contract.py\nverify_managed_release_readiness.py\nrender_managed_release_blocker_summary.py\nArtifact Registry\nartifact-registry-release.json\ncloudflare-pages-env.json\nunified-platform-manifest.json\ndeployment.report.json\noperator-handoff.md\nmanaged-release-blockers.md\nmanaged-release-blocker-summary-<release-tag>\nnon-secret deployment evidence bundle\nCloudflare WAF rate limiting rules\nGCP external HTTPS load balancer\nPUBLIC_API_RATE_LIMITING_BACKEND=cloudflare\nCloud Run custom audiences\nPAYSTACK_ACTIVATION_PENDING=true\n",
     )
     _write(
         tmp_path / "docs/CAPACITY_PLAN.md",
@@ -83,7 +83,7 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
     )
     _write(
         tmp_path / "docs/architecture/tiering-2026.md",
-        "Permanent public proof lane\ndashboard/src/lib/pricing/publicPlans.ts\napp/shared/core/pricing.py\n",
+        "Permanent public proof lane\nfrontend/src/lib/pricing/publicPlans.ts\napp/shared/core/pricing.py\n",
     )
     _write(
         tmp_path / "docs/runbooks/month_end_close.md",
@@ -116,7 +116,7 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
     )
     _write(
         tmp_path / "docs/runbooks/production_env_checklist.md",
-        "Python 3.12.x\n.python-version\nAPI_URL=https://api.example.com\nFRONTEND_URL=https://app.example.com\nPUBLIC_API_RATE_LIMITING_BACKEND=cloudflare\nRATELIMIT_ENABLED=false\nSUPABASE_ANON_KEY=...\nPLATFORM_RUNTIME_PROFILE=gcp\nOBSERVABILITY_BACKEND=gcp\nENFORCEMENT_APPROVAL_TOKEN_SECRET=...\nPAYSTACK_SECRET_KEY=sk_live_...\nPAYSTACK_ACTIVATION_PENDING=true\nPAYSTACK_ACTIVATION_PENDING=false\nINTERNAL_METRICS_AUTH_TOKEN=<32+ char secret>\nEXPOSE_API_DOCUMENTATION_PUBLICLY=false\nCLOUDFLARE_ZONE_ID\ngenerate_managed_runtime_env.py\ngenerate_managed_migration_env.py\ngenerate_managed_deployment_artifacts.py\nverify_codebase_audit_report.py\nverify_managed_deployment_bundle.py\nverify_managed_release_readiness.py\nverify_dashboard_runtime_contract.py\nrender_managed_release_blocker_summary.py\nrelease-unified-platform.yml\npublish-artifact-registry-images.yml\ndeploy-unified-platform.yml\n--api-promotion-ref <repo@sha256:...>\n--batch-promotion-ref <repo@sha256:...>\nrun_public_frontend_quality_gate.py\nscripts/verify_managed_release_readiness.py\ndeployment.report.json\ncloudflare-pages-env.json\nartifact-registry-release.json\nunified-platform-manifest.json\noperator-handoff.md\nmanaged-release-blockers.md\nmanaged-release-blocker-summary-<release-tag>\nmake render-managed-release-blockers\nnon-secret deployment evidence bundle\nCloud Run custom audiences\n--env-file .runtime/production.env\n--env-file .runtime/production.migrate.env\nreusable deploy workflow migration step succeeds from `.runtime/production.migrate.env`\ndocs/evidence/phase1-unified-release-closure.md\n",
+        "Python 3.12.x\n.python-version\nAPI_URL=https://api.example.com\nFRONTEND_URL=https://app.example.com\nPUBLIC_API_RATE_LIMITING_BACKEND=cloudflare\nRATELIMIT_ENABLED=false\nSUPABASE_ANON_KEY=...\nPLATFORM_RUNTIME_PROFILE=gcp\nOBSERVABILITY_BACKEND=gcp\nENFORCEMENT_APPROVAL_TOKEN_SECRET=...\nPAYSTACK_SECRET_KEY=sk_live_...\nPAYSTACK_ACTIVATION_PENDING=true\nPAYSTACK_ACTIVATION_PENDING=false\nINTERNAL_METRICS_AUTH_TOKEN=<32+ char secret>\nEXPOSE_API_DOCUMENTATION_PUBLICLY=false\nCLOUDFLARE_ZONE_ID\ngenerate_managed_runtime_env.py\ngenerate_managed_migration_env.py\ngenerate_managed_deployment_artifacts.py\nverify_codebase_audit_report.py\nverify_managed_deployment_bundle.py\nverify_managed_release_readiness.py\nverify_frontend_runtime_contract.py\nrender_managed_release_blocker_summary.py\nrelease-unified-platform.yml\npublish-artifact-registry-images.yml\ndeploy-unified-platform.yml\n--api-promotion-ref <repo@sha256:...>\n--batch-promotion-ref <repo@sha256:...>\nrun_public_frontend_quality_gate.py\nscripts/verify_managed_release_readiness.py\ndeployment.report.json\ncloudflare-pages-env.json\nartifact-registry-release.json\nunified-platform-manifest.json\noperator-handoff.md\nmanaged-release-blockers.md\nmanaged-release-blocker-summary-<release-tag>\nmake render-managed-release-blockers\nnon-secret deployment evidence bundle\nCloud Run custom audiences\n--env-file .runtime/production.env\n--env-file .runtime/production.migrate.env\nreusable deploy workflow migration step succeeds from `.runtime/production.migrate.env`\ndocs/evidence/phase1-unified-release-closure.md\n",
     )
     _write(
         tmp_path / "docs/runbooks/unified_platform_release.md",
@@ -150,8 +150,8 @@ def test_verify_contracts_accepts_matching_docs(tmp_path: Path) -> None:
         "26380893636\n"
         "Operator artifact review: complete for release runs `26197286420` and\n"
         "Paystack account approval: reported approved by owner on 2026-05-24\n"
-        "Paystack live checkout validation: pending controlled production checkout\n"
-        "Real-tenant production-use confirmation: pending controlled production signup\n",
+        "Paystack live checkout validation: complete (controlled production checkout completed and payment processed successfully on 2026-06-03)\n"
+        "Real-tenant production-use confirmation: complete (controlled production signup with real email confirmation and onboarding validation successfully completed on 2026-06-03)\n",
     )
     _write(
         tmp_path / "docs/integrations/workflow_automation.md",
@@ -245,7 +245,7 @@ def test_verify_contracts_reports_missing_and_forbidden_phrases(tmp_path: Path) 
         ),
         DocumentationContract(
             path="docs/architecture/tiering-2026.md",
-            required_phrases=("dashboard/src/lib/pricing/publicPlans.ts",),
+            required_phrases=("frontend/src/lib/pricing/publicPlans.ts",),
         ),
         DocumentationContract(
             path="docs/runbooks/month_end_close.md",

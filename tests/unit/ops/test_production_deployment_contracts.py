@@ -92,11 +92,11 @@ def test_release_artifacts_are_immutable_and_workflows_target_unified_platform()
     assert "deploy-production:" in release_workflow
 
 
-def test_dashboard_runtime_requires_explicit_origin_configuration() -> None:
-    server_text = (REPO_ROOT / "dashboard" / "server.node.mjs").read_text(
+def test_frontend_runtime_requires_explicit_origin_configuration() -> None:
+    server_text = (REPO_ROOT / "frontend" / "server.node.mjs").read_text(
         encoding="utf-8"
     )
-    dockerfile_text = (REPO_ROOT / "Dockerfile.dashboard").read_text(encoding="utf-8")
+    dockerfile_text = (REPO_ROOT / "Dockerfile.frontend").read_text(encoding="utf-8")
 
     assert "process.env.ORIGIN" in server_text
     assert "process.env.HOST_HEADER" in server_text
@@ -225,10 +225,10 @@ def test_archived_helm_contract_test_is_removed_from_active_ops_surface() -> Non
     ).exists()
 
 
-def test_frontend_ci_node_version_matches_dashboard_container() -> None:
+def test_frontend_ci_node_version_matches_frontend_container() -> None:
     ci_text = (REPO_ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
     sbom_text = (REPO_ROOT / ".github/workflows/sbom.yml").read_text(encoding="utf-8")
-    dockerfile_text = (REPO_ROOT / "Dockerfile.dashboard").read_text(encoding="utf-8")
+    dockerfile_text = (REPO_ROOT / "Dockerfile.frontend").read_text(encoding="utf-8")
 
     assert 'NODE_VERSION: "24.14.0"' in ci_text
     assert 'NODE_VERSION: "24.14.0"' in sbom_text
@@ -236,4 +236,4 @@ def test_frontend_ci_node_version_matches_dashboard_container() -> None:
 
 
 def test_dead_legacy_landing_component_is_removed() -> None:
-    assert not (REPO_ROOT / "dashboard/LandingHero_legacy.svelte").exists()
+    assert not (REPO_ROOT / "frontend/LandingHero_legacy.svelte").exists()

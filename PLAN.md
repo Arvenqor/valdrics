@@ -291,8 +291,8 @@ to a shipping phase here:
 
 | Phase                                                  | Strategy          | Ground truth now                                                                                                                                           | Ship state  |
 | ------------------------------------------------------ | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| Phase 1: Managed Platform Live Cutover                 | `core disruption` | Full unified staging-to-production release is green on run `26354921733` for tag `2026.05.24-paystack-live-dfd7b8b2`; operator artifact review and Supabase Auth config repair are complete; closure now requires release-ops sign-off, controlled production signup/onboarding confirmation, and live checkout validation | Closing     |
-| Phase 2: Unified Technology Spend Ledger               | `core disruption` | Partial foundations exist through the AI-aware canonical spend-ledger API, allocation-aware FOCUS v1.3 export, normalized reporting, and Cloud+ connectors | Not shipped |
+| Phase 1: Managed Platform Live Cutover                 | `core disruption` | Full unified staging-to-production release is green on run `26354921733` for tag `2026.05.24-paystack-live-dfd7b8b2`; operator artifact review, Supabase Auth config repair, operator sign-off, and production signup/checkout validation are complete | Shipped     |
+| Phase 2: Unified Technology Spend Ledger               | `core disruption` | Partial foundations exist through the AI-aware canonical spend-ledger API, allocation-aware FOCUS v1.3 export, normalized reporting, and Cloud+ connectors | Active      |
 | Phase 3: Audit-Grade Close                             | `moat expansion`  | Reconciliation and close foundations exist, but live end-to-end close proof as the canonical customer path is not established here                         | Not shipped |
 | Phase 4: Governed Action Loop                          | `core disruption` | Approvals, enforcement, and remediation foundations exist, but the full action loop is not yet the closed customer operating standard                      | Not shipped |
 | Phase 5: Technology Value Contract Standard            | `core disruption` | Draft TVC schemas, examples, verifier, CI admission checks, and deployment admission receipts exist; runtime receipts and reconciliation views do not      | Not shipped |
@@ -307,7 +307,7 @@ to a shipping phase here:
 
 ### Phase 1: Managed Platform Live Cutover
 
-Status: Closing (active phase)
+Status: Shipped
 Strategy label: `core disruption`
 
 Outcome:
@@ -385,7 +385,7 @@ Current blockers and external dependencies:
 
 ### Phase 2: Unified Technology Spend Ledger
 
-Status: Queued
+Status: Active (active phase)
 Strategy label: `core disruption`
 
 Outcome:

@@ -462,7 +462,7 @@ uv run python scripts/generate_managed_runtime_env.py --environment staging
 uv run python scripts/generate_managed_migration_env.py --environment staging
 uv run python scripts/validate_runtime_env.py --environment staging --env-file .runtime/staging.env
 uv run python scripts/validate_migration_env.py --env-file .runtime/staging.migrate.env
-uv run python scripts/verify_dashboard_runtime_contract.py --build
+uv run python scripts/verify_frontend_runtime_contract.py --build
 ```
 
 ### Staging cutover
@@ -494,7 +494,7 @@ uv run python scripts/verify_managed_release_readiness.py \
    - background task dispatch
    - Cloud Scheduler execution
    - Cloud Run Job execution
-   - public dashboard browser checks
+   - public frontend browser checks
    - rollback rehearsal
 
 ### Production promotion

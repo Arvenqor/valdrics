@@ -122,13 +122,13 @@ def _normalize_sveltekit_route_segment(segment: str) -> str:
 
 
 def parse_dashboard_server_paths(repo_root: Path) -> set[str]:
-    api_root = repo_root / "dashboard/src/routes/api"
+    api_root = repo_root / "frontend/src/routes/api"
     if not api_root.exists():
         return set()
 
     paths: set[str] = set()
     for server_path in api_root.rglob("+server.ts"):
-        relative_parent = server_path.parent.relative_to(repo_root / "dashboard/src/routes")
+        relative_parent = server_path.parent.relative_to(repo_root / "frontend/src/routes")
         normalized_parts = [_normalize_sveltekit_route_segment(part) for part in relative_parent.parts]
         route_path = "/" + "/".join(normalized_parts)
         paths.add(route_path)
@@ -136,7 +136,7 @@ def parse_dashboard_server_paths(repo_root: Path) -> set[str]:
 
 
 def parse_frontend_paths(repo_root: Path) -> list[FrontendPathRef]:
-    src_root = repo_root / "dashboard/src"
+    src_root = repo_root / "frontend/src"
     refs: list[FrontendPathRef] = []
     source_files = list(src_root.rglob("*.svelte")) + list(src_root.rglob("*.ts"))
     for file_path in source_files:

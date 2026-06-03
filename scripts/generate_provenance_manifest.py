@@ -23,9 +23,9 @@ DEFAULT_DEPENDENCY_INPUTS: tuple[Path, ...] = (
     Path("pyproject.toml"),
     Path("uv.lock"),
     Path("Dockerfile"),
-    Path("Dockerfile.dashboard"),
-    Path("dashboard/package.json"),
-    Path("dashboard/pnpm-lock.yaml"),
+    Path("Dockerfile.frontend"),
+    Path("frontend/package.json"),
+    Path("frontend/pnpm-lock.yaml"),
 )
 
 

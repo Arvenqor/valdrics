@@ -64,7 +64,7 @@ def _resolved_terraform_inputs() -> dict[str, str]:
         "gcp_region": "us-central1",
         "cloudflare_account_id": "cf-account-prod",
         "cloudflare_zone_id": "cf-zone-prod",
-        "cloudflare_pages_project_name": "valdrics-dashboard",
+        "cloudflare_pages_project_name": "valdrics-frontend",
         "cloudflare_pages_production_branch": "main",
         "supabase_organization_id": "supabase-org-prod",
         "supabase_project_name": "valdrics",

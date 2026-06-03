@@ -162,18 +162,18 @@ def _render_handoff_markdown(
         "## Verification Commands",
         "",
         "- Consolidated readiness gate: "
-        f"`uv run python scripts/verify_managed_release_readiness.py --environment {environment} --dashboard-url https://REPLACE_WITH_FRONTEND_DOMAIN --skip-webserver`",
+        f"`uv run python scripts/verify_managed_release_readiness.py --environment {environment} --frontend-url https://REPLACE_WITH_FRONTEND_DOMAIN --skip-webserver`",
         "- Dashboard URL derivation: "
-        "if the managed runtime env already contains a live `FRONTEND_URL`, the readiness wrapper can derive the dashboard URL automatically.",
+        "if the managed runtime env already contains a live `FRONTEND_URL`, the readiness wrapper can derive the frontend URL automatically.",
         "- Codebase audit verification: "
         f"`uv run python scripts/verify_codebase_audit_report.py --report {audit_report_relative_path.as_posix()}`",
         "- Codebase audit refresh: "
         f"`uv run python scripts/refresh_codebase_audit_report.py --report {audit_report_relative_path.as_posix()}` "
         "(use this only when the verifier reports live-fact drift after intentional repo changes).",
         "- Local preview note: "
-        "add `--reuse-built-dashboard-runtime` when the dashboard URL points to a live local `vite preview` server.",
+        "add `--reuse-built-frontend-runtime` when the frontend URL points to a live local `vite preview` server.",
         "- Dashboard runtime contract: "
-        "`uv run python scripts/verify_dashboard_runtime_contract.py --build`",
+        "`uv run python scripts/verify_frontend_runtime_contract.py --build`",
         f"- Runtime validation: `{runtime_report.get('validation_command', '')}`",
         f"- Migration validation: `{migration_report.get('validation_command', '')}`",
         f"- Migration apply: `{migration_report.get('migration_command', '')}`",
@@ -191,7 +191,7 @@ def _render_handoff_markdown(
         "- Reusable unified deployment workflow: "
         "`.github/workflows/deploy-unified-platform.yml`",
         "- Public browser gate: "
-        "`uv run python scripts/run_public_frontend_quality_gate.py --dashboard-url https://REPLACE_WITH_FRONTEND_DOMAIN --skip-webserver`",
+        "`uv run python scripts/run_public_frontend_quality_gate.py --frontend-url https://REPLACE_WITH_FRONTEND_DOMAIN --skip-webserver`",
         "",
         "Regenerate this handoff after any runtime env, migration env, or deployment artifact change.",
         "",

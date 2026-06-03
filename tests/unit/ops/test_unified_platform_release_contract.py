@@ -26,7 +26,7 @@ def _terraform_variable_block(source: str, name: str) -> str:
 
 
 def test_dashboard_csp_is_cloudflare_compatible_without_unsafe_inline() -> None:
-    config = (REPO_ROOT / "dashboard/svelte.config.js").read_text(encoding="utf-8")
+    config = (REPO_ROOT / "frontend/svelte.config.js").read_text(encoding="utf-8")
 
     assert "mode: 'nonce'" in config
     assert "https://static.cloudflareinsights.com" in config
@@ -250,7 +250,7 @@ def test_deploy_unified_platform_workflow_applies_terraform_and_cloudflare_pages
     assert "dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1" in workflow
     assert "b9cd54a3c349d3f38e8881555d616ced269862dd # v3" not in workflow
     assert "uses: ./.github/actions/setup-python-uv" in workflow
-    assert "uses: ./.github/actions/setup-dashboard" in workflow
+    assert "uses: ./.github/actions/setup-frontend" in workflow
     assert "Cache Playwright Browsers" in workflow
     assert "pnpm exec playwright install --with-deps chromium" in workflow
     assert "RUNTIME_PLAIN_ENV_JSON" in workflow
@@ -291,7 +291,7 @@ def test_deploy_unified_platform_workflow_applies_terraform_and_cloudflare_pages
     assert 'source "${{ steps.managed_bundle.outputs.migration_env_path }}"' in workflow
     assert "uv run alembic upgrade head" in workflow
     assert "wrangler pages deploy" in workflow
-    assert 'Path("dashboard/wrangler.toml").write_text' in workflow
+    assert 'Path("frontend/wrangler.toml").write_text' in workflow
     assert "[vars]" in workflow
     assert "PRIVATE_API_ORIGIN" in workflow
     assert "PUBLIC_SUPABASE_ANON_KEY" in workflow
@@ -339,7 +339,7 @@ def test_release_unified_platform_workflow_promotes_one_digest_through_environme
     assert "terraform/state-backend" in workflow
     assert "terraform/artifact-registry" in workflow
     assert "uses: ./.github/actions/setup-python-uv" in workflow
-    assert "uses: ./.github/actions/setup-dashboard" in workflow
+    assert "uses: ./.github/actions/setup-frontend" in workflow
     assert workflow.count("Cache Playwright Browsers") >= 2
     assert workflow.count("pnpm exec playwright install --with-deps chromium") >= 2
     assert "Publish Backend Artifact" in workflow
@@ -349,6 +349,7 @@ def test_release_unified_platform_workflow_promotes_one_digest_through_environme
     assert "preflight_gcp_managed_platform.py" in workflow
     assert "preflight_cloudflare_bot_management.py" in workflow
     assert "preflight_runtime_env_contract.py" in workflow
+    assert "verify_new_frontend_disposition_register.py" in workflow
     assert "Validate GCP deployer Terraform IAM permissions" in workflow
     assert "Validate managed runtime contract" in workflow
     assert "Enforce Cloudflare Bot Fight Mode disabled" in workflow
@@ -424,7 +425,7 @@ def test_release_beta_app_workflow_skips_terraform_for_fast_product_releases() -
 
 def test_dashboard_package_exposes_wrangler_for_pages_deploy() -> None:
     package = json.loads(
-        (REPO_ROOT / "dashboard/package.json").read_text(encoding="utf-8")
+        (REPO_ROOT / "frontend/package.json").read_text(encoding="utf-8")
     )
 
     assert "wrangler" in package["devDependencies"]

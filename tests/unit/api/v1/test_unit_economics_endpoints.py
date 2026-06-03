@@ -105,6 +105,10 @@ async def test_unit_economics_settings_lifecycle(async_client, app, db, admin_us
         data = response.json()
         assert data["default_request_volume"] == 1000.0
         assert data["anomaly_threshold_percent"] == 20.0
+        assert data["target_spend_reduction_pct"] == 15.0
+        assert data["target_rollout_days"] == 30
+        assert data["target_team_members"] == 10
+        assert data["target_blended_hourly_rate"] == 75.0
         settings_row = await db.scalar(
             select(UnitEconomicsSettings).where(
                 UnitEconomicsSettings.tenant_id == admin_user.tenant_id
@@ -119,6 +123,10 @@ async def test_unit_economics_settings_lifecycle(async_client, app, db, admin_us
                 "default_workload_volume": 80.0,
                 "default_customer_volume": 25.0,
                 "anomaly_threshold_percent": 30.0,
+                "target_spend_reduction_pct": 20.0,
+                "target_rollout_days": 45,
+                "target_team_members": 15,
+                "target_blended_hourly_rate": 80.0,
             },
         )
         assert update_response.status_code == 200
@@ -127,10 +135,15 @@ async def test_unit_economics_settings_lifecycle(async_client, app, db, admin_us
         assert updated["default_workload_volume"] == 80.0
         assert updated["default_customer_volume"] == 25.0
         assert updated["anomaly_threshold_percent"] == 30.0
+        assert updated["target_spend_reduction_pct"] == 20.0
+        assert updated["target_rollout_days"] == 45
+        assert updated["target_team_members"] == 15
+        assert updated["target_blended_hourly_rate"] == 80.0
 
         settings_row = await db.get(UnitEconomicsSettings, UUID(updated["id"]))
         assert settings_row is not None
         assert float(settings_row.default_request_volume) == 2000.0
+        assert float(settings_row.target_spend_reduction_pct) == 20.0
     finally:
         app.dependency_overrides.pop(get_current_user, None)
 

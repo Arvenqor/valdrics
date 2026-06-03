@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - "app/**"
-      - "dashboard/**"
+      - "frontend/**"
       - "migrations/**"
       - "scripts/**"
       - "pyproject.toml"
@@ -35,7 +35,7 @@ jobs:
       start_local_api: true
 
   performance-dashboard-gate:
-    name: Performance Gate - Dashboard
+    name: Performance Gate - Frontend
     uses: ./.github/workflows/performance-gate.yml
     with:
       url: "http://127.0.0.1:8000"

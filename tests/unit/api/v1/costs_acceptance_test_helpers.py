@@ -180,12 +180,21 @@ def standard_unit_settings(
     default_workload_volume: float = 100.0,
     default_customer_volume: float = 20.0,
     anomaly_threshold_percent: float = 20.0,
+    target_spend_reduction_pct: float = 15.0,
+    target_rollout_days: int = 30,
+    target_team_members: int = 5,
+    target_blended_hourly_rate: float = 80.0,
 ) -> SimpleNamespace:
     return SimpleNamespace(
+        id=uuid4(),
         default_request_volume=default_request_volume,
         default_workload_volume=default_workload_volume,
         default_customer_volume=default_customer_volume,
         anomaly_threshold_percent=anomaly_threshold_percent,
+        target_spend_reduction_pct=target_spend_reduction_pct,
+        target_rollout_days=target_rollout_days,
+        target_team_members=target_team_members,
+        target_blended_hourly_rate=target_blended_hourly_rate,
     )
 
 

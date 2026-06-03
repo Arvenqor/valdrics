@@ -8,7 +8,7 @@ Google Cloud Run, Cloudflare Pages, and Supabase.
 
 - Backend: modular monolith organized under `app/modules/`
 - Shared kernel: auth, config, logging, DB, rate-limit, tracing, metrics, and runtime services under `app/shared/`
-- Frontend: SvelteKit dashboard under `dashboard/`
+- Frontend: SvelteKit dashboard under `frontend/`
 - Infrastructure source of truth: Terraform under `terraform/`
 
 ## Module Boundary Model

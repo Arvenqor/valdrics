@@ -103,6 +103,12 @@ def build_gate_commands() -> list[list[str]]:
             "uv",
             "run",
             "python3",
+            "scripts/verify_new_frontend_disposition_register.py",
+        ],
+        [
+            "uv",
+            "run",
+            "python3",
             "scripts/verify_alertmanager_channels.py",
             "--config-path",
             "prometheus/alertmanager.yml",

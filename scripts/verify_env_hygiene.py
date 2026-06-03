@@ -80,7 +80,7 @@ def _parse_env_file(path: Path) -> dict[str, str]:
 
 
 def _tracked_env_files(repo_root: Path) -> tuple[str, ...]:
-    candidates = (".env", "dashboard/.env")
+    candidates = (".env", "frontend/.env")
     git_executable = shutil.which("git")
     if not git_executable:
         raise RuntimeError("git executable is required for environment hygiene checks")

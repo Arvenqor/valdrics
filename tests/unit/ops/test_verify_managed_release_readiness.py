@@ -55,8 +55,8 @@ def test_verify_managed_release_readiness_runs_all_requested_gates(
         calls.append(("audit", (root, report_path, enforce_live_measured_facts)))
         return []
 
-    def _dashboard_runtime_verifier(*, root: Path, build: bool) -> list[str]:
-        calls.append(("dashboard", (root, build)))
+    def _frontend_runtime_verifier(*, root: Path, build: bool) -> list[str]:
+        calls.append(("frontend", (root, build)))
         return []
 
     def _bundle_verifier(
@@ -82,9 +82,9 @@ def test_verify_managed_release_readiness_runs_all_requested_gates(
         return []
 
     def _public_quality_runner(
-        *, dashboard_url: str | None, skip_webserver: bool, **_: object
+        *, frontend_url: str | None, skip_webserver: bool, **_: object
     ) -> None:
-        calls.append(("public", (dashboard_url, skip_webserver)))
+        calls.append(("public", (frontend_url, skip_webserver)))
 
     errors = verify_managed_release_readiness(
         environment="staging",
@@ -92,10 +92,10 @@ def test_verify_managed_release_readiness_runs_all_requested_gates(
         runtime_report_path=runtime_report,
         migration_report_path=migration_report,
         deployment_report_path=deployment_report,
-        dashboard_url="https://staging.example.com",
+        frontend_url="https://staging.example.com",
         skip_webserver=True,
         audit_report_verifier=_audit_report_verifier,
-        dashboard_runtime_verifier=_dashboard_runtime_verifier,
+        frontend_runtime_verifier=_frontend_runtime_verifier,
         bundle_verifier=_bundle_verifier,
         public_quality_runner=_public_quality_runner,
     )
@@ -105,7 +105,7 @@ def test_verify_managed_release_readiness_runs_all_requested_gates(
         "audit",
         (tmp_path, tmp_path / ".runtime/staging.audit.report.json", True),
     ) in calls
-    assert ("dashboard", (tmp_path, True)) in calls
+    assert ("frontend", (tmp_path, True)) in calls
     assert (
         "bundle",
         ("staging", runtime_report, migration_report, deployment_report, False),
@@ -147,11 +147,11 @@ def test_verify_managed_release_readiness_can_verify_non_secret_release_artifact
         runtime_report_path=runtime_report,
         migration_report_path=migration_report,
         deployment_report_path=deployment_report,
-        skip_dashboard_runtime=True,
+        skip_frontend_runtime=True,
         skip_public_browser=True,
         allow_non_secret_artifact_bundle=True,
         audit_report_verifier=lambda **_: [],
-        dashboard_runtime_verifier=lambda **_: [],
+        frontend_runtime_verifier=lambda **_: [],
         bundle_verifier=_bundle_verifier,
         public_quality_runner=lambda **_: None,
     )
@@ -174,21 +174,21 @@ def test_verify_managed_release_readiness_requires_reuse_mode_for_local_preview(
         runtime_report_path=runtime_report,
         migration_report_path=migration_report,
         deployment_report_path=deployment_report,
-        dashboard_url="http://127.0.0.1:4173",
+        frontend_url="http://127.0.0.1:4173",
         skip_webserver=True,
         audit_report_verifier=lambda **_: [],
-        dashboard_runtime_verifier=lambda **_: [],
+        frontend_runtime_verifier=lambda **_: [],
         bundle_verifier=lambda **_: [],
         public_quality_runner=lambda **_: None,
     )
 
     assert errors == [
-        "reuse_built_dashboard_runtime is required when using --skip-webserver "
-        "with a local dashboard_url because rebuilding invalidates the live preview assets."
+        "reuse_built_frontend_runtime is required when using --skip-webserver "
+        "with a local frontend_url because rebuilding invalidates the live preview assets."
     ]
 
 
-def test_verify_managed_release_readiness_requires_dashboard_url_when_public_gate_enabled(
+def test_verify_managed_release_readiness_requires_frontend_url_when_public_gate_enabled(
     tmp_path: Path,
 ) -> None:
     runtime_report, migration_report, deployment_report = _seed_reports(tmp_path)
@@ -199,20 +199,20 @@ def test_verify_managed_release_readiness_requires_dashboard_url_when_public_gat
         runtime_report_path=runtime_report,
         migration_report_path=migration_report,
         deployment_report_path=deployment_report,
-        skip_dashboard_runtime=True,
+        skip_frontend_runtime=True,
         audit_report_verifier=lambda **_: [],
-        dashboard_runtime_verifier=lambda **_: [],
+        frontend_runtime_verifier=lambda **_: [],
         bundle_verifier=lambda **_: [],
         public_quality_runner=lambda **_: None,
     )
 
     assert errors == [
-        "dashboard_url is required unless --skip-public-browser is used, or "
+        "frontend_url is required unless --skip-public-browser is used, or "
         "FRONTEND_URL is set to a live http(s) value in the managed runtime env."
     ]
 
 
-def test_verify_managed_release_readiness_derives_dashboard_url_from_runtime_env(
+def test_verify_managed_release_readiness_derives_frontend_url_from_runtime_env(
     tmp_path: Path,
 ) -> None:
     runtime_report, migration_report, deployment_report = _seed_reports(tmp_path)
@@ -221,9 +221,9 @@ def test_verify_managed_release_readiness_derives_dashboard_url_from_runtime_env
     calls: list[tuple[str, object]] = []
 
     def _public_quality_runner(
-        *, dashboard_url: str | None, skip_webserver: bool, **_: object
+        *, frontend_url: str | None, skip_webserver: bool, **_: object
     ) -> None:
-        calls.append(("public", (dashboard_url, skip_webserver)))
+        calls.append(("public", (frontend_url, skip_webserver)))
 
     errors = verify_managed_release_readiness(
         environment="staging",
@@ -231,9 +231,9 @@ def test_verify_managed_release_readiness_derives_dashboard_url_from_runtime_env
         runtime_report_path=runtime_report,
         migration_report_path=migration_report,
         deployment_report_path=deployment_report,
-        skip_dashboard_runtime=True,
+        skip_frontend_runtime=True,
         audit_report_verifier=lambda **_: [],
-        dashboard_runtime_verifier=lambda **_: [],
+        frontend_runtime_verifier=lambda **_: [],
         bundle_verifier=lambda **_: [],
         public_quality_runner=_public_quality_runner,
     )
@@ -254,9 +254,9 @@ def test_verify_managed_release_readiness_prefers_runtime_report_public_values(
     calls: list[tuple[str, object]] = []
 
     def _public_quality_runner(
-        *, dashboard_url: str | None, skip_webserver: bool, **_: object
+        *, frontend_url: str | None, skip_webserver: bool, **_: object
     ) -> None:
-        calls.append(("public", (dashboard_url, skip_webserver)))
+        calls.append(("public", (frontend_url, skip_webserver)))
 
     errors = verify_managed_release_readiness(
         environment="staging",
@@ -264,9 +264,9 @@ def test_verify_managed_release_readiness_prefers_runtime_report_public_values(
         runtime_report_path=runtime_report,
         migration_report_path=migration_report,
         deployment_report_path=deployment_report,
-        skip_dashboard_runtime=True,
+        skip_frontend_runtime=True,
         audit_report_verifier=lambda **_: [],
-        dashboard_runtime_verifier=lambda **_: [],
+        frontend_runtime_verifier=lambda **_: [],
         bundle_verifier=lambda **_: [],
         public_quality_runner=_public_quality_runner,
     )
@@ -283,7 +283,7 @@ def test_verify_managed_release_readiness_reports_public_gate_failure(
     def _failing_public_quality_runner(**_: object) -> None:
         raise subprocess.CalledProcessError(
             1,
-            ["pnpm", "--dir", "dashboard", "run", "test:a11y:public"],
+            ["pnpm", "--dir", "frontend", "run", "test:a11y:public"],
         )
 
     errors = verify_managed_release_readiness(
@@ -292,10 +292,10 @@ def test_verify_managed_release_readiness_reports_public_gate_failure(
         runtime_report_path=runtime_report,
         migration_report_path=migration_report,
         deployment_report_path=deployment_report,
-        dashboard_url="https://staging.example.com",
-        skip_dashboard_runtime=True,
+        frontend_url="https://staging.example.com",
+        skip_frontend_runtime=True,
         audit_report_verifier=lambda **_: [],
-        dashboard_runtime_verifier=lambda **_: [],
+        frontend_runtime_verifier=lambda **_: [],
         bundle_verifier=lambda **_: [],
         public_quality_runner=_failing_public_quality_runner,
     )
@@ -304,7 +304,7 @@ def test_verify_managed_release_readiness_reports_public_gate_failure(
     assert "public frontend quality gate failed" in errors[0]
 
 
-def test_verify_managed_release_readiness_reports_dashboard_gate_exception(
+def test_verify_managed_release_readiness_reports_frontend_gate_exception(
     tmp_path: Path,
 ) -> None:
     runtime_report, migration_report, deployment_report = _seed_reports(tmp_path)
@@ -315,9 +315,9 @@ def test_verify_managed_release_readiness_reports_dashboard_gate_exception(
         runtime_report_path=runtime_report,
         migration_report_path=migration_report,
         deployment_report_path=deployment_report,
-        dashboard_url="https://staging.example.com",
+        frontend_url="https://staging.example.com",
         audit_report_verifier=lambda **_: [],
-        dashboard_runtime_verifier=lambda **_: (_ for _ in ()).throw(
+        frontend_runtime_verifier=lambda **_: (_ for _ in ()).throw(
             PermissionError("port bind denied")
         ),
         bundle_verifier=lambda **_: [],
@@ -325,7 +325,7 @@ def test_verify_managed_release_readiness_reports_dashboard_gate_exception(
     )
 
     assert (
-        "dashboard runtime contract verification failed unexpectedly: port bind denied"
+        "frontend runtime contract verification failed unexpectedly: port bind denied"
         in errors
     )
 
@@ -336,8 +336,8 @@ def test_verify_managed_release_readiness_reuses_existing_build_when_requested(
     runtime_report, migration_report, deployment_report = _seed_reports(tmp_path)
     calls: list[tuple[str, object]] = []
 
-    def _dashboard_runtime_verifier(*, root: Path, build: bool) -> list[str]:
-        calls.append(("dashboard", (root, build)))
+    def _frontend_runtime_verifier(*, root: Path, build: bool) -> list[str]:
+        calls.append(("frontend", (root, build)))
         return []
 
     errors = verify_managed_release_readiness(
@@ -346,17 +346,17 @@ def test_verify_managed_release_readiness_reuses_existing_build_when_requested(
         runtime_report_path=runtime_report,
         migration_report_path=migration_report,
         deployment_report_path=deployment_report,
-        dashboard_url="http://127.0.0.1:4173",
+        frontend_url="http://127.0.0.1:4173",
         skip_webserver=True,
-        reuse_built_dashboard_runtime=True,
+        reuse_built_frontend_runtime=True,
         audit_report_verifier=lambda **_: [],
-        dashboard_runtime_verifier=_dashboard_runtime_verifier,
+        frontend_runtime_verifier=_frontend_runtime_verifier,
         bundle_verifier=lambda **_: [],
         public_quality_runner=lambda **_: None,
     )
 
     assert errors == []
-    assert ("dashboard", (tmp_path, False)) in calls
+    assert ("frontend", (tmp_path, False)) in calls
 
 
 def test_verify_managed_release_readiness_reports_audit_gate_failures(
@@ -370,10 +370,10 @@ def test_verify_managed_release_readiness_reports_audit_gate_failures(
         runtime_report_path=runtime_report,
         migration_report_path=migration_report,
         deployment_report_path=deployment_report,
-        dashboard_url="https://staging.example.com",
-        skip_dashboard_runtime=True,
+        frontend_url="https://staging.example.com",
+        skip_frontend_runtime=True,
         audit_report_verifier=lambda **_: ["audit drift detected"],
-        dashboard_runtime_verifier=lambda **_: [],
+        frontend_runtime_verifier=lambda **_: [],
         bundle_verifier=lambda **_: [],
         public_quality_runner=lambda **_: None,
     )
@@ -402,10 +402,10 @@ def test_verify_managed_release_readiness_uses_environment_specific_audit_report
         runtime_report_path=runtime_report,
         migration_report_path=migration_report,
         deployment_report_path=deployment_report,
-        dashboard_url="https://production.example.com",
-        skip_dashboard_runtime=True,
+        frontend_url="https://production.example.com",
+        skip_frontend_runtime=True,
         audit_report_verifier=_audit_report_verifier,
-        dashboard_runtime_verifier=lambda **_: [],
+        frontend_runtime_verifier=lambda **_: [],
         bundle_verifier=lambda **_: [],
         public_quality_runner=lambda **_: None,
     )
@@ -423,7 +423,7 @@ def test_main_reports_success_and_failure(tmp_path: Path, capsys) -> None:
     assert "[managed-release-readiness] ok" in capsys.readouterr().out
 
     managed_release_readiness.verify_managed_release_readiness = lambda **_: [
-        "dashboard_url is required unless --skip-public-browser is used, or "
+        "frontend_url is required unless --skip-public-browser is used, or "
         "FRONTEND_URL is set to a live http(s) value in the managed runtime env."
     ]
     assert main(["--environment", "staging", "--root", str(tmp_path)]) == 1

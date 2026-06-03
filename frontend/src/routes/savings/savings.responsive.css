@@ -1,0 +1,87 @@
+@media (max-width: 1180px) {
+	.savings-skeleton-grid,
+	.savings-kpi-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.savings-main-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 760px) {
+	.savings-page {
+		gap: 0.85rem;
+	}
+
+	.savings-hero,
+	.savings-toolbar,
+	.savings-upgrade-panel,
+	.savings-panel__header,
+	.savings-panel__header--split,
+	.savings-provider-row__top,
+	.savings-event-row {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.savings-hero__status,
+	.savings-select-field,
+	.savings-select,
+	.savings-toolbar__actions,
+	.savings-secondary-button,
+	.savings-primary-button,
+	.savings-primary-link {
+		width: 100%;
+	}
+
+	.savings-toolbar__filters,
+	.savings-toolbar__actions,
+	.savings-panel__actions,
+	.savings-page .date-range-picker,
+	.savings-page .presets {
+		width: 100%;
+	}
+
+	.savings-page .preset-btn {
+		flex: 1 1 8rem;
+	}
+
+	.savings-skeleton-grid,
+	.savings-kpi-grid,
+	.savings-proof-meta,
+	.savings-drilldown-summary,
+	.savings-event-row__meta {
+		grid-template-columns: 1fr;
+	}
+
+	.savings-bar-line {
+		grid-template-columns: 4.8rem minmax(0, 1fr);
+	}
+
+	.savings-bar-line > strong {
+		grid-column: 2;
+		text-align: left;
+	}
+
+	.savings-drilldown-row {
+		grid-template-columns: 1fr;
+		align-items: stretch;
+		gap: 0.75rem;
+	}
+
+	.savings-provider-row__amounts,
+	.savings-drilldown-row__amount,
+	.savings-event-row__amount {
+		text-align: left;
+	}
+
+	.savings-event-row__amount {
+		min-width: 0;
+		padding-left: 1.75rem;
+	}
+
+	.savings-event-row__amount small {
+		justify-content: flex-start;
+	}
+}
