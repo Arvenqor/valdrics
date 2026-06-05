@@ -5,7 +5,7 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-VALID_RULE_TYPES = {"DIRECT", "PERCENTAGE", "FIXED"}
+VALID_RULE_TYPES = {"DIRECT", "PERCENTAGE", "FIXED", "EVEN_SPLIT", "PROPORTIONAL"}
 ATTRIBUTION_DECIMAL_PARSE_RECOVERABLE_EXCEPTIONS: tuple[type[Exception], ...] = (
     InvalidOperation,
     TypeError,
@@ -80,5 +80,31 @@ def validate_rule_payload(rule_type: str, allocation: Any) -> list[str]:
                 continue
             if amount < 0:
                 errors.append("FIXED split amount cannot be negative.")
+
+    elif normalized_type == "EVEN_SPLIT":
+        if not entries:
+            errors.append("EVEN_SPLIT allocation requires at least one split entry.")
+        for split in entries:
+            if not split.get("bucket"):
+                errors.append("Each EVEN_SPLIT split requires a non-empty 'bucket'.")
+
+    elif normalized_type == "PROPORTIONAL":
+        if not entries:
+            errors.append("PROPORTIONAL allocation requires at least one split entry.")
+        total_weight = Decimal("0")
+        for split in entries:
+            if not split.get("bucket"):
+                errors.append("Each PROPORTIONAL split requires a non-empty 'bucket'.")
+            weight_raw = split.get("weight")
+            try:
+                weight = Decimal(str(weight_raw))
+            except ATTRIBUTION_DECIMAL_PARSE_RECOVERABLE_EXCEPTIONS:
+                errors.append("Each PROPORTIONAL split requires numeric 'weight'.")
+                continue
+            if weight < 0:
+                errors.append("PROPORTIONAL split weight cannot be negative.")
+            total_weight += weight
+        if entries and total_weight <= 0:
+            errors.append("PROPORTIONAL split requires at least one positive weight.")
 
     return errors

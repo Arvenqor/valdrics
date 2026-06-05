@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import date, datetime
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
@@ -23,28 +23,10 @@ from app.modules.reporting.domain.spend_ledger_ai import (
     ai_spend_summary,
 )
 
-SPEND_LEDGER_DECIMAL_PARSE_EXCEPTIONS: tuple[type[Exception], ...] = (
-    InvalidOperation,
-    TypeError,
-    ValueError,
+from app.modules.reporting.domain.spend_ledger_decimal import (
+    _decimal_string,
+    _optional_decimal_string,
 )
-
-def _decimal_string(value: Any, *, places: int = 8) -> str:
-    if value is None:
-        return format(Decimal("0").quantize(Decimal(1).scaleb(-places)), "f")
-    try:
-        amount = value if isinstance(value, Decimal) else Decimal(str(value))
-    except SPEND_LEDGER_DECIMAL_PARSE_EXCEPTIONS as exc:
-        raise ValueError("Spend ledger amount must be numeric") from exc
-    if not amount.is_finite():
-        raise ValueError("Spend ledger amount must be finite")
-    return format(amount.quantize(Decimal(1).scaleb(-places)), "f")
-
-
-def _optional_decimal_string(value: Any, *, places: int = 8) -> str | None:
-    if value is None:
-        return None
-    return _decimal_string(value, places=places)
 
 
 def _metadata_tags(record: CostRecord) -> dict[str, Any]:
@@ -158,7 +140,9 @@ async def list_spend_ledger_entries(
         "include_preliminary": include_preliminary,
         "limit": limit,
         "offset": offset,
-        "record_count": int(origin_summary["record_count"] + ai_summary["record_count"]),
+        "record_count": int(
+            origin_summary["record_count"] + ai_summary["record_count"]
+        ),
         "total_cost_usd": _decimal_string(
             origin_summary["total_cost"] + ai_summary["total_cost"]
         ),
@@ -407,7 +391,9 @@ def _serialize_ledger_row(
         "unallocated_amount_usd": _decimal_string(unallocated_amount),
         "allocation_count": allocation_count,
         "tags": _metadata_tags(record),
-        "allocations": [_serialize_allocation(allocation) for allocation in allocations],
+        "allocations": [
+            _serialize_allocation(allocation) for allocation in allocations
+        ],
     }
 
 

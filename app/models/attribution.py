@@ -11,6 +11,7 @@ from sqlalchemy import (
     Date,
     Index,
     Uuid as PG_UUID,
+    CheckConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import JSONB
@@ -40,8 +41,12 @@ class AttributionRule(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
     priority: Mapped[int] = mapped_column(Integer, default=100)
 
-    # PERCENTAGE (split), DIRECT (one bucket), FIXED (specific amount)
-    rule_type: Mapped[str] = mapped_column(String, default="DIRECT")
+    # DIRECT, PERCENTAGE, FIXED, EVEN_SPLIT, PROPORTIONAL
+    rule_type: Mapped[str] = mapped_column(
+        String,
+        default="DIRECT",
+        doc="Type of allocation rule. Supported values: DIRECT, PERCENTAGE, FIXED, EVEN_SPLIT, PROPORTIONAL",
+    )
 
     # Conditions: e.g., {"service": "AmazonS3", "tags": {"Environment": "Prod"}}
     conditions: Mapped[dict[str, Any]] = mapped_column(
@@ -66,13 +71,18 @@ class AttributionRule(Base):
 class CostAllocation(Base):
     """
     Sub-record table for cost splits.
-    Allows one CostRecord to be split across multiple allocation buckets.
+    Allows one CostRecord or LLMUsage record to be split across multiple allocation buckets.
     """
 
     __tablename__ = "cost_allocations"
 
     id: Mapped[UUID] = mapped_column(PG_UUID(), primary_key=True, default=uuid4)
-    cost_record_id: Mapped[UUID] = mapped_column(PG_UUID(), nullable=False, index=True)
+    cost_record_id: Mapped[Optional[UUID]] = mapped_column(
+        PG_UUID(), nullable=True, index=True
+    )
+    llm_usage_id: Mapped[Optional[UUID]] = mapped_column(
+        PG_UUID(), nullable=True, index=True
+    )
     recorded_at: Mapped[date] = mapped_column(Date, nullable=False, index=True)
 
     rule_id: Mapped[Optional[UUID]] = mapped_column(
@@ -98,4 +108,9 @@ class CostAllocation(Base):
 
     __table_args__ = (
         Index("ix_cost_allocations_composite_record", "cost_record_id", "recorded_at"),
+        Index("ix_cost_allocations_llm_usage", "llm_usage_id"),
+        CheckConstraint(
+            "(cost_record_id IS NOT NULL AND llm_usage_id IS NULL) OR (cost_record_id IS NULL AND llm_usage_id IS NOT NULL)",
+            name="chk_cost_allocations_target_type",
+        ),
     )

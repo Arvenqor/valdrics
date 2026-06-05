@@ -167,7 +167,9 @@ class AttributionEngine:
         """
         return await _get_active_rules_impl(self.db, tenant_id)
 
-    def match_conditions(self, cost_record: CostRecord, conditions: dict[str, Any]) -> bool:
+    def match_conditions(
+        self, cost_record: CostRecord, conditions: dict[str, Any]
+    ) -> bool:
         """
         Check if a cost record matches rule conditions.
         Supports matching on: service, region, account_id, tags.
