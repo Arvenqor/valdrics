@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 from typing import Any
@@ -53,7 +54,7 @@ async def ai_spend_summary(
     total_cost = sum((row.cost_usd for row in usage_rows), Decimal("0"))
 
     # Query all allocations for these records
-    allocations = []
+    allocations: list[CostAllocation] = []
     for i in range(0, len(usage_ids), 1000):
         chunk = usage_ids[i : i + 1000]
         alloc_stmt = select(CostAllocation).where(
@@ -62,9 +63,7 @@ async def ai_spend_summary(
         allocations.extend((await db.execute(alloc_stmt)).scalars().all())
 
     # Map allocations by llm_usage_id
-    from collections import defaultdict
-
-    alloc_map = defaultdict(list)
+    alloc_map: defaultdict[UUID | None, list[CostAllocation]] = defaultdict(list)
     for alloc in allocations:
         alloc_map[alloc.llm_usage_id].append(alloc)
 
@@ -137,9 +136,9 @@ async def ai_spend_entries(
     )
     allocations = (await db.execute(alloc_stmt)).scalars().all()
 
-    from collections import defaultdict
-
-    grouped_allocations = defaultdict(list)
+    grouped_allocations: defaultdict[UUID | None, list[CostAllocation]] = defaultdict(
+        list
+    )
     for alloc in allocations:
         grouped_allocations[alloc.llm_usage_id].append(alloc)
 

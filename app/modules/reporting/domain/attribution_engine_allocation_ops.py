@@ -60,6 +60,9 @@ def match_conditions(cost_record: Any, conditions: dict[str, Any]) -> bool:
     service = "LLM" if is_llm else getattr(cost_record, "service", None)
     region = None if is_llm else getattr(cost_record, "region", None)
 
+    account_id: Any
+    provider: Any
+
     if is_llm:
         raw_prov = getattr(cost_record, "provider", "unknown")
         account_id = f"ai:{raw_prov}"

@@ -339,6 +339,8 @@ async def _load_page_allocations(
     allocations = (await db.execute(stmt)).scalars().all()
     grouped: dict[tuple[UUID, date], list[CostAllocation]] = {}
     for allocation in sorted(allocations, key=_allocation_key):
+        if allocation.cost_record_id is None:
+            continue
         grouped.setdefault(
             (allocation.cost_record_id, allocation.recorded_at),
             [],
