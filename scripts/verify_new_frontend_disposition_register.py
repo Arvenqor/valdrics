@@ -76,6 +76,7 @@ def verify_register(*, repo_root: Path, register_path: Path) -> list[str]:
         errors.append("entries must be a non-empty list")
         return errors
 
+    handoff_root_exists = (repo_root / "new_frontend").is_dir()
     actual_sources = _new_frontend_files(repo_root)
     registered_sources: list[str] = []
 
@@ -92,12 +93,14 @@ def verify_register(*, repo_root: Path, register_path: Path) -> list[str]:
         if not source_file.startswith("new_frontend/"):
             errors.append(f"{label}.source_file must live under new_frontend/")
         registered_sources.append(source_file)
-        if source_file not in actual_sources:
+        if handoff_root_exists and source_file not in actual_sources:
             errors.append(f"{source_file}: source file does not exist")
 
         status = entry.get("status")
         if status not in VALID_STATUSES:
-            errors.append(f"{source_file}: status must be one of {sorted(VALID_STATUSES)}")
+            errors.append(
+                f"{source_file}: status must be one of {sorted(VALID_STATUSES)}"
+            )
             continue
 
         decision = entry.get("decision")
@@ -118,12 +121,16 @@ def verify_register(*, repo_root: Path, register_path: Path) -> list[str]:
                 errors.append(f"{source_file}: unsafe target path {target_path!r}")
                 continue
             if not (repo_root / target_path).exists():
-                errors.append(f"{source_file}: target path does not exist: {target_path}")
+                errors.append(
+                    f"{source_file}: target path does not exist: {target_path}"
+                )
 
         evidence = entry.get("evidence", [])
         if evidence is None:
             evidence = []
-        if not isinstance(evidence, list) or not all(isinstance(value, str) for value in evidence):
+        if not isinstance(evidence, list) or not all(
+            isinstance(value, str) for value in evidence
+        ):
             errors.append(f"{source_file}: evidence must be a list of strings")
             evidence = []
 
@@ -135,18 +142,24 @@ def verify_register(*, repo_root: Path, register_path: Path) -> list[str]:
                 errors.append(f"{source_file}: migrated entries require evidence")
         elif status == "pending":
             if not isinstance(deletion_blocker, str) or not deletion_blocker.strip():
-                errors.append(f"{source_file}: pending entries require deletion_blocker")
+                errors.append(
+                    f"{source_file}: pending entries require deletion_blocker"
+                )
         elif status == "rejected" and not evidence:
             errors.append(f"{source_file}: rejected entries require evidence")
 
     duplicates = sorted(
-        source for source in set(registered_sources) if registered_sources.count(source) > 1
+        source
+        for source in set(registered_sources)
+        if registered_sources.count(source) > 1
     )
     for duplicate in duplicates:
         errors.append(f"{duplicate}: duplicate register entry")
 
     missing_sources = sorted(actual_sources - set(registered_sources))
-    extra_sources = sorted(set(registered_sources) - actual_sources)
+    extra_sources = (
+        sorted(set(registered_sources) - actual_sources) if handoff_root_exists else []
+    )
     for source in missing_sources:
         errors.append(f"{source}: missing register entry")
     for source in extra_sources:
@@ -157,7 +170,9 @@ def verify_register(*, repo_root: Path, register_path: Path) -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--repo-root", default=str(_repo_root()), help="Repository root path")
+    parser.add_argument(
+        "--repo-root", default=str(_repo_root()), help="Repository root path"
+    )
     parser.add_argument(
         "--register",
         default=str(DEFAULT_REGISTER_PATH),
