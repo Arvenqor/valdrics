@@ -253,7 +253,7 @@
 						/>
 					</label>
 				</div>
-				<p class="text-xs text-ink-600 mt-2">
+				<p class="text-xs text-ink-400 mt-2">
 					These values pre-populate <a
 						href={`${base}/roi-planner`}
 						class="text-accent-400 hover:underline">the ROI Planner</a
