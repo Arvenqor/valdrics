@@ -31,7 +31,14 @@ export const load: PageServerLoad = async ({ fetch, setHeaders }) => {
 		'Cache-Control': 'no-store'
 	});
 
-	const backendOrigin = resolveBackendOrigin();
+	let backendOrigin: string;
+	try {
+		backendOrigin = resolveBackendOrigin();
+	} catch {
+		return buildFallbackStatusSnapshot(
+			'The automated health summary is not configured for this environment.'
+		);
+	}
 
 	try {
 		const response = await fetchWithTimeout(

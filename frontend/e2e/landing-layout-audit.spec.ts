@@ -111,7 +111,7 @@ test.describe('Landing layout audit regressions', () => {
 		await expect(page.locator('#hero')).toContainText(/govern first|optimize always/i);
 		await expect(page.locator('#hero .chip')).toHaveCount(3);
 		await expect(page.locator('#features .fcard')).toHaveCount(6);
-		await expect(page.locator('#pricing .pcard')).toHaveCount(3);
+		await expect(page.locator('#pricing .pcard')).toHaveCount(4);
 		await expect(page.locator('.trust-bar .trust-badge')).toHaveCount(6);
 
 		const overflow = await page.evaluate(() => ({

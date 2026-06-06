@@ -325,7 +325,13 @@
 	:global(.roi-planner-page .landing-section-sub),
 	:global(.roi-planner-page .landing-roi-note),
 	:global(.roi-planner-page .landing-roi-metric p) {
-		color: var(--color-ink-400);
+		color: var(--color-ink-300);
+	}
+
+	:global(.roi-planner-page .landing-proof-k),
+	:global(.roi-planner-page .landing-roi-label),
+	:global(.roi-planner-page .landing-cta-link) {
+		color: #67e8f9;
 	}
 
 	:global(.roi-planner-page .landing-currency-toggle__label),

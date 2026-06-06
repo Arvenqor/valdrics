@@ -252,7 +252,7 @@
 	.footer__copy {
 		font-family: var(--font-mono);
 		font-size: 12px;
-		color: var(--muted);
+		color: var(--sub);
 	}
 	.footer__social {
 		display: flex;
