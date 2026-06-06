@@ -270,3 +270,54 @@
 .public-site-shell[data-public-theme='dark'] .landing-currency-toggle__controls button {
 	color: var(--color-ink-300);
 }
+
+.landing-page .landing-h2,
+.landing-page .landing-roi-metric strong,
+.landing-page .landing-sim-metric strong,
+.landing-page .landing-sim-bar-value {
+	color: var(--color-ink-50);
+}
+
+.landing-page .landing-section-sub,
+.landing-page .landing-roi-note,
+.landing-page .landing-sim-bar-label,
+.landing-page .landing-sim-metric span {
+	color: var(--color-ink-300);
+}
+
+.landing-page .landing-proof-k,
+.landing-page .landing-cta-link,
+.landing-page .landing-roi-label {
+	color: var(--ion-readable, #67e8f9);
+}
+
+.landing-page .landing-public-surface.landing-sim-controls,
+.landing-page .landing-public-surface.landing-sim-results {
+	border-color: rgb(8 126 164 / 0.12);
+	background: #f8fafc;
+	box-shadow: 0 20px 44px rgb(15 23 42 / 0.06);
+}
+
+.landing-page .landing-public-surface .landing-roi-label,
+.landing-page .landing-public-surface .landing-proof-k,
+.landing-page .landing-public-surface .landing-cta-link,
+.landing-page .landing-public-surface .landing-sim-bar-label,
+.landing-page .landing-public-surface .landing-currency-select span,
+.landing-page .landing-public-surface .landing-currency-toggle__label {
+	color: #064e66;
+}
+
+.landing-page .landing-public-surface .landing-sim-metric p,
+.landing-page .landing-public-surface .landing-roi-note,
+.landing-page .landing-public-surface .landing-sim-metric span {
+	color: #334155;
+}
+
+.landing-page .landing-public-surface .landing-sim-metric strong,
+.landing-page .landing-public-surface .landing-sim-bar-value {
+	color: #0f172a;
+}
+
+.landing-page .landing-public-surface .landing-sim-metric.is-primary strong {
+	color: #064e66;
+}

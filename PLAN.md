@@ -251,6 +251,10 @@ evidence only:
   - `docs/runbooks/production_env_checklist.md`
 - release closure evidence:
   - `docs/evidence/phase1-unified-release-closure.md`
+- implementation evidence:
+  - `docs/evidence/phase2-unified-release-closure.md`
+- compliance documentation:
+  - `docs/compliance/spend_ledger.md`
 - rollback and recovery:
   - `docs/ROLLBACK_PLAN.md`
   - `docs/runbooks/disaster_recovery.md`
@@ -292,7 +296,7 @@ to a shipping phase here:
 | Phase                                                  | Strategy          | Ground truth now                                                                                                                                           | Ship state  |
 | ------------------------------------------------------ | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
 | Phase 1: Managed Platform Live Cutover                 | `core disruption` | Full unified staging-to-production release is green on run `26354921733` for tag `2026.05.24-paystack-live-dfd7b8b2`; operator artifact review, Supabase Auth config repair, operator sign-off, and production signup/checkout validation are complete | Shipped     |
-| Phase 2: Unified Technology Spend Ledger               | `core disruption` | Partial foundations exist through the AI-aware canonical spend-ledger API, allocation-aware FOCUS v1.3 export, normalized reporting, and Cloud+ connectors | Active      |
+| Phase 2: Unified Technology Spend Ledger               | `core disruption` | Implementation cleanup in progress: shared-cost/tag-less attribution, AI spend allocation, canonical ledger CSV export, and focused tests exist locally. Migration cleanup, production deployment, and live-tenant validation remain | Active |
 | Phase 3: Audit-Grade Close                             | `moat expansion`  | Reconciliation and close foundations exist, but live end-to-end close proof as the canonical customer path is not established here                         | Not shipped |
 | Phase 4: Governed Action Loop                          | `core disruption` | Approvals, enforcement, and remediation foundations exist, but the full action loop is not yet the closed customer operating standard                      | Not shipped |
 | Phase 5: Technology Value Contract Standard            | `core disruption` | Draft TVC schemas, examples, verifier, CI admission checks, and deployment admission receipts exist; runtime receipts and reconciliation views do not      | Not shipped |
@@ -385,7 +389,7 @@ Current blockers and external dependencies:
 
 ### Phase 2: Unified Technology Spend Ledger
 
-Status: Active (active phase)
+Status: Active (implementation cleanup and validation in progress)
 Strategy label: `core disruption`
 
 Outcome:
@@ -405,14 +409,25 @@ Current implementation notes:
 
 - `CostRecord` remains the normalized origin-charge ledger row
 - `CostAllocation` is the canonical split-allocation source for the ledger and
-  FOCUS export
-- `LLMUsage` is projected into the ledger as provider `ai`
+  FOCUS export, now supporting both `cost_record_id` and `llm_usage_id`
+- `LLMUsage` is projected into the ledger as provider `ai` with real allocation
+  data (no longer hardcoded zeros)
 - `/api/v1/costs/ledger` exposes the canonical tenant spend-ledger API
+- `/api/v1/costs/ledger/export` streams canonical spend ledger as CSV with
+  25 columns matching `SpendLedgerEntry` fields, paginated internally at 500
+  records per batch
 - FOCUS v1.3 export now emits resource, usage, pricing, allocation, and AI rows
 - `COST_EXPORT` jobs now create bounded inline FOCUS CSV artifacts instead of
   placeholder download URLs
 - acceptance KPI ledger-quality evidence now counts AI ledger rows alongside
   origin `CostRecord` rows
+- `EVEN_SPLIT` and `PROPORTIONAL` rule types enable shared-cost allocation
+  across multiple teams without per-record tag assignment
+- Tag-less condition matching (`service_pattern`, `provider`,
+  `cost_threshold_min_usd`, `catch_all`) enables default and fallback
+  attribution rules
+- Shared decimal helpers consolidated into `spend_ledger_decimal.py` to
+  eliminate duplication
 
 Not in scope:
 

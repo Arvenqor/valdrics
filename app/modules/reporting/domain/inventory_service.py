@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from collections import Counter
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 from sqlalchemy import select
@@ -19,9 +18,27 @@ from app.models.hybrid_connection import HybridConnection
 from app.models.license_connection import LicenseConnection
 from app.models.platform_connection import PlatformConnection
 from app.models.saas_connection import SaaSConnection
-from app.schemas.inventory import InventoryResource, InventorySummary
+from app.schemas.inventory import (
+    InventoryCostBasis,
+    InventoryResource,
+    InventoryResourceStatus,
+    InventoryResourceType,
+)
+from app.modules.reporting.domain.inventory_summary import (
+    build_inventory_summary as build_inventory_summary,
+)
 
-VALID_STATUSES = {"active", "pending", "error", "idle", "shadow", "expiring"}
+VALID_STATUSES: set[InventoryResourceStatus] = {
+    "active",
+    "pending",
+    "error",
+    "idle",
+    "shadow",
+    "expiring",
+}
+CloudPlusConnection = (
+    SaaSConnection | LicenseConnection | PlatformConnection | HybridConnection
+)
 
 
 def _iso(value: object) -> str | None:
@@ -56,7 +73,7 @@ def _finite_float(value: object) -> float | None:
     return float(amount)
 
 
-def _feed_cost(row: dict[str, Any]) -> tuple[float, str]:
+def _feed_cost(row: dict[str, Any]) -> tuple[float, InventoryCostBasis]:
     monthly_cost = _finite_float(row.get("monthly_cost_usd") or row.get("monthly_cost"))
     if monthly_cost is not None:
         return monthly_cost, "monthly_cost_usd"
@@ -84,12 +101,14 @@ def _tags(row: dict[str, Any]) -> dict[str, str]:
     return normalized
 
 
-def _status_from_row(row: dict[str, Any]) -> str:
+def _status_from_row(row: dict[str, Any]) -> InventoryResourceStatus:
     status = str(row.get("status") or "active").strip().lower()
     return status if status in VALID_STATUSES else "active"
 
 
-def _status_from_connection(*, is_active: bool, error_message: object) -> str:
+def _status_from_connection(
+    *, is_active: bool, error_message: object
+) -> InventoryResourceStatus:
     if error_message:
         return "error"
     return "active" if is_active else "pending"
@@ -143,27 +162,29 @@ class InventoryProjectionService:
         aws_result = await self.db.execute(
             select(AWSConnection).where(AWSConnection.tenant_id == tenant_id)
         )
-        for connection in aws_result.scalars().all():
+        for aws_connection in aws_result.scalars().all():
             resources.append(
                 InventoryResource(
-                    id=f"conn:aws:{connection.id}",
-                    name=f"AWS account {connection.aws_account_id}",
+                    id=f"conn:aws:{aws_connection.id}",
+                    name=f"AWS account {aws_connection.aws_account_id}",
                     resource_type="cloud",
                     provider="aws",
-                    region=connection.region,
+                    region=aws_connection.region,
                     monthly_cost=0.0,
                     cost_basis="not_reported",
-                    status=connection.status
-                    if connection.status in VALID_STATUSES
-                    else "pending",
-                    last_seen_at=_connection_last_seen(connection),
+                    status=(
+                        aws_connection.status
+                        if aws_connection.status in VALID_STATUSES
+                        else "pending"
+                    ),
+                    last_seen_at=_connection_last_seen(aws_connection),
                     tags=_source_tags(
-                        aws_account_id=connection.aws_account_id,
-                        organization_id=connection.organization_id,
-                        cur_status=connection.cur_status,
+                        aws_account_id=aws_connection.aws_account_id,
+                        organization_id=aws_connection.organization_id,
+                        cur_status=aws_connection.cur_status,
                     ),
                     source_kind="connection",
-                    source_connection_id=str(connection.id),
+                    source_connection_id=str(aws_connection.id),
                     source_label="AWS connection",
                 )
             )
@@ -171,27 +192,27 @@ class InventoryProjectionService:
         azure_result = await self.db.execute(
             select(AzureConnection).where(AzureConnection.tenant_id == tenant_id)
         )
-        for connection in azure_result.scalars().all():
+        for azure_connection in azure_result.scalars().all():
             resources.append(
                 InventoryResource(
-                    id=f"conn:azure:{connection.id}",
-                    name=connection.name,
+                    id=f"conn:azure:{azure_connection.id}",
+                    name=azure_connection.name,
                     resource_type="cloud",
                     provider="azure",
                     monthly_cost=0.0,
                     cost_basis="not_reported",
                     status=_status_from_connection(
-                        is_active=connection.is_active,
-                        error_message=connection.error_message,
+                        is_active=azure_connection.is_active,
+                        error_message=azure_connection.error_message,
                     ),
-                    last_seen_at=_connection_last_seen(connection),
+                    last_seen_at=_connection_last_seen(azure_connection),
                     tags=_source_tags(
-                        subscription_id=connection.subscription_id,
-                        azure_tenant_id=connection.azure_tenant_id,
-                        auth_method=connection.auth_method,
+                        subscription_id=azure_connection.subscription_id,
+                        azure_tenant_id=azure_connection.azure_tenant_id,
+                        auth_method=azure_connection.auth_method,
                     ),
                     source_kind="connection",
-                    source_connection_id=str(connection.id),
+                    source_connection_id=str(azure_connection.id),
                     source_label="Azure connection",
                 )
             )
@@ -199,29 +220,29 @@ class InventoryProjectionService:
         gcp_result = await self.db.execute(
             select(GCPConnection).where(GCPConnection.tenant_id == tenant_id)
         )
-        for connection in gcp_result.scalars().all():
+        for gcp_connection in gcp_result.scalars().all():
             resources.append(
                 InventoryResource(
-                    id=f"conn:gcp:{connection.id}",
-                    name=connection.name,
+                    id=f"conn:gcp:{gcp_connection.id}",
+                    name=gcp_connection.name,
                     resource_type="cloud",
                     provider="gcp",
                     monthly_cost=0.0,
                     cost_basis="not_reported",
                     status=_status_from_connection(
-                        is_active=connection.is_active,
-                        error_message=connection.error_message,
+                        is_active=gcp_connection.is_active,
+                        error_message=gcp_connection.error_message,
                     ),
-                    last_seen_at=_connection_last_seen(connection),
+                    last_seen_at=_connection_last_seen(gcp_connection),
                     tags=_source_tags(
-                        project_id=connection.project_id,
-                        billing_project_id=connection.billing_project_id,
-                        billing_dataset=connection.billing_dataset,
-                        billing_table=connection.billing_table,
-                        auth_method=connection.auth_method,
+                        project_id=gcp_connection.project_id,
+                        billing_project_id=gcp_connection.billing_project_id,
+                        billing_dataset=gcp_connection.billing_dataset,
+                        billing_table=gcp_connection.billing_table,
+                        auth_method=gcp_connection.auth_method,
                     ),
                     source_kind="connection",
-                    source_connection_id=str(connection.id),
+                    source_connection_id=str(gcp_connection.id),
                     source_label="GCP connection",
                 )
             )
@@ -245,7 +266,9 @@ class InventoryProjectionService:
 
         resources: list[InventoryResource] = []
         for account, management_connection in result.all():
-            status = "active" if account.status == "linked" else "pending"
+            status: InventoryResourceStatus = (
+                "active" if account.status == "linked" else "pending"
+            )
             resources.append(
                 InventoryResource(
                     id=f"disc:aws:{account.id}",
@@ -318,18 +341,19 @@ class InventoryProjectionService:
         self,
         *,
         tenant_id: UUID,
-        model: type[
-            SaaSConnection | LicenseConnection | PlatformConnection | HybridConnection
-        ],
+        model: type[CloudPlusConnection],
         kind: str,
         feed_attribute: str,
         resource_type: str,
         source_label: str,
     ) -> list[InventoryResource]:
-        result = await self.db.execute(select(model).where(model.tenant_id == tenant_id))
+        result = await self.db.execute(
+            select(model).where(model.tenant_id == tenant_id)
+        )
         resources: list[InventoryResource] = []
 
-        for connection in result.scalars().all():
+        for raw_connection in result.scalars().all():
+            connection = cast(CloudPlusConnection, raw_connection)
             feed = getattr(connection, feed_attribute, None)
             if not isinstance(feed, list) or not feed:
                 resources.append(
@@ -361,7 +385,7 @@ class InventoryProjectionService:
     def _connection_placeholder(
         self,
         *,
-        connection: SaaSConnection | LicenseConnection | PlatformConnection | HybridConnection,
+        connection: CloudPlusConnection,
         kind: str,
         resource_type: str,
         source_label: str,
@@ -369,7 +393,7 @@ class InventoryProjectionService:
         return InventoryResource(
             id=f"conn:{kind}:{connection.id}",
             name=connection.name,
-            resource_type=resource_type,  # type: ignore[arg-type]
+            resource_type=cast(InventoryResourceType, resource_type),
             provider=connection.vendor,
             monthly_cost=0.0,
             cost_basis="not_reported",
@@ -387,7 +411,7 @@ class InventoryProjectionService:
     def _feed_resource(
         self,
         *,
-        connection: SaaSConnection | LicenseConnection | PlatformConnection | HybridConnection,
+        connection: CloudPlusConnection,
         kind: str,
         row: dict[str, Any],
         index: int,
@@ -410,24 +434,34 @@ class InventoryProjectionService:
             )
             or connection.name
         )
-        provider = _first_text(row, ("provider", "cloud_provider", "vendor")) or connection.vendor
+        provider = (
+            _first_text(row, ("provider", "cloud_provider", "vendor"))
+            or connection.vendor
+        )
         region = _first_text(row, ("region", "location", "zone"))
         last_seen = _first_text(
             row,
-            ("last_seen_at", "timestamp", "recorded_at", "usage_start_time", "date", "month"),
+            (
+                "last_seen_at",
+                "timestamp",
+                "recorded_at",
+                "usage_start_time",
+                "date",
+                "month",
+            ),
         )
 
         return InventoryResource(
             id=f"feed:{kind}:{connection.id}:{index}",
             name=name,
-            resource_type=resource_type,  # type: ignore[arg-type]
+            resource_type=cast(InventoryResourceType, resource_type),
             provider=provider,
             region=region,
             owner_name=_first_text(row, ("owner_name", "owner", "business_owner")),
             owner_email=_first_text(row, ("owner_email", "owner_mail", "email")),
             team_name=_first_text(row, ("team_name", "team", "cost_center")),
             monthly_cost=monthly_cost,
-            cost_basis=cost_basis,  # type: ignore[arg-type]
+            cost_basis=cost_basis,
             status=_status_from_row(row),
             last_seen_at=last_seen,
             tags=_tags(row),
@@ -435,38 +469,3 @@ class InventoryProjectionService:
             source_connection_id=str(connection.id),
             source_label=source_label,
         )
-
-
-def build_inventory_summary(resources: list[InventoryResource]) -> InventorySummary:
-    type_counts = Counter(resource.resource_type for resource in resources)
-    status_counts = Counter(resource.status for resource in resources)
-    source_ids = {
-        resource.source_connection_id
-        for resource in resources
-        if resource.source_connection_id
-    }
-    reported_cost_usd = sum(
-        resource.monthly_cost
-        for resource in resources
-        if resource.cost_basis != "not_reported"
-    )
-
-    return InventorySummary(
-        total=len(resources),
-        cloud=type_counts["cloud"],
-        software=type_counts["software"],
-        service=type_counts["service"],
-        active=status_counts["active"],
-        pending=status_counts["pending"],
-        error=status_counts["error"],
-        idle=status_counts["idle"],
-        shadow=status_counts["shadow"],
-        expiring=status_counts["expiring"],
-        unowned=sum(
-            1
-            for resource in resources
-            if not resource.owner_name and not resource.owner_email
-        ),
-        source_count=len(source_ids),
-        reported_cost_usd=round(reported_cost_usd, 2),
-    )

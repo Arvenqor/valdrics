@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from typing import Any, Optional, cast
 
 from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.reporting.api.v1.costs_models import (
@@ -110,13 +111,13 @@ async def get_cost_attribution_summary(
     return cast(
         dict[str, Any],
         await costs_api.get_cost_attribution_summary(
-        start_date=start_date,
-        end_date=end_date,
-        bucket=bucket,
-        limit=limit,
-        offset=offset,
-        db=db,
-        current_user=current_user,
+            start_date=start_date,
+            end_date=end_date,
+            bucket=bucket,
+            limit=limit,
+            offset=offset,
+            db=db,
+            current_user=current_user,
         ),
     )
 
@@ -132,10 +133,10 @@ async def get_cost_attribution_coverage(
     return cast(
         dict[str, Any],
         await costs_api.get_cost_attribution_coverage(
-        start_date=start_date,
-        end_date=end_date,
-        db=db,
-        current_user=current_user,
+            start_date=start_date,
+            end_date=end_date,
+            db=db,
+            current_user=current_user,
         ),
     )
 
@@ -166,6 +167,31 @@ async def get_spend_ledger(
             db=db,
             current_user=current_user,
         ),
+    )
+
+
+@router.get("/ledger/export")
+async def export_spend_ledger(
+    start_date: date = Query(...),
+    end_date: date = Query(...),
+    provider: Optional[str] = Query(default=None),
+    include_preliminary: bool = Query(default=False),
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(
+        requires_feature(FeatureFlag.COMPLIANCE_EXPORTS, required_role="admin")
+    ),
+) -> StreamingResponse:
+    from app.modules.reporting.api.v1.costs_ledger_export import (
+        export_spend_ledger_impl,
+    )
+
+    return await export_spend_ledger_impl(
+        start_date=start_date,
+        end_date=end_date,
+        provider=provider,
+        include_preliminary=include_preliminary,
+        db=db,
+        current_user=current_user,
     )
 
 
@@ -220,16 +246,16 @@ async def get_cost_anomalies(
     return cast(
         CostAnomalyResponse,
         await costs_api.get_cost_anomalies(
-        target_date=target_date,
-        lookback_days=lookback_days,
-        provider=provider,
-        min_abs_usd=min_abs_usd,
-        min_percent=min_percent,
-        min_severity=min_severity,
-        alert=alert,
-        suppression_hours=suppression_hours,
-        user=user,
-        db=db,
+            target_date=target_date,
+            lookback_days=lookback_days,
+            provider=provider,
+            min_abs_usd=min_abs_usd,
+            min_percent=min_percent,
+            min_severity=min_severity,
+            alert=alert,
+            suppression_hours=suppression_hours,
+            user=user,
+            db=db,
         ),
     )
 
@@ -266,10 +292,10 @@ async def trigger_ingest(
     return cast(
         dict[str, str],
         await costs_api.trigger_ingest(
-        start_date=start_date,
-        end_date=end_date,
-        db=db,
-        current_user=current_user,
+            start_date=start_date,
+            end_date=end_date,
+            db=db,
+            current_user=current_user,
         ),
     )
 
@@ -285,9 +311,9 @@ async def get_ingestion_sla(
     return cast(
         IngestionSLAResponse,
         await costs_api.get_ingestion_sla(
-        window_hours=window_hours,
-        target_success_rate_percent=target_success_rate_percent,
-        user=user,
-        db=db,
+            window_hours=window_hours,
+            target_success_rate_percent=target_success_rate_percent,
+            user=user,
+            db=db,
         ),
     )

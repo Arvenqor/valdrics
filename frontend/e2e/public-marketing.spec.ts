@@ -346,17 +346,17 @@ test.describe('Public marketing smoke (desktop)', () => {
 		await goToLanding(page);
 		await page
 			.locator('#pricing')
-			.getByRole('link', { name: /start free trial/i })
+			.getByRole('link', { name: /start free workspace/i })
 			.first()
 			.click();
-		await expect(page).toHaveURL(/\/auth\/login(\?.*plan=starter.*)?$/);
+		await expect(page).toHaveURL(/\/auth\/login\?.*plan=free/);
 
 		await goToLanding(page);
 		await page
 			.locator('#pricing')
-			.getByRole('link', { name: /talk to us/i })
+			.getByRole('link', { name: /start with pro/i })
 			.click();
-		await expect(page).toHaveURL(/\/talk-to-sales(\?.*)?$/);
+		await expect(page).toHaveURL(/\/auth\/login\?.*plan=pro/);
 
 		await security.assertClean();
 	});

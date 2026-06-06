@@ -62,7 +62,21 @@ async function assertNoBlockingViolations(page: Parameters<typeof test>[0]['page
 	expect(blocking, JSON.stringify(summary, null, 2)).toEqual([]);
 }
 
+async function waitForLandingHeroAnimations(page: Parameters<typeof test>[0]['page']) {
+	await page.evaluate(async () => {
+		const animatedElements = Array.from(document.querySelectorAll('.hero__actions, .hero__chips'));
+		const animations = animatedElements.flatMap((element) =>
+			element.getAnimations({ subtree: true })
+		);
+		await Promise.allSettled(
+			animations.map((animation) => animation.finished.catch(() => undefined))
+		);
+	});
+}
+
 test.describe('Public Accessibility Gate', () => {
+	test.use({ reducedMotion: 'reduce' });
+
 	for (const routeCase of PUBLIC_ROUTES) {
 		test(`${routeCase.path} has no critical/serious axe violations`, async ({ page }) => {
 			await page.goto(routeCase.path);
@@ -76,6 +90,7 @@ test.describe('Public Accessibility Gate', () => {
 			await page.keyboard.press('Tab');
 			const focusedTag = await page.evaluate(() => document.activeElement?.tagName || 'UNKNOWN');
 			expect(focusedTag).not.toBe('BODY');
+			await waitForLandingHeroAnimations(page);
 			await assertNoBlockingViolations(page);
 		});
 	}
@@ -92,6 +107,7 @@ test.describe('Public Accessibility Gate', () => {
 			await menuButton.click();
 			await expect(page.locator('#public-mobile-menu')).toBeVisible();
 
+			await waitForLandingHeroAnimations(page);
 			await assertNoBlockingViolations(page);
 		});
 	});

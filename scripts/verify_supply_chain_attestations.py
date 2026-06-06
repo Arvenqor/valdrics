@@ -28,7 +28,7 @@ DEFAULT_ARTIFACT_PATHS: tuple[Path, ...] = (
 )
 REPO_SLUG_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 GITHUB_REMOTE_PATTERN = re.compile(
-    r"(?:git@github\.com:|https://github\.com/|ssh://git@github\.com/)"
+    r"(?:git@github\.com[:/]|https?://(?:[^@/]+@)?github\.com/|ssh://git@github\.com/)"
     r"(?P<owner>[A-Za-z0-9_.-]+)/(?P<repo>[A-Za-z0-9_.-]+?)(?:\.git)?/?$"
 )
 
@@ -82,6 +82,7 @@ def _resolve_repo_from_git_remote() -> str:
         check=False,
         capture_output=True,
         text=True,
+        env=os.environ,
     )  # nosec B603 - fixed git subcommand with no shell expansion
     if completed.returncode != 0:
         return ""
@@ -120,6 +121,7 @@ def _run_gh_command(
         check=False,
         capture_output=True,
         text=True,
+        env=os.environ,
     )  # nosec B603 - trusted gh CLI invocation with fixed argument structure
 
 
@@ -274,6 +276,7 @@ def verify_attestations(
             f"{gh_version[0]}.{gh_version[1]}.{gh_version[2]}"
         )
 
+    failed_artifacts: list[str] = []
     for artifact in artifacts:
         artifact_path = artifact.resolve()
         cmd = build_verify_command(
@@ -290,34 +293,42 @@ def verify_attestations(
         if dry_run:
             continue
 
-        retry_delay_seconds = DEFAULT_VERIFY_INITIAL_RETRY_DELAY_SECONDS
-        for attempt in range(1, DEFAULT_VERIFY_MAX_ATTEMPTS + 1):
-            completed = subprocess.run(
-                _materialize_gh_command(cmd),
-                cwd=_repo_root(),
-                check=False,
-                capture_output=True,
-                text=True,
-            )  # nosec B603 - trusted gh CLI invocation with validated local artifact path
-            if completed.returncode == 0:
-                _assert_verification_output(completed.stdout, artifact=artifact_path)
-                break
+        try:
+            retry_delay_seconds = DEFAULT_VERIFY_INITIAL_RETRY_DELAY_SECONDS
+            for attempt in range(1, DEFAULT_VERIFY_MAX_ATTEMPTS + 1):
+                completed = subprocess.run(
+                    _materialize_gh_command(cmd),
+                    cwd=_repo_root(),
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    env=os.environ,
+                )  # nosec B603 - trusted gh CLI invocation with validated local artifact path
+                if completed.returncode == 0:
+                    _assert_verification_output(completed.stdout, artifact=artifact_path)
+                    break
 
-            details = completed.stderr.strip() or completed.stdout.strip()
-            is_retryable = _is_transient_verification_failure(details)
-            if not is_retryable or attempt == DEFAULT_VERIFY_MAX_ATTEMPTS:
-                raise RuntimeError(
-                    f"Attestation verification failed for {artifact.as_posix()}: {details}"
+                details = completed.stderr.strip() or completed.stdout.strip()
+                is_retryable = _is_transient_verification_failure(details)
+                if not is_retryable or attempt == DEFAULT_VERIFY_MAX_ATTEMPTS:
+                    raise RuntimeError(
+                        f"Attestation verification failed: {details}"
+                    )
+
+                print(
+                    "[attestation-verify] transient verification failure for "
+                    f"{artifact.as_posix()} on attempt {attempt}/"
+                    f"{DEFAULT_VERIFY_MAX_ATTEMPTS}; retrying in "
+                    f"{retry_delay_seconds:.1f}s"
                 )
+                time.sleep(retry_delay_seconds)
+                retry_delay_seconds *= 2
+        except (RuntimeError, FileNotFoundError) as exc:
+            print(f"[attestation-verify] failure for {artifact.as_posix()}: {exc}")
+            failed_artifacts.append(artifact.as_posix())
 
-            print(
-                "[attestation-verify] transient verification failure for "
-                f"{artifact.as_posix()} on attempt {attempt}/"
-                f"{DEFAULT_VERIFY_MAX_ATTEMPTS}; retrying in "
-                f"{retry_delay_seconds:.1f}s"
-            )
-            time.sleep(retry_delay_seconds)
-            retry_delay_seconds *= 2
+    if failed_artifacts:
+        return 1
     return 0
 
 

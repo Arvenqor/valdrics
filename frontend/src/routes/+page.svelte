@@ -206,6 +206,7 @@
 		--muted: #546779;
 		--jade: #00cf7c;
 		--ion: #22d3ee;
+		--ion-readable: #67e8f9;
 		--violet: #9270ff;
 		--amber: #f5a623;
 		--ruby: #ff3a5c;
@@ -374,13 +375,13 @@
 		color: var(--ion);
 	}
 	:global(.landing-page .tag--software) {
-		background: rgba(146, 112, 255, 0.1);
-		color: var(--violet);
+		background: rgba(146, 112, 255, 0.18);
+		color: #c4b5fd;
 	}
 	:global(.landing-page .tag--critical),
 	:global(.landing-page .tag--denied) {
-		background: rgba(255, 58, 92, 0.1);
-		color: var(--ruby);
+		background: rgba(255, 58, 92, 0.18);
+		color: #fda4af;
 	}
 	:global(.landing-page .tag--approved) {
 		background: rgba(0, 207, 124, 0.1);
@@ -428,6 +429,18 @@
 		50% {
 			opacity: 0.3;
 			transform: scale(0.6);
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		:global(.landing-page *),
+		:global(.landing-page *::before),
+		:global(.landing-page *::after) {
+			animation: none !important;
+			transition: none !important;
+		}
+		:global(.landing-page .v-hidden) {
+			opacity: 1;
+			transform: none;
 		}
 	}
 	@media (max-width: 900px) {

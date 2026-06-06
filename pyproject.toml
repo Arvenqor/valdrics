@@ -8,7 +8,7 @@ authors = [
 requires-python = ">=3.12,<3.13"
 
 dependencies = [
-    "fastapi~=0.128.0",
+    "fastapi~=0.129.0",
     "uvicorn[standard]~=0.34.0",
     "pydantic[email]~=2.12.5",
     "pydantic-settings~=2.8.0",
@@ -26,11 +26,12 @@ dependencies = [
     "sqlalchemy[asyncio]~=2.0.46",
     "asyncpg>=0.30.0",
     "alembic~=1.14.0",
-    "pyjwt>=2.12.1",
+    "pyjwt>=2.13.0",
     "slack-sdk>=3.39.0",
     "cryptography>=46.0.7",
     "sqlalchemy-utils>=0.42.1",
     "codecarbon>=2.7.1",
+    "authlib>=1.6.12",
     "pandas>=3.0.0",
     "pyarrow>=23.0.0",
     "statsmodels>=0.14.0",
@@ -71,7 +72,7 @@ dependencies = [
     "kubernetes-asyncio>=34.3.3",
     "h2>=4.3.0",
     "langchain-core>=1.3.3",
-    "aiohttp>=3.13.5",
+    "aiohttp>=3.14.0",
     "tenacity>=9.0.0",
 ]
 
@@ -99,7 +100,7 @@ packages = ["app"]
 [dependency-groups]
 dev = [
     "bandit>=1.9.2",
-    "pip>=26.1",
+    "pip>=26.1.2",
     "pip-audit>=2.10.0",
     "pytest>=9.0.3",
     "pytest-asyncio>=1.3.0",
@@ -108,7 +109,7 @@ dev = [
     "moto>=5.0.0",
     "pytest-mock>=3.14.0",
     "aiosqlite>=0.20.0",
-    "mypy>=1.14.0",
+    "mypy>=1.14.0,<2.0.0",
     "types-boto3>=1.36.20",
     "sqlalchemy[mypy]~=2.0.46",
     "respx>=0.22.0",

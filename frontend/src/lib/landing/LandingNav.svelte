@@ -135,6 +135,10 @@
 		padding: 6px 0;
 		border-bottom: 1px solid var(--bdr);
 	}
+	.nav__mobile a.btn--jade {
+		color: #030912;
+		border-bottom-color: transparent;
+	}
 	.nav__mobile-actions {
 		display: flex;
 		gap: 10px;
