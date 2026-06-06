@@ -53,11 +53,11 @@ jobs:
       - name: Validate release contracts
         shell: bash
         run: |
-	          set -euo pipefail
-	          uv run ruff check scripts/generate_managed_deployment_artifacts.py scripts/managed_deployment_contract.py scripts/materialize_runtime_env_contract.py scripts/preflight_runtime_env_contract.py
-	          uv run python3 scripts/verify_new_frontend_disposition_register.py
-	          uv run pytest -q --tb=short --no-cov \
-	            tests/unit/ops/test_unified_platform_release_contract.py \
+          set -euo pipefail
+          uv run ruff check scripts/generate_managed_deployment_artifacts.py scripts/managed_deployment_contract.py scripts/materialize_runtime_env_contract.py scripts/preflight_runtime_env_contract.py
+          uv run python3 scripts/verify_new_frontend_disposition_register.py
+          uv run pytest -q --tb=short --no-cov \
+            tests/unit/ops/test_unified_platform_release_contract.py \
             tests/unit/ops/test_production_deployment_contracts.py \
             tests/unit/ops/test_managed_deployment_contract.py \
             tests/unit/ops/test_generate_managed_deployment_artifacts.py \
