@@ -102,6 +102,8 @@ def test_repo_slug_from_remote_url_supports_common_github_formats() -> None:
     assert _repo_slug_from_remote_url("git@github.com:Valdrics/valdrics.git") == "Valdrics/valdrics"
     assert _repo_slug_from_remote_url("https://github.com/Valdrics/valdrics.git") == "Valdrics/valdrics"
     assert _repo_slug_from_remote_url("ssh://git@github.com/Valdrics/valdrics") == "Valdrics/valdrics"
+    assert _repo_slug_from_remote_url("https://x-access-token:ghs_123@github.com/Valdrics/valdrics.git") == "Valdrics/valdrics"
+    assert _repo_slug_from_remote_url("git@github.com/Valdrics/valdrics") == "Valdrics/valdrics"
     assert _repo_slug_from_remote_url("https://gitlab.com/acme/repo.git") == ""
 
 
@@ -123,6 +125,7 @@ def test_resolve_repo_from_git_remote_uses_repo_root_cwd(
         check: bool,
         capture_output: bool,
         text: bool,
+        env: object | None = None,
     ) -> subprocess.CompletedProcess[str]:
         captured["cwd"] = cwd
         return subprocess.CompletedProcess(
@@ -153,6 +156,7 @@ def test_check_gh_cli_version_rejects_old_version(
         check: bool,
         capture_output: bool,
         text: bool,
+        env: object | None = None,
     ) -> subprocess.CompletedProcess[str]:
         assert cmd == ["gh", "version"]
         return subprocess.CompletedProcess(
@@ -187,6 +191,7 @@ def test_check_gh_cli_version_rejects_missing_attestation_subcommand(
         check: bool,
         capture_output: bool,
         text: bool,
+        env: object | None = None,
     ) -> subprocess.CompletedProcess[str]:
         calls["count"] += 1
         if calls["count"] == 1:
@@ -228,6 +233,7 @@ def test_check_gh_cli_version_accepts_supported_cli(
         check: bool,
         capture_output: bool,
         text: bool,
+        env: object | None = None,
     ) -> subprocess.CompletedProcess[str]:
         calls["count"] += 1
         if calls["count"] == 1:
@@ -269,6 +275,7 @@ def test_verify_attestations_executes_gh_verify_for_each_artifact(
         check: bool,
         capture_output: bool,
         text: bool,
+        env: object | None = None,
     ) -> subprocess.CompletedProcess[str]:
         assert check is False
         assert capture_output is True
@@ -322,6 +329,7 @@ def test_verify_attestations_rejects_empty_verification_results(
         check: bool,
         capture_output: bool,
         text: bool,
+        env: object | None = None,
     ) -> subprocess.CompletedProcess[str]:
         return subprocess.CompletedProcess(
             args=cmd,
@@ -343,13 +351,14 @@ def test_verify_attestations_rejects_empty_verification_results(
         _fake_run,
     )
 
-    with pytest.raises(RuntimeError, match="no entries"):
-        verify_attestations(
-            repo="acme/valdrics",
-            signer_workflow=".github/workflows/sbom.yml",
-            artifacts=(artifact,),
-            dry_run=False,
-        )
+    exit_code = verify_attestations(
+        repo="acme/valdrics",
+        signer_workflow=".github/workflows/sbom.yml",
+        artifacts=(artifact,),
+        dry_run=False,
+    )
+
+    assert exit_code == 1
 
 
 def test_verify_attestations_retries_transient_failures_then_succeeds(
@@ -367,6 +376,7 @@ def test_verify_attestations_retries_transient_failures_then_succeeds(
         check: bool,
         capture_output: bool,
         text: bool,
+        env: object | None = None,
     ) -> subprocess.CompletedProcess[str]:
         calls["count"] += 1
         if calls["count"] < 3:
@@ -426,6 +436,7 @@ def test_verify_attestations_raises_after_transient_retry_budget_exhausted(
         check: bool,
         capture_output: bool,
         text: bool,
+        env: object | None = None,
     ) -> subprocess.CompletedProcess[str]:
         return subprocess.CompletedProcess(
             args=cmd,
@@ -451,21 +462,18 @@ def test_verify_attestations_raises_after_transient_retry_budget_exhausted(
         lambda seconds: sleep_delays.append(seconds),
     )
 
-    with pytest.raises(
-        RuntimeError,
-        match="Attestation verification failed for .*verifying with issuer",
-    ):
-        verify_attestations(
-            repo="acme/valdrics",
-            signer_workflow=".github/workflows/sbom.yml",
-            artifacts=(artifact,),
-            dry_run=False,
-        )
+    exit_code = verify_attestations(
+        repo="acme/valdrics",
+        signer_workflow=".github/workflows/sbom.yml",
+        artifacts=(artifact,),
+        dry_run=False,
+    )
 
     expected_delays = [
         DEFAULT_VERIFY_INITIAL_RETRY_DELAY_SECONDS * (2**index)
         for index in range(DEFAULT_VERIFY_MAX_ATTEMPTS - 1)
     ]
+    assert exit_code == 1
     assert sleep_delays == expected_delays
 
 
@@ -489,6 +497,7 @@ def test_verify_attestations_runs_gh_commands_from_repo_root(
         check: bool,
         capture_output: bool,
         text: bool,
+        env: object | None = None,
     ) -> subprocess.CompletedProcess[str]:
         captured_cwds.append(cwd)
         if cmd[:2] == ["gh", "version"]:
