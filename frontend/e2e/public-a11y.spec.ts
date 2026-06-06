@@ -64,9 +64,7 @@ async function assertNoBlockingViolations(page: Parameters<typeof test>[0]['page
 
 async function waitForLandingHeroAnimations(page: Parameters<typeof test>[0]['page']) {
 	await page.evaluate(async () => {
-		const animatedElements = Array.from(
-			document.querySelectorAll('.hero__actions, .hero__chips')
-		);
+		const animatedElements = Array.from(document.querySelectorAll('.hero__actions, .hero__chips'));
 		const animations = animatedElements.flatMap((element) =>
 			element.getAnimations({ subtree: true })
 		);
