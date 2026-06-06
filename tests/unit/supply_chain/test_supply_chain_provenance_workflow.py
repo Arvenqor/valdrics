@@ -537,11 +537,23 @@ def test_security_scan_workflow_keeps_scheduled_trufflehog_verified_only() -> No
     security_text = (REPO_ROOT / ".github/workflows/security-scan.yml").read_text(
         encoding="utf-8"
     )
+    trufflehog_exclusions = (
+        REPO_ROOT / ".github/trufflehog-exclude-paths.txt"
+    ).read_text(encoding="utf-8")
 
     assert "TruffleHog OSS (Commit Range Gate)" in security_text
     assert "TruffleHog OSS (Scheduled Verified Full Scan)" in security_text
     assert "if: github.event_name != 'schedule'" in security_text
     assert "if: github.event_name == 'schedule'" in security_text
+    assert (
+        "extra_args: --exclude-paths=/tmp/.github/trufflehog-exclude-paths.txt"
+        in security_text
+    )
+    assert ".github/trufflehog-exclude-paths.txt" in security_text
+    assert (
+        "tests/unit/supply_chain/test_verify_supply_chain_attestations\\.py"
+        in trufflehog_exclusions
+    )
     assert "extra_args: --only-verified" in security_text
 
 
