@@ -44,7 +44,7 @@
   "measured_facts": {
     "backend_tests_collected": 6484,
     "direct_audit_logger_call_sites": 33,
-    "fastapi_requirement": "~=0.128.0",
+        "fastapi_requirement": "~=0.129.0",
     "frontend_svelte_version": "5.53.0",
     "frontend_sveltekit_version": "2.57.1",
     "python_requires": ">=3.12,<3.13",
