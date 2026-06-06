@@ -8,7 +8,7 @@ authors = [
 requires-python = ">=3.12,<3.13"
 
 dependencies = [
-    "fastapi>=0.129.0",
+    "fastapi~=0.129.0",
     "uvicorn[standard]~=0.34.0",
     "pydantic[email]~=2.12.5",
     "pydantic-settings~=2.8.0",
@@ -109,7 +109,7 @@ dev = [
     "moto>=5.0.0",
     "pytest-mock>=3.14.0",
     "aiosqlite>=0.20.0",
-    "mypy>=1.14.0",
+    "mypy>=1.14.0,<2.0.0",
     "types-boto3>=1.36.20",
     "sqlalchemy[mypy]~=2.0.46",
     "respx>=0.22.0",

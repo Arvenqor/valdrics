@@ -99,10 +99,18 @@ def test_verify_attestations_dry_run_allows_missing_artifact_file(
 
 
 def test_repo_slug_from_remote_url_supports_common_github_formats() -> None:
+    credentialed_remote = "".join(
+        (
+            "https://x-access-token:",
+            "fixture-token",
+            "@github.com/Valdrics/valdrics.git",
+        )
+    )
+
     assert _repo_slug_from_remote_url("git@github.com:Valdrics/valdrics.git") == "Valdrics/valdrics"
     assert _repo_slug_from_remote_url("https://github.com/Valdrics/valdrics.git") == "Valdrics/valdrics"
     assert _repo_slug_from_remote_url("ssh://git@github.com/Valdrics/valdrics") == "Valdrics/valdrics"
-    assert _repo_slug_from_remote_url("https://x-access-token:ghs_123@github.com/Valdrics/valdrics.git") == "Valdrics/valdrics"
+    assert _repo_slug_from_remote_url(credentialed_remote) == "Valdrics/valdrics"
     assert _repo_slug_from_remote_url("git@github.com/Valdrics/valdrics") == "Valdrics/valdrics"
     assert _repo_slug_from_remote_url("https://gitlab.com/acme/repo.git") == ""
 

@@ -103,9 +103,7 @@ def _tags(row: dict[str, Any]) -> dict[str, str]:
 
 def _status_from_row(row: dict[str, Any]) -> InventoryResourceStatus:
     status = str(row.get("status") or "active").strip().lower()
-    return (
-        cast(InventoryResourceStatus, status) if status in VALID_STATUSES else "active"
-    )
+    return status if status in VALID_STATUSES else "active"
 
 
 def _status_from_connection(
@@ -174,9 +172,11 @@ class InventoryProjectionService:
                     region=aws_connection.region,
                     monthly_cost=0.0,
                     cost_basis="not_reported",
-                    status=cast(InventoryResourceStatus, aws_connection.status)
-                    if aws_connection.status in VALID_STATUSES
-                    else "pending",
+                    status=(
+                        aws_connection.status
+                        if aws_connection.status in VALID_STATUSES
+                        else "pending"
+                    ),
                     last_seen_at=_connection_last_seen(aws_connection),
                     tags=_source_tags(
                         aws_account_id=aws_connection.aws_account_id,

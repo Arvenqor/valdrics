@@ -382,7 +382,7 @@ class AWSCURAdapter(BaseAdapter):
         Processes a Parquet file using row groups to keep memory low.
         Aggregates metrics on the fly with optional date filtering.
         """
-        parquet_file = pq.ParquetFile(file_path)
+        parquet_file = pq.ParquetFile(file_path)  # type: ignore[no-untyped-call]
         return process_parquet_streamingly(
             adapter=self,
             parquet_file=parquet_file,
