@@ -30,6 +30,7 @@ _REQUIRED_API_PREFIXES = {
     "/api/v1/public",
     "/api/v1/savings",
     "/api/v1/settings",
+    "/api/v1/settings/profile",
     "/api/v1/settings/connections",
     "/api/v1/settings/onboard",
     "/api/v1/strategies",
