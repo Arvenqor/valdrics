@@ -125,6 +125,7 @@ def register_api_routers(app: FastAPI) -> None:
     from app.modules.governance.api.v1.public import router as public_router
     from app.modules.governance.api.v1.scim import router as scim_router
     from app.modules.governance.api.v1.settings import router as settings_router
+    from app.modules.governance.api.v1.settings.profile import router as profile_router
     from app.modules.governance.api.v1.settings.connections import (
         router as connections_router,
     )
@@ -146,6 +147,7 @@ def register_api_routers(app: FastAPI) -> None:
     routes: list[tuple[Any, str | None]] = [
         (onboard_router, "/api/v1/settings/onboard"),
         (connections_router, "/api/v1/settings/connections"),
+        (profile_router, "/api/v1/settings/profile"),
         (settings_router, "/api/v1/settings"),
         (leaderboards_router, "/api/v1/leaderboards"),
         (costs_router, "/api/v1/costs"),
