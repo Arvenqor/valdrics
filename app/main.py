@@ -130,6 +130,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Setup: initialize runtime services and emissions tracker.
     logger.info("app_starting", app_name=settings.APP_NAME)
 
+    if not settings.TESTING:
+        logger.info(
+            "public_access_check",
+            allow_unauthenticated_onboarding=True,
+            demo_mode_available=os.getenv("ENABLE_DEMO_MODE", "false").lower() == "true",
+        )
+
     runtime_data_dir = _runtime_data_dir()
     os.makedirs(runtime_data_dir, exist_ok=True)
 
@@ -233,6 +240,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                 remediation="Ensure cloud_resource_pricing seeding completed. "
                 "Optimization estimates may use stale or missing pricing until refresh succeeds.",
             )
+    app.state.demo_data_service = DemoDataService()
 
     from app.shared.core.http import init_http_client, close_http_client
 
