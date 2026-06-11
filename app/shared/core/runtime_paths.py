@@ -9,6 +9,11 @@ STATIC_DIR = APP_ROOT / "static"
 DEFAULT_ENV_FILE = PROJECT_ROOT / ".env"
 
 
+def get_data_path() -> Path:
+    return APP_ROOT / "shared" / "adapters"
+
+
+
 def resolve_static_asset_path(asset_name: str) -> Path:
     return STATIC_DIR / asset_name
 
