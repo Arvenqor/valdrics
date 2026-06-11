@@ -23,11 +23,6 @@ PIP_AUDIT_IGNORED_VULNERABILITIES: dict[str, VulnerabilityException] = {
         "alias": "CVE-2025-45768",
         "review_by": date(2026, 6, 19),
     },
-    "PYSEC-2026-161": {
-        "package": "starlette",
-        "alias": "CVE-2026-48710",
-        "review_by": date(2026, 6, 7),
-    },
 }
 
 
