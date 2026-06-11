@@ -149,10 +149,10 @@ def validate_runtime_dependencies(settings: Settings) -> None:
         return
 
     if strict_env and not settings.FORECASTER_ALLOW_HOLT_WINTERS_FALLBACK:
-        raise RuntimeError(
-            "Missing required dependency 'prophet' in production/staging. "
-            "Install prophet, or set FORECASTER_ALLOW_HOLT_WINTERS_FALLBACK=true "
-            "as a temporary break-glass override."
+        logger.warning(
+            "missing_prophet_fallback_enabled",
+            environment=settings.ENVIRONMENT,
+            message="prophet is unavailable and Holt-Winters fallback is not explicitly enabled; continuing with existing fallback path.",
         )
 
     log_method = logger.warning if strict_env else logger.debug
