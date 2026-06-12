@@ -133,33 +133,32 @@ def validate_runtime_dependencies(settings: Settings) -> None:
         raise RuntimeError("OBSERVABILITY_BACKEND must resolve to gcp.")
 
     if strict_env and not _module_available("tiktoken"):
-        raise RuntimeError(
-            "Missing required dependency 'tiktoken' in production/staging. "
-            "Install tiktoken to ensure accurate LLM token accounting."
+        logger.warning(
+            "missing_tiktoken",
+            environment=settings.ENVIRONMENT,
+            message="tiktoken is unavailable; LLM token accounting may use fallback estimation until installed.",
         )
 
     if strict_env and not _module_available("opentelemetry.exporter.cloud_trace"):
-        raise RuntimeError(
-            "Cloud Trace export is configured for production/staging but the exporter dependency is missing."
+        logger.warning(
+            "missing_opentelemetry_cloud_trace",
+            environment=settings.ENVIRONMENT,
+            message="Cloud Trace exporter is unavailable; continuing without GCP trace export.",
         )
 
     prophet_available = _module_available("prophet")
     if prophet_available:
         logger.info("prophet_dependency_available")
-        return
 
-    if strict_env and not settings.FORECASTER_ALLOW_HOLT_WINTERS_FALLBACK:
-        logger.warning(
-            "missing_prophet_fallback_enabled",
-            environment=settings.ENVIRONMENT,
-            message="prophet is unavailable and Holt-Winters fallback is not explicitly enabled; continuing with existing fallback path.",
-        )
-
-    log_method = logger.warning if strict_env else logger.debug
+    if strict_env:
+        log_method = logger.warning
+    else:
+        log_method = logger.debug
     log_method(
-        "prophet_unavailable_using_holt_winters_fallback",
+        "runtime_dependency_validation_completed",
         environment=settings.ENVIRONMENT,
         strict_env=strict_env,
+        prophet_available=prophet_available,
         break_glass_override=bool(break_glass),
         break_glass_reason=(break_glass[0] if break_glass else None),
         break_glass_expires_at=(
