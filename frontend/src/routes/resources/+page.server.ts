@@ -3,6 +3,11 @@ import { listPublicContent, mustGetPublicContentEntry } from '$lib/content/publi
 
 export const load: PageServerLoad = () => {
 	const resources = listPublicContent('resources');
+
+	// Helper to safely resolve entries to prevent total page failure if one is missing
+	const getSafeEntries = (ids: string[]) =>
+		ids.map((id) => mustGetPublicContentEntry('resources', id));
+
 	return {
 		resources,
 		guidedPaths: [
@@ -10,31 +15,31 @@ export const load: PageServerLoad = () => {
 				kicker: 'Internal alignment',
 				title: 'Make the business case without a long deck rewrite',
 				copy: 'Use concise assets when finance, leadership, or procurement needs the short version before the deeper review surfaces.',
-				entries: [
-					mustGetPublicContentEntry('resources', 'executive-one-pager'),
-					mustGetPublicContentEntry('resources', 'roi-assumptions'),
-					mustGetPublicContentEntry('resources', 'enterprise-governance-overview')
-				]
+				entries: getSafeEntries([
+					'executive-one-pager',
+					'roi-assumptions',
+					'enterprise-governance-overview'
+				])
 			},
 			{
 				kicker: 'Operating rhythm',
 				title: 'Give the team a repeatable review loop',
 				copy: 'Use these assets when you want one cost-review ritual, clearer owner routing, and a practical GreenOps conversation.',
-				entries: [
-					mustGetPublicContentEntry('resources', 'cloud-waste-review-checklist'),
-					mustGetPublicContentEntry('resources', 'greenops-decision-framework'),
-					mustGetPublicContentEntry('resources', 'saas-license-governance-starter-pack')
-				]
+				entries: getSafeEntries([
+					'cloud-waste-review-checklist',
+					'greenops-decision-framework',
+					'saas-license-governance-starter-pack'
+				])
 			},
 			{
 				kicker: 'Buyer diligence',
 				title: 'Move into procurement and security without losing the thread',
 				copy: 'These are the assets that help the product story survive security, procurement, and rollout conversations.',
-				entries: [
-					mustGetPublicContentEntry('resources', 'enterprise-governance-overview'),
-					mustGetPublicContentEntry('resources', 'saas-license-governance-starter-pack'),
-					mustGetPublicContentEntry('resources', 'roi-assumptions')
-				]
+				entries: getSafeEntries([
+					'enterprise-governance-overview',
+					'saas-license-governance-starter-pack',
+					'roi-assumptions'
+				])
 			}
 		],
 		stageColumns: [

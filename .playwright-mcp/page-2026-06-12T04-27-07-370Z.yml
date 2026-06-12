@@ -1,0 +1,135 @@
+- generic [ref=e3]:
+  - link "Skip to content" [ref=e4] [cursor=pointer]:
+    - /url: "#main"
+  - generic [ref=e5]:
+    - banner [ref=e6]:
+      - navigation [ref=e7]:
+        - link "Valdrics home" [ref=e8] [cursor=pointer]:
+          - /url: ./
+          - img "Valdrics logo" [ref=e10]
+        - generic [ref=e11]:
+          - link "Start Free" [ref=e12] [cursor=pointer]:
+            - /url: /./auth/login
+          - button "Toggle menu" [ref=e13] [cursor=pointer]:
+            - img [ref=e14]
+    - main [ref=e15]:
+      - generic [ref=e16]:
+        - region "System status" [ref=e17]:
+          - generic [ref=e18]:
+            - heading "System status" [level=1] [ref=e19]
+            - paragraph [ref=e20]: Public health summary for Valdrics platform dependencies. This page reports the latest server-verified health snapshot only; incident response and maintenance communications remain separate operational workflows.
+            - generic [ref=e21]:
+              - generic [ref=e22]: Status unavailable
+              - strong [ref=e23]: The local API at http://localhost:8000 is unavailable. Start the backend or update the backend origin configuration.
+          - generic "Status provenance" [ref=e24]:
+            - generic [ref=e25]:
+              - term [ref=e26]: Last checked
+              - definition [ref=e27]: Jun 12, 2026, 5:27 AM
+            - generic [ref=e28]:
+              - term [ref=e29]: Source
+              - definition [ref=e30]: Fallback summary
+            - generic [ref=e31]:
+              - term [ref=e32]: Components tracked
+              - definition [ref=e33]: "6"
+        - region "Status rollup" [ref=e34]:
+          - article [ref=e35]:
+            - strong [ref=e36]: "0"
+            - generic [ref=e37]: operational
+          - article [ref=e38]:
+            - strong [ref=e39]: "0"
+            - generic [ref=e40]: need attention
+          - article [ref=e41]:
+            - strong [ref=e42]: "6"
+            - generic [ref=e43]: unknown
+        - region "Automated checks are unavailable" [ref=e44]:
+          - heading "Automated checks are unavailable" [level=2] [ref=e45]
+          - paragraph [ref=e46]: The local API at http://localhost:8000 is unavailable. Start the backend or update the backend origin configuration.
+        - region "Dependency summary" [ref=e47]:
+          - generic [ref=e48]:
+            - heading "Dependency summary" [level=2] [ref=e49]
+            - paragraph [ref=e50]: Each component is derived from the backend health payload or the explicit fallback snapshot.
+          - generic [ref=e51]:
+            - article [ref=e52]:
+              - generic [ref=e53]:
+                - heading "Platform API" [level=3] [ref=e54]
+                - generic [ref=e55]: Unknown
+              - paragraph [ref=e56]: The local API at http://localhost:8000 is unavailable. Start the backend or update the backend origin configuration.
+            - article [ref=e57]:
+              - generic [ref=e58]:
+                - heading "Database" [level=3] [ref=e59]
+                - generic [ref=e60]: Unknown
+              - paragraph [ref=e61]: A trusted automated database health summary was not available.
+            - article [ref=e62]:
+              - generic [ref=e63]:
+                - heading "Cache" [level=3] [ref=e64]
+                - generic [ref=e65]: Unknown
+              - paragraph [ref=e66]: A trusted automated cache health summary was not available.
+            - article [ref=e67]:
+              - generic [ref=e68]:
+                - heading "AWS reachability" [level=3] [ref=e69]
+                - generic [ref=e70]: Unknown
+              - paragraph [ref=e71]: A trusted external-service health summary was not available.
+            - article [ref=e72]:
+              - generic [ref=e73]:
+                - heading "Background jobs" [level=3] [ref=e74]
+                - generic [ref=e75]: Unknown
+              - paragraph [ref=e76]: A trusted background-job health summary was not available.
+            - article [ref=e77]:
+              - generic [ref=e78]:
+                - heading "System resources" [level=3] [ref=e79]
+                - generic [ref=e80]: Unknown
+              - paragraph [ref=e81]: A trusted system-resource health summary was not available.
+    - contentinfo [ref=e82]:
+      - generic [ref=e83]:
+        - generic [ref=e84]:
+          - generic [ref=e85]:
+            - paragraph [ref=e86]: Valdrics
+            - paragraph [ref=e87]: Valdrics gives finance and engineering one operating layer for spend review, owner routing, approvals, and proof.
+            - paragraph [ref=e88]: Designed for teams that want clearer spend decisions, cleaner rollout, and review-ready proof.
+          - navigation "Footer" [ref=e89]:
+            - generic [ref=e90]:
+              - paragraph [ref=e91]: Product
+              - generic [ref=e92]:
+                - link "Pricing" [ref=e93] [cursor=pointer]:
+                  - /url: ./pricing
+                - link "Enterprise" [ref=e94] [cursor=pointer]:
+                  - /url: ./enterprise
+                - link "Proof Pack" [ref=e95] [cursor=pointer]:
+                  - /url: ./proof
+                - link "Documentation" [ref=e96] [cursor=pointer]:
+                  - /url: ./docs
+            - generic [ref=e97]:
+              - paragraph [ref=e98]: Company
+              - generic [ref=e99]:
+                - link "About" [ref=e100] [cursor=pointer]:
+                  - /url: ./about
+                - link "Talk to Sales" [ref=e101] [cursor=pointer]:
+                  - /url: ./talk-to-sales
+                - link "Status" [ref=e102] [cursor=pointer]:
+                  - /url: ./status
+            - generic [ref=e103]:
+              - paragraph [ref=e104]: Legal
+              - generic [ref=e105]:
+                - link "Privacy" [ref=e106] [cursor=pointer]:
+                  - /url: ./privacy
+                - link "Terms" [ref=e107] [cursor=pointer]:
+                  - /url: ./terms
+          - generic "Public contact channels" [ref=e108]:
+            - paragraph [ref=e109]: Contact
+            - generic [ref=e110]:
+              - link "Sales contact sales@valdrics.com" [ref=e111] [cursor=pointer]:
+                - /url: mailto:sales@valdrics.com
+                - text: "Sales: sales@valdrics.com"
+              - link "Support contact support@valdrics.com" [ref=e112] [cursor=pointer]:
+                - /url: mailto:support@valdrics.com
+                - text: "Support: support@valdrics.com"
+              - link "Security contact security@valdrics.com" [ref=e113] [cursor=pointer]:
+                - /url: mailto:security@valdrics.com
+                - text: "Security: security@valdrics.com"
+        - generic [ref=e114]:
+          - generic "Technology badges" [ref=e115]:
+            - generic [ref=e116]: Spend governance
+            - generic [ref=e117]: Owner routing
+            - generic [ref=e118]: Approval trail
+            - generic [ref=e119]: Review-ready exports
+          - paragraph [ref=e120]: © 2026 Valdrics. All rights reserved.

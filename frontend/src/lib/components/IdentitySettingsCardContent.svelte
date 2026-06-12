@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { env as publicEnv } from '$env/dynamic/public';
 	import { base } from '$app/paths';
+	import IdentityOwnershipRoutingSummary from '$lib/components/identity/IdentityOwnershipRoutingSummary.svelte';
 	import IdentitySsoSection from '$lib/components/identity/IdentitySsoSection.svelte';
 	import { createLazyComponent } from '$lib/lazyComponent';
 	import { getUpgradePrompt } from '$lib/pricing/upgradePrompt';
@@ -191,6 +192,7 @@
 	{:else}
 		<div class="space-y-4">
 			<IdentitySsoSection bind:settings bind:domainsText />
+			<IdentityOwnershipRoutingSummary {settings} {tier} />
 
 			{#if advancedSectionsReady}
 				{#await loadIdentityDiagnosticsSection()}

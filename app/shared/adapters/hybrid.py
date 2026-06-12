@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator, Awaitable, Callable
-from datetime import date, datetime
+from datetime import datetime
 from decimal import InvalidOperation
 from typing import Any
 
@@ -14,6 +14,7 @@ from app.shared.adapters.feed_utils import (
     as_float,
     is_number,
     parse_required_timestamp,
+    parse_timestamp,
 )
 from app.shared.adapters.http_retry import execute_with_http_retry
 from app.shared.adapters.hybrid_native_mixin import HybridNativeConnectorMixin
@@ -22,6 +23,7 @@ from app.shared.adapters.resource_usage_projection import (
     project_cost_rows_to_resource_usage,
     resource_usage_lookback_window,
 )
+from app.shared.adapters.credentials_mixin import CredentialsResolverMixin
 from app.shared.core.credentials import HybridCredentials
 from app.shared.core.currency import convert_to_usd
 from app.shared.core.exceptions import ExternalAPIError
@@ -73,7 +75,7 @@ class _SharedAsyncClientContext:
     ) -> None:
         del exc_type, exc, tb
 
-
+# type: ignore[misc]
 async def _hybrid_get_request(
     *,
     url: str,
@@ -90,7 +92,7 @@ async def _hybrid_get_request(
     )
 
 
-class HybridAdapter(HybridNativeConnectorMixin, BaseAdapter):
+class HybridAdapter(HybridNativeConnectorMixin, CredentialsResolverMixin, BaseAdapter):
     """
     Cloud+ adapter for private/hybrid infrastructure spend (on-prem, colo, private cloud).
 
@@ -101,6 +103,7 @@ class HybridAdapter(HybridNativeConnectorMixin, BaseAdapter):
     def __init__(self, credentials: HybridCredentials):
         self.credentials = credentials
         self.last_error = None
+        self._credentials = credentials # For CredentialsResolverMixin
 
     @property
     def _auth_method(self) -> str:
@@ -125,38 +128,6 @@ class HybridAdapter(HybridNativeConnectorMixin, BaseAdapter):
         if self._vendor in _VMWARE_VENDOR_ALIASES:
             return "vmware"
         return None
-
-    def _resolve_api_key(self) -> str:
-        token = self.credentials.api_key
-        if token is None:
-            raise ExternalAPIError("Missing API token for hybrid native connector")
-        if isinstance(token, SecretStr):
-            resolved = token.get_secret_value()
-        elif hasattr(token, "get_secret_value"):
-            resolved = token.get_secret_value()
-        elif isinstance(token, str):
-            resolved = token
-        else:
-            raise ExternalAPIError("Missing API token for hybrid native connector")
-        if not resolved or not resolved.strip():
-            raise ExternalAPIError("Missing API token for hybrid native connector")
-        return resolved.strip()
-
-    def _resolve_api_secret(self) -> str:
-        token = self.credentials.api_secret
-        if token is None:
-            raise ExternalAPIError("Missing API secret for hybrid native connector")
-        if isinstance(token, SecretStr):
-            resolved = token.get_secret_value()
-        elif hasattr(token, "get_secret_value"):
-            resolved = token.get_secret_value()
-        elif isinstance(token, str):
-            resolved = token
-        else:
-            raise ExternalAPIError("Missing API secret for hybrid native connector")
-        if not resolved or not resolved.strip():
-            raise ExternalAPIError("Missing API secret for hybrid native connector")
-        return resolved.strip()
 
     def _iter_month_starts(
         self, start_date: datetime, end_date: datetime

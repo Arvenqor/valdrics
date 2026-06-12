@@ -205,29 +205,29 @@ We're paranoid, so you don't have to be:
 
 ## 🚀 Get Started
 
-### Prerequisites
+### ☁️ Valdrics Cloud (Managed)
+
+The fastest way to optimize your cloud. No installation, no manual configuration.
+
+- **Connect in 60 seconds** via read-only AWS IAM.
+- **Immediate Visibility** into waste and carbon footprint.
+- **Zero API Costs** using AWS CUR integration.
+
+**Start Free Workspace →**
+
+---
+
+### 🛠️ Self-Hosted / Development
+
+Detailed instructions for engineers and contributors.
+
+#### Prerequisites
 
 - Python 3.12.x
-- `uv` (recommended for local backend workflows)
-- Docker with Compose v2 (`docker compose`)
-- An AWS account with:
-  - AWS CUR configured to deliver Parquet reports to S3
-  - Resource Explorer 2 enabled
-- Cost Explorer is optional (Valdrics ingestion path is CUR + Resource Explorer 2)
-- An LLM API key (OpenAI, Anthropic, Google, or Groq)
+- `uv` (recommended)
+- An AWS account with CUR (Parquet) and Resource Explorer 2 enabled.
 
-### Runtime Dependency Policy (Prod/Staging)
-
-- `tiktoken` is required for accurate token accounting and LLM budget enforcement.
-- The Cloud Trace exporter is required in staging/production.
-- Cloud Run ingests structured JSON logs from `stdout`/`stderr`; no separate log-export client path is part of the supported runtime contract.
-- `prophet` is required by default in staging/production.
-- Temporary break-glass fallback is allowed only with:
-  - `FORECASTER_ALLOW_HOLT_WINTERS_FALLBACK=true`
-  - `FORECASTER_BREAK_GLASS_REASON` (auditable justification)
-  - `FORECASTER_BREAK_GLASS_EXPIRES_AT` (ISO-8601 UTC expiry inside the configured max break-glass window)
-
-### 1. Clone & Configure
+#### 1. Clone & Configure
 
 ```bash
 git clone https://github.com/Valdrics/valdrics.git
@@ -300,15 +300,15 @@ The dashboard will guide you through deploying our read-only IAM role via CloudF
 
 ## 📊 Tech Stack
 
-| Layer             | Technology                                                          |
-| ----------------- | ------------------------------------------------------------------- |
-| **Backend**       | Python 3.12, FastAPI, Pydantic v2, SQLAlchemy (async)               |
-| **Frontend**      | SvelteKit (Svelte 5 Runes), TailwindCSS v4, Shadcn-Svelte           |
-| **Database**      | PostgreSQL (managed or self-hosted), Supabase-compatible auth flows |
-| **LLM**           | LangChain, OpenAI, Anthropic, Google Genai, Groq                    |
+| Layer             | Technology                                                                                   |
+| ----------------- | -------------------------------------------------------------------------------------------- |
+| **Backend**       | Python 3.12, FastAPI, Pydantic v2, SQLAlchemy (async)                                        |
+| **Frontend**      | SvelteKit (Svelte 5 Runes), TailwindCSS v4, Shadcn-Svelte                                    |
+| **Database**      | PostgreSQL (managed or self-hosted), Supabase-compatible auth flows                          |
+| **LLM**           | LangChain, OpenAI, Anthropic, Google Genai, Groq                                             |
 | **Infra**         | Docker (local only), Google Cloud Run, Cloudflare Pages, Supabase, GitHub Actions, Terraform |
-| **Observability** | OpenTelemetry, Google Cloud Operations, Grafana/Prometheus for local dashboards |
-| **GreenOps**      | CodeCarbon integration                                              |
+| **Observability** | OpenTelemetry, Google Cloud Operations, Grafana/Prometheus for local dashboards              |
+| **GreenOps**      | CodeCarbon integration                                                                       |
 
 ---
 
@@ -339,13 +339,13 @@ but they are not the active operating model.
 
 ### Supported Release References
 
-| Component              | Location                     | Description                                 |
-| ---------------------- | ---------------------------- | ------------------------------------------- |
-| **Unified Runbooks**   | `docs/runbooks/`             | Current staging/production release path     |
-| **Grafana Dashboards** | `grafana/dashboards/`        | API Overview + FinOps metrics               |
-| **Load Tests**         | `loadtest/`                  | k6 + Locust performance tests               |
-| **SBOM Generation**    | `.github/workflows/sbom.yml` | CycloneDX + vulnerability scanning          |
-| **Artifact Publish**   | `.github/workflows/publish-artifact-registry-images.yml` | Immutable backend release artifact |
+| Component              | Location                                                 | Description                             |
+| ---------------------- | -------------------------------------------------------- | --------------------------------------- |
+| **Unified Runbooks**   | `docs/runbooks/`                                         | Current staging/production release path |
+| **Grafana Dashboards** | `grafana/dashboards/`                                    | API Overview + FinOps metrics           |
+| **Load Tests**         | `loadtest/`                                              | k6 + Locust performance tests           |
+| **SBOM Generation**    | `.github/workflows/sbom.yml`                             | CycloneDX + vulnerability scanning      |
+| **Artifact Publish**   | `.github/workflows/publish-artifact-registry-images.yml` | Immutable backend release artifact      |
 
 Archived reference only:
 

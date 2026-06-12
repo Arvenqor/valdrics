@@ -29,6 +29,8 @@ the closest completed Valdrics pattern, not left behind because `new_frontend/` 
   inventory/connections reconciliation, public landing/marketing, policies/settings
 - Next route slice: auth visual alignment, ownership/identity disposition, then production-only route
   modernization audit
+- Production route disposition register:
+  `docs/architecture/frontend_route_disposition_register.json`
 - Primary gates:
   - `corepack pnpm@10.32.1 --dir frontend lint`
   - `corepack pnpm@10.32.1 --dir frontend check`
@@ -37,6 +39,7 @@ the closest completed Valdrics pattern, not left behind because `new_frontend/` 
   - `corepack pnpm@10.32.1 --dir frontend run check:bundle`
   - `uv run python3 scripts/check_frontend_hygiene.py`
   - `uv run python3 scripts/verify_new_frontend_disposition_register.py`
+  - `uv run python3 scripts/verify_frontend_route_disposition_register.py`
   - `uv run python3 scripts/verify_frontend_module_size_budget.py`
   - `uv run python3 scripts/verify_frontend_runtime_contract.py`
 
@@ -307,6 +310,13 @@ Acceptance:
 
 ### FME-009: Auth and Public Surface Alignment
 
+Status: auth login/signup visual alignment implemented on June 6, 2026. The production
+`/auth/login` route now carries the Valdrics dark auth-card treatment while preserving the
+current `/auth/flow`, `/auth/callback`, `/auth/session`, public auth intent, and signup-mode
+contract. Logout route coverage is now explicit. Ownership/identity disposition was resolved on
+June 12, 2026 by migrating the handoff ownership-routing intent into Identity settings through the
+real SSO, federation, and SCIM group-mapping contract. No standalone `/ownership` route was added.
+
 Objective: migrate useful auth/marketing references without weakening existing public app behavior.
 
 Reference inputs:
@@ -355,6 +365,10 @@ Acceptance:
 
 ### FME-010: Production-Only Route Modernization
 
+Status: route disposition register created on June 6, 2026. Route-by-route modernization,
+merge, and retire decisions remain pending for routes marked `pending` in
+`docs/architecture/frontend_route_disposition_register.json`.
+
 Objective: upgrade current production routes that have no direct `new_frontend/` source so the final
 application is visually and operationally uniform.
 
@@ -364,27 +378,33 @@ Reference inputs:
 - Completed Valdrics patterns from shell, dashboard, onboarding, savings, inventory, landing, and
   policies/settings
 - Existing route tests and backend/edge-proxy contracts
+- `docs/architecture/frontend_route_disposition_register.json`
 
 Initial production-only route groups:
 
 - Authenticated operational: `/audit`, `/billing`, `/greenops`, `/leaderboards`, `/llm`, `/ops`,
   `/admin/*`, `/status`
 - Public/content: `/about`, `/blog`, `/docs`, `/enterprise`, `/pricing`, `/privacy`, `/proof`,
-  `/resources`, `/roi-planner`, `/talk-to-sales`, `/terms`
+  `/resources`, `/insights`, `/roi-planner`, `/talk-to-sales`, `/terms`
+- Internal/API: `/api/*`, auth endpoints, SEO endpoints, download endpoints, and `__capture/*`
+  fixtures must stay documented even when they have no visual migration work.
 
 Tasks:
 
-1. Create a route inventory that marks every production route as migrated, pending, or rejected from
-   modernization scope.
+1. Maintain a route inventory that marks every production route as migrated, pending, internal, or
+   rejected from modernization scope.
 2. For each route, map visible controls to current API/edge-proxy contracts before changing UI.
-3. Apply the migrated Valdrics tokens, card density, typography, status badges, and logo rules.
-4. Preserve current pricing, legal, SEO, admin, and entitlement contracts.
-5. Add focused tests and rendered QA for each upgraded route.
+3. Decide whether each pending route should be kept, merged, retired, or rebuilt as a stronger
+   Valdrics workflow.
+4. Apply the migrated Valdrics tokens, card density, typography, status badges, and logo rules.
+5. Preserve current pricing, legal, SEO, admin, and entitlement contracts.
+6. Add focused tests and rendered QA for each upgraded route.
 
 Acceptance:
 
 - No current production route remains visually disconnected from the migrated Valdrics app.
 - Routes with no handoff reference still have a documented modernization disposition.
+- No route remains only because it already existed; bloated routes are merged or retired with evidence.
 - No route introduces fake controls, guessed API fields, or stale pricing/content claims.
 
 ### FME-011: Observability and Evidence Bundle

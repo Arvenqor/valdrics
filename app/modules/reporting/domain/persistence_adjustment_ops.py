@@ -11,18 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.cloud import CostRecord
-
-
-def _to_finite_float(value: Any) -> float:
-    if value is None or value == "":
-        return 0.0
-    try:
-        amount = Decimal(str(value))
-    except (InvalidOperation, TypeError, ValueError) as exc:
-        raise ValueError("cost must be numeric") from exc
-    if not amount.is_finite():
-        raise ValueError("cost must be finite")
-    return float(amount)
+from app.shared.utils.data_coercion import coerce_finite_float
 
 
 async def check_for_significant_adjustments(
@@ -80,7 +69,7 @@ async def check_for_significant_adjustments(
         key = (ts, service, region, usage_type, resource_id)
         existing[key] = (
             getattr(row, "id"),
-            _to_finite_float(getattr(row, "cost_usd", 0)),
+            coerce_finite_float(getattr(row, "cost_usd", 0)),
         )
 
     audit_logs = []
@@ -100,10 +89,10 @@ async def check_for_significant_adjustments(
         )
         existing_data = existing.get(key)
         if not existing_data:
-            continue
+            continue  # type: ignore[unreachable]
 
-        record_id, old_cost = existing_data
-        new_cost = _to_finite_float(nr.get("cost_usd"))
+        record_id, old_cost = existing_data # type: ignore[misc]
+        new_cost = coerce_finite_float(nr.get("cost_usd"), field_name="cost_usd")
         if new_cost == old_cost:
             continue
 

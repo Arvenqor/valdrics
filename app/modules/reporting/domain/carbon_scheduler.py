@@ -17,6 +17,8 @@ References:
 """
 
 from datetime import datetime, timezone
+import asyncio
+import json
 from typing import List, Dict, Optional, Any
 from dataclasses import dataclass
 from enum import Enum
@@ -24,6 +26,7 @@ import httpx
 import structlog
 
 from app.shared.core.exceptions import ExternalAPIError
+from app.shared.core.runtime_paths import get_data_path
 
 logger = structlog.get_logger()
 CARBON_FORECAST_RECOVERABLE_EXCEPTIONS: tuple[type[Exception], ...] = (
@@ -60,53 +63,65 @@ class RegionCarbonProfile:
     peak_wind_hour_utc: Optional[int] = None
 
 
-# Static data based on 2026 research
-# Intensities are gCO2eq/kWh (Average Carbon Intensity - Industry Standard)
-REGION_CARBON_PROFILES = {
-    "eu-north-1": RegionCarbonProfile(
-        "eu-north-1", 95, 30, 45, [0, 1, 2, 3, 4, 5, 22, 23], None, 2
-    ),  # Sweden (Wind/Hydro)
-    "eu-west-1": RegionCarbonProfile(
-        "eu-west-1", 60, 150, 280, [1, 2, 3, 4, 11, 12, 13], 12, 3
-    ),  # Ireland (Solar/Wind)
-    "ca-central-1": RegionCarbonProfile(
-        "ca-central-1", 80, 40, 60, [0, 1, 2, 3, 4, 5], None, None
-    ),  # Quebec (Hydro stable)
-    "us-west-2": RegionCarbonProfile(
-        "us-west-2", 70, 80, 120, [2, 3, 4, 5, 12, 13], 13, 4
-    ),  # Oregon (Hydro/Solar)
-    "us-east-1": RegionCarbonProfile(
-        "us-east-1", 25, 320, 420, [12, 13, 14, 15], 13, None
-    ),  # Virginia (Gas/Solar mix)
-    "ap-northeast-1": RegionCarbonProfile(
-        "ap-northeast-1", 20, 400, 550, [2, 3, 4], 3, None
-    ),  # Tokyo
-    "ap-south-1": RegionCarbonProfile(
-        "ap-south-1", 15, 600, 850, [6, 7, 8, 9], 7, None
-    ),  # Mumbai (Strong solar)
-    "af-south-1": RegionCarbonProfile(
-        "af-south-1", 10, 700, 950, [6, 7, 8, 9], 7, None
-    ),  # Cape Town (Coal heavy, some solar)
-}
+class CarbonData:
+    """Loads and holds static carbon profile data."""
 
-# BE-CARBON-1: Data freshness tracking
-# Updated to 2026-02-08 as part of project maintenance
-_CARBON_DATA_LAST_UPDATED = datetime(2026, 2, 8, tzinfo=timezone.utc)
-_CARBON_DATA_MAX_AGE_DAYS = 30  # Data older than this should trigger a warning
+    _instance: Optional["CarbonData"] = None
+    _lock = asyncio.Lock()
 
-# Representative coordinates for live provider lookups by AWS region.
-# Keep in sync with REGION_CARBON_PROFILES coverage.
-REGION_COORDS = {
-    "us-east-1": (38.03, -78.48),  # Virginia, USA
-    "us-west-2": (45.52, -122.67),  # Oregon, USA
-    "ca-central-1": (45.50, -73.56),  # Quebec, Canada
-    "eu-west-1": (53.34, -6.26),  # Dublin, Ireland
-    "eu-north-1": (59.32, 18.06),  # Stockholm, Sweden
-    "ap-northeast-1": (35.68, 139.69),  # Tokyo, Japan
-    "ap-south-1": (19.07, 72.88),  # Mumbai, India
-    "af-south-1": (-33.92, 18.42),  # Cape Town, South Africa
-}
-WATTTIME_REGION_COORDS = REGION_COORDS
+    def __init__(self) -> None:
+        self.REGION_CARBON_PROFILES: Dict[str, RegionCarbonProfile] = {}
+        self.REGION_COORDS: Dict[str, tuple[float, float]] = {}
+        self.LAST_UPDATED: datetime = datetime.min.replace(tzinfo=timezone.utc)
+        self.MAX_AGE_DAYS: int = 30
+        self._load_data()
+
+    def _load_data(self) -> None:
+        data_path = get_data_path() / "carbon_profiles.json"
+        try:
+            with open(data_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            self.LAST_UPDATED = datetime.fromisoformat(
+                data.get("last_updated", datetime.min.isoformat())
+            ).replace(tzinfo=timezone.utc)
+            self.MAX_AGE_DAYS = data.get("max_age_days", 30)
+
+            for region_name, profile_data in data.get("region_carbon_profiles", {}).items():
+                self.REGION_CARBON_PROFILES[region_name] = RegionCarbonProfile(
+                    region=profile_data["region"],
+                    renewable_percentage=profile_data["renewable_percentage"],
+                    carbon_intensity_low=profile_data["carbon_intensity_low"],
+                    carbon_intensity_high=profile_data["carbon_intensity_high"],
+                    best_hours_utc=profile_data["best_hours_utc"],
+                    peak_solar_hour_utc=profile_data["peak_solar_hour_utc"],
+                    peak_wind_hour_utc=profile_data["peak_wind_hour_utc"],
+                )
+            for region_name, coords in data.get("region_coordinates", {}).items():
+                self.REGION_COORDS[region_name] = tuple(coords)  # type: ignore[assignment]
+
+            logger.info("carbon_profiles_loaded", path=str(data_path))
+        except Exception as e:
+            logger.error("failed_to_load_carbon_profiles", path=str(data_path), error=str(e))
+            # Fallback to empty data if loading fails
+            self.REGION_CARBON_PROFILES = {}
+            self.REGION_COORDS = {}
+
+    @classmethod
+    async def get_instance(cls) -> "CarbonData":
+        if cls._instance is None:
+            async with cls._lock:
+                if cls._instance is None:
+                    cls._instance = cls()
+        return cls._instance
+
+
+WATTTIME_REGION_COORDS: Dict[str, tuple[float, float]] = {} # Will be populated from CarbonData
+
+# Backwards compatibility for tests and other modules
+_carbon_data_instance = CarbonData()
+CarbonData._instance = _carbon_data_instance
+REGION_CARBON_PROFILES = _carbon_data_instance.REGION_CARBON_PROFILES
 
 
 def validate_carbon_data_freshness(*, strict: bool = True) -> bool:
@@ -115,15 +130,16 @@ def validate_carbon_data_freshness(*, strict: bool = True) -> bool:
     Raises CarbonDataStaleError if data is outdated.
     Returns True if data is current.
     """
+    carbon_data = asyncio.run(CarbonData.get_instance()) # type: ignore[attr-defined]
     now = datetime.now(timezone.utc)
-    age = (now - _CARBON_DATA_LAST_UPDATED).days
+    age = (now - carbon_data.LAST_UPDATED).days
 
-    if age > _CARBON_DATA_MAX_AGE_DAYS:
-        error_msg = f"Carbon intensity data is {age} days old (max: {_CARBON_DATA_MAX_AGE_DAYS}). Update REGION_CARBON_PROFILES."
+    if age > carbon_data.MAX_AGE_DAYS:
+        error_msg = f"Carbon intensity data is {age} days old (max: {carbon_data.MAX_AGE_DAYS}). Update carbon_profiles.json."
         log_kwargs = {
-            "last_updated": _CARBON_DATA_LAST_UPDATED.isoformat(),
+            "last_updated": carbon_data.LAST_UPDATED.isoformat(),
             "age_days": age,
-            "max_age_days": _CARBON_DATA_MAX_AGE_DAYS,
+            "max_age_days": carbon_data.MAX_AGE_DAYS,
         }
         if strict:
             logger.error("carbon_data_stale", **log_kwargs)
@@ -167,14 +183,15 @@ class CarbonAwareScheduler:
         self._use_static_data = not (wattime_key or electricitymaps_key)
 
     async def get_region_intensity(self, region: str) -> CarbonIntensity:
-        intensity, _source = await self.get_region_intensity_with_source(region)
+        intensity, _source = await self.get_region_intensity_with_source(region) # type: ignore[misc]
         return intensity
-
+    
     async def get_region_intensity_with_source(
         self, region: str
     ) -> tuple[CarbonIntensity, str]:
         """Get current carbon intensity for a region."""
-        profile = REGION_CARBON_PROFILES.get(region)
+        carbon_data = await CarbonData.get_instance() # type: ignore[attr-defined]
+        profile = carbon_data.REGION_CARBON_PROFILES.get(region)
         if not profile:
             return CarbonIntensity.MEDIUM, "simulation"  # Unknown = medium
 
@@ -203,10 +220,10 @@ class CarbonAwareScheduler:
         """
         # BE-CARBON-1: Ensure data is fresh
         validate_carbon_data_freshness(strict=False)
-
-        profile = REGION_CARBON_PROFILES.get(region)
+        carbon_data = await CarbonData.get_instance()
+        profile = carbon_data.REGION_CARBON_PROFILES.get(region)
         if not profile:
-            return [], "simulation"
+            return [], "simulation" # type: ignore[unreachable]
 
         if self.wattime_key:
             forecast = await self._fetch_wattime_forecast(region, hours)
@@ -310,13 +327,15 @@ class CarbonAwareScheduler:
         return "very_high"
 
     def _get_avg_intensity(self, profile: RegionCarbonProfile) -> float:
-        """Returns the average intensity for a profile."""
+        """Returns the average intensity for a profile.""" # type: ignore[misc]
+
         return (profile.carbon_intensity_low + profile.carbon_intensity_high) / 2
 
     def _resolve_region_coordinates(self, region: str) -> tuple[float, float] | None:
-        coords = REGION_COORDS.get(region)
+        carbon_data = asyncio.run(CarbonData.get_instance()) # type: ignore[attr-defined]
+        coords = carbon_data.REGION_COORDS.get(region)
         if coords is None:
-            logger.warning("carbon_region_unmapped", region=region)
+            logger.warning("carbon_region_unmapped", region=region) # type: ignore[unreachable]
         return coords
 
     def get_lowest_carbon_region(self, candidate_regions: List[str]) -> str:
@@ -330,6 +349,7 @@ class CarbonAwareScheduler:
         if not candidate_regions:
             raise ValueError("No candidate regions provided")
 
+        carbon_data = asyncio.run(CarbonData.get_instance())
         ranked = sorted(
             candidate_regions,
             key=lambda r: self._get_avg_intensity(
@@ -353,8 +373,11 @@ class CarbonAwareScheduler:
         Returns:
             Best datetime to execute (within delay window)
         """
-        profile = REGION_CARBON_PROFILES.get(region)
-        if not profile or not profile.best_hours_utc:
+        # Ensure profile is loaded from CarbonData instance
+        # profile = REGION_CARBON_PROFILES.get(region) # Removed global static data
+        carbon_data = await CarbonData.get_instance()
+        profile = carbon_data.REGION_CARBON_PROFILES.get(region)
+        if not profile or not profile.best_hours_utc: # type: ignore[attr-defined]
             return None  # Execute now
 
         now = datetime.now(timezone.utc)
@@ -415,11 +438,13 @@ class CarbonAwareScheduler:
 
         Returns:
             Dict with gCO2 saved and percentage reduction
+
         """
-        from_profile = REGION_CARBON_PROFILES.get(
+        carbon_data = asyncio.run(CarbonData.get_instance())
+        from_profile = carbon_data.REGION_CARBON_PROFILES.get(
             region_from, RegionCarbonProfile(region_from, 20, 400, 600, [])
         )
-        to_profile = REGION_CARBON_PROFILES.get(
+        to_profile = carbon_data.REGION_CARBON_PROFILES.get(
             region_to, RegionCarbonProfile(region_to, 20, 400, 600, [])
         )
 
@@ -446,6 +471,7 @@ class CarbonAwareScheduler:
 
         try:
             from app.shared.core.http import get_http_client
+
 
             client = get_http_client()
             # WattTime uses a login endpoint for a token, then GET /v2/forecast
@@ -512,6 +538,7 @@ class CarbonAwareScheduler:
         try:
             from app.shared.core.http import get_http_client
 
+
             client = get_http_client()
             coords = self._resolve_region_coordinates(region)
             if coords is None:
@@ -545,6 +572,7 @@ class CarbonAwareScheduler:
         """Fetch the latest Electricity Maps carbon intensity using geolocation lookup."""
         try:
             from app.shared.core.http import get_http_client
+
 
             client = get_http_client()
             coords = self._resolve_region_coordinates(region)

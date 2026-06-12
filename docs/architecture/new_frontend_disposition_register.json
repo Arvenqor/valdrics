@@ -354,11 +354,28 @@
     },
     {
       "source_file": "new_frontend/valdrics-login-page.svelte",
-      "status": "pending",
-      "decision": "Pending auth surface audit.",
-      "target_paths": [],
-      "evidence": [],
-      "deletion_blocker": "Requires preserving current auth/session contracts and public auth intent behavior."
+      "status": "migrated",
+      "decision": "Migrated the useful dark auth-card visual treatment into the production /auth/login route while preserving the current Supabase /auth/flow, /auth/callback, /auth/session, public auth intent, and same-origin redirect contracts. Handoff-only direct FASTAPI_URL actions, route-group /login path, Svelte transition directives, custom SVG logo mark, inline-style risk, forgot-password link, and server-cookie assumptions were rejected.",
+      "target_paths": [
+        "frontend/src/routes/auth/login/+page.svelte",
+        "frontend/src/routes/auth/login/login-page.svelte.test.ts",
+        "frontend/src/routes/auth/flow/+server.ts",
+        "frontend/src/routes/auth/flow/flow-route.server.test.ts",
+        "frontend/src/routes/auth/callback/+server.ts",
+        "frontend/src/routes/auth/callback/callback-route.server.test.ts",
+        "frontend/src/routes/auth/session/+server.ts",
+        "frontend/src/routes/auth/session/session-route.server.test.ts",
+        "frontend/src/routes/auth/logout/+page.server.ts",
+        "frontend/src/routes/auth/logout/logout-page.server.test.ts"
+      ],
+      "evidence": [
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run src/routes/auth/login/login-page.svelte.test.ts src/routes/auth/flow/flow-route.server.test.ts src/routes/auth/callback/callback-route.server.test.ts src/routes/auth/session/session-route.server.test.ts src/routes/auth/logout/logout-page.server.test.ts",
+        "corepack pnpm@10.32.1 --dir frontend check",
+        "uv run python3 scripts/check_frontend_hygiene.py",
+        "Browser QA /auth/login?intent=roi_assessment&persona=cfo desktop 1440x900 and mobile 390x844: console errors 0, horizontal overflow false, current valdrics_icon.png loaded, signup controls visible.",
+        "uv run python3 scripts/verify_frontend_route_disposition_register.py"
+      ],
+      "deletion_blocker": ""
     },
     {
       "source_file": "new_frontend/valdrics-marketing-layout.svelte",
@@ -434,11 +451,19 @@
     },
     {
       "source_file": "new_frontend/valdrics-ownership-page.svelte",
-      "status": "pending",
-      "decision": "Pending product route ownership decision.",
-      "target_paths": [],
-      "evidence": [],
-      "deletion_blocker": "Requires deciding whether ownership belongs in settings, connections, or another production route."
+      "status": "migrated",
+      "decision": "Migrated the useful ownership-routing intent into production Identity settings using the real /api/v1/settings/identity SSO, federation, and SCIM group-mapping contract. The handoff standalone /ownership route, direct FASTAPI_URL browser calls, /ownership/resources, /teams, /ownership/stats, /ownership/assign endpoints, synthetic owner tables, and fake resource coverage counters were rejected because production resource-owner assignment needs a dedicated backend contract before it becomes UI.",
+      "target_paths": [
+        "frontend/src/lib/components/IdentitySettingsCardContent.svelte",
+        "frontend/src/lib/components/identity/IdentityOwnershipRoutingSummary.svelte",
+        "frontend/src/lib/components/IdentitySettingsCard.svelte.test.ts"
+      ],
+      "evidence": [
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run src/lib/components/IdentitySettingsCard.svelte.test.ts",
+        "corepack pnpm@10.32.1 --dir frontend check",
+        "uv run python3 scripts/verify_new_frontend_disposition_register.py"
+      ],
+      "deletion_blocker": ""
     },
     {
       "source_file": "new_frontend/valdrics-package.json",
@@ -504,11 +529,26 @@
     },
     {
       "source_file": "new_frontend/valdrics-signup-page.svelte",
-      "status": "pending",
-      "decision": "Pending auth surface audit.",
-      "target_paths": [],
-      "evidence": [],
-      "deletion_blocker": "Requires preserving signup intent, auth redirect, session security behavior, and current production pricing plan intent."
+      "status": "migrated",
+      "decision": "Migrated the useful signup-mode visual intent into the production /auth/login?mode=signup flow instead of creating unsupported /signup compatibility. Production keeps current auth intent links, callback redirects, pricing plan intent, and Supabase signup/magic-link behavior. Handoff-only 14-day trial/no-credit-card copy, direct register endpoint, full-name/workspace/password-confirm fields, password-strength inline styles, emoji reveal control, target=_blank legal links without rel, and /login link were rejected because they are not backed by current production auth/pricing contracts.",
+      "target_paths": [
+        "frontend/src/routes/auth/login/+page.svelte",
+        "frontend/src/routes/auth/login/login-page.svelte.test.ts",
+        "frontend/src/routes/auth/flow/+server.ts",
+        "frontend/src/routes/auth/flow/flow-route.server.test.ts",
+        "frontend/src/routes/auth/callback/+server.ts",
+        "frontend/src/routes/auth/callback/callback-route.server.test.ts",
+        "frontend/src/lib/auth/publicAuthIntent.ts",
+        "frontend/src/lib/auth/publicAuthIntent.test.ts"
+      ],
+      "evidence": [
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run src/routes/auth/login/login-page.svelte.test.ts src/routes/auth/flow/flow-route.server.test.ts src/routes/auth/callback/callback-route.server.test.ts src/routes/auth/session/session-route.server.test.ts src/routes/auth/logout/logout-page.server.test.ts",
+        "corepack pnpm@10.32.1 --dir frontend check",
+        "uv run python3 scripts/check_frontend_hygiene.py",
+        "Browser QA /auth/login?intent=roi_assessment&persona=cfo desktop 1440x900 and mobile 390x844: console errors 0, horizontal overflow false, current valdrics_icon.png loaded, signup controls visible.",
+        "uv run python3 scripts/verify_frontend_route_disposition_register.py"
+      ],
+      "deletion_blocker": ""
     },
     {
       "source_file": "new_frontend/valdrics-stores.ts",

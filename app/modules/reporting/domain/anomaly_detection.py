@@ -24,9 +24,14 @@ import structlog
 
 from app.models.cloud import CloudAccount, CostRecord
 from app.shared.core.cache import CacheService
+from app.shared.utils.data_coercion import (
+    coerce_finite_decimal as _coerce_finite_decimal,
+    coerce_finite_float as _coerce_finite_float,
+)
 from app.shared.core.notifications import NotificationDispatcher
 
 logger = structlog.get_logger()
+
 ANOMALY_JIRA_BOOTSTRAP_RECOVERABLE_EXCEPTIONS = (
     ImportError,
     RuntimeError,
@@ -41,7 +46,6 @@ ANOMALY_DISPATCH_RECOVERABLE_EXCEPTIONS = (
     SQLAlchemyError,
 )
 
-
 @dataclass(frozen=True, slots=True)
 class DailyServiceCostRow:
     day: date
@@ -50,7 +54,6 @@ class DailyServiceCostRow:
     account_name: str | None
     service: str
     cost_usd: Decimal
-
 
 @dataclass(frozen=True, slots=True)
 class CostAnomaly:
@@ -70,20 +73,6 @@ class CostAnomaly:
 
 
 _SEVERITY_RANK: dict[str, int] = {"low": 0, "medium": 1, "high": 2, "critical": 3}
-
-
-def _coerce_finite_decimal(value: object, *, field_name: str) -> Decimal:
-    try:
-        amount = Decimal(str(value))
-    except (InvalidOperation, TypeError, ValueError) as exc:
-        raise ValueError(f"{field_name} must be numeric") from exc
-    if not amount.is_finite():
-        raise ValueError(f"{field_name} must be finite")
-    return amount
-
-
-def _coerce_finite_float(value: object, *, field_name: str) -> float:
-    return float(_coerce_finite_decimal(value, field_name=field_name))
 
 
 def severity_gte(severity: str, minimum: str) -> bool:
@@ -130,7 +119,7 @@ def detect_daily_cost_anomalies(
         provider = (r.provider or "").strip().lower() or "unknown"
         key = (provider, r.account_id, (r.service or "Unknown").strip() or "Unknown")
         series.setdefault(key, {})[r.day] = _coerce_finite_decimal(
-            r.cost_usd or 0,
+            r.cost_usd or 0, # type: ignore[arg-type]
             field_name="cost_usd",
         )
         # Store name for output (single value per account)
@@ -409,15 +398,15 @@ async def dispatch_cost_anomaly_alerts(
             continue
         try:
             actual_cost_usd = _coerce_finite_float(
-                item.actual_cost_usd,
+                item.actual_cost_usd, # type: ignore[arg-type]
                 field_name="actual_cost_usd",
             )
             expected_cost_usd = _coerce_finite_float(
-                item.expected_cost_usd,
+                item.expected_cost_usd, # type: ignore[arg-type]
                 field_name="expected_cost_usd",
             )
             delta_cost_usd = _coerce_finite_float(
-                item.delta_cost_usd,
+                item.delta_cost_usd, # type: ignore[arg-type]
                 field_name="delta_cost_usd",
             )
             await NotificationDispatcher.send_alert(

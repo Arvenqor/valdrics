@@ -12,17 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.attribution import AttributionRule
 from app.models.cloud import CostRecord
-
-
-def _coerce_finite_decimal(value: Any, *, field_name: str) -> Decimal:
-    try:
-        amount = Decimal(str(value))
-    except (InvalidOperation, TypeError, ValueError) as exc:
-        raise ValueError(f"{field_name} must be numeric") from exc
-    if not amount.is_finite():
-        raise ValueError(f"{field_name} must be finite")
-    return amount
-
+from app.shared.utils.data_coercion import coerce_finite_decimal
 
 async def simulate_rule(
     db: AsyncSession,
@@ -67,13 +57,13 @@ async def simulate_rule(
         if not match_conditions_fn(record, conditions):
             continue
         matched_records += 1
-        matched_cost += _coerce_finite_decimal(
+        matched_cost += coerce_finite_decimal(
             record.cost_usd,
             field_name="matched_cost",
         )
         allocations = await apply_rules_fn(record, [simulated_rule])
         for alloc in allocations:
-            alloc_amount = _coerce_finite_decimal(
+            alloc_amount = coerce_finite_decimal(
                 alloc.amount,
                 field_name="projected_allocation_amount",
             )
@@ -85,7 +75,7 @@ async def simulate_rule(
         {
             "bucket": bucket,
             "amount": float(
-                _coerce_finite_decimal(
+                coerce_finite_decimal(
                     amount,
                     field_name="projected_allocation_amount",
                 )
@@ -101,7 +91,7 @@ async def simulate_rule(
     sampled_records = len(records)
     match_rate = round((matched_records / sampled_records), 4) if sampled_records else 0.0
     projected_total = float(
-        _coerce_finite_decimal(
+        coerce_finite_decimal( # type: ignore[arg-type]
             sum(projected_by_bucket.values(), Decimal("0")),
             field_name="projected_allocation_total",
         )
@@ -112,7 +102,7 @@ async def simulate_rule(
         "matched_records": matched_records,
         "match_rate": match_rate,
         "matched_cost": float(
-            _coerce_finite_decimal(matched_cost, field_name="matched_cost")
+            coerce_finite_decimal(matched_cost, field_name="matched_cost")
         ),
         "projected_allocation_total": projected_total,
         "projected_allocations": allocation_rows,

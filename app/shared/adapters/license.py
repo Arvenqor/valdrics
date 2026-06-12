@@ -29,6 +29,7 @@ from app.shared.adapters.license_native_dispatch import (
     supported_native_vendors,
     verify_native_vendor,
 )
+from app.shared.adapters.credentials_mixin import CredentialsResolverMixin
 from app.shared.adapters.license_resource_ops import (
     build_discovered_license_resources,
     build_license_usage_rows,
@@ -39,6 +40,7 @@ from app.shared.adapters.license_vendor_registry import resolve_native_vendor
 from app.shared.core.credentials import LicenseCredentials
 from app.shared.core.exceptions import ExternalAPIError
 from app.shared.core.http import get_http_client
+from typing import Any
 
 logger = structlog.get_logger()
 
@@ -68,12 +70,12 @@ async def _license_get_request(
     )
 
 
-class LicenseAdapter(BaseAdapter):
+class LicenseAdapter(CredentialsResolverMixin, BaseAdapter):
     """
     Cloud+ adapter for license/ITAM spend.
 
     Supported modes:
-    - Manual feed (`auth_method=manual|csv`) via `license_feed`
+    - Manual feed (`auth_method=manual|csv`) via `license_feed` # type: ignore[misc]
     - Native vendor pulls (`auth_method=api_key|oauth`) for:
       Microsoft 365, Google Workspace, GitHub, Slack, Zoom, Salesforce
     """
@@ -81,6 +83,7 @@ class LicenseAdapter(BaseAdapter):
     def __init__(self, credentials: LicenseCredentials):
         self.credentials = credentials
         self.last_error = None
+        self._credentials = credentials # For CredentialsResolverMixin
 
     @property
     def _vendor(self) -> str:
@@ -105,22 +108,6 @@ class LicenseAdapter(BaseAdapter):
             f"Supported vendor aliases: {supported_vendors} (and common aliases). "
             "Use auth_method manual/csv for custom vendors."
         )
-
-    def _resolve_api_key(self) -> str:
-        token = self.credentials.api_key
-        if token is None:
-            raise ExternalAPIError("Missing API token for license native connector")
-        if isinstance(token, SecretStr):
-            resolved = token.get_secret_value()
-        elif hasattr(token, "get_secret_value"):
-            resolved = token.get_secret_value()
-        elif isinstance(token, str):
-            resolved = token
-        else:
-            raise ExternalAPIError("Missing API token for license native connector")
-        if not resolved or not resolved.strip():
-            raise ExternalAPIError("Missing API token for license native connector")
-        return resolved.strip()
 
     @staticmethod
     def _normalize_text(value: Any) -> str | None:

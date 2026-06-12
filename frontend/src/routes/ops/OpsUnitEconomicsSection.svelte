@@ -256,7 +256,7 @@
 				<p class="text-xs text-ink-400 mt-2">
 					These values pre-populate <a
 						href={`${base}/roi-planner`}
-						class="text-accent-400 hover:underline">the ROI Planner</a
+						class="text-accent-400 underline underline-offset-2 hover:text-accent-300">the ROI Planner</a
 					> for your team.
 				</p>
 			</div>

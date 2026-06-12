@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Creates a read-only IAM Role for Valdrics to access AWS account data.
+  This role allows Valdrics to discover resources and analyze cost data
+  without write permissions.
+
+Parameters:
+  ExternalId:
+    Type: String
+    Description: >
+      A unique identifier provided by Valdrics to prevent the confused deputy problem.
+      This should be your Valdrics Tenant ID or 'valdrics.com'.
+    MinLength: 1
+    MaxLength: 128
+    Default: valdrics.com
+
+  ValdricsAccountId:
+    Type: String
+    Description: >
+      The AWS Account ID for Valdrics. This is the account that will assume this role.
+    MinLength: 12
+    MaxLength: 12
+    AllowedPattern: '^\d{12}$'
+    Default: "123456789012" # REPLACE WITH ACTUAL VALDRICS ACCOUNT ID
+
+Resources:
+  ValdricsReadOnlyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ValdricsReadOnlyRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub "arn:aws:iam::${ValdricsAccountId}:root"
+            Action: "sts:AssumeRole"
+            Condition:
+              StringEquals:
+                "sts:ExternalId": !Ref ExternalId
+      Description: Read-only role for Valdrics to analyze AWS costs and resources.
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/SecurityAudit
+        - arn:aws:iam::aws:policy/ReadOnlyAccess
+      Policies:
+        - PolicyName: ValdricsCustomReadOnlyPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "cur:DescribeReportDefinitions"
+                  - "s3:GetBucketLocation"
+                  - "s3:GetObject"
+                  - "s3:ListBucket"
+                  - "resource-explorer-2:Get*"
+                  - "resource-explorer-2:List*"
+                  - "organizations:DescribeOrganization"
+                  - "organizations:ListAccounts"
+                  - "organizations:ListRoots"
+                  - "organizations:ListOrganizationalUnitsForParent"
+                  - "organizations:ListParents"
+                  - "organizations:ListChildren"
+                Resource: "*"
+
+Outputs:
+  ValdricsReadOnlyRoleArn:
+    Description: The ARN of the IAM Role created for Valdrics.
+    Value: !GetAtt ValdricsReadOnlyRole.Arn
+    Export:
+      Name: ValdricsReadOnlyRoleArn

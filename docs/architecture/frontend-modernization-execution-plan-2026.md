@@ -30,6 +30,9 @@ same Valdrics design system, and then obsolete handoff artifacts are removed.
   SvelteKit Cloudflare build output.
 - `scripts/check_frontend_hygiene.py` enforces frontend hygiene constraints.
 - `scripts/verify_frontend_module_size_budget.py` enforces module size discipline.
+- `docs/architecture/frontend_route_disposition_register.json` and
+  `scripts/verify_frontend_route_disposition_register.py` track every production SvelteKit route
+  module under `frontend/src/routes` so production-only routes cannot drift outside the migration.
 - `new_frontend/` contains the new Valdrics design/product source files for shell, dashboard,
   onboarding, approvals, policies, savings, inventory, auth, and backend requirements.
 - Authenticated shell and approvals have already been migrated and verified as the first slices.
@@ -80,6 +83,10 @@ As of June 1, 2026, the plan follows primary sources and the current repo state:
 9. No unmodernized production islands. A route that exists only in current `frontend/` still belongs to
    this modernization. If `new_frontend/` has no matching file, use the established Valdrics shell,
    tokens, density, logo, entitlement, and API-contract rules as the design source.
+10. No route bloat by default. Existing routes are not automatically retained. Each route must prove a
+    distinct user/job-to-be-done, real contract support, and a coherent place in the Valdrics IA; weak
+    or duplicative routes are merged or retired with tests, SEO/legal checks where relevant, and
+    disposition evidence.
 
 ## Execution Model
 
@@ -275,6 +282,7 @@ corepack pnpm@10.32.1 --dir frontend build
 corepack pnpm@10.32.1 --dir frontend run check:bundle
 uv run python3 scripts/check_frontend_hygiene.py
 uv run python3 scripts/verify_new_frontend_disposition_register.py
+uv run python3 scripts/verify_frontend_route_disposition_register.py
 uv run python3 scripts/verify_frontend_module_size_budget.py
 uv run python3 scripts/verify_frontend_runtime_contract.py
 ```
@@ -291,19 +299,18 @@ errors are checked -> desktop and mobile screenshots show no overlap or overflow
 The detailed work packages are tracked in
 [frontend-modernization-implementation-backlog-2026.md](frontend-modernization-implementation-backlog-2026.md).
 
-1. Create the `new_frontend` disposition register.
-2. Complete topology freeze by cleaning remaining dashboard-named references that are no longer accurate.
-3. Migrate dashboard overview using the real `frontend/src/routes/dashboard` loader and current reporting
-   contracts.
-4. Add dashboard browser QA for desktop, mobile, refresh, provider/date filters, partial API failure, and
-   no horizontal overflow.
-5. Extract only proven shared primitives from dashboard/approvals overlap.
-6. Migrate onboarding visual treatment while preserving cloud provider validation and setup contracts.
-7. Migrate savings after confirming all fields exist in reporting APIs.
-8. Reconcile inventory versus connections naming and backend model before UI work.
-9. Migrate auth visual alignment after preserving `/auth/login`, `/auth/flow`, `/auth/callback`, and
-   public intent contracts.
-10. Delete migrated handoff files and keep the disposition register at zero drift.
+1. Keep the `new_frontend` and production route disposition registers at zero drift.
+2. Complete FME-009 auth visual alignment while preserving `/auth/login`, `/auth/flow`,
+   `/auth/callback`, `/auth/session`, logout behavior, and current pricing plan intent.
+3. Modernize or merge production-only operational routes: `/audit`, `/billing`, `/greenops`,
+   `/leaderboards`, `/llm`, `/ops`, `/admin/*`, and `/status`.
+4. Modernize or consolidate production-only public/content routes: `/about`, `/blog`, `/docs`,
+   `/enterprise`, `/pricing`, `/privacy`, `/proof`, `/resources`, `/insights`, `/roi-planner`,
+   `/talk-to-sales`, and `/terms`.
+5. Close backend gaps from `new_frontend/valdrics-backend-requirements.html` by building real backend
+   contracts with tests or omitting unsupported UI.
+6. Produce FME-011 evidence bundles and remove handoff/internal QA files only after disposition,
+   route tests, browser QA, and release gates pass.
 
 ## Route Slice Definition of Done
 

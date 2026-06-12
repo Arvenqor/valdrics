@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, render, screen } from '@testing-library/svelte';
 import { readable } from 'svelte/store';
 
 import Page from './+page.svelte';
@@ -13,6 +13,10 @@ vi.mock('$app/stores', () => ({
 }));
 
 describe('status page', () => {
+	afterEach(() => {
+		cleanup();
+	});
+
 	it('renders live service health cards', () => {
 		render(Page, {
 			data: {
@@ -43,6 +47,9 @@ describe('status page', () => {
 		});
 
 		expect(screen.getByRole('heading', { level: 1, name: /system status/i })).toBeTruthy();
+		expect(screen.getByText('Automated health summary')).toBeTruthy();
+		expect(screen.getAllByText('2').length).toBeGreaterThanOrEqual(1);
+		expect(screen.getByText('operational')).toBeTruthy();
 		expect(screen.getByRole('heading', { level: 3, name: /platform api/i })).toBeTruthy();
 		expect(screen.getByRole('heading', { level: 3, name: /database/i })).toBeTruthy();
 		expect(screen.queryByText(/automated checks are unavailable/i)).toBeNull();
@@ -73,5 +80,8 @@ describe('status page', () => {
 
 		expect(screen.getByText(/automated checks are unavailable/i)).toBeTruthy();
 		expect(screen.getByText(/status unavailable/i)).toBeTruthy();
+		expect(screen.getByText('Fallback summary')).toBeTruthy();
+		expect(screen.getAllByText('1').length).toBeGreaterThanOrEqual(1);
+		expect(screen.getAllByText(/unknown/i).length).toBeGreaterThanOrEqual(1);
 	});
 });

@@ -117,14 +117,17 @@ export function normalizeOptionalField(value: string): string | undefined {
 
 export function resolveSalesInquirySource(currentUrl: URL | null): string | undefined {
 	if (!currentUrl) return 'talk_to_sales_page';
-	return (
-		currentUrl.searchParams.get('source') ||
-		currentUrl.searchParams.get('entry') ||
-		(currentUrl.searchParams.get('intent')
-			? `intent:${currentUrl.searchParams.get('intent')}`
-			: '') ||
-		'talk_to_sales_page'
-	);
+
+	const params = currentUrl.searchParams;
+	const source = params.get('source');
+	const entry = params.get('entry');
+	const intent = params.get('intent');
+
+	if (source) return source;
+	if (entry) return entry;
+	if (intent) return `intent:${intent}`;
+
+	return 'talk_to_sales_page';
 }
 
 export function mapSalesInquiryError(errorCode: string | undefined): string {

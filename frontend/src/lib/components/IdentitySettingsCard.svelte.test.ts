@@ -153,6 +153,63 @@ describe('IdentitySettingsCard', () => {
 		expect(textarea.value).toContain('valdrics.io');
 	});
 
+	it('surfaces ownership routing through real identity settings', async () => {
+		getMock.mockResolvedValueOnce(
+			jsonResponse({
+				sso_enabled: true,
+				allowed_email_domains: ['valdrics.io'],
+				sso_federation_enabled: true,
+				sso_federation_mode: 'provider_id',
+				sso_federation_provider_id: 'sso-provider-abc',
+				scim_enabled: true,
+				has_scim_token: true,
+				scim_last_rotated_at: '2026-06-01T10:00:00Z',
+				scim_group_mappings: [{ group: 'finops-admins', role: 'admin', persona: 'finance' }]
+			})
+		);
+		getMock.mockResolvedValueOnce(
+			jsonResponse({
+				tier: 'enterprise',
+				sso: {
+					enabled: true,
+					allowed_email_domains: ['valdrics.io'],
+					enforcement_active: true,
+					federation_enabled: true,
+					federation_mode: 'provider_id',
+					federation_ready: true,
+					current_admin_domain: 'valdrics.io',
+					current_admin_domain_allowed: true,
+					issues: []
+				},
+				scim: {
+					available: true,
+					enabled: true,
+					has_token: true,
+					token_blind_index_present: true,
+					last_rotated_at: '2026-06-01T10:00:00Z',
+					token_age_days: 11,
+					rotation_recommended_days: 90,
+					rotation_overdue: false,
+					issues: []
+				},
+				recommendations: []
+			})
+		);
+
+		render(IdentitySettingsCard, {
+			accessToken: 'token',
+			tier: 'enterprise'
+		});
+
+		expect(await screen.findByText('Provisioning to ownership')).toBeTruthy();
+		expect(screen.getByText('SSO domain guard')).toBeTruthy();
+		expect(screen.getByText('Federated login')).toBeTruthy();
+		expect(screen.getByText('SCIM group mapping')).toBeTruthy();
+		expect(screen.getByText('1 mapped group')).toBeTruthy();
+		expect(screen.getByText('sso-provider-abc')).toBeTruthy();
+		expect(screen.queryByText(/unowned resources/i)).toBeNull();
+	});
+
 	it('saves enterprise SCIM group mappings in identity settings payload', async () => {
 		getMock.mockResolvedValueOnce(
 			jsonResponse({

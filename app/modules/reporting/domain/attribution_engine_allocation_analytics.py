@@ -16,18 +16,7 @@ from app.modules.reporting.domain.allocation_ledger import (
     cost_allocation_rollup_subquery,
     unallocated_amount_expr,
 )
-
-
-def _coerce_finite_float(value: Any, *, field_name: str) -> float:
-    try:
-        amount = Decimal(str(value))
-    except (InvalidOperation, TypeError, ValueError) as exc:
-        raise ValueError(f"{field_name} must be numeric") from exc
-    if not amount.is_finite():
-        raise ValueError(f"{field_name} must be finite")
-    return float(amount)
-
-
+from app.shared.utils.data_coercion import coerce_finite_float
 async def get_allocation_summary(
     db: AsyncSession,
     tenant_id: uuid.UUID,
@@ -73,7 +62,7 @@ async def get_allocation_summary(
         "buckets": [
             {
                 "name": row.allocated_to,
-                "total_amount": _coerce_finite_float(
+                "total_amount": coerce_finite_float(
                     row.total_amount,
                     field_name="total_amount",
                 ),
@@ -82,7 +71,7 @@ async def get_allocation_summary(
             for row in rows
         ],
         "total": sum(
-            _coerce_finite_float(row.total_amount, field_name="total_amount")
+            coerce_finite_float(row.total_amount, field_name="total_amount")
             for row in rows
         ),
     }
@@ -109,7 +98,7 @@ async def get_allocation_coverage(
         total_query = total_query.where(CostRecord.recorded_at <= end_date)
 
     total_row = (await db.execute(total_query)).one()
-    total_cost = _coerce_finite_float(
+    total_cost = coerce_finite_float(
         total_row.total_cost or 0,
         field_name="total_cost",
     )
@@ -136,7 +125,7 @@ async def get_allocation_coverage(
         allocated_query = allocated_query.where(CostRecord.recorded_at <= end_date)
 
     allocated_row = (await db.execute(allocated_query)).one()
-    raw_allocated_cost = _coerce_finite_float(
+    raw_allocated_cost = coerce_finite_float(
         allocated_row.allocated_cost or 0,
         field_name="allocated_cost",
     )
@@ -211,7 +200,7 @@ async def get_unallocated_analysis(
     return [
         {
             "service": row.service,
-            "amount": _coerce_finite_float(
+            "amount": coerce_finite_float(
                 row.total_unallocated,
                 field_name="total_unallocated",
             ),

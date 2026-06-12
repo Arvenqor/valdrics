@@ -41,6 +41,7 @@ from app.modules.reporting.domain.reconciliation_invoice import (
     upsert_invoice_impl,
 )
 from app.shared.core.exceptions import ExternalAPIError
+from app.shared.utils.data_coercion import coerce_finite_float, coerce_finite_int
 
 logger = structlog.get_logger()
 
@@ -140,17 +141,17 @@ class CostReconciliationService:
         return amount
 
     @staticmethod
-    def _to_float(value: Any) -> float:
-        return float(CostReconciliationService._to_decimal(value))
+    def _to_float(value: Any, *, field_name: str = "value") -> float:
+        return coerce_finite_float(value, field_name=field_name)
 
     @staticmethod
-    def _to_int(value: Any) -> int:
-        return int(value or 0)
+    def _to_int(value: Any, *, field_name: str = "value") -> int:
+        return coerce_finite_int(value, field_name=field_name)
 
     @staticmethod
     def _stable_hash(payload: Dict[str, Any]) -> str:
         try:
-            canonical = json.dumps(
+            canonical = json.dumps(  # type: ignore[no-untyped-call]
                 payload,
                 sort_keys=True,
                 separators=(",", ":"),

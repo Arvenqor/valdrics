@@ -32,18 +32,9 @@ from app.modules.reporting.domain.savings_proof import (
 )
 from app.shared.core.pricing import PricingTier, normalize_tier
 from app.modules.reporting.api.v1.costs_helpers import sanitize_csv_cell
+from app.shared.utils.data_coercion import coerce_finite_float
 
 logger = structlog.get_logger()
-
-
-def _coerce_finite_float(value: object, *, field_name: str) -> float:
-    try:
-        amount = Decimal(str(value))
-    except (InvalidOperation, TypeError, ValueError) as exc:
-        raise ValueError(f"{field_name} must be numeric") from exc
-    if not amount.is_finite():
-        raise ValueError(f"{field_name} must be finite")
-    return float(amount)
 
 
 def _quarter_window(year: int, quarter: int) -> tuple[date, date]:
@@ -183,23 +174,23 @@ class CommercialProofReportService:
         out = io.StringIO()
         writer = csv.writer(out)
 
-        total_cost_usd = _coerce_finite_float(
+        total_cost_usd = coerce_finite_float(
             payload.leadership_kpis.total_cost_usd,
             field_name="total_cost_usd",
         )
-        carbon_total_kgco2e = _coerce_finite_float(
+        carbon_total_kgco2e = coerce_finite_float(
             payload.leadership_kpis.carbon_total_kgco2e,
             field_name="carbon_total_kgco2e",
         )
-        carbon_coverage_percent = _coerce_finite_float(
+        carbon_coverage_percent = coerce_finite_float(
             payload.leadership_kpis.carbon_coverage_percent,
             field_name="carbon_coverage_percent",
         )
-        opportunity_monthly_usd = _coerce_finite_float(
+        opportunity_monthly_usd = coerce_finite_float(
             payload.savings_proof.opportunity_monthly_usd,
             field_name="opportunity_monthly_usd",
         )
-        realized_monthly_usd = _coerce_finite_float(
+        realized_monthly_usd = coerce_finite_float(
             payload.savings_proof.realized_monthly_usd,
             field_name="realized_monthly_usd",
         )
@@ -243,7 +234,7 @@ class CommercialProofReportService:
             writer.writerow(
                 [
                     sanitize_csv_cell(provider),
-                    f"{_coerce_finite_float(cost, field_name='cost_by_provider'):.4f}",
+                    f"{coerce_finite_float(cost, field_name='cost_by_provider'):.4f}",
                 ]
             )
         writer.writerow([])
@@ -263,8 +254,8 @@ class CommercialProofReportService:
             writer.writerow(
                 [
                     sanitize_csv_cell(item.provider),
-                    f"{_coerce_finite_float(item.opportunity_monthly_usd, field_name='breakdown_opportunity_monthly_usd'):.2f}",
-                    f"{_coerce_finite_float(item.realized_monthly_usd, field_name='breakdown_realized_monthly_usd'):.2f}",
+                    f"{coerce_finite_float(item.opportunity_monthly_usd, field_name='breakdown_opportunity_monthly_usd'):.2f}",
+                    f"{coerce_finite_float(item.realized_monthly_usd, field_name='breakdown_realized_monthly_usd'):.2f}",
                     item.open_recommendations,
                     item.applied_recommendations,
                     item.pending_remediations,
@@ -278,7 +269,7 @@ class CommercialProofReportService:
             writer.writerow(
                 [
                     sanitize_csv_cell(svc.service),
-                    f"{_coerce_finite_float(svc.cost_usd, field_name='top_service_cost_usd'):.4f}",
+                    f"{coerce_finite_float(svc.cost_usd, field_name='top_service_cost_usd'):.4f}",
                 ]
             )
 
