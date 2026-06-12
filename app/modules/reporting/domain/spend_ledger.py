@@ -357,8 +357,8 @@ def _serialize_ledger_row(
     allocation_count: int,
     allocations: list[CostAllocation],
 ) -> dict[str, Any]:
-    allocated_decimal = Decimal(_decimal_string(allocated_amount))
-    unallocated_decimal = Decimal(_decimal_string(unallocated_amount))
+    allocated_decimal = Decimal("0") if allocated_amount is None else Decimal(str(allocated_amount))
+    unallocated_decimal = Decimal("0") if unallocated_amount is None else Decimal(str(unallocated_amount))
     if allocation_count <= 0:
         allocation_status = "unallocated"
     elif unallocated_decimal > Decimal("0") and allocated_decimal > Decimal("0"):
