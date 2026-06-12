@@ -105,23 +105,18 @@ def test_frontend_runtime_requires_explicit_origin_configuration() -> None:
     assert 'CMD ["node", "server.node.mjs"]' in dockerfile_text
 
 
-def test_backend_dockerfile_healthcheck_uses_curl_liveness_probe() -> None:
+def test_backend_container_rejects_legacy_healthcheck() -> None:
     dockerfile_text = (REPO_ROOT / "Dockerfile").read_text(encoding="utf-8").lower()
     entrypoint_text = (
         (REPO_ROOT / "scripts/docker-entrypoint.sh").read_text(encoding="utf-8").lower()
     )
 
-    assert "healthcheck" in dockerfile_text
-    assert "/health/live" in dockerfile_text
-    assert "curl --fail --silent --show-error" in dockerfile_text
-    assert "${port:-8000}/health/live" in dockerfile_text
-    assert "urllib.request" not in dockerfile_text
-    assert "procps" in dockerfile_text
-    assert 'cmd ["/bin/sh", "/app/scripts/docker-entrypoint.sh"]' in dockerfile_text
+    assert "healthcheck" not in dockerfile_text
     assert "validate_runtime_dependencies" in entrypoint_text
     assert 'port="${port:-8000}"' in entrypoint_text
     assert "uvicorn app.main:app" in entrypoint_text
     assert "--workers" not in entrypoint_text
+    assert 'cmd ["/bin/sh", "/app/scripts/docker-entrypoint.sh"]' in dockerfile_text
 
 
 def test_deployment_docs_match_unified_platform_contracts() -> None:
