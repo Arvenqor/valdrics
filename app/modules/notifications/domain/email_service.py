@@ -15,6 +15,7 @@ import anyio
 import structlog
 
 from app.shared.core.config import get_settings
+from app.modules.notifications.domain.email_templates import TemplateService
 
 logger = structlog.get_logger()
 EMAIL_DELIVERY_RECOVERABLE_EXCEPTIONS = (
@@ -86,6 +87,11 @@ class EmailService:
         self.smtp_user = smtp_user
         self.smtp_password = smtp_password
         self.from_email = from_email
+
+    @staticmethod
+    def _render_template(name: str, context: Dict[str, Any]) -> str:
+        service = TemplateService()
+        return service.render_html(name, context)
 
     def _send_message_sync(self, message: MIMEMultipart, recipients: List[str]) -> None:
         with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
@@ -217,45 +223,13 @@ class EmailService:
         try:
             subject = f"⚠️ Valdrics: Payment Failed ({attempt}/{max_attempts})"
 
-            html_body = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }}
-        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-        .header {{ background: #dc2626; color: white; padding: 20px; border-radius: 8px 8px 0 0; }}
-        .content {{ background: #f8fafc; padding: 20px; border-radius: 0 0 8px 8px; }}
-        .warning {{ color: #dc2626; font-weight: bold; }}
-        .cta {{ background: #2563eb; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block; margin: 15px 0; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>💳 Payment Failed</h1>
-        </div>
-        <div class="content">
-            <p>We were unable to process your subscription payment for the <strong>{escape_html(tier)}</strong> plan.</p>
-            
-            <p class="warning">Attempt {attempt} of {max_attempts}</p>
-            
-            <p>We will automatically retry your payment on <strong>{next_retry_date.strftime("%B %d, %Y")}</strong>.</p>
-            
-            <p>To avoid service interruption, please ensure your payment method is updated:</p>
-            
-            <a href="https://app.valdrics.io/settings/billing" class="cta">Update Payment Method</a>
-            
-            <p>If you have any questions, contact our support team.</p>
-            
-            <p style="color: #64748b; font-size: 12px;">
-                Sent by Valdrics Billing
-            </p>
-        </div>
-    </div>
-</body>
-</html>
-"""
+            context = {
+                "tier": escape_html(tier),
+                "attempt": attempt,
+                "max_attempts": max_attempts,
+                "next_retry_date": next_retry_date.strftime("%B %d, %Y"),
+            }
+            html_body = self._render_template("billing_payment_failed", context)
 
             msg = MIMEMultipart("alternative")
             msg["Subject"] = _sanitize_header_value(subject)
@@ -278,37 +252,10 @@ class EmailService:
         try:
             subject = "✅ Valdrics: Payment Successful - Account Reactivated"
 
-            html_body = """
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #16a34a; color: white; padding: 20px; border-radius: 8px 8px 0 0; }
-        .content { background: #f8fafc; padding: 20px; border-radius: 0 0 8px 8px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>✅ Payment Successful</h1>
-        </div>
-        <div class="content">
-            <p>Great news! Your payment has been processed successfully.</p>
-            
-            <p>Your Valdrics subscription is now active and you have full access to all features.</p>
-            
-            <p>Thank you for your continued trust in Valdrics.</p>
-            
-            <p style="color: #64748b; font-size: 12px;">
-                Sent by Valdrics Billing
-            </p>
-        </div>
-    </div>
-</body>
-</html>
-"""
+            context = {
+                "tier": tier,
+            }
+            html_body = self._render_template("billing_payment_recovered", context)
 
             msg = MIMEMultipart("alternative")
             msg["Subject"] = _sanitize_header_value(subject)
