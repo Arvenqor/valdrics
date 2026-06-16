@@ -36,6 +36,7 @@ from app.models import (  # noqa: F401
     license_connection,
     landing_telemetry_rollup,
     llm,
+    notification,
     notification_settings,
     optimization,
     platform_connection,
