@@ -240,7 +240,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                 remediation="Ensure cloud_resource_pricing seeding completed. "
                 "Optimization estimates may use stale or missing pricing until refresh succeeds.",
             )
-    app.state.demo_data_service = DemoDataService()
+    app.state.demo_data_service = None  # DemoDataService pending implementation in modernization cutover
 
     from app.shared.core.http import init_http_client, close_http_client
 

@@ -349,7 +349,6 @@ class CarbonAwareScheduler:
         if not candidate_regions:
             raise ValueError("No candidate regions provided")
 
-        carbon_data = asyncio.run(CarbonData.get_instance())
         ranked = sorted(
             candidate_regions,
             key=lambda r: self._get_avg_intensity(
