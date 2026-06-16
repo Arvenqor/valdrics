@@ -278,42 +278,7 @@ class EmailService:
         try:
             subject = "🔻 Valdrics: Account Downgraded to Free Tier"
 
-            html_body = """
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #f59e0b; color: white; padding: 20px; border-radius: 8px 8px 0 0; }
-        .content { background: #f8fafc; padding: 20px; border-radius: 0 0 8px 8px; }
-        .cta { background: #2563eb; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block; margin: 15px 0; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🔻 Account Downgraded</h1>
-        </div>
-        <div class="content">
-            <p>We were unable to process your payment after multiple attempts.</p>
-            
-            <p>Your account has been downgraded to the <strong>Free Tier</strong>.</p>
-            
-            <p>You can resubscribe at any time to regain full access to premium features:</p>
-            
-            <a href="https://app.valdrics.io/settings/billing" class="cta">Resubscribe Now</a>
-            
-            <p>Your data is safe and will remain accessible on the Free Tier.</p>
-            
-            <p style="color: #64748b; font-size: 12px;">
-                Sent by Valdrics Billing
-            </p>
-        </div>
-    </div>
-</body>
-</html>
-"""
+            html_body = self._render_template("account_downgraded", {})
 
             msg = MIMEMultipart("alternative")
             msg["Subject"] = _sanitize_header_value(subject)
@@ -367,59 +332,7 @@ class EmailService:
             msg["Cc"] = _sanitize_header_value(", ".join(SALES_INQUIRY_CC_RECIPIENTS))
             msg["Reply-To"] = _sanitize_header_value(email)
 
-            html_body = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f3f7fb; color: #0f172a; }}
-        .container {{ max-width: 680px; margin: 0 auto; padding: 24px; }}
-        .hero {{ background: linear-gradient(145deg, #07121c, #0b1b28); color: #f8fbff; padding: 24px; border-radius: 18px 18px 0 0; }}
-        .hero p {{ color: #b8d5df; }}
-        .content {{ background: #ffffff; border: 1px solid #d8e7ef; border-top: 0; border-radius: 0 0 18px 18px; padding: 24px; }}
-        .grid {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }}
-        .card {{ background: #f8fbfd; border: 1px solid #d7e8ef; border-radius: 12px; padding: 14px; }}
-        .label {{ display: block; margin-bottom: 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #129ec0; }}
-        .value {{ font-size: 14px; line-height: 1.6; color: #0f172a; }}
-        .message {{ white-space: pre-wrap; }}
-        .foot {{ color: #64748b; font-size: 12px; margin-top: 18px; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="hero">
-            <h1>New Valdrics sales inquiry</h1>
-            <p>Inquiry ID {escape_html(inquiry_id)} arrived on {escape_html(submitted_at.isoformat())}.</p>
-        </div>
-        <div class="content">
-            <div class="grid">
-                <div class="card"><span class="label">Name</span><div class="value">{escape_html(name)}</div></div>
-                <div class="card"><span class="label">Work email</span><div class="value">{escape_html(email)}</div></div>
-                <div class="card"><span class="label">Company</span><div class="value">{escape_html(company)}</div></div>
-                <div class="card"><span class="label">Role</span><div class="value">{escape_html(role or "Not provided")}</div></div>
-                <div class="card"><span class="label">Buyer region</span><div class="value">{escape_html(buyer_region or "Not provided")}</div></div>
-                <div class="card"><span class="label">Team size</span><div class="value">{escape_html(team_size or "Not provided")}</div></div>
-                <div class="card"><span class="label">Timeline</span><div class="value">{escape_html(timeline or "Not provided")}</div></div>
-                <div class="card"><span class="label">Interest area</span><div class="value">{escape_html(interest_area or "Not provided")}</div></div>
-                <div class="card"><span class="label">Scope</span><div class="value">{escape_html(deployment_scope or "Not provided")}</div></div>
-            </div>
-            <div class="card">
-                <span class="label">Message</span>
-                <div class="value message">{escape_html(message or "No additional context provided.")}</div>
-            </div>
-            <div class="grid" style="margin-top: 12px;">
-                <div class="card"><span class="label">Source</span><div class="value">{escape_html(source or "Not provided")}</div></div>
-                <div class="card"><span class="label">Referrer</span><div class="value">{escape_html(referrer or "Not provided")}</div></div>
-                <div class="card"><span class="label">UTM source</span><div class="value">{escape_html(utm_source or "Not provided")}</div></div>
-                <div class="card"><span class="label">UTM medium</span><div class="value">{escape_html(utm_medium or "Not provided")}</div></div>
-                <div class="card"><span class="label">UTM campaign</span><div class="value">{escape_html(utm_campaign or "Not provided")}</div></div>
-            </div>
-            <p class="foot">Reply directly to this email to continue the conversation with the buyer.</p>
-        </div>
-    </div>
-</body>
-</html>
-"""
+            html_body = self._render_template("sales_inquiry", {"inquiry_id": escape_html(inquiry_id), "submitted_at": escape_html(submitted_at.isoformat()), "name": escape_html(name), "email": escape_html(email), "company": escape_html(company), "role": escape_html(role or "Not provided"), "buyer_region": escape_html(buyer_region or "Not provided"), "team_size": escape_html(team_size or "Not provided"), "timeline": escape_html(timeline or "Not provided"), "interest_area": escape_html(interest_area or "Not provided"), "deployment_scope": escape_html(deployment_scope or "Not provided"), "message": escape_html(message or "No additional context provided."), "source": escape_html(source or "Not provided"), "referrer": escape_html(referrer or "Not provided"), "utm_source": escape_html(utm_source or "Not provided"), "utm_medium": escape_html(utm_medium or "Not provided"), "utm_campaign": escape_html(utm_campaign or "Not provided")})
 
             msg.attach(MIMEText(html_body, "html"))
             await self._send_message(msg, recipients)
