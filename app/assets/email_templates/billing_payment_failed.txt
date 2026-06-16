@@ -1,0 +1,11 @@
+Valdrics Billing Alert
+
+Payment failed for ${tier} plan.
+
+Attempt ${attempt} of ${max_attempts}
+
+Next retry: ${next_retry_date}
+
+Update payment method: https://app.valdrics.io/settings/billing
+
+Contact support for assistance.

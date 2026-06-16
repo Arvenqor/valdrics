@@ -17,6 +17,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 import structlog
 
+from app.modules.billing.api.v1.api_keys import router as api_keys_router
 from app.modules.billing.api.v1.billing_models import (
     BillingUsageResponse,
     CheckoutRequest,
@@ -64,6 +65,7 @@ __all__ = [
 ]
 
 router = APIRouter(tags=["Billing"])
+router.include_router(api_keys_router, prefix="/api-keys")
 
 
 def _settings() -> "Settings":

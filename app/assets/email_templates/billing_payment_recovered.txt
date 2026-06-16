@@ -1,0 +1,7 @@
+Valdrics Billing Update
+
+Your payment was successful and your account is reactivated.
+
+Plan: ${tier}
+
+Thank you for your continued trust in Valdrics.
