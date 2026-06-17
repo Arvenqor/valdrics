@@ -27,6 +27,7 @@ _REQUIRED_API_PREFIXES = {
     "/api/v1/jobs",
     "/api/v1/leaderboards",
     "/api/v1/leadership",
+    "/api/v1/notifications",
     "/api/v1/public",
     "/api/v1/savings",
     "/api/v1/settings",

@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
+from fastapi import HTTPException
 from httpx import AsyncClient
 
 from app.shared.core.auth import CurrentUser, UserRole, get_current_user
@@ -48,7 +49,7 @@ async def test_create_api_key_returns_masked_response_and_raw_key(async_client: 
         assert response.status_code == 200
         payload = response.json()
         assert payload["key"]["id"] == str(mock_key.id)
-        assert payload["key"]["masked_value"] == "b2_testk...****"
+        assert payload["key"]["masked_value"] == "b2_testkey...****"
         assert payload["raw_key"] == raw_key
     finally:
         app.dependency_overrides.pop(get_current_user, None)
@@ -76,7 +77,7 @@ async def test_list_api_keys_returns_masked_list(async_client: AsyncClient, app)
         assert response.status_code == 200
         payload = response.json()
         assert len(payload) == 1
-        assert payload[0]["masked_value"] == "b2_listk...****"
+        assert payload[0]["masked_value"] == "b2_listkey...****"
     finally:
         app.dependency_overrides.pop(get_current_user, None)
 
@@ -87,8 +88,9 @@ async def test_revoke_api_key_returns_status(async_client: AsyncClient, app):
     mock_user = _mock_user(tenant_id=tenant_id)
     app.dependency_overrides[get_current_user] = lambda: mock_user
     try:
+        key_id = uuid4()
         mock_key = MagicMock()
-        mock_key.id = uuid4()
+        mock_key.id = key_id
         mock_key.is_active = False
         mock_key.revoked_at = "2026-01-01T00:00:00+00:00"
 
@@ -97,7 +99,7 @@ async def test_revoke_api_key_returns_status(async_client: AsyncClient, app):
             new=AsyncMock(return_value=mock_key),
         ):
             response = await async_client.post(
-                "/api/v1/billing/api-keys/b2_revoke",
+                f"/api/v1/billing/api-keys/{key_id}/revoke",
             )
         assert response.status_code == 200
         payload = response.json()
