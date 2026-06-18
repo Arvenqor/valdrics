@@ -169,6 +169,10 @@ class CarbonBudgetService:
 
         return True
 
+    async def mark_alert_sent(self, tenant_id: UUID, alert_status: str) -> None:
+        """Public API to mark that an alert was sent."""
+        await self._mark_alert_sent(tenant_id, alert_status)
+
     async def _mark_alert_sent(self, tenant_id: UUID, alert_status: str) -> None:
         """Mark that an alert was sent today."""
         from app.models.carbon_settings import CarbonSettings

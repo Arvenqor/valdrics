@@ -10,7 +10,7 @@
       "finding_id": "VAL-ADAPT-001",
       "owner": "platform-architecture@valdrics.local",
       "rationale": "VAL-ADAPT-001 is governed by live controls (adapter_coverage, module_size_budget) and currently passes runtime validation.",
-      "review_by": "2026-06-16",
+      "review_by": "2026-07-18",
       "status": "documented_exception"
     },
     {
@@ -22,7 +22,7 @@
       "finding_id": "VAL-DB-002",
       "owner": "platform-database@valdrics.local",
       "rationale": "VAL-DB-002 is governed by live controls (env_hygiene, audit_controls) and currently passes runtime validation.",
-      "review_by": "2026-06-16",
+      "review_by": "2026-07-18",
       "status": "documented_exception"
     },
     {
@@ -34,7 +34,7 @@
       "finding_id": "VAL-DB-003",
       "owner": "platform-database@valdrics.local",
       "rationale": "VAL-DB-003 is governed by live controls (dependency_locking, audit_controls) and currently passes runtime validation.",
-      "review_by": "2026-06-16",
+      "review_by": "2026-07-18",
       "status": "documented_exception"
     },
     {
@@ -45,7 +45,7 @@
       "finding_id": "VAL-DB-004",
       "owner": "platform-database@valdrics.local",
       "rationale": "VAL-DB-004 is governed by live controls (audit_controls) and currently passes runtime validation.",
-      "review_by": "2026-06-16",
+      "review_by": "2026-07-18",
       "status": "documented_exception"
     },
     {
@@ -56,7 +56,7 @@
       "finding_id": "VAL-API-001",
       "owner": "platform-security@valdrics.local",
       "rationale": "VAL-API-001 is governed by live controls (audit_controls) and currently passes runtime validation.",
-      "review_by": "2026-06-16",
+      "review_by": "2026-07-18",
       "status": "documented_exception"
     },
     {
@@ -67,7 +67,7 @@
       "finding_id": "VAL-API-002",
       "owner": "platform-security@valdrics.local",
       "rationale": "VAL-API-002 is governed by live controls (audit_controls) and currently passes runtime validation.",
-      "review_by": "2026-06-16",
+      "review_by": "2026-07-18",
       "status": "documented_exception"
     },
     {
@@ -79,7 +79,7 @@
       "finding_id": "VAL-API-004",
       "owner": "platform-security@valdrics.local",
       "rationale": "VAL-API-004 is governed by live controls (env_hygiene, audit_controls) and currently passes runtime validation.",
-      "review_by": "2026-06-16",
+      "review_by": "2026-07-18",
       "status": "documented_exception"
     },
     {
@@ -91,7 +91,7 @@
       "finding_id": "VAL-ADAPT-002+",
       "owner": "platform-architecture@valdrics.local",
       "rationale": "VAL-ADAPT-002+ is governed by live controls (module_size_budget, audit_controls) and currently passes runtime validation.",
-      "review_by": "2026-06-16",
+      "review_by": "2026-07-18",
       "status": "documented_exception"
     }
   ],

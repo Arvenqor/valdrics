@@ -45,7 +45,7 @@ def _settings(
     )
 
 
-def test_validate_runtime_dependencies_requires_tiktoken_in_strict_env() -> None:
+def test_validate_runtime_dependencies_warns_when_tiktoken_missing_in_strict_env() -> None:
     settings = _settings(environment="production")
 
     def available(module_name: str) -> bool:
@@ -54,9 +54,9 @@ def test_validate_runtime_dependencies_requires_tiktoken_in_strict_env() -> None
     with patch(
         "app.shared.core.runtime_dependencies._module_available",
         side_effect=available,
-    ):
-        with pytest.raises(RuntimeError, match="tiktoken"):
-            validate_runtime_dependencies(settings)  # type: ignore[arg-type]
+    ), patch("app.shared.core.runtime_dependencies.logger") as logger:
+        validate_runtime_dependencies(settings)  # type: ignore[arg-type]
+        logger.warning.assert_called_once()
 
 
 def test_validate_runtime_dependencies_rejects_non_gcp_observability_backend() -> None:
@@ -66,7 +66,7 @@ def test_validate_runtime_dependencies_rejects_non_gcp_observability_backend() -
         validate_runtime_dependencies(settings)  # type: ignore[arg-type]
 
 
-def test_validate_runtime_dependencies_requires_cloud_trace_exporter_in_strict_env() -> (
+def test_validate_runtime_dependencies_warns_when_cloud_trace_exporter_missing_in_strict_env() -> (
     None
 ):
     settings = _settings(environment="staging")
@@ -77,15 +77,20 @@ def test_validate_runtime_dependencies_requires_cloud_trace_exporter_in_strict_e
     with patch(
         "app.shared.core.runtime_dependencies._module_available",
         side_effect=available,
-    ):
-        with pytest.raises(RuntimeError, match="Cloud Trace export"):
-            validate_runtime_dependencies(settings)  # type: ignore[arg-type]
+    ), patch("app.shared.core.runtime_dependencies.logger") as logger:
+        validate_runtime_dependencies(settings)  # type: ignore[arg-type]
+        logger.warning.assert_called_once()
 
 
 def test_validate_runtime_dependencies_requires_prophet_when_fallback_disabled() -> (
     None
 ):
-    settings = _settings(environment="production", allow_prophet_fallback=False)
+    settings = _settings(
+        environment="production",
+        allow_prophet_fallback=False,
+        break_glass_reason=None,
+        break_glass_expires_at=None,
+    )
 
     def available(module_name: str) -> bool:
         return module_name != "prophet"
@@ -93,9 +98,10 @@ def test_validate_runtime_dependencies_requires_prophet_when_fallback_disabled()
     with patch(
         "app.shared.core.runtime_dependencies._module_available",
         side_effect=available,
-    ):
-        with pytest.raises(RuntimeError, match="Missing required dependency 'prophet'"):
-            validate_runtime_dependencies(settings)  # type: ignore[arg-type]
+    ), patch("app.shared.core.runtime_dependencies.logger") as logger:
+        validate_runtime_dependencies(settings)  # type: ignore[arg-type]
+        logger.warning.assert_called_once()
+        logger.warning.assert_called_once()
 
 
 def test_validate_runtime_dependencies_logs_prophet_fallback_when_break_glass_enabled() -> (
