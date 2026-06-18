@@ -6,7 +6,6 @@ string.Template substitution. Used by B7 email template modernization.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from string import Template
 from typing import Dict
@@ -29,7 +28,7 @@ class TemplateService:
 
     def list_templates(self) -> list[str]:
         """Return available template base names without extension."""
-        names = set()
+        names: set[str] = set()
         if not self.template_dir.exists():
             return sorted(names)
         for path in self.template_dir.iterdir():

@@ -247,7 +247,7 @@ class EmailService:
             logger.error("dunning_email_failed", error=str(e))
             return False
 
-    async def send_payment_recovered_notification(self, to_email: str) -> bool:
+    async def send_payment_recovered_notification(self, to_email: str, tier: str | None = None) -> bool:
         """Send payment recovered confirmation."""
         try:
             subject = "✅ Valdrics: Payment Successful - Account Reactivated"

@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from app.models.notification import Notification
 from app.modules.notifications.domain.notifications import NotificationService
