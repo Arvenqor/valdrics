@@ -98,7 +98,7 @@ class CarbonData:
                     peak_wind_hour_utc=profile_data["peak_wind_hour_utc"],
                 )
             for region_name, coords in data.get("region_coordinates", {}).items():
-                self.REGION_COORDS[region_name] = tuple(coords)  # type: ignore[assignment]
+                self.REGION_COORDS[region_name] = tuple(coords)
 
             logger.info("carbon_profiles_loaded", path=str(data_path))
         except Exception as e:
@@ -130,7 +130,7 @@ def validate_carbon_data_freshness(*, strict: bool = True) -> bool:
     Raises CarbonDataStaleError if data is outdated.
     Returns True if data is current.
     """
-    carbon_data = asyncio.run(CarbonData.get_instance()) # type: ignore[attr-defined]
+    carbon_data = asyncio.run(CarbonData.get_instance())
     now = datetime.now(timezone.utc)
     age = (now - carbon_data.LAST_UPDATED).days
 
@@ -183,14 +183,14 @@ class CarbonAwareScheduler:
         self._use_static_data = not (wattime_key or electricitymaps_key)
 
     async def get_region_intensity(self, region: str) -> CarbonIntensity:
-        intensity, _source = await self.get_region_intensity_with_source(region) # type: ignore[misc]
+        intensity, _source = await self.get_region_intensity_with_source(region)
         return intensity
     
     async def get_region_intensity_with_source(
         self, region: str
     ) -> tuple[CarbonIntensity, str]:
         """Get current carbon intensity for a region."""
-        carbon_data = await CarbonData.get_instance() # type: ignore[attr-defined]
+        carbon_data = await CarbonData.get_instance()
         profile = carbon_data.REGION_CARBON_PROFILES.get(region)
         if not profile:
             return CarbonIntensity.MEDIUM, "simulation"  # Unknown = medium
@@ -223,7 +223,7 @@ class CarbonAwareScheduler:
         carbon_data = await CarbonData.get_instance()
         profile = carbon_data.REGION_CARBON_PROFILES.get(region)
         if not profile:
-            return [], "simulation" # type: ignore[unreachable]
+            return [], "simulation"
 
         if self.wattime_key:
             forecast = await self._fetch_wattime_forecast(region, hours)
@@ -327,15 +327,15 @@ class CarbonAwareScheduler:
         return "very_high"
 
     def _get_avg_intensity(self, profile: RegionCarbonProfile) -> float:
-        """Returns the average intensity for a profile.""" # type: ignore[misc]
+        """Returns the average intensity for a profile."""
 
         return (profile.carbon_intensity_low + profile.carbon_intensity_high) / 2
 
     def _resolve_region_coordinates(self, region: str) -> tuple[float, float] | None:
-        carbon_data = asyncio.run(CarbonData.get_instance()) # type: ignore[attr-defined]
+        carbon_data = asyncio.run(CarbonData.get_instance())
         coords = carbon_data.REGION_COORDS.get(region)
         if coords is None:
-            logger.warning("carbon_region_unmapped", region=region) # type: ignore[unreachable]
+            logger.warning("carbon_region_unmapped", region=region)
         return coords
 
     def get_lowest_carbon_region(self, candidate_regions: List[str]) -> str:
@@ -349,7 +349,6 @@ class CarbonAwareScheduler:
         if not candidate_regions:
             raise ValueError("No candidate regions provided")
 
-        carbon_data = asyncio.run(CarbonData.get_instance())
         ranked = sorted(
             candidate_regions,
             key=lambda r: self._get_avg_intensity(
@@ -377,7 +376,7 @@ class CarbonAwareScheduler:
         # profile = REGION_CARBON_PROFILES.get(region) # Removed global static data
         carbon_data = await CarbonData.get_instance()
         profile = carbon_data.REGION_CARBON_PROFILES.get(region)
-        if not profile or not profile.best_hours_utc: # type: ignore[attr-defined]
+        if not profile or not profile.best_hours_utc:
             return None  # Execute now
 
         now = datetime.now(timezone.utc)

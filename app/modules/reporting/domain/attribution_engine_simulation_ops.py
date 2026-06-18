@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from typing import Any
 import uuid
 
@@ -91,7 +91,7 @@ async def simulate_rule(
     sampled_records = len(records)
     match_rate = round((matched_records / sampled_records), 4) if sampled_records else 0.0
     projected_total = float(
-        coerce_finite_decimal( # type: ignore[arg-type]
+        coerce_finite_decimal(
             sum(projected_by_bucket.values(), Decimal("0")),
             field_name="projected_allocation_total",
         )

@@ -151,7 +151,7 @@ class CostReconciliationService:
     @staticmethod
     def _stable_hash(payload: Dict[str, Any]) -> str:
         try:
-            canonical = json.dumps(  # type: ignore[no-untyped-call]
+            canonical = json.dumps(
                 payload,
                 sort_keys=True,
                 separators=(",", ":"),
