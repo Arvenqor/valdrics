@@ -472,8 +472,18 @@
 		inset: 0;
 		z-index: -1;
 		background:
-			linear-gradient(110deg, transparent 0 20%, rgb(34 211 238 / 0.1) 20% 20.2%, transparent 20.2% 100%),
-			linear-gradient(150deg, transparent 0 70%, rgb(251 191 36 / 0.1) 70% 70.18%, transparent 70.18% 100%);
+			linear-gradient(
+				110deg,
+				transparent 0 20%,
+				rgb(34 211 238 / 0.1) 20% 20.2%,
+				transparent 20.2% 100%
+			),
+			linear-gradient(
+				150deg,
+				transparent 0 70%,
+				rgb(251 191 36 / 0.1) 70% 70.18%,
+				transparent 70.18% 100%
+			);
 		opacity: 0.9;
 	}
 

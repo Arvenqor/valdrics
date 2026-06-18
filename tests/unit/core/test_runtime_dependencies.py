@@ -56,7 +56,20 @@ def test_validate_runtime_dependencies_warns_when_tiktoken_missing_in_strict_env
         side_effect=available,
     ), patch("app.shared.core.runtime_dependencies.logger") as logger:
         validate_runtime_dependencies(settings)  # type: ignore[arg-type]
-        logger.warning.assert_called_once()
+        logger.warning.assert_any_call(
+            "missing_tiktoken",
+            environment="production",
+            message="tiktoken is unavailable; LLM token accounting may use fallback estimation until installed.",
+        )
+        logger.warning.assert_any_call(
+            "runtime_dependency_validation_completed",
+            environment="production",
+            strict_env=True,
+            prophet_available=True,
+            break_glass_override=True,
+            break_glass_reason="Temporary dependency incident",
+            break_glass_expires_at=settings.FORECASTER_BREAK_GLASS_EXPIRES_AT,
+        )
 
 
 def test_validate_runtime_dependencies_rejects_non_gcp_observability_backend() -> None:
@@ -79,7 +92,20 @@ def test_validate_runtime_dependencies_warns_when_cloud_trace_exporter_missing_i
         side_effect=available,
     ), patch("app.shared.core.runtime_dependencies.logger") as logger:
         validate_runtime_dependencies(settings)  # type: ignore[arg-type]
-        logger.warning.assert_called_once()
+        logger.warning.assert_any_call(
+            "missing_opentelemetry_cloud_trace",
+            environment="staging",
+            message="Cloud Trace exporter is unavailable; continuing without GCP trace export.",
+        )
+        logger.warning.assert_any_call(
+            "runtime_dependency_validation_completed",
+            environment="staging",
+            strict_env=True,
+            prophet_available=True,
+            break_glass_override=True,
+            break_glass_reason="Temporary dependency incident",
+            break_glass_expires_at=settings.FORECASTER_BREAK_GLASS_EXPIRES_AT,
+        )
 
 
 def test_validate_runtime_dependencies_requires_prophet_when_fallback_disabled() -> (

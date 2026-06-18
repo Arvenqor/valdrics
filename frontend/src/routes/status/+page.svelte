@@ -62,8 +62,8 @@
 			<h1 id="status-title">System status</h1>
 			<p>
 				Public health summary for Valdrics platform dependencies. This page reports the latest
-				server-verified health snapshot only; incident response and maintenance communications remain
-				separate operational workflows.
+				server-verified health snapshot only; incident response and maintenance communications
+				remain separate operational workflows.
 			</p>
 			<div class={summaryClassByValue[data.summaryTone]}>
 				<span>{data.summaryLabel}</span>

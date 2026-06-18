@@ -4,7 +4,7 @@ from __future__ import annotations
 import pytest
 from datetime import datetime, timezone, timedelta
 from unittest.mock import AsyncMock, MagicMock
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from app.models.pricing import (
     ManagedSpendSnapshot,

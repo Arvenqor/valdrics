@@ -4,21 +4,20 @@ from __future__ import annotations
 
 import asyncio
 import json
-from datetime import datetime, timezone
 from typing import Any, AsyncIterator, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
+import structlog
 
 from app.modules.notifications.domain.notifications import NotificationService
 from app.shared.core.auth import CurrentUser, requires_role
 from app.shared.core.config import get_settings
-from app.shared.core.rate_limit import rate_limit
 from app.shared.db.session import get_db
 
 router = APIRouter()
+logger = structlog.get_logger()
 
 
 async def _require_tenant_id(user: CurrentUser) -> Any:
@@ -39,7 +38,6 @@ async def stream_notifications(
 ) -> EventSourceResponse:
     """Stream tenant notification events over SSE."""
     from app.shared.db.session import async_session_maker
-    from app.modules.notifications.domain.notifications import NotificationService
 
     settings = get_settings()
     tenant_id = await _require_tenant_id(user)
@@ -56,15 +54,14 @@ async def stream_notifications(
             )
         _active_notification_streams[tenant_key] = current + 1
 
-    service = NotificationService(db)
-
     async def event_generator() -> AsyncIterator[Dict[str, str]]:
         last_seen: Dict[Any, str] = {}
         try:
             while True:
                 try:
                     async with async_session_maker() as session:
-                        rows = await service.list_notifications(
+                        scoped_service = NotificationService(session)
+                        rows = await scoped_service.list_notifications(
                             tenant_id=tenant_id,
                             limit=50,
                             offset=0,
@@ -88,6 +85,11 @@ async def stream_notifications(
                             yield {"event": "notification_update", "data": json.dumps(updates)}
                         yield {"event": "ping", "data": "heartbeat"}
                 except Exception as exc:  # pragma: no cover - resilience path
+                    logger.warning(
+                        "notification_stream_poll_failed",
+                        tenant_id=tenant_key,
+                        error=str(exc),
+                    )
                     yield {"event": "error", "data": json.dumps({"error": "Stream interrupted"})}
                 await asyncio.sleep(poll_interval)
         finally:

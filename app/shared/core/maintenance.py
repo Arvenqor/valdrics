@@ -1,7 +1,6 @@
 import structlog
 import re
 from datetime import date
-from dateutil.relativedelta import relativedelta  # type: ignore[import-untyped]
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +13,15 @@ PARTITION_MAINTENANCE_RECOVERABLE_EXCEPTIONS = (
 )
 _SAFE_IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _PARTITION_NAME_PATTERN = re.compile(r"^cost_records_(\d{4})_(\d{2})$")
+
+
+def _add_months(value: date, months: int) -> date:
+    """Return ``value`` shifted by whole calendar months."""
+    month_index = value.month - 1 + months
+    year = value.year + month_index // 12
+    month = month_index % 12 + 1
+    return date(year, month, value.day)
+
 
 class PartitionMaintenanceService:
     """
@@ -217,7 +225,7 @@ ON CONFLICT (id, recorded_at) {upsert_clause}
             prefix = "p" if table == "audit_logs" else ""
             
             for i in range(months_ahead + 1):
-                target_date = today + relativedelta(months=i)
+                target_date = _add_months(today, i)
                 year, month = target_date.year, target_date.month
                 partition_name = f"{table}_{prefix}{year}_{month:02d}"
                 
@@ -235,7 +243,7 @@ ON CONFLICT (id, recorded_at) {upsert_clause}
                 
                 if not exists:
                     start_str = date(year, month, 1).isoformat()
-                    end_str = (date(year, month, 1) + relativedelta(months=1)).isoformat()
+                    end_str = _add_months(date(year, month, 1), 1).isoformat()
                     
                     try:
                         await self.db.execute(text(f"""
@@ -277,7 +285,7 @@ ON CONFLICT (id, recorded_at) {upsert_clause}
                 {"lock_id": self.PARTITION_MAINTENANCE_LOCK_ID},
             )
             shared_columns = await self._ensure_cost_archive_table()
-            cutoff_month = date.today() - relativedelta(months=months_old)
+            cutoff_month = _add_months(date.today(), -months_old)
             partitions = await self._list_cost_record_partitions()
 
             archived_rows = 0

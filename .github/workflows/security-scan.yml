@@ -50,7 +50,7 @@ env:
   TERRAFORM_VERSION: "1.14.8"
   UV_VERSION: "0.10.9"
   # Trivy 0.69.3 manifest digest. Update intentionally with a scanner release review.
-   TRIVY_IMAGE: "docker.io/aquasec/trivy@sha256:7228e304ae0f610a1fad937baa463598cadac0c2ac4027cc68f3a8b997115689"
+  TRIVY_IMAGE: "docker.io/aquasec/trivy@sha256:7228e304ae0f610a1fad937baa463598cadac0c2ac4027cc68f3a8b997115689"
 
 jobs:
   classify-changes:

@@ -72,8 +72,8 @@
 		<div>
 			<h3 id="ownership-routing-title">Provisioning to ownership</h3>
 			<p>
-				Verified domains, SSO federation, and SCIM groups route workspace access into Valdrics
-				role and persona assignments.
+				Verified domains, SSO federation, and SCIM groups route workspace access into Valdrics role
+				and persona assignments.
 			</p>
 		</div>
 		<div class="ownership-routing__metric" aria-label={mappedGroupLabel}>

@@ -18,10 +18,17 @@ from app.modules.reporting.domain.budget_alerts import CarbonBudgetService
 from app.shared.core.pricing import PricingTier
 
 
+def _async_db_result(scalar=None):
+    """Create an async DB execute result mock with optional scalar."""
+    result = AsyncMock()
+    result.scalar_one_or_none = MagicMock(return_value=scalar)
+    return result
+
+
 @pytest.fixture
 def mock_db():
     db = MagicMock()
-    db.execute = AsyncMock()
+    db.execute = AsyncMock(return_value=_async_db_result())
     db.commit = AsyncMock()
     db.flush = AsyncMock()
     return db
@@ -193,7 +200,7 @@ async def test_mark_alert_sent(carbon_service, mock_db):
     await carbon_service.mark_alert_sent(tenant_id, "warning")
 
     mock_db.execute.assert_called_once()
-    mock_db.commit.assert_called_once()
+    mock_db.flush.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -260,11 +267,7 @@ async def test_send_carbon_alert_slack(carbon_service, mock_db):
                 mock_notif.alert_on_carbon_budget_warning = True
                 mock_notif.alert_on_carbon_budget_exceeded = True
 
-                notif_result = MagicMock()
-                notif_result.scalar_one_or_none.return_value = mock_notif
-                carbon_result = MagicMock()
-                carbon_result.scalar_one_or_none.return_value = None
-                mock_db.execute.side_effect = [notif_result, carbon_result]
+                mock_db.execute.return_value = _async_db_result(mock_notif)
 
                 with patch(
                     "app.modules.notifications.domain.get_tenant_slack_service",

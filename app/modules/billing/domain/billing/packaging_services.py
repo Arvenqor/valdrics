@@ -158,7 +158,6 @@ class ManagedSpendService:
                 price = config.get("price_usd", 0)
                 if isinstance(price, dict):
                     price = price.get("monthly", 0)
-                savings_threshold = float(price) * 3 if price else 0
                 signal = {
                     "reason": "spend_near_cap",
                     "spent": spent,

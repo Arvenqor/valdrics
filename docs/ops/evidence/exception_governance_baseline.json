@@ -47,12 +47,12 @@
     },
     {
       "path": "app/modules/notifications/api/v1/notifications.py",
-      "line": 90,
+      "line": 87,
       "kind": "exception"
     },
     {
       "path": "app/modules/notifications/domain/email_templates.py",
-      "line": 64,
+      "line": 63,
       "kind": "exception"
     }
   ]
