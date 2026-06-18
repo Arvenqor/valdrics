@@ -1,0 +1,7 @@
+Valdrics Ownership Reminder
+
+Resource: ${resource_id}
+Action: ${action}
+Owner: ${owner_email}
+
+Please review this resource assignment.

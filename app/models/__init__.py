@@ -15,6 +15,7 @@ from app.shared.db.base import Base
 # Import side-effects: register ORM mappings.
 from app.models import (  # noqa: F401
     anomaly_marker,
+    api_key,
     attribution,
     aws_connection,
     azure_connection,
@@ -35,6 +36,7 @@ from app.models import (  # noqa: F401
     license_connection,
     landing_telemetry_rollup,
     llm,
+    notification,
     notification_settings,
     optimization,
     platform_connection,

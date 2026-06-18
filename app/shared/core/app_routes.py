@@ -27,6 +27,7 @@ _REQUIRED_API_PREFIXES = {
     "/api/v1/jobs",
     "/api/v1/leaderboards",
     "/api/v1/leadership",
+    "/api/v1/notifications",
     "/api/v1/public",
     "/api/v1/savings",
     "/api/v1/settings",
@@ -133,6 +134,7 @@ def register_api_routers(app: FastAPI) -> None:
     from app.modules.governance.api.v1.settings.onboard import (
         router as onboard_router,
     )
+    from app.modules.notifications.api.v1.notifications import router as notifications_router
     from app.modules.optimization.api.v1.strategies import router as strategies_router
     from app.modules.optimization.api.v1.zombies import router as zombies_router
     from app.modules.reporting.api.v1.attribution import router as attribution_router
@@ -168,6 +170,7 @@ def register_api_routers(app: FastAPI) -> None:
         (health_dashboard_router, "/api/v1/admin/health-dashboard"),
         (usage_router, "/api/v1/usage"),
         (currency_router, "/api/v1/currency"),
+        (notifications_router, "/api/v1/notifications"),
         (oidc_router, None),
         (public_router, "/api/v1/public"),
         (scim_router, "/scim/v2"),

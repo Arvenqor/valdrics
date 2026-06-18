@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: sans-serif; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .header { background: #dc2626; color: white; padding: 20px; }
+        .content { background: #f8fafc; padding: 20px; }
+        .cta { background: #2563eb; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header"><h1>Payment Failed</h1></div>
+        <div class="content">
+            <p>Payment failed for <strong>${tier}</strong> plan.</p>
+            <p>Attempt ${attempt} of ${max_attempts}</p>
+            <p>Next retry: ${next_retry_date}</p>
+            <a href="https://app.valdrics.io/settings/billing" class="cta">Update Payment Method</a>
+        </div>
+    </div>
+</body>
+</html>
