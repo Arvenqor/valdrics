@@ -60,10 +60,19 @@ def test_register_api_routers_exposes_required_prefixes() -> None:
     app = FastAPI()
     register_api_routers(app)
 
-    registered_paths = {
-        route.path
-        for route in app.router.routes
-        if isinstance(getattr(route, "path", None), str)
-    }
+    registered_paths: set[str] = set()
+    for route in app.router.routes:
+        # Standard Route / Mount objects expose .path directly.
+        path = getattr(route, "path", None)
+        if isinstance(path, str):
+            registered_paths.add(path)
+        # FastAPI ≥0.137 _IncludedRouter objects store the prefix in
+        # include_context.prefix instead of route.path.
+        include_ctx = getattr(route, "include_context", None)
+        prefix = getattr(include_ctx, "prefix", None)
+        if isinstance(prefix, str):
+            registered_paths.add(prefix)
+
     for prefix in sorted(_REQUIRED_API_PREFIXES):
         assert any(path.startswith(prefix) for path in registered_paths), prefix
+

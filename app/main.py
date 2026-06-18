@@ -42,6 +42,7 @@ from app.shared.core.middleware import (
     HostHeaderValidationMiddleware,
     TrustedProxyHeadersMiddleware,
 )
+from app.shared.core.prometheus_compat import apply_instrumentator_patch
 from app.shared.core.request_security import request_scope_path
 from app.shared.core.security_metrics import CSRF_ERRORS, RATE_LIMIT_EXCEEDED
 from app.shared.core.ops_metrics import API_ERRORS_TOTAL
@@ -455,6 +456,9 @@ register_lifecycle_routes(
     app_name=settings.APP_NAME,
     version=settings.VERSION,
 )
+
+# Patch prometheus-fastapi-instrumentator for FastAPI ≥0.137 _IncludedRouter compat.
+apply_instrumentator_patch()
 
 # Initialize Prometheus Metrics
 Instrumentator().instrument(valdrics_app).expose(

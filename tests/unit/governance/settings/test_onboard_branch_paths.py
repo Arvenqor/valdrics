@@ -68,13 +68,34 @@ def _db(
     return db
 
 
+def _find_api_route(app_routes: list, target_path: str, prefix: str = "") -> APIRoute | None:
+    """Recursively search for an ``APIRoute`` by its full path.
+
+    FastAPI ≥0.137 wraps ``include_router`` results in ``_IncludedRouter``
+    objects that don't expose a ``.path`` attribute.  This helper traverses
+    those wrappers via ``include_context.prefix`` / ``original_router.routes``.
+    """
+    for route in app_routes:
+        if isinstance(route, APIRoute):
+            full_path = prefix + route.path
+            if full_path == target_path:
+                return route
+        # _IncludedRouter (FastAPI ≥0.137): recurse into wrapped routes.
+        include_ctx = getattr(route, "include_context", None)
+        if include_ctx is not None:
+            sub_prefix = prefix + (getattr(include_ctx, "prefix", "") or "")
+            original_router = getattr(route, "original_router", None)
+            sub_routes = getattr(original_router, "routes", None)
+            if sub_routes:
+                found = _find_api_route(sub_routes, target_path, sub_prefix)
+                if found is not None:
+                    return found
+    return None
+
+
 def test_onboard_route_uses_system_db_dependency() -> None:
     dependency_calls = []
-    target_route = None
-    for route in app.routes:
-        if isinstance(route, APIRoute) and route.path == "/api/v1/settings/onboard":
-            target_route = route
-            break
+    target_route = _find_api_route(list(app.routes), "/api/v1/settings/onboard")
 
     assert target_route is not None
 
