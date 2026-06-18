@@ -130,7 +130,7 @@ def validate_carbon_data_freshness(*, strict: bool = True) -> bool:
     Raises CarbonDataStaleError if data is outdated.
     Returns True if data is current.
     """
-    carbon_data = asyncio.run(CarbonData.get_instance())
+    carbon_data = _carbon_data_instance
     now = datetime.now(timezone.utc)
     age = (now - carbon_data.LAST_UPDATED).days
 
@@ -332,8 +332,7 @@ class CarbonAwareScheduler:
         return (profile.carbon_intensity_low + profile.carbon_intensity_high) / 2
 
     def _resolve_region_coordinates(self, region: str) -> tuple[float, float] | None:
-        carbon_data = asyncio.run(CarbonData.get_instance())
-        coords = carbon_data.REGION_COORDS.get(region)
+        coords = _carbon_data_instance.REGION_COORDS.get(region)
         if coords is None:
             logger.warning("carbon_region_unmapped", region=region)
         return coords
@@ -439,11 +438,10 @@ class CarbonAwareScheduler:
             Dict with gCO2 saved and percentage reduction
 
         """
-        carbon_data = asyncio.run(CarbonData.get_instance())
-        from_profile = carbon_data.REGION_CARBON_PROFILES.get(
+        from_profile = _carbon_data_instance.REGION_CARBON_PROFILES.get(
             region_from, RegionCarbonProfile(region_from, 20, 400, 600, [])
         )
-        to_profile = carbon_data.REGION_CARBON_PROFILES.get(
+        to_profile = _carbon_data_instance.REGION_CARBON_PROFILES.get(
             region_to, RegionCarbonProfile(region_to, 20, 400, 600, [])
         )
 

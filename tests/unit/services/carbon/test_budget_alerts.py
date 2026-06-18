@@ -23,6 +23,7 @@ def mock_db():
     db = MagicMock()
     db.execute = AsyncMock()
     db.commit = AsyncMock()
+    db.flush = AsyncMock()
     return db
 
 
