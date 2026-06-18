@@ -16,7 +16,7 @@ class CredentialsResolverMixin:
     def _resolve_api_key(self) -> str:
         token = getattr(self._credentials, "api_key", None)
         if token is None:
-            raise ExternalAPIError("Missing API key for connector")
+            raise ExternalAPIError("Missing API token")
         if isinstance(token, SecretStr):
             resolved = token.get_secret_value()
         elif hasattr(token, "get_secret_value"):
@@ -24,9 +24,9 @@ class CredentialsResolverMixin:
         elif isinstance(token, str):
             resolved = token
         else:
-            raise ExternalAPIError("Missing API key for connector")
+            raise ExternalAPIError("Missing API token")
         if not resolved or not resolved.strip():
-            raise ExternalAPIError("Missing API key for connector")
+            raise ExternalAPIError("Missing API token")
         return resolved.strip()
 
     def _resolve_api_secret(self) -> str:

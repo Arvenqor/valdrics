@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from statistics import median
 from uuid import UUID
 
@@ -119,7 +119,7 @@ def detect_daily_cost_anomalies(
         provider = (r.provider or "").strip().lower() or "unknown"
         key = (provider, r.account_id, (r.service or "Unknown").strip() or "Unknown")
         series.setdefault(key, {})[r.day] = _coerce_finite_decimal(
-            r.cost_usd or 0, # type: ignore[arg-type]
+            r.cost_usd or 0,
             field_name="cost_usd",
         )
         # Store name for output (single value per account)
@@ -398,15 +398,15 @@ async def dispatch_cost_anomaly_alerts(
             continue
         try:
             actual_cost_usd = _coerce_finite_float(
-                item.actual_cost_usd, # type: ignore[arg-type]
+                item.actual_cost_usd,
                 field_name="actual_cost_usd",
             )
             expected_cost_usd = _coerce_finite_float(
-                item.expected_cost_usd, # type: ignore[arg-type]
+                item.expected_cost_usd,
                 field_name="expected_cost_usd",
             )
             delta_cost_usd = _coerce_finite_float(
-                item.delta_cost_usd, # type: ignore[arg-type]
+                item.delta_cost_usd,
                 field_name="delta_cost_usd",
             )
             await NotificationDispatcher.send_alert(

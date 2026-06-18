@@ -3,7 +3,6 @@ from datetime import datetime
 from typing import Any
 
 import httpx
-from pydantic import SecretStr
 import structlog
 
 from app.shared.adapters.base import BaseAdapter
@@ -40,7 +39,6 @@ from app.shared.adapters.license_vendor_registry import resolve_native_vendor
 from app.shared.core.credentials import LicenseCredentials
 from app.shared.core.exceptions import ExternalAPIError
 from app.shared.core.http import get_http_client
-from typing import Any
 
 logger = structlog.get_logger()
 

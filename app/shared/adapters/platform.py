@@ -119,7 +119,7 @@ class PlatformAdapter(PlatformNativeConnectorMixin, BaseAdapter):
     def _resolve_api_key(self) -> str:
         token = self.credentials.api_key
         if token is None:
-            raise ExternalAPIError("Missing API token for platform native connector")
+            raise ExternalAPIError("Missing API token")
         if isinstance(token, SecretStr):
             resolved = token.get_secret_value()
         elif hasattr(token, "get_secret_value"):
@@ -127,15 +127,15 @@ class PlatformAdapter(PlatformNativeConnectorMixin, BaseAdapter):
         elif isinstance(token, str):
             resolved = token
         else:
-            raise ExternalAPIError("Missing API token for platform native connector")
+            raise ExternalAPIError("Missing API token")
         if not resolved or not resolved.strip():
-            raise ExternalAPIError("Missing API token for platform native connector")
+            raise ExternalAPIError("Missing API token")
         return resolved.strip()
 
     def _resolve_api_secret(self) -> str:
         token = self.credentials.api_secret
         if token is None:
-            raise ExternalAPIError("Missing API secret for platform native connector")
+            raise ExternalAPIError("Missing API secret")
         if isinstance(token, SecretStr):
             resolved = token.get_secret_value()
         elif hasattr(token, "get_secret_value"):
@@ -143,9 +143,9 @@ class PlatformAdapter(PlatformNativeConnectorMixin, BaseAdapter):
         elif isinstance(token, str):
             resolved = token
         else:
-            raise ExternalAPIError("Missing API secret for platform native connector")
+            raise ExternalAPIError("Missing API secret")
         if not resolved or not resolved.strip():
-            raise ExternalAPIError("Missing API secret for platform native connector")
+            raise ExternalAPIError("Missing API secret")
         return resolved.strip()
 
     def _resolve_datadog_base_url(self) -> str:

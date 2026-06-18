@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
@@ -89,9 +89,9 @@ async def check_for_significant_adjustments(
         )
         existing_data = existing.get(key)
         if not existing_data:
-            continue  # type: ignore[unreachable]
+            continue
 
-        record_id, old_cost = existing_data # type: ignore[misc]
+        record_id, old_cost = existing_data
         new_cost = coerce_finite_float(nr.get("cost_usd"), field_name="cost_usd")
         if new_cost == old_cost:
             continue

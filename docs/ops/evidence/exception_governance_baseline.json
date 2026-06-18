@@ -39,6 +39,11 @@
       "path": "scripts/verify_technology_value_contract.py",
       "line": 90,
       "kind": "exception"
+    },
+    {
+      "path": "app/modules/reporting/domain/carbon_scheduler.py",
+      "line": 104,
+      "kind": "exception"
     }
   ]
 }

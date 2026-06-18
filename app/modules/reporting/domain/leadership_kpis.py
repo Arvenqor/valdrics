@@ -15,7 +15,7 @@ from __future__ import annotations
 import csv
 import io
 from datetime import date, datetime, time, timedelta, timezone
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from typing import Any, Optional
 from uuid import UUID
 
@@ -365,7 +365,7 @@ class LeadershipKpiService:
         for provider, cost in sorted(
             payload.cost_by_provider.items(),
             key=lambda item: item[1],
-            reverse=True,  # type: ignore[no-untyped-call]
+            reverse=True,
         ):
             writer.writerow(
                 [
@@ -379,7 +379,7 @@ class LeadershipKpiService:
         for item in payload.top_services:
             writer.writerow(
                 [
-                    sanitize_csv_cell(item.service), # type: ignore[no-untyped-call]
+                    sanitize_csv_cell(item.service),
                     f"{coerce_finite_float(item.cost_usd, field_name='top_service_cost_usd'):.4f}",
                 ]
             )

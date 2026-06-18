@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator, Awaitable, Callable
-from datetime import datetime
+from datetime import date, datetime
 from decimal import InvalidOperation
 from typing import Any
 
 import httpx
-from pydantic import SecretStr
 import structlog
 
 from app.shared.adapters.base import BaseAdapter
@@ -14,7 +13,6 @@ from app.shared.adapters.feed_utils import (
     as_float,
     is_number,
     parse_required_timestamp,
-    parse_timestamp,
 )
 from app.shared.adapters.http_retry import execute_with_http_retry
 from app.shared.adapters.hybrid_native_mixin import HybridNativeConnectorMixin
@@ -75,7 +73,6 @@ class _SharedAsyncClientContext:
     ) -> None:
         del exc_type, exc, tb
 
-# type: ignore[misc]
 async def _hybrid_get_request(
     *,
     url: str,
