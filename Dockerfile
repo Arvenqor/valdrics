@@ -2,7 +2,7 @@
 # STAGE 1: Build dependencies
 # ============================================================
 # python:3.12-slim as of 2026-04-17
-FROM python:3.12-slim@sha256:804ddf3251a60bbf9c92e73b7566c40428d54d0e79d3428194edf40da6521286 AS builder
+FROM python:3.12-slim@sha256:c2d8472b831337ab296a8ce652e1ba786e9e3034fc445dc58b50a7f5251f0003 AS builder
 
 # Labels for OCI compliance
 LABEL org.opencontainers.image.source="https://github.com/valdrics/valdrics"
@@ -32,7 +32,7 @@ RUN uv sync --frozen --no-dev --no-editable
 # ============================================================
 # STAGE 2: Runtime (minimal image)
 # ============================================================
-FROM python:3.12-slim@sha256:804ddf3251a60bbf9c92e73b7566c40428d54d0e79d3428194edf40da6521286 AS runtime
+FROM python:3.12-slim@sha256:c2d8472b831337ab296a8ce652e1ba786e9e3034fc445dc58b50a7f5251f0003 AS runtime
 
 WORKDIR /app
 

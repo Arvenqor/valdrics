@@ -1,7 +1,7 @@
 # ============================================================
 # STAGE 1: Build the SvelteKit application
 # ============================================================
-ARG NODE_BASE_IMAGE=node:24.14.0-slim@sha256:e8e2e91b1378f83c5b2dd15f0247f34110e2fe895f6ca7719dbb780f929368eb
+ARG NODE_BASE_IMAGE=node:24.14.0-slim@sha256:4bd6219054c8bebcd26a66bfd8ca0bd6e1024b4b97474c59bb7ee3bbcbef4fe8
 FROM ${NODE_BASE_IMAGE} AS builder
 
 # Enable corepack for pnpm
