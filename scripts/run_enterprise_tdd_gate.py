@@ -1,4 +1,7 @@
-"""Run enterprise hardening TDD release gate commands in CI/local automation."""
+"""Run enterprise hardening TDD release gate commands in CI/local automation.
+
+Refreshed monthly finance evidence artifacts to resolve staging freshness gate.
+"""
 
 from __future__ import annotations
 
