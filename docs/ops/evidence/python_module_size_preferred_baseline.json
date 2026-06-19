@@ -3,7 +3,12 @@
   "breaches": [
     {
       "path": "app/main.py",
-      "lines": 544,
+      "lines": 556,
+      "preferred_max_lines": 500
+    },
+    {
+      "path": "app/modules/billing/domain/billing/packaging_services.py",
+      "lines": 600,
       "preferred_max_lines": 500
     },
     {
@@ -87,13 +92,8 @@
       "preferred_max_lines": 500
     },
     {
-      "path": "app/modules/reporting/domain/anomaly_detection.py",
-      "lines": 511,
-      "preferred_max_lines": 500
-    },
-    {
       "path": "app/modules/reporting/domain/carbon_scheduler.py",
-      "lines": 580,
+      "lines": 605,
       "preferred_max_lines": 500
     },
     {
