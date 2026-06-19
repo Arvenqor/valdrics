@@ -104,15 +104,16 @@ test.describe('Landing layout audit regressions', () => {
 		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 
-		for (const sectionId of ['#hero', '#problem', '#features', '#how-it-works', '#pricing']) {
+		for (const sectionId of ['#hero', '#product', '#simulator', '#plans', '#trust']) {
 			await expect(page.locator(sectionId)).toBeVisible();
 		}
 
-		await expect(page.locator('#hero')).toContainText(/govern first|optimize always/i);
-		await expect(page.locator('#hero .chip')).toHaveCount(3);
-		await expect(page.locator('#features .fcard')).toHaveCount(6);
-		await expect(page.locator('#pricing .pcard')).toHaveCount(4);
-		await expect(page.locator('.trust-bar .trust-badge')).toHaveCount(6);
+		await expect(page.locator('#hero')).toContainText(/control|cleaner|path|reports|context|margin|govern|optimize/i);
+		await expect(page.locator('#hero .badge-accent')).toBeVisible();
+		await expect(page.locator('#product .landing-public-pillar-card')).toHaveCount(3);
+		await expect(page.locator('#plans .landing-public-plan-card')).toHaveCount(3);
+		await expect(page.locator('#trust .landing-public-trust-card')).toHaveCount(3);
+		await expect(page.locator('.landing-public-proof-strip .landing-public-proof-item')).toHaveCount(3);
 
 		const overflow = await page.evaluate(() => ({
 			scrollWidth: document.documentElement.scrollWidth,
@@ -128,14 +129,19 @@ test.describe('Landing layout audit regressions', () => {
 
 		test('keeps mobile landing and footer chips inside the viewport', async ({ page }) => {
 			const security = await attachSecurityGuards(page);
+			
+			// Verify landing page viewport on /
 			await page.goto('/');
 			await page.waitForLoadState('networkidle');
-
-			const overflow = await page.evaluate(() => ({
+			const landingOverflow = await page.evaluate(() => ({
 				scrollWidth: document.documentElement.scrollWidth,
 				viewportWidth: window.innerWidth
 			}));
-			expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.viewportWidth + 1);
+			expect(landingOverflow.scrollWidth).toBeLessThanOrEqual(landingOverflow.viewportWidth + 1);
+
+			// Verify footer viewport on /pricing since footer is hidden on landing page in Svelte 5
+			await page.goto('/pricing');
+			await page.waitForLoadState('networkidle');
 
 			await page.evaluate(() => {
 				window.scrollTo({ top: Math.round(document.documentElement.scrollHeight * 0.38) });
@@ -144,7 +150,7 @@ test.describe('Landing layout audit regressions', () => {
 
 			const footer = page.getByRole('contentinfo');
 			await expect(footer).toBeVisible();
-			const lastFooterLink = footer.locator('.footer__links a').last();
+			const lastFooterLink = footer.locator('.public-footer-link').last();
 			await lastFooterLink.scrollIntoViewIfNeeded();
 			const linkBounds = await lastFooterLink.boundingBox();
 			expect(linkBounds).not.toBeNull();
@@ -161,7 +167,8 @@ test.describe('Landing layout audit regressions', () => {
 		test.use({ viewport: { width: 500, height: 900 } });
 
 		test('keeps header actions on-screen at mobile breakpoint', async ({ page }) => {
-			await page.goto('/');
+			// Navigate to /pricing since header and mobile menu are hidden on landing page in Svelte 5
+			await page.goto('/pricing');
 			await page.waitForLoadState('networkidle');
 
 			const headerOverflow = await page.evaluate(() => ({

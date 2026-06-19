@@ -98,8 +98,8 @@ test.describe('Public Accessibility Gate', () => {
 	test.describe('mobile menu state', () => {
 		test.use({ viewport: { width: 390, height: 844 } });
 
-		test('landing mobile menu open state has no blocking violations', async ({ page }) => {
-			await page.goto('/');
+		test('public mobile menu open state has no blocking violations', async ({ page }) => {
+			await page.goto('/pricing');
 			await page.waitForLoadState('networkidle');
 
 			const menuButton = page.getByRole('button', { name: /toggle menu/i });
