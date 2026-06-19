@@ -41,6 +41,22 @@ def _read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def _get_backend_paths_recursive(routes: list, prefix: str = "") -> set[str]:
+    paths: set[str] = set()
+    for route in routes:
+        path = getattr(route, "path", None)
+        methods = getattr(route, "methods", None)
+        if path is not None and methods:
+            if any(method in {"GET", "POST", "PUT", "PATCH", "DELETE"} for method in methods):
+                paths.add(prefix + path)
+        elif hasattr(route, "original_router") and hasattr(route, "include_context"):
+            inner_prefix = getattr(route.include_context, "prefix", "") or ""
+            inner_routes = getattr(route.original_router, "routes", None)
+            if inner_routes:
+                paths.update(_get_backend_paths_recursive(inner_routes, prefix + inner_prefix))
+    return paths
+
+
 def parse_backend_paths(repo_root: Path) -> set[str]:
     # Force deterministic, audit-safe settings regardless of operator shell state.
     env_overrides = {
@@ -71,15 +87,7 @@ def parse_backend_paths(repo_root: Path) -> set[str]:
             except ValueError:
                 pass
 
-    backend_paths: set[str] = set()
-    for route in app.routes:
-        path = getattr(route, "path", None)
-        methods = getattr(route, "methods", None)
-        if not path or not methods:
-            continue
-        if any(method in {"GET", "POST", "PUT", "PATCH", "DELETE"} for method in methods):
-            backend_paths.add(path)
-    return backend_paths
+    return _get_backend_paths_recursive(app.routes)
 
 
 EDGE_CALL_PATTERN = re.compile(r"edgeApiPath\(\s*([\"'`])(.*?)\1\s*\)", flags=re.DOTALL)

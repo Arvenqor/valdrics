@@ -47,11 +47,7 @@ def _get_route_name_patched(
     """
 
     for route in routes:
-        try:
-            match, child_scope = route.matches(scope)
-        except Exception:
-            # Defensive: skip any route that cannot be matched.
-            continue
+        match, child_scope = route.matches(scope)
 
         if match == Match.FULL:
             if hasattr(route, "path"):

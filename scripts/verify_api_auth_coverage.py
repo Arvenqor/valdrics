@@ -89,16 +89,25 @@ def _is_public_exempt(method: str, path: str) -> bool:
     return (method, path) in PUBLIC_ROUTE_ALLOWLIST
 
 
+def _get_all_api_routes(app_routes: list, prefix: str = "") -> list[tuple[APIRoute, str]]:
+    routes: list[tuple[APIRoute, str]] = []
+    for route in app_routes:
+        if isinstance(route, APIRoute):
+            routes.append((route, prefix + route.path))
+        elif hasattr(route, "original_router") and hasattr(route, "include_context"):
+            inner_prefix = getattr(route.include_context, "prefix", "") or ""
+            routes.extend(_get_all_api_routes(route.original_router.routes, prefix + inner_prefix))
+    return routes
+
+
 def collect_auth_coverage_violations(app: object) -> list[AuthCoverageViolation]:
     violations: list[AuthCoverageViolation] = []
     routes = getattr(app, "routes", [])
     if not isinstance(routes, list):
         return violations
 
-    for route in routes:
-        if not isinstance(route, APIRoute):
-            continue
-        path = route.path
+    all_routes = _get_all_api_routes(routes)
+    for route, path in all_routes:
         if not _is_monitored_path(path):
             continue
 
