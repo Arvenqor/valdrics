@@ -108,12 +108,16 @@ test.describe('Landing layout audit regressions', () => {
 			await expect(page.locator(sectionId)).toBeVisible();
 		}
 
-		await expect(page.locator('#hero')).toContainText(/control|cleaner|path|reports|context|margin|govern|optimize/i);
+		await expect(page.locator('#hero')).toContainText(
+			/control|cleaner|path|reports|context|margin|govern|optimize/i
+		);
 		await expect(page.locator('#hero .badge-accent')).toBeVisible();
 		await expect(page.locator('#product .landing-public-pillar-card')).toHaveCount(3);
 		await expect(page.locator('#plans .landing-public-plan-card')).toHaveCount(3);
 		await expect(page.locator('#trust .landing-public-trust-card')).toHaveCount(3);
-		await expect(page.locator('.landing-public-proof-strip .landing-public-proof-item')).toHaveCount(3);
+		await expect(
+			page.locator('.landing-public-proof-strip .landing-public-proof-item')
+		).toHaveCount(3);
 
 		const overflow = await page.evaluate(() => ({
 			scrollWidth: document.documentElement.scrollWidth,
@@ -129,7 +133,7 @@ test.describe('Landing layout audit regressions', () => {
 
 		test('keeps mobile landing and footer chips inside the viewport', async ({ page }) => {
 			const security = await attachSecurityGuards(page);
-			
+
 			// Verify landing page viewport on /
 			await page.goto('/');
 			await page.waitForLoadState('networkidle');
