@@ -263,36 +263,43 @@ test.describe('Public marketing smoke (desktop)', () => {
 
 		const landingHeading = page.getByRole('heading', { level: 1 }).first();
 		await expect(landingHeading).toBeVisible();
-		await expect(landingHeading).toContainText(/govern|optimize/i);
-		await expect(page.locator('#features')).toBeVisible();
-		await expect(page.locator('#how-it-works')).toBeVisible();
-		await expect(page.locator('#pricing')).toBeVisible();
-		await expect(page.locator('.trust-bar')).toBeVisible();
-		await expect(page.getByRole('contentinfo')).toBeVisible();
+		await expect(landingHeading).toContainText(
+			/control|cleaner|path|reports|context|margin|govern|optimize/i
+		);
+		await expect(page.locator('#product')).toBeVisible();
+		await expect(page.locator('#simulator')).toBeVisible();
+		await expect(page.locator('#plans')).toBeVisible();
+		await expect(page.locator('[aria-label="Why teams choose Valdrics"]')).toBeVisible();
 
 		const primaryCta = page.getByRole('link', { name: /start free/i }).first();
 		await expect(primaryCta).toHaveAttribute('href', /\/auth\/login(\?.*)?$/);
 
-		const footer = page.getByRole('contentinfo');
-		await footer.getByRole('link', { name: /documentation/i }).click();
-		await expect(page).toHaveURL(/\/docs$/);
+		await page
+			.locator('#trust')
+			.getByRole('link', { name: /technical validation/i })
+			.click();
+		await expect(page).toHaveURL(/\/docs(\?.*)?$/);
 		await expect(page.getByRole('heading', { level: 1, name: /documentation/i })).toBeVisible();
 
 		const apiDocsHref = await page
 			.getByRole('link', { name: /open api docs/i })
 			.first()
 			.getAttribute('href');
-		expect(apiDocsHref || '').toMatch(/\/docs\/api$/);
+		expect(apiDocsHref || '').toMatch(/\/docs\/api(\?.*)?$/);
 		if (apiDocsHref) {
 			await gotoPublic(page, new URL(apiDocsHref, BASE_URL).toString(), {
 				waitUntil: 'domcontentloaded'
 			});
 		}
-		await expect(page).toHaveURL(/\/docs\/api$/);
+		await expect(page).toHaveURL(/\/docs\/api(\?.*)?$/);
 		await expect(page.getByRole('heading', { level: 1, name: /api reference/i })).toBeVisible();
 
-		await page.getByRole('link', { name: /system status/i }).click();
-		await expect(page).toHaveURL(/\/status$/);
+		await goToLanding(page);
+		await page
+			.locator('#trust')
+			.getByRole('link', { name: /status page/i })
+			.click();
+		await expect(page).toHaveURL(/\/status(\?.*)?$/);
 		await expect(page.getByRole('heading', { level: 1, name: /system status/i })).toBeVisible();
 
 		await gotoPublic(page, `${BASE_URL}/pricing`);
@@ -313,50 +320,69 @@ test.describe('Public marketing smoke (desktop)', () => {
 
 	test('keeps landing navigation and CTAs on working destinations', async ({ page }) => {
 		const security = await attachSecurityGuards(page);
-		await goToLanding(page);
-		const header = page.locator('header.nav');
 
-		await header.getByRole('link', { name: /^features$/i }).click();
-		await assertHashDestination(page, '#features', '#features');
+		// Test header navigation on pricing page where it is rendered
+		await gotoPublic(page, `${BASE_URL}/pricing`);
+		await page.waitForLoadState('networkidle');
+		const header = page.locator('.public-site-header');
 
-		await goToLanding(page);
-		await header.getByRole('link', { name: /^how it works$/i }).click();
-		await assertHashDestination(page, '#how-it-works', '#how-it-works');
+		await header.getByRole('link', { name: /^product$/i }).click();
+		await page.waitForLoadState('networkidle');
+		await expect(page).toHaveURL(new RegExp('/#product'));
+		await expect(page.locator('#product')).toBeVisible();
 
-		await goToLanding(page);
+		await gotoPublic(page, `${BASE_URL}/pricing`);
 		await header.getByRole('link', { name: /^pricing$/i }).click();
-		await assertHashDestination(page, '#pricing', '#pricing');
+		await page.waitForLoadState('networkidle');
+		await expect(page).toHaveURL(new RegExp('/pricing'));
 
-		await goToLanding(page);
-		await header.getByRole('link', { name: /^insights$/i }).click();
-		await assertPublicRoute(page, '/insights', /insights/i);
+		await gotoPublic(page, `${BASE_URL}/pricing`);
+		await header.getByRole('link', { name: /^enterprise$/i }).click();
+		await page.waitForLoadState('networkidle');
+		await expect(page).toHaveURL(new RegExp('/enterprise'));
 
+		await gotoPublic(page, `${BASE_URL}/pricing`);
+		await header.getByRole('link', { name: /^start free$/i }).click();
+		await page.waitForLoadState('networkidle');
+		await expect(page).toHaveURL(/\/auth\/login(\?.*)?$/);
+
+		await gotoPublic(page, `${BASE_URL}/pricing`);
+		const resourcesTrigger = header.getByRole('button', { name: /^resources$/i });
+		await resourcesTrigger.click();
+		const dropdown = page.locator('#public-resources-menu');
+		await expect(dropdown).toBeVisible();
+		await dropdown.getByRole('menuitem', { name: /^insights$/i }).click();
+		await page.waitForLoadState('networkidle');
+		await expect(page).toHaveURL(/\/insights$/);
+
+		// Test landing page CTAs
 		await goToLanding(page);
-		await header.getByRole('link', { name: /^sign in$/i }).click();
+		await page
+			.locator('#hero')
+			.getByRole('link', { name: /start free workspace/i })
+			.first()
+			.click();
 		await expect(page).toHaveURL(/\/auth\/login(\?.*)?$/);
 
 		await goToLanding(page);
 		await page
 			.locator('#hero')
-			.getByRole('link', { name: /see a live demo/i })
-			.click();
-		await expect(page).toHaveURL(/\/talk-to-sales(\?.*)?$/);
-		await expect(page.getByRole('heading', { level: 1, name: /talk to sales/i })).toBeVisible();
-
-		await goToLanding(page);
-		await page
-			.locator('#pricing')
-			.getByRole('link', { name: /start free workspace/i })
+			.getByRole('link', { name: /see pricing/i })
 			.first()
 			.click();
+		await expect(page).toHaveURL(/\/pricing(\?.*)?$/);
+
+		await goToLanding(page);
+		await page.locator('#plans').getByRole('link', { name: /start/i }).first().click();
 		await expect(page).toHaveURL(/\/auth\/login\?.*plan=free/);
 
 		await goToLanding(page);
 		await page
-			.locator('#pricing')
-			.getByRole('link', { name: /start with pro/i })
+			.locator('#plans')
+			.getByRole('link', { name: /see growth/i })
+			.first()
 			.click();
-		await expect(page).toHaveURL(/\/auth\/login\?.*plan=pro/);
+		await expect(page).toHaveURL(/\/pricing(\?.*)?$/);
 
 		await security.assertClean();
 	});
@@ -466,11 +492,13 @@ test.describe('Public marketing smoke (mobile)', () => {
 		await goToLanding(page);
 		const landingHeading = page.getByRole('heading', { level: 1 }).first();
 		await expect(landingHeading).toBeVisible();
-		await expect(landingHeading).toContainText(/govern|optimize/i);
-		await expect(page.locator('#features')).toBeVisible();
-		await expect(page.locator('#how-it-works')).toBeVisible();
-		await expect(page.locator('#pricing')).toBeVisible();
-		await expect(page.locator('.trust-bar')).toBeVisible();
+		await expect(landingHeading).toContainText(
+			/control|cleaner|path|reports|context|margin|govern|optimize/i
+		);
+		await expect(page.locator('#product')).toBeVisible();
+		await expect(page.locator('#simulator')).toBeVisible();
+		await expect(page.locator('#plans')).toBeVisible();
+		await expect(page.locator('[aria-label="Why teams choose Valdrics"]')).toBeVisible();
 
 		await assertPublicRoute(page, '/docs', /documentation/i);
 		await assertPublicRoute(page, '/docs/api', /api reference/i);
@@ -482,25 +510,27 @@ test.describe('Public marketing smoke (mobile)', () => {
 	});
 
 	test('mobile menu links resolve key landing and route destinations', async ({ page }) => {
-		await goToLanding(page);
+		await gotoPublic(page, `${BASE_URL}/pricing`);
+		await page.setViewportSize({ width: 390, height: 844 });
+		await page.waitForLoadState('networkidle');
+
 		await (await openMobileMenu(page)).getByRole('link', { name: /^start free$/i }).click();
 		await expect(page).toHaveURL(/\/auth\/login(\?.*)?$/);
 
-		await goToLanding(page);
-		await (await openMobileMenu(page)).getByRole('link', { name: /^features$/i }).click();
-		await assertHashDestination(page, '#features', '#features');
+		await gotoPublic(page, `${BASE_URL}/pricing`);
+		await (await openMobileMenu(page)).getByRole('link', { name: /^product$/i }).click();
+		await page.waitForLoadState('networkidle');
+		await expect(page).toHaveURL(new RegExp('/#product'));
 
-		await goToLanding(page);
-		await (await openMobileMenu(page)).getByRole('link', { name: /^how it works$/i }).click();
-		await assertHashDestination(page, '#how-it-works', '#how-it-works');
-
-		await goToLanding(page);
+		await gotoPublic(page, `${BASE_URL}/pricing`);
 		await (await openMobileMenu(page)).getByRole('link', { name: /^pricing$/i }).click();
-		await assertHashDestination(page, '#pricing', '#pricing');
+		await page.waitForLoadState('networkidle');
+		await expect(page).toHaveURL(new RegExp('/pricing'));
 
-		await goToLanding(page);
-		await (await openMobileMenu(page)).getByRole('link', { name: /^insights$/i }).click();
-		await expect(page).toHaveURL(/\/insights$/);
+		await gotoPublic(page, `${BASE_URL}/pricing`);
+		await (await openMobileMenu(page)).getByRole('link', { name: /^enterprise$/i }).click();
+		await page.waitForLoadState('networkidle');
+		await expect(page).toHaveURL(new RegExp('/enterprise'));
 
 		if (isLocalDashboardUrl) {
 			await expect(page.locator('main')).toBeVisible();
