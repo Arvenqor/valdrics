@@ -10,7 +10,6 @@ from __future__ import annotations
 import pytest
 from fastapi import FastAPI
 from fastapi.routing import APIRouter
-from starlette.routing import Match, Mount, Route
 from starlette.types import Scope
 
 from app.shared.core.prometheus_compat import (
@@ -23,6 +22,7 @@ import prometheus_fastapi_instrumentator.routing as _pfi_routing
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_scope(path: str, method: str = "GET") -> Scope:
     """Create a minimal ASGI scope for route matching."""

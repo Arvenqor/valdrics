@@ -98,7 +98,7 @@ def apply_instrumentator_patch() -> None:
         return
 
     _pfi_routing._original_get_route_name = _pfi_routing._get_route_name  # type: ignore[attr-defined]
-    _pfi_routing._get_route_name = _get_route_name_patched  # type: ignore[attr-defined]
+    _pfi_routing._get_route_name = _get_route_name_patched
     _pfi_routing._VALDRICS_PATCHED = True  # type: ignore[attr-defined]
 
     logger.info(

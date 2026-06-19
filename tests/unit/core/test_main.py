@@ -18,7 +18,9 @@ from app.main import (
     _resolve_csrf_settings,
 )
 from app.main import settings
-from app.shared.core.enforcement_http_boundary import enforcement_domain_exception_handler
+from app.shared.core.enforcement_http_boundary import (
+    enforcement_domain_exception_handler,
+)
 from app.shared.core import app_runtime
 from app.shared.core.exceptions import ValdricsException
 from app.modules.enforcement.domain.action_errors import EnforcementDomainError
@@ -204,6 +206,7 @@ async def test_valdrics_exception_handler_records_metrics():
 
         assert response.status_code == 418
         from typing import cast
+
         body = json.loads(cast(bytes, response.body))
         assert body["error"]["code"] == "oops"
 
@@ -222,6 +225,7 @@ async def test_http_exception_handler_records_metrics():
 
         assert response.status_code == 404
         from typing import cast
+
         body = json.loads(cast(bytes, response.body))
         assert body["code"] == "HTTP_ERROR"
 
@@ -243,6 +247,7 @@ async def test_http_exception_handler_sanitizes_5xx_in_production():
 
     assert response.status_code == 500
     from typing import cast
+
     body = json.loads(cast(bytes, response.body))
     assert body["code"] == "HTTP_ERROR"
     assert body["message"] == "An unexpected internal error occurred"
@@ -291,6 +296,7 @@ async def test_csrf_exception_handler_records_metrics():
 
         assert response.status_code == 403
         from typing import cast
+
         body = json.loads(cast(bytes, response.body))
         assert body["error"]["code"] == "csrf_error"
 
@@ -387,6 +393,7 @@ async def test_csrf_middleware_enforces_when_cookie_present_and_no_bearer():
             response = await csrf_protect_middleware(request, call_next)
         assert response.status_code == 400
         from typing import cast
+
         body = json.loads(cast(bytes, response.body))
         assert body["error"]["code"] == "csrf_error"
     finally:
@@ -405,7 +412,7 @@ async def test_csrf_middleware_uses_scope_path_not_host_poisoned_url_path():
             (b"cookie", b"session=fake; fastapi-csrf-token=fake"),
         ],
     )
-    assert request.url.path == "/api/v1/public"
+    assert request.url.path == "/api/v1/settings/notifications"
 
     async def call_next(_request: Request):  # pragma: no cover
         raise AssertionError("call_next should not be reached if CSRF blocks")
@@ -518,6 +525,7 @@ async def test_validation_exception_handler_sanitizes_non_serializable_values():
     response = await validation_exception_handler(request, exc)
     assert response.status_code == 422
     from typing import cast
+
     body = json.loads(cast(bytes, response.body))
     details = body["details"][0]
     assert isinstance(details["ctx"]["error"], str)
@@ -572,7 +580,9 @@ def test_stop_emissions_tracker_records_valid_emissions() -> None:
     tracker = MagicMock()
     tracker.stop.return_value = 1.75
 
-    with patch("app.shared.core.app_runtime.record_runtime_carbon_emissions") as mock_record:
+    with patch(
+        "app.shared.core.app_runtime.record_runtime_carbon_emissions"
+    ) as mock_record:
         app_runtime._stop_emissions_tracker(tracker)
 
     tracker.stop.assert_called_once_with()
@@ -584,7 +594,9 @@ def test_stop_emissions_tracker_logs_failure_without_crashing() -> None:
     tracker.stop.side_effect = RuntimeError("tracker failed")
 
     with (
-        patch("app.shared.core.app_runtime.record_runtime_carbon_emissions") as mock_record,
+        patch(
+            "app.shared.core.app_runtime.record_runtime_carbon_emissions"
+        ) as mock_record,
         patch("app.shared.core.app_runtime.logger") as mock_logger,
     ):
         app_runtime._stop_emissions_tracker(tracker)
