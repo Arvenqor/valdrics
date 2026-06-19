@@ -1,18 +1,18 @@
 {
   "approvals": {
-    "approval_record_ref": "PKG-FIN-APPROVAL-2026-04-13",
-    "approved_at": "2026-04-13T11:20:14+00:00",
+    "approval_record_ref": "PKG-FIN-APPROVAL-2026-06-19",
+    "approved_at": "2026-06-18T23:50:42+00:00",
     "finance_owner": "finance-owner@valdrics.local",
     "go_to_market_owner": "gtm-owner@valdrics.local",
     "governance_mode": "founder_acting_roles_prelaunch",
     "product_owner": "product-owner@valdrics.local"
   },
-  "captured_at": "2026-04-13T12:20:14+00:00",
+  "captured_at": "2026-06-19T00:50:42+00:00",
   "decision_backlog": {
     "decision_items": [
       {
-        "approval_record_ref": "PKG-004-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "PKG-004-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "PKG-004 policy resolution approved for release governance.",
         "id": "PKG-004",
         "launch_blocking": true,
@@ -21,8 +21,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "PKG-005-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "PKG-005-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "PKG-005 policy resolution approved for release governance.",
         "id": "PKG-005",
         "launch_blocking": true,
@@ -31,8 +31,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "PKG-009-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "PKG-009-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "PKG-009 policy resolution approved for release governance.",
         "id": "PKG-009",
         "launch_blocking": true,
@@ -41,8 +41,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "PKG-011-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "PKG-011-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "PKG-011 policy resolution approved for release governance.",
         "id": "PKG-011",
         "launch_blocking": true,
@@ -51,8 +51,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "PKG-012-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "PKG-012-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "PKG-012 policy resolution approved for release governance.",
         "id": "PKG-012",
         "launch_blocking": true,
@@ -61,8 +61,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "PKG-013-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "PKG-013-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "PKG-013 policy resolution approved for release governance.",
         "id": "PKG-013",
         "launch_blocking": false,
@@ -71,8 +71,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "PKG-016-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "PKG-016-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "PKG-016 policy resolution approved for release governance.",
         "id": "PKG-016",
         "launch_blocking": false,
@@ -81,8 +81,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "PKG-017-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "PKG-017-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "PKG-017 policy resolution approved for release governance.",
         "id": "PKG-017",
         "launch_blocking": false,
@@ -91,8 +91,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "PKG-018-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "PKG-018-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "PKG-018 policy resolution approved for release governance.",
         "id": "PKG-018",
         "launch_blocking": false,
@@ -101,8 +101,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "PKG-019-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "PKG-019-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "PKG-019 policy resolution approved for release governance.",
         "id": "PKG-019",
         "launch_blocking": false,
@@ -111,8 +111,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "PKG-021-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "PKG-021-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "PKG-021 policy resolution approved for release governance.",
         "id": "PKG-021",
         "launch_blocking": false,
@@ -121,8 +121,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "PKG-022-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "PKG-022-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "PKG-022 policy resolution approved for release governance.",
         "id": "PKG-022",
         "launch_blocking": false,
@@ -131,8 +131,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "PKG-023-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "PKG-023-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "PKG-023 policy resolution approved for release governance.",
         "id": "PKG-023",
         "launch_blocking": false,
@@ -141,8 +141,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "PKG-024-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "PKG-024-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "PKG-024 policy resolution approved for release governance.",
         "id": "PKG-024",
         "launch_blocking": false,
@@ -151,8 +151,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "PKG-025-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "PKG-025-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "PKG-025 policy resolution approved for release governance.",
         "id": "PKG-025",
         "launch_blocking": false,
@@ -161,8 +161,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "PKG-026-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "PKG-026-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "PKG-026 policy resolution approved for release governance.",
         "id": "PKG-026",
         "launch_blocking": false,
@@ -171,8 +171,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "PKG-027-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "PKG-027-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "PKG-027 policy resolution approved for release governance.",
         "id": "PKG-027",
         "launch_blocking": false,
@@ -181,8 +181,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "PKG-028-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "PKG-028-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "PKG-028 policy resolution approved for release governance.",
         "id": "PKG-028",
         "launch_blocking": false,
@@ -191,8 +191,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "PKG-029-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "PKG-029-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "PKG-029 policy resolution approved for release governance.",
         "id": "PKG-029",
         "launch_blocking": false,
@@ -200,11 +200,11 @@
         "owner_function": "product",
         "resolution": "scheduled_postlaunch",
         "success_criteria": "Joint finance and product sign-off captured in next monthly operating review.",
-        "target_date": "2026-05-13"
+        "target_date": "2026-07-18"
       },
       {
-        "approval_record_ref": "PKG-030-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "PKG-030-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "PKG-030 policy resolution approved for release governance.",
         "id": "PKG-030",
         "launch_blocking": false,
@@ -212,11 +212,11 @@
         "owner_function": "product",
         "resolution": "scheduled_postlaunch",
         "success_criteria": "Joint finance and product sign-off captured in next monthly operating review.",
-        "target_date": "2026-05-13"
+        "target_date": "2026-07-18"
       },
       {
-        "approval_record_ref": "PKG-031-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "PKG-031-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "PKG-031 policy resolution approved for release governance.",
         "id": "PKG-031",
         "launch_blocking": false,
@@ -224,11 +224,11 @@
         "owner_function": "product",
         "resolution": "scheduled_postlaunch",
         "success_criteria": "Joint finance and product sign-off captured in next monthly operating review.",
-        "target_date": "2026-05-13"
+        "target_date": "2026-07-18"
       },
       {
-        "approval_record_ref": "PKG-032-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "PKG-032-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "PKG-032 policy resolution approved for release governance.",
         "id": "PKG-032",
         "launch_blocking": false,
@@ -237,8 +237,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "FIN-001-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "FIN-001-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "FIN-001 policy resolution approved for release governance.",
         "id": "FIN-001",
         "launch_blocking": true,
@@ -247,8 +247,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "FIN-002-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "FIN-002-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "FIN-002 policy resolution approved for release governance.",
         "id": "FIN-002",
         "launch_blocking": true,
@@ -257,8 +257,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "FIN-003-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "FIN-003-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "FIN-003 policy resolution approved for release governance.",
         "id": "FIN-003",
         "launch_blocking": true,
@@ -267,8 +267,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "FIN-004-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "FIN-004-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "FIN-004 policy resolution approved for release governance.",
         "id": "FIN-004",
         "launch_blocking": false,
@@ -277,8 +277,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "FIN-005-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "FIN-005-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "FIN-005 policy resolution approved for release governance.",
         "id": "FIN-005",
         "launch_blocking": false,
@@ -287,8 +287,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "FIN-006-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "FIN-006-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "FIN-006 policy resolution approved for release governance.",
         "id": "FIN-006",
         "launch_blocking": false,
@@ -297,8 +297,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "FIN-007-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "FIN-007-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "FIN-007 policy resolution approved for release governance.",
         "id": "FIN-007",
         "launch_blocking": false,
@@ -307,8 +307,8 @@
         "resolution": "locked_prelaunch"
       },
       {
-        "approval_record_ref": "FIN-008-APPROVAL-2026-04-13",
-        "approved_at": "2026-04-13T11:20:14+00:00",
+        "approval_record_ref": "FIN-008-APPROVAL-2026-06-19",
+        "approved_at": "2026-06-18T23:50:42+00:00",
         "decision_summary": "FIN-008 policy resolution approved for release governance.",
         "id": "FIN-008",
         "launch_blocking": false,
@@ -408,8 +408,8 @@
     ]
   },
   "window": {
-    "end": "2026-03-31T23:59:59.999999+00:00",
-    "label": "2026-03-01_2026-03-31",
-    "start": "2026-03-01T00:00:00+00:00"
+    "end": "2026-05-31T23:59:59.999999+00:00",
+    "label": "2026-05-01_2026-05-31",
+    "start": "2026-05-01T00:00:00+00:00"
   }
 }
