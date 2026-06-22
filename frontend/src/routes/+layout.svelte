@@ -137,12 +137,20 @@
 		return `${normalizedBase}${normalizedPath}`;
 	}
 
+	function getAbsoluteAppPath(path: string): string {
+		const baseStr = String(base);
+		const cleanBase = (baseStr === '.' || baseStr === './') ? '' : baseStr;
+		const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+		return `${cleanBase}${normalizedPath}`;
+	}
+
 	function toAuthPath(path: string): string {
 		return buildPublicAuthHref(toAppPath(path), $page.url);
 	}
 
 	function resolvePublicTone(pathname: string): PublicTone {
-		return pathname === toAppPath('/') ? 'landing' : 'default';
+		const target = getAbsoluteAppPath('/');
+		return pathname === target || pathname === target + '/' || pathname + '/' === target ? 'landing' : 'default';
 	}
 
 	let publicTone = $derived(resolvePublicTone($page.url.pathname));
@@ -150,13 +158,13 @@
 	let canonicalHref = $derived(new URL($page.url.pathname, $page.url.origin).toString());
 	let shouldNoIndex = $derived(
 		!!data.user ||
-			$page.url.pathname === toAppPath('/auth') ||
-			$page.url.pathname.startsWith(`${toAppPath('/auth')}/`)
+			$page.url.pathname === getAbsoluteAppPath('/auth') ||
+			$page.url.pathname.startsWith(`${getAbsoluteAppPath('/auth')}/`)
 	);
 
 	function isActive(href: string): boolean {
-		const resolvedHref = toAppPath(href);
-		if (resolvedHref === toAppPath('/')) {
+		const resolvedHref = getAbsoluteAppPath(href);
+		if (resolvedHref === getAbsoluteAppPath('/')) {
 			return $page.url.pathname === resolvedHref;
 		}
 		return $page.url.pathname.startsWith(resolvedHref);

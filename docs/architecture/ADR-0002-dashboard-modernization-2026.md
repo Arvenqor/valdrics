@@ -45,7 +45,7 @@ Modernize the `frontend/` SvelteKit application around an actively maintained, E
 
 ## 2026 Modernization Plan
 
-This plan treats `new_frontend/` as the non-deployable design/product source of truth for the new
+This plan treats `frontend_reference_handoff/` as the non-deployable design/product source of truth for the new
 Valdrics frontend. The production application is `frontend/`: the goal is to carry the same visual
 language, density, interactions, and product intent into production without copying brittle handoff code.
 The old `dashboard/` tree must not return as a compatibility surface. Migration work must either move a
@@ -81,7 +81,7 @@ As of June 1, 2026, the plan is aligned to primary project and security sources:
 
 ### Non-Negotiable Principles
 
-1. `frontend/` is the single deployable app. `new_frontend/` remains the temporary design/product source
+1. `frontend/` is the single deployable app. `frontend_reference_handoff/` remains the temporary design/product source
    of truth until every useful artifact is either migrated with visual fidelity, deliberately deferred
    behind a real blocker, or rejected with evidence, then it is removed.
 2. No backward-compatible `dashboard/` alias, duplicate app root, or adapter shim is allowed after cutover.
@@ -119,7 +119,7 @@ Acceptance:
 
 ### Phase 1: Codify the Valdrics Design System
 
-Goal: migrate the `new_frontend/` look into production with fidelity, without copying brittle handoff
+Goal: migrate the `frontend_reference_handoff/` look into production with fidelity, without copying brittle handoff
 code.
 
 - Extract tokens from the reference: dark shell, cyan/green/yellow/red semantic colors, compact badges,
@@ -132,15 +132,15 @@ code.
   stat chips, filter tabs, status badges, action buttons, empty states, and detail rows.
 - Keep visible text domain-specific and workflow-oriented. Do not add marketing hero copy inside app routes.
 - Audit CSS for one-hue drift and mobile overflow after each slice.
-- Record any visual or interaction deviation from `new_frontend/` as an intentional decision with the
+- Record any visual or interaction deviation from `frontend_reference_handoff/` as an intentional decision with the
   blocker that forced it, such as a missing backend contract, security constraint, or accessibility fix.
 
 Acceptance:
 
-- Shared tokens live in the existing app CSS/token system, not copied `new_frontend` variables.
+- Shared tokens live in the existing app CSS/token system, not copied `frontend_reference_handoff` variables.
 - New components stay below preferred module budgets where practical.
 - Browser screenshots show no text overlap, no horizontal overflow, and no giant mobile artifacts.
-- Browser QA includes a visual fidelity check against the relevant `new_frontend` source.
+- Browser QA includes a visual fidelity check against the relevant `frontend_reference_handoff` source.
 
 ### Phase 2: Migrate Authenticated App Surfaces by Risk
 
@@ -184,7 +184,7 @@ Acceptance per route:
 
 Goal: make the frontend honest about backend capability.
 
-- Treat `new_frontend/valdrics-backend-requirements.html` as product input, not implementation fact.
+- Treat `frontend_reference_handoff/valdrics-backend-requirements.html` as product input, not implementation fact.
 - For each migrated control, identify the current backend route, schema, auth role, timeout, rate limit,
   and error contract.
 - If the backend contract is missing, either create the backend contract in the same slice with tests or
@@ -253,9 +253,9 @@ Acceptance:
 
 Goal: remove ambiguity once migration is complete.
 
-- Delete migrated handoff files from `new_frontend/` after each file is either implemented or rejected in
+- Keep migrated handoff files under the renamed `frontend_reference_handoff/` archive until Product approves final removal after each file is either implemented or rejected in
   an evidence note.
-- Delete `new_frontend/` entirely when the disposition register reaches zero remaining actionable files.
+- Remove `frontend_reference_handoff/` only after the disposition register reaches zero remaining actionable files and Product explicitly approves final cleanup.
 - Remove dashboard-named scripts/tests/docs after their frontend replacements are validated.
 - Keep only production code, evidence, and architecture records.
 

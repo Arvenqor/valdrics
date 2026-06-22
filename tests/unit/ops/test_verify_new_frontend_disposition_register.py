@@ -30,8 +30,8 @@ def _write_register(repo_root: Path, entries: list[dict]) -> Path:
 def test_verify_register_accepts_complete_pending_and_migrated_entries(
     tmp_path: Path,
 ) -> None:
-    _write(tmp_path / "new_frontend/Sidebar.svelte", "<nav />")
-    _write(tmp_path / "new_frontend/Future.svelte", "<section />")
+    _write(tmp_path / "frontend_reference_handoff/Sidebar.svelte", "<nav />")
+    _write(tmp_path / "frontend_reference_handoff/Future.svelte", "<section />")
     _write(
         tmp_path / "frontend/src/routes/layout/AppAuthenticatedShell.svelte",
         "<aside />",
@@ -40,7 +40,7 @@ def test_verify_register_accepts_complete_pending_and_migrated_entries(
         tmp_path,
         [
             {
-                "source_file": "new_frontend/Sidebar.svelte",
+                "source_file": "frontend_reference_handoff/Sidebar.svelte",
                 "status": "migrated",
                 "decision": "Migrated into the authenticated shell.",
                 "target_paths": [
@@ -50,7 +50,7 @@ def test_verify_register_accepts_complete_pending_and_migrated_entries(
                 "deletion_blocker": "",
             },
             {
-                "source_file": "new_frontend/Future.svelte",
+                "source_file": "frontend_reference_handoff/Future.svelte",
                 "status": "pending",
                 "decision": "Pending contract mapping.",
                 "target_paths": [],
@@ -66,7 +66,7 @@ def test_verify_register_accepts_complete_pending_and_migrated_entries(
 def test_verify_register_fails_when_new_frontend_file_is_missing_from_register(
     tmp_path: Path,
 ) -> None:
-    _write(tmp_path / "new_frontend/Sidebar.svelte", "<nav />")
+    _write(tmp_path / "frontend_reference_handoff/Sidebar.svelte", "<nav />")
     register_path = _write_register(tmp_path, [])
 
     errors = verify_register(repo_root=tmp_path, register_path=register_path)
@@ -77,12 +77,12 @@ def test_verify_register_fails_when_new_frontend_file_is_missing_from_register(
 def test_verify_register_fails_when_migrated_target_does_not_exist(
     tmp_path: Path,
 ) -> None:
-    _write(tmp_path / "new_frontend/Sidebar.svelte", "<nav />")
+    _write(tmp_path / "frontend_reference_handoff/Sidebar.svelte", "<nav />")
     register_path = _write_register(
         tmp_path,
         [
             {
-                "source_file": "new_frontend/Sidebar.svelte",
+                "source_file": "frontend_reference_handoff/Sidebar.svelte",
                 "status": "migrated",
                 "decision": "Migrated into the authenticated shell.",
                 "target_paths": ["frontend/src/routes/layout/Missing.svelte"],
@@ -95,7 +95,7 @@ def test_verify_register_fails_when_migrated_target_does_not_exist(
     errors = verify_register(repo_root=tmp_path, register_path=register_path)
 
     assert (
-        "new_frontend/Sidebar.svelte: target path does not exist: frontend/src/routes/layout/Missing.svelte"
+        "frontend_reference_handoff/Sidebar.svelte: target path does not exist: frontend/src/routes/layout/Missing.svelte"
         in errors
     )
 
@@ -103,12 +103,12 @@ def test_verify_register_fails_when_migrated_target_does_not_exist(
 def test_verify_register_fails_when_pending_entry_has_no_blocker(
     tmp_path: Path,
 ) -> None:
-    _write(tmp_path / "new_frontend/Future.svelte", "<section />")
+    _write(tmp_path / "frontend_reference_handoff/Future.svelte", "<section />")
     register_path = _write_register(
         tmp_path,
         [
             {
-                "source_file": "new_frontend/Future.svelte",
+                "source_file": "frontend_reference_handoff/Future.svelte",
                 "status": "pending",
                 "decision": "Pending contract mapping.",
                 "target_paths": [],
@@ -121,7 +121,7 @@ def test_verify_register_fails_when_pending_entry_has_no_blocker(
     errors = verify_register(repo_root=tmp_path, register_path=register_path)
 
     assert (
-        "new_frontend/Future.svelte: pending entries require deletion_blocker" in errors
+        "frontend_reference_handoff/Future.svelte: pending entries require deletion_blocker" in errors
     )
 
 
@@ -136,7 +136,7 @@ def test_verify_register_accepts_archived_sources_when_handoff_root_is_absent(
         tmp_path,
         [
             {
-                "source_file": "new_frontend/Sidebar.svelte",
+                "source_file": "frontend_reference_handoff/Sidebar.svelte",
                 "status": "migrated",
                 "decision": "Archived handoff source after migration.",
                 "target_paths": [
@@ -149,6 +149,64 @@ def test_verify_register_accepts_archived_sources_when_handoff_root_is_absent(
     )
 
     assert verify_register(repo_root=tmp_path, register_path=register_path) == []
+
+
+def test_verify_register_accepts_deleted_migrated_source_when_handoff_root_remains(
+    tmp_path: Path,
+) -> None:
+    _write(tmp_path / "frontend_reference_handoff/Future.svelte", "<section />")
+    _write(
+        tmp_path / "frontend/src/routes/layout/AppAuthenticatedShell.svelte",
+        "<aside />",
+    )
+    register_path = _write_register(
+        tmp_path,
+        [
+            {
+                "source_file": "frontend_reference_handoff/Sidebar.svelte",
+                "status": "migrated",
+                "decision": "Archived handoff source after migration.",
+                "target_paths": [
+                    "frontend/src/routes/layout/AppAuthenticatedShell.svelte"
+                ],
+                "evidence": ["browser QA"],
+                "deletion_blocker": "",
+            },
+            {
+                "source_file": "frontend_reference_handoff/Future.svelte",
+                "status": "pending",
+                "decision": "Pending contract mapping.",
+                "target_paths": [],
+                "evidence": [],
+                "deletion_blocker": "Requires backend contract mapping.",
+            },
+        ],
+    )
+
+    assert verify_register(repo_root=tmp_path, register_path=register_path) == []
+
+
+def test_verify_register_fails_when_pending_source_is_deleted(
+    tmp_path: Path,
+) -> None:
+    _write(tmp_path / "frontend_reference_handoff/.keep", "")
+    register_path = _write_register(
+        tmp_path,
+        [
+            {
+                "source_file": "frontend_reference_handoff/Future.svelte",
+                "status": "pending",
+                "decision": "Pending contract mapping.",
+                "target_paths": [],
+                "evidence": [],
+                "deletion_blocker": "Requires backend contract mapping.",
+            }
+        ],
+    )
+
+    errors = verify_register(repo_root=tmp_path, register_path=register_path)
+
+    assert "frontend_reference_handoff/Future.svelte: pending source file does not exist" in errors
 
 
 def test_main_resolves_repo_relative_register_path() -> None:

@@ -32,12 +32,13 @@ describe('landing pricing contract', () => {
 
 	it('keeps handoff-only pricing and trial claims out of landing sources', () => {
 		const sourcePaths = [
-			'src/lib/landing/LandingFaqPricing.svelte',
-			'src/lib/landing/LandingHero.svelte',
-			'src/lib/landing/LandingCtaFooter.svelte',
-			'src/lib/landing/landingContent.ts',
+			'src/lib/components/LandingHero.svelte',
+			'src/lib/components/landing/LandingHeroView.svelte',
+			'src/lib/components/landing/LandingHeroBelowFold.svelte',
 			'src/lib/components/landing/LandingPlansSection.svelte',
-			'src/lib/components/landing/LandingHeroTrustSections.svelte'
+			'src/lib/components/landing/LandingHeroTrustSections.svelte',
+			'src/lib/landing/LandingCtaFooter.svelte',
+			'src/lib/landing/landingContent.ts'
 		];
 
 		const source = sourcePaths

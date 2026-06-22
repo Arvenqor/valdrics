@@ -118,9 +118,9 @@
 	heroVariant="narrow"
 >
 	{#snippet heroActions()}
-		<a href="#sales-inquiry-form" class="btn btn-primary">Start sales inquiry</a>
-		<a href={`${base}/enterprise`} class="btn btn-secondary">Explore Enterprise Overview</a>
-		<a href={startFreeInsteadHref} class="btn btn-secondary">Start Free Instead</a>
+		<a href="#sales-inquiry-form" class="btn btn-primary material-button-3d">Start sales inquiry</a>
+		<a href={`${base}/enterprise`} class="btn btn-secondary material-button-3d">Explore Enterprise Overview</a>
+		<a href={startFreeInsteadHref} class="btn btn-secondary material-button-3d">Start Free Instead</a>
 	{/snippet}
 
 	{#snippet heroMeta()}
@@ -293,12 +293,12 @@
 							<div class="sales-page__actions">
 								<button
 									type="submit"
-									class="btn btn-primary"
+									class="btn btn-primary material-button-3d"
 									disabled={submitState === 'submitting'}
 								>
 									{submitState === 'submitting' ? 'Sending inquiry…' : 'Send inquiry'}
 								</button>
-								<a href={salesMailHref} class="btn btn-secondary">Email instead</a>
+								<a href={salesMailHref} class="btn btn-secondary material-button-3d">Email instead</a>
 							</div>
 						</div>
 					</form>
@@ -342,9 +342,9 @@
 					</p>
 				</div>
 				<div class="public-page__actions-row">
-					<a href={`${base}/enterprise`} class="btn btn-primary">Enterprise Overview</a>
-					<a href={`${base}/proof`} class="btn btn-secondary">Open Proof Pack</a>
-					<a href={`${base}/resources`} class="btn btn-secondary">Browse Resources</a>
+					<a href={`${base}/enterprise`} class="btn btn-primary material-button-3d">Enterprise Overview</a>
+					<a href={`${base}/proof`} class="btn btn-secondary material-button-3d">Open Proof Pack</a>
+					<a href={`${base}/resources`} class="btn btn-secondary material-button-3d">Browse Resources</a>
 				</div>
 			</div>
 		</section>

@@ -3,7 +3,7 @@
 - Status: Active backlog
 - Date: June 1, 2026
 - Parent plan: [Frontend Modernization Execution Plan 2026+](frontend-modernization-execution-plan-2026.md)
-- Scope: `frontend/` production app, `new_frontend/` design-source disposition, frontend/backend route contracts
+- Scope: `frontend/` production app, `frontend_reference_handoff/` design-source disposition, frontend/backend route contracts
 
 ## Operating Rule
 
@@ -11,7 +11,7 @@ This backlog is executable only under the non-negotiable rules in the parent pla
 frontend app, no legacy `dashboard/` compatibility root, no stubs, no fake data, no guessed contracts, no
 blind handoff copying, and no replacement of the current Valdrics logo geometry.
 
-Using `new_frontend/` means every handoff file receives an explicit disposition and the production UI
+Using `frontend_reference_handoff/` means every handoff file receives an explicit disposition and the production UI
 must carry the same Valdrics visual direction, density, and interaction intent wherever the product
 contract supports it. A handoff file may be migrated directly, deferred behind a real backend/product
 blocker, or rejected with evidence. Existing production frontend features remain first-class: they must
@@ -19,12 +19,12 @@ be preserved unless a replacement is tested, contract-backed, visually faithful 
 system, and better for the user. The modernization target is one uniform `frontend/` experience that
 carries forward the current working product while adopting the new Valdrics design route by route.
 Routes that exist only in the current production app are in scope too. They should be modernized from
-the closest completed Valdrics pattern, not left behind because `new_frontend/` lacks a matching file.
+the closest completed Valdrics pattern, not left behind because `frontend_reference_handoff/` lacks a matching file.
 
 ## Current Baseline
 
 - Production app root: `frontend/`
-- Reference folder: `new_frontend/`
+- Reference folder: `frontend_reference_handoff/`
 - Completed slices: authenticated shell, approvals, dashboard overview, onboarding, savings,
   inventory/connections reconciliation, public landing/marketing, policies/settings
 - Next route slice: auth visual alignment, ownership/identity disposition, then production-only route
@@ -77,11 +77,11 @@ Acceptance:
 
 ### FME-001: Create Handoff Disposition Register
 
-Objective: track every `new_frontend/` file to migration or rejection.
+Objective: track every `frontend_reference_handoff/` file to migration or rejection.
 
 Tasks:
 
-1. Generate a machine-readable register for every file in `new_frontend/`.
+1. Generate a machine-readable register for every file in `frontend_reference_handoff/`.
 2. Fields: source file, target route/module, status, decision, contract evidence, owner, deletion blocker.
 3. Seed completed statuses for authenticated shell and approvals.
 4. Fail CI if a reference file is deleted without disposition or a disposition references a missing target.
@@ -90,7 +90,7 @@ Tasks:
 
 Acceptance:
 
-- Every `new_frontend/` file has a disposition row.
+- Every `frontend_reference_handoff/` file has a disposition row.
 - Completed rows include target files and verification evidence.
 - Pending rows identify a precise blocker.
 
@@ -106,11 +106,11 @@ contracts by guesswork.
 
 Reference inputs:
 
-- `new_frontend/valdrics-dashboard-page.svelte`
-- `new_frontend/SpendTopologyChart.svelte`
-- `new_frontend/PolicyHealthRings.svelte`
-- `new_frontend/InventoryPanel.svelte`
-- `new_frontend/SavingsPanel.svelte`
+- `frontend_reference_handoff/valdrics-dashboard-page.svelte`
+- `frontend_reference_handoff/SpendTopologyChart.svelte`
+- `frontend_reference_handoff/PolicyHealthRings.svelte`
+- `frontend_reference_handoff/InventoryPanel.svelte`
+- `frontend_reference_handoff/SavingsPanel.svelte`
 
 Production targets:
 
@@ -183,8 +183,8 @@ Objective: modernize onboarding visuals while preserving real provider setup con
 
 Reference inputs:
 
-- `new_frontend/valdrics-onboarding-page.svelte`
-- `new_frontend/valdrics-onboarding.html`
+- `frontend_reference_handoff/valdrics-onboarding-page.svelte`
+- `frontend_reference_handoff/valdrics-onboarding.html`
 
 Production targets:
 
@@ -218,8 +218,8 @@ Objective: migrate savings visual direction only where reporting contracts exist
 
 Reference inputs:
 
-- `new_frontend/valdrics-savings-page.svelte`
-- `new_frontend/SavingsPanel.svelte`
+- `frontend_reference_handoff/valdrics-savings-page.svelte`
+- `frontend_reference_handoff/SavingsPanel.svelte`
 
 Production targets:
 
@@ -254,8 +254,8 @@ model explicit, while keeping connections as the source-of-truth setup surface.
 
 Reference inputs:
 
-- `new_frontend/valdrics-inventory-page.svelte`
-- `new_frontend/InventoryPanel.svelte`
+- `frontend_reference_handoff/valdrics-inventory-page.svelte`
+- `frontend_reference_handoff/InventoryPanel.svelte`
 
 Production targets:
 
@@ -287,7 +287,7 @@ Objective: reconcile policy UI with enforcement/settings contracts.
 
 Reference inputs:
 
-- `new_frontend/valdrics-policies-page.svelte`
+- `frontend_reference_handoff/valdrics-policies-page.svelte`
 
 Production targets:
 
@@ -321,11 +321,11 @@ Objective: migrate useful auth/marketing references without weakening existing p
 
 Reference inputs:
 
-- `new_frontend/valdrics-login-page.svelte`
-- `new_frontend/valdrics-signup-page.svelte`
-- `new_frontend/valdrics-landing-page.svelte`
-- `new_frontend/valdrics-marketing-layout.svelte`
-- `new_frontend/valdrics-app-html.html`
+- `frontend_reference_handoff/valdrics-login-page.svelte`
+- `frontend_reference_handoff/valdrics-signup-page.svelte`
+- `frontend_reference_handoff/valdrics-landing-page.svelte`
+- `frontend_reference_handoff/valdrics-marketing-layout.svelte`
+- `frontend_reference_handoff/valdrics-app-html.html`
 
 Production targets:
 
@@ -340,17 +340,17 @@ Tasks:
 4. Browser QA public routes and auth entry.
 5. Preserve the current pricing source of truth from `frontend/src/lib/pricing/publicPlans.ts`
    through `frontend/src/routes/pricing`; pricing amounts, plan names, billing cadence, and signup
-   intent from `new_frontend/` must be rejected unless Product deliberately updates the production
+   intent from `frontend_reference_handoff/` must be rejected unless Product deliberately updates the production
    pricing contract and its tests.
 
 App shell disposition:
 
-- `new_frontend/valdrics-app-html.html` is resolved by the production `frontend/src/app.html`
+- `frontend_reference_handoff/valdrics-app-html.html` is resolved by the production `frontend/src/app.html`
   shell and hygiene gates. Keep Valdrics metadata, first-party icons, manifest, and SvelteKit
   placeholders; reject handoff Google Fonts, inline FOUC styles, inline no-JS scripts, and inline
   wrapper styles under the production strict-CSP policy.
 - Pricing source of truth: keep the current production Free, Starter, Growth, and Pro plan contract
-  from `frontend/src/lib/pricing/publicPlans.ts`. `new_frontend` can inform pricing page visual
+  from `frontend/src/lib/pricing/publicPlans.ts`. `frontend_reference_handoff` can inform pricing page visual
   treatment, layout density, and interaction polish, but not pricing values or plan availability.
 - Landing/marketing disposition: the production landing now uses the current pricing module for public
   pricing cards and structured data, keeps public auth-intent URLs under `/auth/login`, and renders the
@@ -369,7 +369,7 @@ Status: route disposition register created on June 6, 2026. Route-by-route moder
 merge, and retire decisions remain pending for routes marked `pending` in
 `docs/architecture/frontend_route_disposition_register.json`.
 
-Objective: upgrade current production routes that have no direct `new_frontend/` source so the final
+Objective: upgrade current production routes that have no direct `frontend_reference_handoff/` source so the final
 application is visually and operationally uniform.
 
 Reference inputs:

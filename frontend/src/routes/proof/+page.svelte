@@ -77,15 +77,15 @@
 >
 	{#snippet heroActions()}
 		{#if buyingMotion === 'enterprise_first'}
-			<a href={enterprisePathHref} class="btn btn-primary">Enterprise Review</a>
-			<a href={`${base}/docs/technical-validation`} class="btn btn-secondary">
+			<a href={enterprisePathHref} class="btn btn-primary material-button-3d">Enterprise Review</a>
+			<a href={`${base}/docs/technical-validation`} class="btn btn-secondary material-button-3d">
 				Open Technical Validation
 			</a>
-			<a href={startFreeHref} class="btn btn-secondary">Start Free Workspace</a>
+			<a href={startFreeHref} class="btn btn-secondary material-button-3d">Start Free Workspace</a>
 		{:else}
-			<a href={startFreeHref} class="btn btn-primary">Start Free Workspace</a>
-			<a href={enterprisePathHref} class="btn btn-secondary">Enterprise Review</a>
-			<a href={`${base}/docs/technical-validation`} class="btn btn-secondary">
+			<a href={startFreeHref} class="btn btn-primary material-button-3d">Start Free Workspace</a>
+			<a href={enterprisePathHref} class="btn btn-secondary material-button-3d">Enterprise Review</a>
+			<a href={`${base}/docs/technical-validation`} class="btn btn-secondary material-button-3d">
 				Open Technical Validation
 			</a>
 		{/if}
@@ -154,7 +154,7 @@
 								<li>{bullet}</li>
 							{/each}
 						</ul>
-						<a href={`${base}/proof/${entry.slug}`} class="btn btn-secondary">Open proof page</a>
+						<a href={`${base}/proof/${entry.slug}`} class="btn btn-secondary material-button-3d">Open proof page</a>
 					</article>
 				{/each}
 			</div>
@@ -171,10 +171,10 @@
 					</p>
 				</div>
 				<div class="public-page__actions-row">
-					<a href={enterprisePathHref} class="btn btn-primary">Enterprise Review</a>
-					<a href={`${base}/docs`} class="btn btn-secondary">Documentation</a>
-					<a href={`${base}/docs/api`} class="btn btn-secondary">API Reference</a>
-					<a href={startFreeHref} class="btn btn-secondary">Start Free Workspace</a>
+					<a href={enterprisePathHref} class="btn btn-primary material-button-3d">Enterprise Review</a>
+					<a href={`${base}/docs`} class="btn btn-secondary material-button-3d">Documentation</a>
+					<a href={`${base}/docs/api`} class="btn btn-secondary material-button-3d">API Reference</a>
+					<a href={startFreeHref} class="btn btn-secondary material-button-3d">Start Free Workspace</a>
 				</div>
 			</div>
 		</section>

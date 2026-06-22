@@ -7,13 +7,13 @@
 
 ## Purpose
 
-This plan turns the `new_frontend/` handoff into a production-grade Valdrics frontend without
+This plan turns the `frontend_reference_handoff/` handoff into a production-grade Valdrics frontend without
 creating a second app, preserving legacy compatibility paths, or shipping unsupported UI. The only
-deployable frontend application is `frontend/`. The `new_frontend/` directory is the temporary
+deployable frontend application is `frontend/`. The `frontend_reference_handoff/` directory is the temporary
 non-deployable design/product source of truth for visual direction, interaction ideas, and product
 intent.
 
-The work is complete only when every useful `new_frontend/` artifact has either been migrated into
+The work is complete only when every useful `frontend_reference_handoff/` artifact has either been migrated into
 `frontend/` with visual fidelity, real contracts, and tests; deferred behind a precise product/backend
 blocker; or rejected with documented evidence, every production-only route has been audited for the
 same Valdrics design system, and then obsolete handoff artifacts are removed.
@@ -25,7 +25,7 @@ same Valdrics design system, and then obsolete handoff artifacts are removed.
 - `frontend/` already has release gates for lint, Svelte check, unit tests, e2e, build, visual, bundle,
   and performance checks.
 - Current public pricing lives in `frontend/src/lib/pricing/publicPlans.ts` and is surfaced through
-  `frontend/src/routes/pricing`; pricing values from `new_frontend/` are not authoritative.
+  `frontend/src/routes/pricing`; pricing values from `frontend_reference_handoff/` are not authoritative.
 - `scripts/verify_frontend_runtime_contract.py` verifies the managed Node runtime shim around the
   SvelteKit Cloudflare build output.
 - `scripts/check_frontend_hygiene.py` enforces frontend hygiene constraints.
@@ -33,10 +33,10 @@ same Valdrics design system, and then obsolete handoff artifacts are removed.
 - `docs/architecture/frontend_route_disposition_register.json` and
   `scripts/verify_frontend_route_disposition_register.py` track every production SvelteKit route
   module under `frontend/src/routes` so production-only routes cannot drift outside the migration.
-- `new_frontend/` contains the new Valdrics design/product source files for shell, dashboard,
+- `frontend_reference_handoff/` contains the new Valdrics design/product source files for shell, dashboard,
   onboarding, approvals, policies, savings, inventory, auth, and backend requirements.
 - Authenticated shell and approvals have already been migrated and verified as the first slices.
-- Several production routes are not represented directly in `new_frontend/` and still require design
+- Several production routes are not represented directly in `frontend_reference_handoff/` and still require design
   modernization: audit, billing, docs/resources/proof content, enterprise, GreenOps, leaderboards,
   LLM, ops, pricing, ROI planner, status, legal pages, admin routes, and sales/contact flows.
 
@@ -65,7 +65,7 @@ As of June 1, 2026, the plan follows primary sources and the current repo state:
 
 1. No legacy deployable root. `dashboard/` must not return as a compatibility app or alias.
 2. No stubs. Empty placeholders, fake API payloads, fake charts, and unsupported buttons are rejected.
-3. No blind copy from `new_frontend/`. The visual design and product intent are production targets; the
+3. No blind copy from `frontend_reference_handoff/`. The visual design and product intent are production targets; the
    handoff code, paths, stores, and inferred backend contracts are not production truth until verified.
 4. No guessed contracts. Every API path, payload, entitlement, and error shape must be verified locally.
 5. No broad backward compatibility. Cutover happens by replacing the active frontend path and deleting
@@ -75,13 +75,13 @@ As of June 1, 2026, the plan follows primary sources and the current repo state:
    prove the production pricing values, billing cycle behavior, and signup intent are unchanged.
 7. No one-off visual drift. Route slices must use shared tokens or route-local styles that match the
    Valdrics design system.
-   Deliberate deviations from `new_frontend/` must be recorded with the blocker that forced them.
+   Deliberate deviations from `frontend_reference_handoff/` must be recorded with the blocker that forced them.
 8. No logo replacement. Use `frontend/static/valdrics_icon.png` as the primary Valdrics mark.
    `frontend/static/valdrics_icon1.png` and `frontend/static/valdrics_wordmark.svg` remain supporting
    shell assets, but color, material, lighting, or 3D treatment must derive from the primary PNG and
    preserve its geometry.
 9. No unmodernized production islands. A route that exists only in current `frontend/` still belongs to
-   this modernization. If `new_frontend/` has no matching file, use the established Valdrics shell,
+   this modernization. If `frontend_reference_handoff/` has no matching file, use the established Valdrics shell,
    tokens, density, logo, entitlement, and API-contract rules as the design source.
 10. No route bloat by default. Existing routes are not automatically retained. Each route must prove a
     distinct user/job-to-be-done, real contract support, and a coherent place in the Valdrics IA; weak
@@ -118,7 +118,7 @@ Work:
 - Finish any remaining rename references from `dashboard` to `frontend` in CI, docs, scripts, Docker,
   runbooks, evidence, and CODEOWNERS.
 - Add or extend hygiene checks so deployable source cannot reappear under `dashboard/`.
-- Create a machine-readable `new_frontend` disposition register.
+- Create a machine-readable `frontend_reference_handoff` disposition register.
 
 Acceptance:
 
@@ -147,7 +147,7 @@ Acceptance:
 - Text does not overlap on mobile or desktop.
 - Palette does not collapse into a single hue family.
 - Logo usage is real asset usage, not an approximated SVG replacement.
-- Browser QA includes a visual fidelity check against the corresponding `new_frontend` source.
+- Browser QA includes a visual fidelity check against the corresponding `frontend_reference_handoff` source.
 
 ### Phase 2: Route-by-Route Migration
 
@@ -180,7 +180,7 @@ Objective: make every frontend control truthful.
 
 Work:
 
-- Treat `new_frontend/valdrics-backend-requirements.html` as a requirements note, not evidence.
+- Treat `frontend_reference_handoff/valdrics-backend-requirements.html` as a requirements note, not evidence.
 - For every migrated action, write down endpoint, method, payload, response, auth, entitlement, timeout,
   and error contract.
 - If a contract is missing, either build it with backend tests in the same slice or omit the UI.
@@ -258,8 +258,8 @@ Objective: remove ambiguity after migration.
 
 Work:
 
-- Delete each `new_frontend/` reference file after its migration or rejection is documented.
-- Delete `new_frontend/` entirely when the disposition register is empty.
+- Archive each `frontend_reference_handoff/` reference file after its migration or rejection is documented; do not delete without explicit Product approval.
+- Remove `frontend_reference_handoff/` only when the disposition register is empty and Product explicitly approves final cleanup.
 - Remove dashboard-named scripts, workflow labels, docs, and evidence references after frontend
   replacements pass.
 - Keep architecture docs and runbooks aligned.
@@ -299,7 +299,7 @@ errors are checked -> desktop and mobile screenshots show no overlap or overflow
 The detailed work packages are tracked in
 [frontend-modernization-implementation-backlog-2026.md](frontend-modernization-implementation-backlog-2026.md).
 
-1. Keep the `new_frontend` and production route disposition registers at zero drift.
+1. Keep the `frontend_reference_handoff` and production route disposition registers at zero drift.
 2. Complete FME-009 auth visual alignment while preserving `/auth/login`, `/auth/flow`,
    `/auth/callback`, `/auth/session`, logout behavior, and current pricing plan intent.
 3. Modernize or merge production-only operational routes: `/audit`, `/billing`, `/greenops`,
@@ -307,7 +307,7 @@ The detailed work packages are tracked in
 4. Modernize or consolidate production-only public/content routes: `/about`, `/blog`, `/docs`,
    `/enterprise`, `/pricing`, `/privacy`, `/proof`, `/resources`, `/insights`, `/roi-planner`,
    `/talk-to-sales`, and `/terms`.
-5. Close backend gaps from `new_frontend/valdrics-backend-requirements.html` by building real backend
+5. Close backend gaps from `frontend_reference_handoff/valdrics-backend-requirements.html` by building real backend
    contracts with tests or omitting unsupported UI.
 6. Produce FME-011 evidence bundles and remove handoff/internal QA files only after disposition,
    route tests, browser QA, and release gates pass.

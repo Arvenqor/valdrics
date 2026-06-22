@@ -122,28 +122,30 @@
 		</p>
 	</section>
 
-	<section class="space-y-3 rounded-3xl border border-white/10 bg-white/5 p-6">
-		<h2 class="text-xl font-semibold">12. Enterprise Contracting and Procurement</h2>
-		<p class="text-sm text-ink-300">
-			Public terms explain the baseline service posture, but enterprise evaluation usually needs a
-			more explicit commercial and legal process. Order-form review, governing-law questions, DPA
-			attachment, and procurement-specific requirements should move into enterprise review rather
-			than general support email.
-		</p>
-		<ul class="list-disc pl-5 text-sm text-ink-300 space-y-2">
-			<li>
-				Legal review and contracting requests route through the legal and enterprise contacts.
-			</li>
-			<li>
-				Pricing-fit and commercial questions route through the sales and procurement contacts.
-			</li>
-			<li>Privacy, DPA, and deployment-specific questions stay connected to the privacy review.</li>
-		</ul>
-		<div class="flex flex-wrap gap-3 pt-2">
-			<a class="btn btn-secondary" href={`${base}/enterprise`}> Enterprise Review </a>
-			<a class="btn btn-secondary" href={`${base}/pricing`}> View Pricing </a>
-			<a class="btn btn-secondary" href={`${base}/privacy`}> Privacy and DPA </a>
-			<a class="btn btn-secondary" href={`${base}/talk-to-sales`}> Talk to Sales </a>
-		</div>
-	</section>
+	<div class="material-perspective">
+		<section class="space-y-3 rounded-3xl border border-white/10 bg-white/5 p-6 material-card-3d">
+			<h2 class="text-xl font-semibold">12. Enterprise Contracting and Procurement</h2>
+			<p class="text-sm text-ink-300">
+				Public terms explain the baseline service posture, but enterprise evaluation usually needs a
+				more explicit commercial and legal process. Order-form review, governing-law questions, DPA
+				attachment, and procurement-specific requirements should move into enterprise review rather
+				than general support email.
+			</p>
+			<ul class="list-disc pl-5 text-sm text-ink-300 space-y-2">
+				<li>
+					Legal review and contracting requests route through the legal and enterprise contacts.
+				</li>
+				<li>
+					Pricing-fit and commercial questions route through the sales and procurement contacts.
+				</li>
+				<li>Privacy, DPA, and deployment-specific questions stay connected to the privacy review.</li>
+			</ul>
+			<div class="flex flex-wrap gap-3 pt-2">
+				<a class="btn btn-secondary material-button-3d" href={`${base}/enterprise`}> Enterprise Review </a>
+				<a class="btn btn-secondary material-button-3d" href={`${base}/pricing`}> View Pricing </a>
+				<a class="btn btn-secondary material-button-3d" href={`${base}/privacy`}> Privacy and DPA </a>
+				<a class="btn btn-secondary material-button-3d" href={`${base}/talk-to-sales`}> Talk to Sales </a>
+			</div>
+		</section>
+	</div>
 </article>

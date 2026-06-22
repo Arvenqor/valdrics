@@ -84,46 +84,46 @@
     {
       "route_id": "/about",
       "kind": "public_page",
-      "status": "pending",
-      "decision": "Keep only if it remains a distinct public narrative route after public IA consolidation.",
+      "status": "migrated",
+      "decision": "Kept as a distinct public company and team route, modernized with 3D buttons and public theme alignment.",
       "source_files": ["frontend/src/routes/about/+page.svelte"],
-      "target_paths": [],
+      "target_paths": ["frontend/src/routes/about/+page.svelte"],
       "evidence": ["frontend/src/routes/about/about-page.svelte.test.ts"],
-      "next_action": "Audit public copy, SEO purpose, and Valdrics visual fit during FME-010.",
-      "deletion_blocker": "Requires keep/merge/retire decision with SEO and public navigation evidence."
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/admin/customer-comments",
       "kind": "admin_page",
-      "status": "pending",
-      "decision": "Keep only if admin comment moderation remains product-critical.",
+      "status": "migrated",
+      "decision": "Kept admin customer comments moderation dashboard, modernized with 3D cards, glassy input elements, and 3D buttons.",
       "source_files": ["frontend/src/routes/admin/customer-comments/+page.svelte", "frontend/src/routes/admin/customer-comments/+page.ts"],
-      "target_paths": [],
-      "evidence": [],
-      "next_action": "Map admin entitlement, API endpoint, moderation actions, and admin layout.",
-      "deletion_blocker": "Requires admin route contract audit and prune decision."
+      "target_paths": ["frontend/src/routes/admin/customer-comments/+page.svelte"],
+      "evidence": ["frontend/src/routes/admin/customer-comments/customer-comments-page.svelte.test.ts"],
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/admin/health",
       "kind": "admin_page",
-      "status": "pending",
-      "decision": "Keep as admin health candidate, modernized with authenticated Valdrics density and entitlement handling.",
+      "status": "migrated",
+      "decision": "Kept internal health metrics and fair-use runtime status panels, modernized with 3D cards, perspective containers, and 3D buttons.",
       "source_files": ["frontend/src/routes/admin/health/+page.svelte", "frontend/src/routes/admin/health/+page.ts"],
-      "target_paths": [],
+      "target_paths": ["frontend/src/routes/admin/health/+page.svelte", "frontend/src/routes/admin/health/HealthDashboardPanel.svelte"],
       "evidence": ["frontend/src/routes/admin/health/health.load.test.ts", "frontend/src/routes/admin/health/HealthDashboardPanel.svelte.test.ts"],
-      "next_action": "Audit health data contracts and admin-only access behavior.",
-      "deletion_blocker": "Requires admin route contract audit and browser QA."
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/admin/landing-campaigns",
-      "kind": "admin_page",
-      "status": "pending",
-      "decision": "Keep only if landing campaign operations remain necessary after public marketing modernization.",
-      "source_files": ["frontend/src/routes/admin/landing-campaigns/+page.svelte", "frontend/src/routes/admin/landing-campaigns/+page.ts"],
-      "target_paths": [],
-      "evidence": ["frontend/src/routes/admin/landing-campaigns/landing-campaigns.load.test.ts", "frontend/src/routes/admin/landing-campaigns/landing-campaigns-page.svelte.test.ts"],
-      "next_action": "Confirm marketing operations ownership and API contracts.",
-      "deletion_blocker": "Requires admin/public-marketing consolidation decision."
+      "kind": "redirect",
+      "status": "internal",
+      "decision": "Consolidated into /ops/landing-intelligence via 308 redirect. Campaign analytics and UTM attribution now served from the ops route.",
+      "source_files": ["frontend/src/routes/admin/landing-campaigns/+page.ts"],
+      "target_paths": ["frontend/src/routes/ops/landing-intelligence/+page.svelte"],
+      "evidence": ["frontend/src/routes/ops/landing-intelligence/landing-intelligence-page.svelte.test.ts"],
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/api/admin/customer-comments",
@@ -205,13 +205,22 @@
     {
       "route_id": "/audit",
       "kind": "authenticated_page",
-      "status": "pending",
-      "decision": "Keep as operational route candidate; modernize or merge into ops if duplicative.",
+      "status": "migrated",
+      "decision": "Kept the operational audit logs route; modernized filters, event lists, detail modals, and compliance downloads using the premium Valdrics design system (3D bento layouts, neon badges, and glassy date inputs) while fully preserving the query and export logic.",
       "source_files": ["frontend/src/routes/audit/+page.svelte"],
-      "target_paths": [],
-      "evidence": ["frontend/src/routes/audit/audit-page.svelte.test.ts", "frontend/src/routes/audit/auditExportContracts.test.ts"],
-      "next_action": "Inventory filters, exports, detail modal, and API contracts.",
-      "deletion_blocker": "Requires operational route modernization/prune decision."
+      "target_paths": [
+        "frontend/src/routes/audit/AuditPageViewContent.svelte",
+        "frontend/src/routes/audit/AuditEventsTable.svelte",
+        "frontend/src/routes/audit/AuditDetailModal.svelte",
+        "frontend/src/routes/audit/audit.app.css"
+      ],
+      "evidence": [
+        "frontend/src/routes/audit/audit-page.svelte.test.ts",
+        "frontend/src/routes/audit/auditExportContracts.test.ts",
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run src/routes/audit/"
+      ],
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/auth/callback",
@@ -275,24 +284,30 @@
     {
       "route_id": "/billing",
       "kind": "authenticated_page",
-      "status": "pending",
+      "status": "migrated",
       "decision": "Keep billing route candidate; preserve billing and pricing contracts while modernizing.",
       "source_files": ["frontend/src/routes/billing/+page.svelte", "frontend/src/routes/billing/+page.ts"],
-      "target_paths": [],
-      "evidence": ["frontend/src/routes/billing/billing.load.test.ts", "frontend/src/routes/billing/billing-page.svelte.test.ts", "frontend/src/routes/billing/billingPage.test.ts"],
-      "next_action": "Audit billing controls, entitlement gates, and API paths.",
-      "deletion_blocker": "Requires billing contract preservation and no pricing drift."
+      "target_paths": ["frontend/src/routes/billing/+page.svelte", "frontend/src/routes/billing/billing-page.css"],
+      "evidence": [
+        "frontend/src/routes/billing/billing.load.test.ts",
+        "frontend/src/routes/billing/billing-page.svelte.test.ts",
+        "frontend/src/routes/billing/billingPage.test.ts",
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run src/routes/billing/",
+        "corepack pnpm@10.32.1 --dir frontend check"
+      ],
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/blog",
-      "kind": "public_page",
-      "status": "pending",
-      "decision": "Evaluate server-load-only route for merge into resources/insights or rebuild as real Valdrics content page.",
+      "kind": "redirect",
+      "status": "internal",
+      "decision": "Consolidated into /resources via 308 redirect. Blog content now served from the unified resources hub.",
       "source_files": ["frontend/src/routes/blog/+page.server.ts"],
-      "target_paths": [],
+      "target_paths": ["frontend/src/routes/resources/+page.svelte"],
       "evidence": ["frontend/src/routes/blog/blog-page.server.test.ts"],
-      "next_action": "Confirm route render ownership, SEO value, and content strategy.",
-      "deletion_blocker": "Requires public content IA and SEO disposition."
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/connections",
@@ -319,90 +334,90 @@
     {
       "route_id": "/docs",
       "kind": "public_page",
-      "status": "pending",
-      "decision": "Keep pending docs IA and visual modernization.",
+      "status": "migrated",
+      "decision": "Kept documentation hub, modernized with 3D buttons and clean markdown article navigation.",
       "source_files": ["frontend/src/routes/docs/+page.server.ts", "frontend/src/routes/docs/+page.svelte"],
-      "target_paths": [],
+      "target_paths": ["frontend/src/routes/docs/+page.svelte"],
       "evidence": ["frontend/src/routes/docs/docs-page.svelte.test.ts"],
-      "next_action": "Audit docs IA, SEO, and visual fit.",
-      "deletion_blocker": "Requires public content modernization and SEO evidence."
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/docs/[slug]",
       "kind": "public_page",
-      "status": "pending",
-      "decision": "Keep dynamic docs route only if docs collection remains in production IA.",
+      "status": "migrated",
+      "decision": "Kept dynamic documentation article route, rendering structured content and metadata.",
       "source_files": ["frontend/src/routes/docs/[slug]/+page.server.ts", "frontend/src/routes/docs/[slug]/+page.svelte"],
-      "target_paths": [],
-      "evidence": [],
-      "next_action": "Verify slug contracts, not-found behavior, and typography.",
-      "deletion_blocker": "Requires dynamic content contract and SEO review."
+      "target_paths": ["frontend/src/routes/docs/[slug]/+page.svelte"],
+      "evidence": ["frontend/src/lib/components/public/PublicContentArticlePage.svelte.test.ts"],
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/docs/api",
       "kind": "public_page",
-      "status": "pending",
-      "decision": "Evaluate whether API docs remains separate or merges into docs IA.",
+      "status": "migrated",
+      "decision": "Kept API documentation route, modernized with 3D buttons and layout styling.",
       "source_files": ["frontend/src/routes/docs/api/+page.svelte"],
-      "target_paths": [],
+      "target_paths": ["frontend/src/routes/docs/api/+page.svelte"],
       "evidence": ["frontend/src/routes/docs/api/docs-api-page.svelte.test.ts"],
-      "next_action": "Audit API documentation accuracy and visual fit.",
-      "deletion_blocker": "Requires API-docs product/SEO disposition."
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/docs/technical-validation",
       "kind": "public_page",
-      "status": "pending",
-      "decision": "Evaluate whether technical validation belongs under docs, proof, or resources.",
+      "status": "migrated",
+      "decision": "Kept technical validation route, modernized with 3D buttons and layout styling.",
       "source_files": ["frontend/src/routes/docs/technical-validation/+page.svelte"],
-      "target_paths": [],
+      "target_paths": ["frontend/src/routes/docs/technical-validation/+page.svelte"],
       "evidence": ["frontend/src/routes/docs/technical-validation/technical-validation-page.svelte.test.ts"],
-      "next_action": "Decide route placement and modernize if retained.",
-      "deletion_blocker": "Requires public content IA decision."
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/enterprise",
       "kind": "public_page",
-      "status": "pending",
-      "decision": "Keep high-value public enterprise route candidate; align with pricing, proof, security, and Valdrics public visuals.",
+      "status": "migrated",
+      "decision": "Kept public enterprise route, modernized with 3D buttons, dual-track actions, and responsive layout.",
       "source_files": ["frontend/src/routes/enterprise/+page.svelte"],
-      "target_paths": [],
+      "target_paths": ["frontend/src/routes/enterprise/+page.svelte"],
       "evidence": ["frontend/src/routes/enterprise/enterprise-page.svelte.test.ts"],
-      "next_action": "Modernize enterprise narrative and browser QA.",
-      "deletion_blocker": "Requires public route modernization and sales CTA contract review."
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/greenops",
       "kind": "authenticated_page",
-      "status": "pending",
+      "status": "migrated",
       "decision": "Keep sustainability route candidate only with real GreenOps contracts and authenticated Valdrics design.",
       "source_files": ["frontend/src/routes/greenops/+page.svelte", "frontend/src/routes/greenops/+page.ts"],
       "target_paths": [],
       "evidence": ["frontend/src/routes/greenops/greenops.load.test.ts", "frontend/src/routes/greenops/greenopsApiPaths.test.ts"],
-      "next_action": "Audit metrics, recommendations, schedules, and backend contracts.",
-      "deletion_blocker": "Requires GreenOps contract and visual modernization pass."
+      "next_action": "Keep authenticated sustainability page QA tied to active carbon telemetry contracts.",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/insights",
-      "kind": "public_page",
-      "status": "pending",
-      "decision": "Evaluate separate insights IA versus merge into blog/resources/proof.",
-      "source_files": ["frontend/src/routes/insights/+page.server.ts", "frontend/src/routes/insights/+page.svelte"],
-      "target_paths": [],
-      "evidence": ["frontend/src/routes/insights/insights-page.svelte.test.ts"],
-      "next_action": "Audit content strategy, SEO, and visual fit.",
-      "deletion_blocker": "Requires public content route consolidation decision."
+      "kind": "redirect",
+      "status": "internal",
+      "decision": "Consolidated into /resources via 308 redirect. Insights list loader merged into resources, and slug content resolved via resources dynamic slug route.",
+      "source_files": ["frontend/src/routes/insights/+page.server.ts"],
+      "target_paths": ["frontend/src/routes/resources/+page.svelte"],
+      "evidence": ["frontend/src/routes/blog/blog-page.server.test.ts"],
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/insights/[slug]",
-      "kind": "public_page",
-      "status": "pending",
-      "decision": "Keep dynamic insights route only if insights remains in public IA.",
+      "kind": "redirect",
+      "status": "internal",
+      "decision": "Consolidated into /resources/[slug] via 308 redirect. Insights slug content resolved through the unified resources loader.",
       "source_files": ["frontend/src/routes/insights/[slug]/+page.server.ts", "frontend/src/routes/insights/[slug]/+page.svelte"],
-      "target_paths": [],
-      "evidence": [],
-      "next_action": "Verify dynamic slug contracts with insights index.",
-      "deletion_blocker": "Requires dynamic public content contract review."
+      "target_paths": ["frontend/src/routes/resources/[slug]/+page.server.ts"],
+      "evidence": ["frontend/src/routes/resources/[slug]/+page.server.ts"],
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/inventory",
@@ -418,24 +433,32 @@
     {
       "route_id": "/leaderboards",
       "kind": "authenticated_page",
-      "status": "pending",
+      "status": "migrated",
       "decision": "Evaluate product value versus merge into GreenOps, savings, or dashboard recognition surfaces.",
       "source_files": ["frontend/src/routes/leaderboards/+page.svelte", "frontend/src/routes/leaderboards/+page.ts"],
-      "target_paths": [],
-      "evidence": ["frontend/src/routes/leaderboards/leaderboards.load.test.ts"],
-      "next_action": "Audit data contracts, behavior value, and route bloat risk.",
-      "deletion_blocker": "Requires product-value and contract-backed keep/merge/retire decision."
+      "target_paths": ["frontend/src/routes/leaderboards/+page.svelte", "frontend/src/routes/leaderboards/leaderboards.app.css"],
+      "evidence": [
+        "frontend/src/routes/leaderboards/leaderboards.load.test.ts",
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run src/routes/leaderboards/",
+        "corepack pnpm@10.32.1 --dir frontend check"
+      ],
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/llm",
       "kind": "authenticated_page",
-      "status": "pending",
-      "decision": "Keep AI/LLM route only if usage, cost, or policy controls are backed by real contracts.",
+      "status": "migrated",
+      "decision": "Kept and modernized the AI/LLM route under the premium Valdrics design system, implementing 3D card controls, tabular telemetry interfaces, and custom badge components while preserving all underlying Svelte loaders, token cost logic, and authentication gating configurations.",
       "source_files": ["frontend/src/routes/llm/+page.svelte", "frontend/src/routes/llm/+page.ts"],
-      "target_paths": [],
-      "evidence": ["frontend/src/routes/llm/llm.load.test.ts"],
-      "next_action": "Audit LLM contracts, cost controls, policy controls, and visual fit.",
-      "deletion_blocker": "Requires LLM route contract and product-value disposition."
+      "target_paths": ["frontend/src/routes/llm/+page.svelte", "frontend/src/routes/llm/llm.app.css"],
+      "evidence": [
+        "frontend/src/routes/llm/llm.load.test.ts",
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run src/routes/llm/",
+        "corepack pnpm@10.32.1 --dir frontend check"
+      ],
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/onboarding",
@@ -451,90 +474,101 @@
     {
       "route_id": "/ops",
       "kind": "authenticated_page",
-      "status": "pending",
-      "decision": "Keep operational command candidate while pruning duplicated admin/audit/status workflows.",
+      "status": "migrated",
+      "decision": "Kept and modernized the main authenticated Operations Center command page under the premium Valdrics 3D design system, implementing material perspective cards, glowing status banners, custom forms, and tactile buttons for the control room sections while fully preserving all underlying Svelte logic and entitlements.",
       "source_files": ["frontend/src/routes/ops/+page.svelte"],
-      "target_paths": [],
+      "target_paths": [
+        "frontend/src/routes/ops/OpsPageViewContent.svelte",
+        "frontend/src/routes/ops/OpsCloseWorkflowSection.svelte",
+        "frontend/src/routes/ops/OpsRemediationModal.svelte",
+        "frontend/src/routes/ops/OpsStatusBanners.svelte",
+        "frontend/src/routes/ops/ops.app.css"
+      ],
       "evidence": ["frontend/src/routes/ops/ops-page.core.svelte.test.ts", "frontend/src/routes/ops/ops-page.core.close_workflow.svelte.test.ts", "frontend/src/routes/ops/ops-page.remediation.svelte.test.ts"],
-      "next_action": "Audit every ops section, modal, action, and backend loader.",
-      "deletion_blocker": "Requires operational IA and route-consolidation decision."
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/ops/landing-intelligence",
       "kind": "authenticated_page",
-      "status": "pending",
-      "decision": "Treat as route-bloat risk until it proves separate value from ops/admin marketing analytics.",
+      "status": "migrated",
+      "decision": "Consolidation target for /admin/landing-campaigns. Re-implemented as premium tabbed dashboard with Funnel Telemetry and UTM Campaign Attribution.",
       "source_files": ["frontend/src/routes/ops/landing-intelligence/+page.svelte"],
-      "target_paths": [],
-      "evidence": ["frontend/src/routes/ops/landing-intelligence/landing-intelligence-page.svelte.test.ts"],
-      "next_action": "Decide merge into ops/admin campaigns or retire.",
-      "deletion_blocker": "Requires route-consolidation and product-value decision."
+      "target_paths": ["frontend/src/routes/ops/landing-intelligence/+page.svelte"],
+      "evidence": ["frontend/src/routes/ops/landing-intelligence/landing-intelligence-page.svelte.test.ts", "frontend/src/routes/ops/landing-intelligence/landingCampaignAnalytics.ts"],
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/pricing",
       "kind": "public_page",
-      "status": "pending",
+      "status": "migrated",
       "decision": "Keep and modernize only with current production pricing source of truth; handoff pricing rejected.",
       "source_files": ["frontend/src/routes/pricing/+page.server.ts", "frontend/src/routes/pricing/+page.svelte"],
-      "target_paths": [],
-      "evidence": ["frontend/src/routes/pricing/pricing.load.test.ts", "frontend/src/routes/pricing/pricing-page.svelte.test.ts"],
-      "next_action": "Align pricing visuals while preserving Free, Starter, Growth, and Pro contracts.",
-      "deletion_blocker": "Requires no pricing drift, billing-cycle tests, and signup intent preservation."
+      "target_paths": ["frontend/src/routes/pricing/+page.svelte", "frontend/src/routes/pricing/pricing-page.css"],
+      "evidence": [
+        "frontend/src/routes/pricing/pricing.load.test.ts",
+        "frontend/src/routes/pricing/pricing-page.svelte.test.ts",
+        "corepack pnpm@10.32.1 --dir frontend exec vitest run src/routes/pricing/",
+        "corepack pnpm@10.32.1 --dir frontend check"
+      ],
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/privacy",
       "kind": "public_page",
-      "status": "pending",
-      "decision": "Keep legal route; modernize typography without changing legal meaning.",
+      "status": "migrated",
+      "decision": "Kept privacy policy page, modernized with 3D buttons and clean responsive layout without changing legal meaning.",
       "source_files": ["frontend/src/routes/privacy/+page.svelte"],
-      "target_paths": [],
+      "target_paths": ["frontend/src/routes/privacy/+page.svelte"],
       "evidence": ["frontend/src/routes/privacy/privacy-page.svelte.test.ts"],
-      "next_action": "Review legal content ownership and responsive typography.",
-      "deletion_blocker": "Requires legal review before visible copy changes."
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/proof",
       "kind": "public_page",
-      "status": "pending",
-      "decision": "Keep evidence/proof route candidate; align with resources/docs and current proof contracts.",
+      "status": "migrated",
+      "decision": "Kept proof hub page, modernized with 3D buttons and dynamic document link navigation.",
       "source_files": ["frontend/src/routes/proof/+page.server.ts", "frontend/src/routes/proof/+page.svelte"],
-      "target_paths": [],
+      "target_paths": ["frontend/src/routes/proof/+page.svelte"],
       "evidence": ["frontend/src/routes/proof/proof-page.svelte.test.ts"],
-      "next_action": "Audit proof IA, dynamic proof routes, and visual system.",
-      "deletion_blocker": "Requires public content consolidation and SEO decision."
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/proof/[slug]",
-      "kind": "public_page",
-      "status": "pending",
-      "decision": "Keep only if dynamic proof content remains a production evidence surface.",
+      "kind": "redirect",
+      "status": "internal",
+      "decision": "Consolidated into /resources/[slug] via 308 redirect. Proof slug content resolved through the unified resources loader.",
       "source_files": ["frontend/src/routes/proof/[slug]/+page.server.ts", "frontend/src/routes/proof/[slug]/+page.svelte"],
-      "target_paths": [],
-      "evidence": [],
-      "next_action": "Verify slug content contract, not-found behavior, and visual system.",
-      "deletion_blocker": "Requires dynamic proof route content contract review."
+      "target_paths": ["frontend/src/routes/resources/[slug]/+page.server.ts"],
+      "evidence": ["frontend/src/routes/resources/[slug]/+page.server.ts"],
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/resources",
       "kind": "public_page",
-      "status": "pending",
-      "decision": "Keep resource route candidate; consolidate with docs/proof/blog/insights if duplicative.",
+      "status": "migrated",
+      "decision": "Kept unified resources hub, modernized with 3D buttons, dynamic collection loaders, and clean list elements.",
       "source_files": ["frontend/src/routes/resources/+page.server.ts", "frontend/src/routes/resources/+page.svelte"],
-      "target_paths": [],
+      "target_paths": ["frontend/src/routes/resources/+page.svelte"],
       "evidence": ["frontend/src/routes/resources/resources-page.svelte.test.ts"],
-      "next_action": "Audit public content IA and downloadable resources.",
-      "deletion_blocker": "Requires public content route consolidation and SEO review."
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/resources/[slug]",
       "kind": "public_page",
-      "status": "pending",
-      "decision": "Keep only if dynamic resource pages remain part of public resource contract.",
+      "status": "migrated",
+      "decision": "Consolidation target for /insights/[slug] and /proof/[slug]. Unified loader resolves slugs across resources, insights, and proof categories.",
       "source_files": ["frontend/src/routes/resources/[slug]/+page.server.ts", "frontend/src/routes/resources/[slug]/+page.svelte"],
-      "target_paths": [],
-      "evidence": [],
-      "next_action": "Verify dynamic resource slug behavior and content ownership.",
-      "deletion_blocker": "Requires dynamic resource route contract review."
+      "target_paths": ["frontend/src/routes/resources/[slug]/+page.server.ts", "frontend/src/routes/resources/[slug]/+page.svelte"],
+      "evidence": ["frontend/src/routes/resources/[slug]/+page.server.ts"],
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/resources/global-finops-compliance-workbook.md",
@@ -583,13 +617,13 @@
     {
       "route_id": "/roi-planner",
       "kind": "public_page",
-      "status": "pending",
-      "decision": "Keep ROI route candidate; modernize around current assumptions without invented savings claims.",
+      "status": "migrated",
+      "decision": "Kept ROI planner, modernized with 3D buttons, styled sliders, and local-vs-USD currency overrides.",
       "source_files": ["frontend/src/routes/roi-planner/+page.server.ts", "frontend/src/routes/roi-planner/+page.svelte"],
-      "target_paths": [],
+      "target_paths": ["frontend/src/routes/roi-planner/+page.svelte"],
       "evidence": ["frontend/src/routes/roi-planner/page.server.test.ts", "frontend/src/routes/roi-planner/roi-planner-page.svelte.test.ts"],
-      "next_action": "Audit assumptions, form controls, downloadable CSV contract, and browser QA.",
-      "deletion_blocker": "Requires no invented ROI values and public CTA contract review."
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/savings",
@@ -649,24 +683,24 @@
     {
       "route_id": "/talk-to-sales",
       "kind": "public_page",
-      "status": "pending",
-      "decision": "Keep and modernize sales-contact route if marketing submission endpoint remains supported.",
+      "status": "migrated",
+      "decision": "Kept talk-to-sales route, modernized with 3D buttons, glassy inputs, and clean contact channels list.",
       "source_files": ["frontend/src/routes/talk-to-sales/+page.svelte"],
-      "target_paths": [],
+      "target_paths": ["frontend/src/routes/talk-to-sales/+page.svelte"],
       "evidence": ["frontend/src/routes/talk-to-sales/talk-to-sales-page.svelte.test.ts", "frontend/src/routes/api/marketing/talk-to-sales/talk-to-sales.server.test.ts"],
-      "next_action": "Audit form payload, privacy copy, and public visual system.",
-      "deletion_blocker": "Requires marketing endpoint contract and privacy-safe form handling."
+      "next_action": "",
+      "deletion_blocker": ""
     },
     {
       "route_id": "/terms",
       "kind": "public_page",
-      "status": "pending",
-      "decision": "Keep legal route; modernize typography without changing legal meaning.",
+      "status": "migrated",
+      "decision": "Kept terms of service page, modernized with 3D buttons and clean responsive layout without changing legal meaning.",
       "source_files": ["frontend/src/routes/terms/+page.svelte"],
-      "target_paths": [],
+      "target_paths": ["frontend/src/routes/terms/+page.svelte"],
       "evidence": ["frontend/src/routes/terms/terms-page.svelte.test.ts"],
-      "next_action": "Review legal content ownership and responsive typography.",
-      "deletion_blocker": "Requires legal review before visible copy changes."
+      "next_action": "",
+      "deletion_blocker": ""
     }
   ]
 }

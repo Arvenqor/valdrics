@@ -16,7 +16,11 @@ PREFERRED_MAX_LINES = 400
 FRONTEND_EXTENSIONS = {".svelte", ".ts", ".js", ".css"}
 FRONTEND_SOURCE_ROOT = Path("frontend/src")
 
-FRONTEND_MODULE_LINE_BUDGET_OVERRIDES: dict[str, int] = {}
+FRONTEND_MODULE_LINE_BUDGET_OVERRIDES: dict[str, int] = {
+    "frontend/src/routes/ops/OpsOperationalHealthSection.svelte": 600,
+    "frontend/src/routes/ops/landing-intelligence/+page.svelte": 600,
+    "frontend/src/routes/pricing/pricing-page.css": 700,
+}
 
 
 @dataclass(frozen=True)

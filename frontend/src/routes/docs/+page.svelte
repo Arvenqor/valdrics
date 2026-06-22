@@ -61,11 +61,11 @@
 	heroVariant="narrow"
 >
 	{#snippet heroActions()}
-		<a href={`${base}/docs/api`} class="btn btn-primary">Open API Docs</a>
-		<a href={`${base}/docs/technical-validation`} class="btn btn-secondary">
+		<a href={`${base}/docs/api`} class="btn btn-primary material-button-3d">Open API Docs</a>
+		<a href={`${base}/docs/technical-validation`} class="btn btn-secondary material-button-3d">
 			Open Technical Validation
 		</a>
-		<a href={`${base}/pricing`} class="btn btn-secondary">View Pricing</a>
+		<a href={`${base}/pricing`} class="btn btn-secondary material-button-3d">View Pricing</a>
 	{/snippet}
 
 	{#snippet heroMeta()}
@@ -96,7 +96,7 @@
 						<p class="public-page__card-kicker">{path.kicker}</p>
 						<h2 class="public-page__card-title">{path.title}</h2>
 						<p class="public-page__card-copy">{path.copy}</p>
-						<a href={path.href} class="btn btn-secondary">
+						<a href={path.href} class="btn btn-secondary material-button-3d">
 							{path.kicker === 'Integrate' ? 'Open API Docs' : 'Open guide'}
 						</a>
 					</article>
@@ -129,7 +129,7 @@
 								</div>
 							{/each}
 						</div>
-						<a href={`${base}/docs/${entry.slug}`} class="btn btn-secondary">Open guide</a>
+						<a href={`${base}/docs/${entry.slug}`} class="btn btn-secondary material-button-3d">Open guide</a>
 					</article>
 				{/each}
 			</div>
@@ -150,12 +150,12 @@
 						href="https://github.com/Valdrics/valdrics/tree/main/docs"
 						target="_blank"
 						rel="noopener noreferrer"
-						class="btn btn-secondary"
+						class="btn btn-secondary material-button-3d"
 					>
 						Browse GitHub Docs
 					</a>
-					<a href={`${base}/proof`} class="btn btn-secondary">Open Proof Pack</a>
-					<a href={`${base}/resources`} class="btn btn-secondary">Open Resources</a>
+					<a href={`${base}/proof`} class="btn btn-secondary material-button-3d">Open Proof Pack</a>
+					<a href={`${base}/resources`} class="btn btn-secondary material-button-3d">Open Resources</a>
 				</div>
 			</div>
 		</section>

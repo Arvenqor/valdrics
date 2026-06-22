@@ -290,3 +290,48 @@
 		right: 1.1rem;
 	}
 }
+
+/* Glassmorphism theme overrides for sales page (2026) */
+.public-site-shell[data-public-theme='light'] .sales-page__form-card,
+.public-site-shell[data-public-theme='light'] .sales-page__rail-card {
+	background:
+		linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(244, 248, 250, 0.9) 100%),
+		radial-gradient(400px at 0% 0%, rgba(8, 126, 164, 0.03), transparent 70%);
+	border: 1px solid rgba(8, 126, 164, 0.16);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.6),
+		0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.public-site-shell[data-public-theme='light'] .sales-page__field input,
+.public-site-shell[data-public-theme='light'] .sales-page__field select,
+.public-site-shell[data-public-theme='light'] .sales-page__field textarea {
+	background: rgba(255, 255, 255, 0.8);
+	border: 1px solid rgba(8, 126, 164, 0.18);
+	color: var(--color-ink-950);
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.public-site-shell[data-public-theme='dark'] .sales-page__form-card,
+.public-site-shell[data-public-theme='dark'] .sales-page__rail-card {
+	background:
+		linear-gradient(180deg, rgba(15, 23, 36, 0.72) 0%, rgba(9, 15, 24, 0.78) 100%),
+		radial-gradient(400px at 0% 0%, rgba(34, 211, 239, 0.06), transparent 70%);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.04),
+		0 14px 34px rgba(0, 0, 0, 0.35);
+}
+
+.public-site-shell[data-public-theme='dark'] .sales-page__field input,
+.public-site-shell[data-public-theme='dark'] .sales-page__field select,
+.public-site-shell[data-public-theme='dark'] .sales-page__field textarea {
+	background: rgba(15, 23, 36, 0.5);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	color: var(--color-ink-100);
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}

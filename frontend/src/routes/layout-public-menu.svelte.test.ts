@@ -328,7 +328,7 @@ describe('public layout mobile menu', () => {
 		expect(screen.getByRole('menuitem', { name: /resource hub/i })).toBeTruthy();
 		expect(screen.getByRole('menuitem', { name: /docs/i })).toBeTruthy();
 		expect(screen.getByRole('menuitem', { name: /proof pack/i })).toBeTruthy();
-		expect(screen.getByRole('menuitem', { name: /insights/i })).toBeTruthy();
+		expect(screen.getByRole('menuitem', { name: /about/i })).toBeTruthy();
 
 		await fireEvent.keyDown(window, { key: 'Escape' });
 		await waitFor(() => {

@@ -1,7 +1,9 @@
+/* Premium Bento Grid and UI Components for GreenOps */
+
 .bento-grid {
 	display: grid;
 	grid-template-columns: repeat(1, minmax(0, 1fr));
-	gap: var(--space-4);
+	gap: var(--space-6);
 	grid-auto-flow: dense;
 }
 
@@ -14,7 +16,7 @@
 @media (min-width: 1024px) {
 	.bento-grid {
 		grid-template-columns: repeat(4, minmax(0, 1fr));
-		grid-template-rows: auto auto;
+		grid-auto-rows: minmax(180px, auto);
 	}
 
 	.col-span-2 {
@@ -24,4 +26,132 @@
 	.row-span-2 {
 		grid-row: span 2;
 	}
+}
+
+/* Custom Scrollbar for list panels */
+.custom-scrollbar::-webkit-scrollbar {
+	width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+	background: rgba(10, 13, 18, 0.3);
+	border-radius: var(--radius-full);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+	background: var(--color-ink-700);
+	border-radius: var(--radius-full);
+	border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+	background: var(--color-ink-600);
+}
+
+/* Styled Range Input Override */
+input[type='range'] {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 100%;
+	height: 6px;
+	border-radius: var(--radius-full);
+	background: var(--color-ink-800);
+	outline: none;
+	border: 1px solid var(--color-ink-700);
+	transition: background 0.3s ease;
+}
+
+input[type='range']::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 16px;
+	height: 16px;
+	border-radius: var(--radius-full);
+	background: var(--color-accent-400);
+	border: 2px solid var(--color-ink-950);
+	cursor: pointer;
+	box-shadow:
+		0 0 10px rgba(34, 211, 239, 0.4),
+		0 2px 4px rgba(0, 0, 0, 0.5);
+	transition:
+		transform 0.15s ease,
+		background-color 0.15s ease;
+}
+
+input[type='range']::-webkit-slider-thumb:hover {
+	transform: scale(1.25);
+	background: var(--color-accent-300);
+}
+
+input[type='range']::-moz-range-thumb {
+	width: 16px;
+	height: 16px;
+	border-radius: var(--radius-full);
+	background: var(--color-accent-400);
+	border: 2px solid var(--color-ink-950);
+	cursor: pointer;
+	box-shadow:
+		0 0 10px rgba(34, 211, 239, 0.4),
+		0 2px 4px rgba(0, 0, 0, 0.5);
+	transition:
+		transform 0.15s ease,
+		background-color 0.15s ease;
+}
+
+input[type='range']::-moz-range-thumb:hover {
+	transform: scale(1.25);
+	background: var(--color-accent-300);
+}
+
+/* Green and Pulse Indicator Animations */
+@keyframes emerald-glow-pulse {
+	0%,
+	100% {
+		box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+	}
+	50% {
+		box-shadow: 0 0 25px rgba(16, 185, 129, 0.3);
+	}
+}
+
+.glow-emerald {
+	animation: emerald-glow-pulse 3s infinite ease-in-out;
+}
+
+@keyframes cyan-glow-pulse {
+	0%,
+	100% {
+		box-shadow: 0 0 15px rgba(34, 211, 239, 0.15);
+	}
+	50% {
+		box-shadow: 0 0 25px rgba(34, 211, 239, 0.3);
+	}
+}
+
+.glow-cyan {
+	animation: cyan-glow-pulse 3s infinite ease-in-out;
+}
+
+/* Regional Recommended Gradients */
+.green-gradient-card {
+	background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(10, 13, 20, 0.7) 100%);
+	border: 1px solid rgba(16, 185, 129, 0.16);
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.green-gradient-card:hover {
+	border-color: rgba(16, 185, 129, 0.4);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.05),
+		0 12px 28px rgba(0, 0, 0, 0.32),
+		0 0 15px rgba(16, 185, 129, 0.1);
+}
+
+/* Vertical chart intensity level indicator grids */
+.chart-grid-line {
+	position: absolute;
+	left: 0;
+	right: 0;
+	border-top: 1px dashed rgba(128, 154, 176, 0.08);
+	pointer-events: none;
 }

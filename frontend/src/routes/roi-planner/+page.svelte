@@ -200,30 +200,32 @@
 			onCurrencyCodeChange={handleCurrencyCodeChange}
 		/>
 
-		<section class="roi-planner-save" aria-labelledby="roi-planner-save-title">
-			<div>
-				<h2 id="roi-planner-save-title">Planner defaults</h2>
-				<p>
-					Save reduction, rollout, staffing, and hourly-rate targets to pre-fill Ops Center KPI
-					planning.
-				</p>
-			</div>
+		<div class="material-perspective">
+			<section class="roi-planner-save material-card-3d" aria-labelledby="roi-planner-save-title">
+				<div>
+					<h2 id="roi-planner-save-title">Planner defaults</h2>
+					<p>
+						Save reduction, rollout, staffing, and hourly-rate targets to pre-fill Ops Center KPI
+						planning.
+					</p>
+				</div>
 
-			{#if canSavePlannerDefaults}
-				<button
-					type="button"
-					class="roi-planner-save__button"
-					disabled={savingPlannerDefaults}
-					onclick={savePlannerDefaults}
-				>
-					{savingPlannerDefaults ? 'Saving...' : 'Save Planner Defaults'}
-				</button>
-			{:else}
-				<a class="roi-planner-save__link" href={`${base}/auth/login?next=%2Froi-planner`}>
-					Sign in to save plan
-				</a>
-			{/if}
-		</section>
+				{#if canSavePlannerDefaults}
+					<button
+						type="button"
+						class="roi-planner-save__button material-button-3d"
+						disabled={savingPlannerDefaults}
+						onclick={savePlannerDefaults}
+					>
+						{savingPlannerDefaults ? 'Saving...' : 'Save Planner Defaults'}
+					</button>
+				{:else}
+					<a class="roi-planner-save__link material-button-3d" href={`${base}/auth/login?next=%2Froi-planner`}>
+						Sign in to save plan
+					</a>
+				{/if}
+			</section>
+		</div>
 
 		{#if saveSuccess}
 			<p class="roi-planner-status roi-planner-status--success" role="status">{saveSuccess}</p>

@@ -16,7 +16,7 @@ help:
 	@echo "  make verify-managed-bundle ENVIRONMENT=<staging|production> - Verify runtime, migration, and deployment artifacts stay coherent"
 	@echo "  make render-managed-release-blockers [NON_SECRET_BUNDLE=true] - Render the cross-environment blocker summary from staging + production bundles"
 	@echo "  make verify-value-contracts - Validate the draft TVC schema, example contract, and example receipt"
-	@echo "  make verify-frontend-disposition - Validate new_frontend reference migration disposition"
+	@echo "  make verify-frontend-disposition - Validate frontend handoff reference migration disposition"
 	@echo "  make public-quality [FRONTEND_URL=http://localhost:5174] - Run public smoke + a11y + perf + visual gates"
 	@echo "  make docs-hygiene - Fail on orphaned dated docs/reports and prohibited active duplicates"
 	@echo "  make ship-baseline - Run the fast repo-wide shipping baseline (audit, env/docs contracts, TVC, archive hygiene)"

@@ -103,9 +103,9 @@
 	heroVariant="narrow"
 >
 	{#snippet heroActions()}
-		<a href={startFreeHref} class="btn btn-primary">Start Free Workspace</a>
-		<a href={proofHref} class="btn btn-secondary">Open Proof Pack</a>
-		<a href={salesHref} class="btn btn-secondary">Talk to Sales</a>
+		<a href={startFreeHref} class="btn btn-primary material-button-3d">Start Free Workspace</a>
+		<a href={proofHref} class="btn btn-secondary material-button-3d">Open Proof Pack</a>
+		<a href={salesHref} class="btn btn-secondary material-button-3d">Talk to Sales</a>
 	{/snippet}
 
 	{#snippet heroMeta()}
@@ -157,7 +157,7 @@
 					<article class="public-page__card">
 						<h3 class="public-page__card-title">{link.label}</h3>
 						<p class="public-page__card-copy">{link.note}</p>
-						<a href={link.href} class="btn btn-secondary">Open {link.label}</a>
+						<a href={link.href} class="btn btn-secondary material-button-3d">Open {link.label}</a>
 					</article>
 				{/each}
 			</div>
@@ -172,8 +172,8 @@
 					</h2>
 					<p class="public-page__card-copy">{deploymentFact?.answer}</p>
 					<div class="public-page__actions-row">
-						<a href={enterpriseHref} class="btn btn-secondary">Enterprise Review</a>
-						<a href={docsHref} class="btn btn-secondary">Open Docs</a>
+						<a href={enterpriseHref} class="btn btn-secondary material-button-3d">Enterprise Review</a>
+						<a href={docsHref} class="btn btn-secondary material-button-3d">Open Docs</a>
 					</div>
 				</article>
 				<article class="public-page__card">

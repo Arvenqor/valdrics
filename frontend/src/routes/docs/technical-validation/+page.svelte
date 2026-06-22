@@ -74,42 +74,46 @@
 		</p>
 	</header>
 
-	<div class="glass-panel overflow-x-auto">
-		<table class="w-full text-sm">
-			<thead>
-				<tr class="text-left text-ink-500 border-b border-ink-800">
-					<th class="py-3 pr-4 font-semibold">Capability</th>
-					<th class="py-3 pr-4 font-semibold">API Surface</th>
-					<th class="py-3 font-semibold">Validation Scope</th>
-				</tr>
-			</thead>
-			<tbody>
-				{#each VALIDATION_ITEMS as item (item.capability)}
-					<tr class="border-b border-ink-900/60 align-top">
-						<td class="py-3 pr-4 text-ink-100 font-medium">{item.capability}</td>
-						<td class="py-3 pr-4 text-ink-300">{item.apiSurface}</td>
-						<td class="py-3 text-ink-300">{item.validationScope}</td>
+	<div class="material-perspective">
+		<div class="material-card-3d glass-panel overflow-x-auto">
+			<table class="w-full text-sm">
+				<thead>
+					<tr class="text-left text-ink-500 border-b border-ink-800">
+						<th class="py-3 pr-4 font-semibold">Capability</th>
+						<th class="py-3 pr-4 font-semibold">API Surface</th>
+						<th class="py-3 font-semibold">Validation Scope</th>
 					</tr>
-				{/each}
-			</tbody>
-		</table>
+				</thead>
+				<tbody>
+					{#each VALIDATION_ITEMS as item (item.capability)}
+						<tr class="border-b border-ink-900/60 align-top">
+							<td class="py-3 pr-4 text-ink-100 font-medium">{item.capability}</td>
+							<td class="py-3 pr-4 text-ink-300">{item.apiSurface}</td>
+							<td class="py-3 text-ink-300">{item.validationScope}</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
 	</div>
 
-	<div class="glass-panel space-y-3">
-		<h2 class="text-xl font-semibold">What this page is and is not</h2>
-		<ul class="text-sm text-ink-300 space-y-1 list-disc pl-5">
-			<li>It is a public validation map for capability coverage.</li>
-			<li>
-				It does not expose internal incident data, private traces, or tenant-sensitive evidence.
-			</li>
-			<li>
-				For implementation detail, use API docs and private diligence channels as appropriate.
-			</li>
-		</ul>
-		<div class="flex flex-wrap gap-3 pt-1">
-			<a href={`${base}/docs/api`} class="btn btn-secondary">API Reference</a>
-			<a href={`${base}/docs`} class="btn btn-secondary">Documentation</a>
-			<a href={`${base}/`} class="btn btn-primary">Back to Landing</a>
+	<div class="material-perspective">
+		<div class="material-card-3d glass-panel space-y-3">
+			<h2 class="text-xl font-semibold">What this page is and is not</h2>
+			<ul class="text-sm text-ink-300 space-y-1 list-disc pl-5">
+				<li>It is a public validation map for capability coverage.</li>
+				<li>
+					It does not expose internal incident data, private traces, or tenant-sensitive evidence.
+				</li>
+				<li>
+					For implementation detail, use API docs and private diligence channels as appropriate.
+				</li>
+			</ul>
+			<div class="flex flex-wrap gap-3 pt-1">
+				<a href={`${base}/docs/api`} class="btn btn-secondary material-button-3d">API Reference</a>
+				<a href={`${base}/docs`} class="btn btn-secondary material-button-3d">Documentation</a>
+				<a href={`${base}/`} class="btn btn-primary material-button-3d">Back to Landing</a>
+			</div>
 		</div>
 	</div>
 </section>

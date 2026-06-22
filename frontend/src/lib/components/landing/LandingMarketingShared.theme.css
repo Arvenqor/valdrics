@@ -293,9 +293,9 @@
 
 .landing-page .landing-public-surface.landing-sim-controls,
 .landing-page .landing-public-surface.landing-sim-results {
-	border-color: rgb(8 126 164 / 0.12);
-	background: #f8fafc;
-	box-shadow: 0 20px 44px rgb(15 23 42 / 0.06);
+	border-color: var(--bdr);
+	background: var(--s1);
+	box-shadow: 0 20px 44px rgba(0, 0, 0, 0.4);
 }
 
 .landing-page .landing-public-surface .landing-roi-label,
@@ -304,20 +304,69 @@
 .landing-page .landing-public-surface .landing-sim-bar-label,
 .landing-page .landing-public-surface .landing-currency-select span,
 .landing-page .landing-public-surface .landing-currency-toggle__label {
-	color: #064e66;
+	color: var(--ion-readable, #67e8f9);
 }
 
 .landing-page .landing-public-surface .landing-sim-metric p,
 .landing-page .landing-public-surface .landing-roi-note,
 .landing-page .landing-public-surface .landing-sim-metric span {
-	color: #334155;
+	color: var(--sub);
 }
 
 .landing-page .landing-public-surface .landing-sim-metric strong,
 .landing-page .landing-public-surface .landing-sim-bar-value {
-	color: #0f172a;
+	color: var(--white);
 }
 
 .landing-page .landing-public-surface .landing-sim-metric.is-primary strong {
-	color: #064e66;
+	color: var(--jade);
+}
+
+.landing-page .landing-public-surface .landing-roi-control {
+	border-color: var(--bdr);
+	background: var(--s2);
+}
+
+.landing-page .landing-public-surface .landing-roi-meta {
+	color: var(--text);
+}
+
+.landing-page .landing-public-surface .landing-roi-control input[type='range'] {
+	accent-color: var(--jade);
+}
+
+.landing-page .landing-public-surface .landing-roi-metric,
+.landing-page .landing-public-surface .landing-sim-metric {
+	border-color: var(--bdr);
+	background: var(--s2);
+}
+
+.landing-page .landing-public-surface .landing-sim-metric.is-highlight {
+	background: linear-gradient(180deg, var(--s3), var(--s2));
+}
+
+.landing-page .landing-public-surface .landing-sim-metric.is-highlight strong {
+	font-size: clamp(1.2rem, 3.2vw, 2.1rem);
+	color: var(--white);
+	word-break: break-all;
+	overflow-wrap: anywhere;
+}
+
+.landing-page .landing-public-surface .landing-currency-toggle__controls {
+	border-color: var(--bdr);
+	background: var(--s2);
+}
+
+.landing-page .landing-public-surface .landing-currency-toggle__controls button {
+	color: var(--sub);
+}
+
+.landing-page .landing-public-surface .landing-currency-toggle__controls button.active {
+	background: var(--jade);
+	color: #030912;
+	box-shadow: 0 6px 16px rgba(0, 207, 124, 0.25);
+}
+
+.landing-page .landing-public-surface .landing-currency-toggle__note {
+	color: var(--sub);
 }

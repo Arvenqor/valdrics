@@ -322,7 +322,7 @@ def test_makefile_exposes_new_frontend_disposition_guard() -> None:
     makefile_text = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
 
     assert (
-        "make verify-frontend-disposition - Validate new_frontend reference migration disposition"
+        "make verify-frontend-disposition - Validate frontend handoff reference migration disposition"
         in makefile_text
     )
     assert "verify-frontend-disposition:" in makefile_text

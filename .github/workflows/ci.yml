@@ -78,7 +78,7 @@ jobs:
                   app/*|tests/*|migrations/*|alembic.ini|pyproject.toml|uv.lock|scripts/*)
                     backend_ci=true
                     ;;
-                  frontend/*|new_frontend/*|docs/architecture/new_frontend_disposition_register.json|scripts/check_frontend_api_contracts.py|scripts/check_frontend_hygiene.py|scripts/verify_frontend_runtime_contract.py|scripts/verify_frontend_module_size_budget.py|scripts/verify_new_frontend_disposition_register.py)
+                  frontend/*|frontend_reference_handoff/*|docs/architecture/new_frontend_disposition_register.json|scripts/check_frontend_api_contracts.py|scripts/check_frontend_hygiene.py|scripts/verify_frontend_runtime_contract.py|scripts/verify_frontend_module_size_budget.py|scripts/verify_new_frontend_disposition_register.py)
                     frontend_ci=true
                     ;;
                 esac

@@ -166,39 +166,51 @@
 	<title>GreenOps - Valdrics</title>
 </svelte:head>
 
-<div class="space-y-6">
-	<div class="flex items-center justify-between">
+<div class="space-y-8 material-perspective">
+	<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 		<div>
-			<h1 class="text-2xl font-bold text-white">🌱 GreenOps Dashboard</h1>
-			<p class="text-ink-400 mt-1">
-				Monitor AWS carbon footprint, workload intensity, and sustainability decisions
+			<h1 class="text-3xl font-extrabold text-white flex items-center gap-2 tracking-tight">
+				<span class="text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]">🌱</span> GreenOps Dashboard
+			</h1>
+			<p class="text-ink-400 text-sm mt-1.5 max-w-xl">
+				Monitor AWS carbon footprint, workload intensity, and carbon-aware execution schedules.
 			</p>
 		</div>
 
-		<select
-			value={selectedRegion}
-			onchange={handleRegionChange}
-			class="bg-ink-800 border border-ink-700 rounded-lg px-3 py-2 text-sm"
-			aria-label="Select AWS region for carbon analysis"
-		>
-			<option value="us-east-1">US East (N. Virginia)</option>
-			<option value="us-west-2">US West (Oregon)</option>
-			<option value="eu-west-1">EU (Ireland)</option>
-			<option value="eu-north-1">EU (Stockholm)</option>
-			<option value="ap-northeast-1">Asia Pacific (Tokyo)</option>
-		</select>
+		<div class="relative">
+			<select
+				value={selectedRegion}
+				onchange={handleRegionChange}
+				class="bg-ink-900 border border-ink-700 hover:border-ink-600 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 rounded-lg px-4 py-2.5 text-sm text-white font-semibold transition-all shadow-lg cursor-pointer outline-none min-w-[200px]"
+				aria-label="Select AWS region for carbon analysis"
+			>
+				<option value="us-east-1">US East (N. Virginia)</option>
+				<option value="us-west-2">US West (Oregon)</option>
+				<option value="eu-west-1">EU (Ireland)</option>
+				<option value="eu-north-1">EU (Stockholm)</option>
+				<option value="ap-northeast-1">Asia Pacific (Tokyo)</option>
+			</select>
+		</div>
 	</div>
 
 	<AuthGate authenticated={!!data.user} action="view GreenOps">
 		{#if loading}
-			<div class="flex items-center justify-center py-20">
-				<div class="animate-spin rounded-full h-8 w-8 border-t-2 border-accent-500"></div>
+			<div class="flex flex-col items-center justify-center py-28 space-y-4">
+				<div class="relative w-12 h-12">
+					<div class="absolute inset-0 rounded-full border-2 border-accent-500/10"></div>
+					<div class="absolute inset-0 rounded-full border-t-2 border-emerald-400 animate-spin"></div>
+				</div>
+				<p class="text-ink-400 text-sm font-medium animate-pulse">Hydrating telemetry data...</p>
 			</div>
 		{:else if !['growth', 'pro', 'enterprise', 'free'].includes(data.subscription?.tier)}
 			<GreenOpsTierPreview {toAppPath} />
 		{:else if error}
-			<div class="card bg-red-900/20 border-red-800 p-6">
-				<p class="text-red-400">{error}</p>
+			<div class="material-card-3d bg-red-950/20 border-red-500/30 p-6 flex items-start gap-4">
+				<div class="text-2xl text-red-500">⚠️</div>
+				<div>
+					<h3 class="text-white font-bold mb-1">Data Fetch Failed</h3>
+					<p class="text-red-300 text-sm leading-relaxed">{error}</p>
+				</div>
 			</div>
 		{:else}
 			<GreenOpsMetricsGrid {carbonData} {gravitonData} {budgetData} {formatCO2} />
@@ -212,3 +224,4 @@
 		{/if}
 	</AuthGate>
 </div>
+

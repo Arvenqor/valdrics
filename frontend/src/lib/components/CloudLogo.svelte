@@ -19,17 +19,32 @@
 
 <div class="inline-flex items-center justify-center {className}">
 	{#if logos[lowProvider]}
-		<img
-			src={logos[lowProvider]}
-			alt={lowProvider === 'valdrics' ? 'Valdrics logo' : provider}
-			class="object-contain cloud-logo-image"
-			class:cloud-logo-image-emphasized={emphasizeMark && lowProvider === 'valdrics'}
-			width={size}
-			height={size}
-			decoding="async"
-			loading={prioritizeImage ? 'eager' : undefined}
-			fetchpriority={prioritizeImage ? 'high' : undefined}
-		/>
+		{#if lowProvider === 'valdrics'}
+			<span class="valdrics-logo-3d-container size-{size}">
+				<span class="valdrics-logo-3d-mark size-{size}">
+					<img
+						src={logos[lowProvider]}
+						alt="Valdrics logo"
+						class="object-contain cloud-logo-image valdrics-logo-3d-image"
+						class:cloud-logo-image-emphasized={emphasizeMark}
+						width={size}
+						height={size}
+						decoding="async"
+						loading={prioritizeImage ? 'eager' : undefined}
+						fetchpriority={prioritizeImage ? 'high' : undefined}
+					/>
+				</span>
+			</span>
+		{:else}
+			<img
+				src={logos[lowProvider]}
+				alt={provider}
+				class="object-contain cloud-logo-image"
+				width={size}
+				height={size}
+				decoding="async"
+			/>
+		{/if}
 	{:else}
 		<!-- Fallback Cloud Icon -->
 		<svg
@@ -58,4 +73,23 @@
 		transform: scale(1.36);
 		transform-origin: center;
 	}
+
+	/* CSP Compliant Sizing Rules */
+	.valdrics-logo-3d-container.size-16 { width: 16px; height: 16px; }
+	.valdrics-logo-3d-container.size-24 { width: 24px; height: 24px; }
+	.valdrics-logo-3d-container.size-32 { width: 32px; height: 32px; }
+	.valdrics-logo-3d-container.size-40 { width: 40px; height: 40px; }
+	.valdrics-logo-3d-container.size-48 { width: 48px; height: 48px; }
+	.valdrics-logo-3d-container.size-64 { width: 64px; height: 64px; }
+	.valdrics-logo-3d-container.size-80 { width: 80px; height: 80px; }
+	.valdrics-logo-3d-container.size-96 { width: 96px; height: 96px; }
+
+	.valdrics-logo-3d-mark.size-16 { border-radius: 4px; padding: 1px; }
+	.valdrics-logo-3d-mark.size-24 { border-radius: 4px; padding: 1px; }
+	.valdrics-logo-3d-mark.size-32 { border-radius: 8px; padding: 3px; }
+	.valdrics-logo-3d-mark.size-40 { border-radius: 8px; padding: 3px; }
+	.valdrics-logo-3d-mark.size-48 { border-radius: 8px; padding: 3px; }
+	.valdrics-logo-3d-mark.size-64 { border-radius: 8px; padding: 3px; }
+	.valdrics-logo-3d-mark.size-80 { border-radius: 12px; padding: 4px; }
+	.valdrics-logo-3d-mark.size-96 { border-radius: 12px; padding: 4px; }
 </style>

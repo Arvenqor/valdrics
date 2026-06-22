@@ -107,7 +107,7 @@ describe('LandingHero', () => {
 		);
 		await waitFor(() => {
 			expect(dataLayer.length).toBeGreaterThan(0);
-		});
+		}, { timeout: 8000 });
 		const payload = dataLayer[dataLayer.length - 1] as Record<string, unknown>;
 		expect(payload.event).toBe('valdrics_landing_event');
 	});

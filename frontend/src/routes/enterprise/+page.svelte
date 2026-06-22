@@ -137,9 +137,9 @@
 	heroVariant="narrow"
 >
 	{#snippet heroActions()}
-		<a href={enterpriseIntakeHref} class="btn btn-primary">Request Enterprise Briefing</a>
-		<a href={enterpriseStartFreeHref} class="btn btn-secondary">Start Free Workspace</a>
-		<a href={enterprisePricingHref} class="btn btn-secondary">View Pricing</a>
+		<a href={enterpriseIntakeHref} class="btn btn-primary material-button-3d">Request Enterprise Briefing</a>
+		<a href={enterpriseStartFreeHref} class="btn btn-secondary material-button-3d">Start Free Workspace</a>
+		<a href={enterprisePricingHref} class="btn btn-secondary material-button-3d">View Pricing</a>
 	{/snippet}
 
 	{#snippet heroMeta()}
@@ -168,7 +168,7 @@
 					<article class="public-page__card">
 						<h3 class="public-page__card-title">{track.title}</h3>
 						<p class="public-page__card-copy">{track.detail}</p>
-						<a href={track.href} class="btn btn-secondary">{track.ctaLabel}</a>
+						<a href={track.href} class="btn btn-secondary material-button-3d">{track.ctaLabel}</a>
 					</article>
 				{/each}
 			</div>
@@ -192,7 +192,7 @@
 							<p class="public-page__card-kicker">{path.kicker}</p>
 							<h3 class="public-page__card-title">{path.title}</h3>
 							<p class="public-page__card-copy">{path.detail}</p>
-							<a href={path.href} class="btn btn-secondary">{path.ctaLabel}</a>
+							<a href={path.href} class="btn btn-secondary material-button-3d">{path.ctaLabel}</a>
 						</article>
 					{/each}
 				</div>

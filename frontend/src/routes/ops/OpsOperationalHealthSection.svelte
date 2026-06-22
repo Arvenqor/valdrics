@@ -242,10 +242,12 @@
 <div class="space-y-6">
 	<OpsStatusBanners error={opsState.error} success={opsState.success} />
 	{#await loadOpsUnitEconomicsSection()}
-		<div class="card">
-			<div class="skeleton h-8 w-48 mb-4"></div>
-			<div class="skeleton h-4 w-full mb-2"></div>
-			<div class="skeleton h-40 rounded-2xl"></div>
+		<div class="material-perspective">
+			<div class="card material-card-3d p-6 space-y-4">
+				<div class="skeleton h-8 w-48"></div>
+				<div class="skeleton h-4 w-full"></div>
+				<div class="skeleton h-40 rounded-2xl"></div>
+			</div>
 		</div>
 	{:then module}
 		{@const OpsUnitEconomicsSection = module.default}
@@ -271,9 +273,11 @@
 	<div bind:this={reliabilityAnchor}>
 		{#if reliabilityVisible}
 			{#await loadOpsIngestionSlaSection()}
-				<div class="card">
-					<div class="skeleton h-8 w-48 mb-4"></div>
-					<div class="skeleton h-40 rounded-2xl"></div>
+				<div class="material-perspective">
+					<div class="card material-card-3d p-6 space-y-4">
+						<div class="skeleton h-8 w-48"></div>
+						<div class="skeleton h-40 rounded-2xl"></div>
+					</div>
 				</div>
 			{:then module}
 				{@const OpsIngestionSlaSection = module.default}
@@ -290,16 +294,20 @@
 					bind:ingestionSlaWindowHours={opsState.ingestionSlaWindowHours}
 				/>
 			{:catch}
-				<div class="card">
-					<div class="skeleton h-8 w-48 mb-4"></div>
+				<div class="material-perspective">
+					<div class="card material-card-3d p-6">
+						<div class="skeleton h-8 w-48"></div>
+					</div>
 				</div>
 			{/await}
 
 			{#if canAccessJobSlo()}
 				{#await loadOpsJobSloSection()}
-					<div class="card">
-						<div class="skeleton h-8 w-48 mb-4"></div>
-						<div class="skeleton h-40 rounded-2xl"></div>
+					<div class="material-perspective">
+						<div class="card material-card-3d p-6 space-y-4">
+							<div class="skeleton h-8 w-48"></div>
+							<div class="skeleton h-40 rounded-2xl"></div>
+						</div>
 					</div>
 				{:then module}
 					{@const OpsJobSloSection = module.default}
@@ -315,8 +323,10 @@
 						bind:jobSloWindowHours={opsState.jobSloWindowHours}
 					/>
 				{:catch}
-					<div class="card">
-						<div class="skeleton h-8 w-48 mb-4"></div>
+					<div class="material-perspective">
+						<div class="card material-card-3d p-6">
+							<div class="skeleton h-8 w-48"></div>
+						</div>
 					</div>
 				{/await}
 			{:else}
@@ -327,9 +337,11 @@
 				/>
 			{/if}
 		{:else}
-			<div class="card">
-				<div class="skeleton h-8 w-48 mb-4"></div>
-				<div class="skeleton h-40 rounded-2xl"></div>
+			<div class="material-perspective">
+				<div class="card material-card-3d p-6 space-y-4">
+					<div class="skeleton h-8 w-48"></div>
+					<div class="skeleton h-40 rounded-2xl"></div>
+				</div>
 			</div>
 		{/if}
 	</div>
@@ -339,9 +351,11 @@
 			{#if acceptanceActions}
 				{#if canAccessAcceptanceKpis()}
 					{#await loadOpsAcceptanceKpiSection()}
-						<div class="card">
-							<div class="skeleton h-8 w-56 mb-4"></div>
-							<div class="skeleton h-56 rounded-2xl"></div>
+						<div class="material-perspective">
+							<div class="card material-card-3d p-6 space-y-4">
+								<div class="skeleton h-8 w-56"></div>
+								<div class="skeleton h-56 rounded-2xl"></div>
+							</div>
 						</div>
 					{:then module}
 						{@const OpsAcceptanceKpiSection = module.default}
@@ -365,8 +379,10 @@
 							}}
 						/>
 					{:catch}
-						<div class="card">
-							<div class="skeleton h-8 w-56 mb-4"></div>
+						<div class="material-perspective">
+							<div class="card material-card-3d p-6">
+								<div class="skeleton h-8 w-56"></div>
+							</div>
 						</div>
 					{/await}
 				{:else}
@@ -378,9 +394,11 @@
 				{/if}
 
 				{#await loadOpsIntegrationAcceptanceSection()}
-					<div class="card">
-						<div class="skeleton h-8 w-64 mb-4"></div>
-						<div class="skeleton h-56 rounded-2xl"></div>
+					<div class="material-perspective">
+						<div class="card material-card-3d p-6 space-y-4">
+							<div class="skeleton h-8 w-64"></div>
+							<div class="skeleton h-56 rounded-2xl"></div>
+						</div>
 					</div>
 				{:then module}
 					{@const OpsIntegrationAcceptanceSection = module.default}
@@ -406,17 +424,21 @@
 						bind:captureFailFast={opsState.captureFailFast}
 					/>
 				{:catch}
-					<div class="card">
-						<div class="skeleton h-8 w-64 mb-4"></div>
+					<div class="material-perspective">
+						<div class="card material-card-3d p-6">
+							<div class="skeleton h-8 w-64"></div>
+						</div>
 					</div>
 				{/await}
 
 				{#if canAccessCloseWorkflow()}
 					{#if closeActions}
 						{#await loadOpsCloseWorkflowSection()}
-							<div class="card">
-								<div class="skeleton h-8 w-64 mb-4"></div>
-								<div class="skeleton h-56 rounded-2xl"></div>
+							<div class="material-perspective">
+								<div class="card material-card-3d p-6 space-y-4">
+									<div class="skeleton h-8 w-64"></div>
+									<div class="skeleton h-56 rounded-2xl"></div>
+								</div>
 							</div>
 						{:then module}
 							{@const OpsCloseWorkflowSection = module.default}
@@ -444,14 +466,18 @@
 								bind:invoiceForm={opsState.invoiceForm}
 							/>
 						{:catch}
-							<div class="card">
-								<div class="skeleton h-8 w-64 mb-4"></div>
+							<div class="material-perspective">
+								<div class="card material-card-3d p-6">
+									<div class="skeleton h-8 w-64"></div>
+								</div>
 							</div>
 						{/await}
 					{:else}
-						<div class="card">
-							<div class="skeleton h-8 w-64 mb-4"></div>
-							<div class="skeleton h-56 rounded-2xl"></div>
+						<div class="material-perspective">
+							<div class="card material-card-3d p-6 space-y-4">
+								<div class="skeleton h-8 w-64"></div>
+								<div class="skeleton h-56 rounded-2xl"></div>
+							</div>
 						</div>
 					{/if}
 				{:else}
@@ -462,34 +488,46 @@
 					/>
 				{/if}
 			{:else}
-				<div class="card">
-					<div class="skeleton h-8 w-56 mb-4"></div>
-					<div class="skeleton h-56 rounded-2xl"></div>
+				<div class="material-perspective">
+					<div class="card material-card-3d p-6 space-y-4">
+						<div class="skeleton h-8 w-56"></div>
+						<div class="skeleton h-56 rounded-2xl"></div>
+					</div>
 				</div>
-				<div class="card">
-					<div class="skeleton h-8 w-64 mb-4"></div>
-					<div class="skeleton h-56 rounded-2xl"></div>
+				<div class="material-perspective">
+					<div class="card material-card-3d p-6 space-y-4">
+						<div class="skeleton h-8 w-64"></div>
+						<div class="skeleton h-56 rounded-2xl"></div>
+					</div>
 				</div>
 				{#if canAccessCloseWorkflow()}
-					<div class="card">
-						<div class="skeleton h-8 w-64 mb-4"></div>
-						<div class="skeleton h-56 rounded-2xl"></div>
+					<div class="material-perspective">
+						<div class="card material-card-3d p-6 space-y-4">
+							<div class="skeleton h-8 w-64"></div>
+							<div class="skeleton h-56 rounded-2xl"></div>
+						</div>
 					</div>
 				{/if}
 			{/if}
 		{:else}
-			<div class="card">
-				<div class="skeleton h-8 w-56 mb-4"></div>
-				<div class="skeleton h-56 rounded-2xl"></div>
+			<div class="material-perspective">
+				<div class="card material-card-3d p-6 space-y-4">
+					<div class="skeleton h-8 w-56"></div>
+					<div class="skeleton h-56 rounded-2xl"></div>
+				</div>
 			</div>
-			<div class="card">
-				<div class="skeleton h-8 w-64 mb-4"></div>
-				<div class="skeleton h-56 rounded-2xl"></div>
+			<div class="material-perspective">
+				<div class="card material-card-3d p-6 space-y-4">
+					<div class="skeleton h-8 w-64"></div>
+					<div class="skeleton h-56 rounded-2xl"></div>
+				</div>
 			</div>
 			{#if canAccessCloseWorkflow()}
-				<div class="card">
-					<div class="skeleton h-8 w-64 mb-4"></div>
-					<div class="skeleton h-56 rounded-2xl"></div>
+				<div class="material-perspective">
+					<div class="card material-card-3d p-6 space-y-4">
+						<div class="skeleton h-8 w-64"></div>
+						<div class="skeleton h-56 rounded-2xl"></div>
+					</div>
 				</div>
 			{/if}
 		{/if}

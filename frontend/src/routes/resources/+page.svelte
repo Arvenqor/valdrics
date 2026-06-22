@@ -76,13 +76,12 @@
 >
 	{#snippet heroActions()}
 		{#if buyingMotion === 'enterprise_first'}
-			<a href={enterprisePathHref} class="btn btn-primary">Enterprise Review</a>
-			<a href={startFreeHref} class="btn btn-secondary">Start Free Workspace</a>
+			<a href={enterprisePathHref} class="btn btn-primary material-button-3d">Enterprise Review</a>
+			<a href={startFreeHref} class="btn btn-secondary material-button-3d">Start Free Workspace</a>
 		{:else}
-			<a href={startFreeHref} class="btn btn-primary">Start Free Workspace</a>
-			<a href={enterprisePathHref} class="btn btn-secondary">Enterprise Review</a>
+			<a href={startFreeHref} class="btn btn-primary material-button-3d">Start Free Workspace</a>
+			<a href={enterprisePathHref} class="btn btn-secondary material-button-3d">Enterprise Review</a>
 		{/if}
-		<a href={`${base}/insights`} class="btn btn-secondary">Open Insights</a>
 	{/snippet}
 
 	{#snippet heroMeta()}

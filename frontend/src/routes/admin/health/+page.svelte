@@ -170,26 +170,34 @@
 
 <AuthGate authenticated={!!data.user} action="view system health metrics">
 	{#if forbidden}
-		<div class="card border-warning-500/50 bg-warning-500/10">
-			<h2 class="text-lg font-semibold mb-2">Platform Operator Access Required</h2>
-			<p class="text-ink-300 text-sm">
-				This dashboard is restricted to platform-scoped internal operators. Workspace admins do not
-				have access to platform-global health telemetry.
-			</p>
+		<div class="material-perspective">
+			<div class="card border-warning-500/50 bg-warning-500/10 material-card-3d">
+				<h2 class="text-lg font-semibold mb-2">Platform Operator Access Required</h2>
+				<p class="text-ink-300 text-sm">
+					This dashboard is restricted to platform-scoped internal operators. Workspace admins do not
+					have access to platform-global health telemetry.
+				</p>
+			</div>
 		</div>
 	{:else if loading}
-		<div class="card">
-			<div class="skeleton h-8 w-48 mb-3"></div>
-			<div class="skeleton h-5 w-full mb-2"></div>
-			<div class="skeleton h-5 w-4/5"></div>
+		<div class="material-perspective">
+			<div class="card material-card-3d">
+				<div class="skeleton h-8 w-48 mb-3"></div>
+				<div class="skeleton h-5 w-full mb-2"></div>
+				<div class="skeleton h-5 w-4/5"></div>
+			</div>
 		</div>
 	{:else if error}
-		<div class="card border-danger-500/50 bg-danger-500/10">
-			<p class="text-danger-400">{error}</p>
+		<div class="material-perspective">
+			<div class="card border-danger-500/50 bg-danger-500/10 material-card-3d">
+				<p class="text-danger-400">{error}</p>
+			</div>
 		</div>
 	{:else if !dashboard}
-		<div class="card">
-			<p class="text-ink-400">No health metrics available right now.</p>
+		<div class="material-perspective">
+			<div class="card material-card-3d">
+				<p class="text-ink-400">No health metrics available right now.</p>
+			</div>
 		</div>
 	{:else}
 		<HealthDashboardPanel

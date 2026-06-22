@@ -94,6 +94,7 @@
 .auth-brand__mark {
 	display: grid;
 	place-items: center;
+	position: relative;
 	width: 42px;
 	height: 42px;
 	border: 1px solid rgb(34 211 238 / 0.3);
@@ -102,6 +103,35 @@
 		radial-gradient(circle at 30% 18%, rgb(255 255 255 / 0.14), transparent 34%),
 		linear-gradient(145deg, rgb(34 211 238 / 0.2), rgb(52 211 153 / 0.1) 58%, rgb(3 9 18 / 0.74));
 	box-shadow: 0 14px 30px rgb(8 126 164 / 0.22);
+	perspective: 1000px;
+	transform-style: preserve-3d;
+	transition:
+		transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+		border-color var(--duration-fast) var(--ease-out),
+		box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.auth-brand:hover .auth-brand__mark {
+	transform: translateY(-2.5px) rotateX(10deg) rotateY(-10deg);
+	border-color: rgb(34 211 238 / 0.48);
+	box-shadow:
+		0 20px 42px rgba(8, 126, 164, 0.32),
+		0 0 20px rgba(52, 211, 153, 0.15);
+}
+
+.auth-brand__mark::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	background: linear-gradient(
+		135deg,
+		rgba(255, 255, 255, 0.22) 0%,
+		rgba(255, 255, 255, 0) 50%,
+		rgba(52, 211, 153, 0.08) 100%
+	);
+	pointer-events: none;
+	transform: translateZ(1px);
 }
 
 .auth-brand__mark img {
@@ -109,6 +139,12 @@
 	height: 30px;
 	object-fit: contain;
 	filter: drop-shadow(0 6px 10px rgb(34 211 238 / 0.22));
+	transform: translateZ(10px);
+	transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.auth-brand:hover .auth-brand__mark img {
+	transform: translateZ(20px) scale(1.06);
 }
 
 .auth-brand__word,

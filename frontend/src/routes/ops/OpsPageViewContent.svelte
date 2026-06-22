@@ -347,25 +347,32 @@
 			/>
 
 			{#await loadOpsOperationalHealthSection()}
-				<div class="card">
-					<div class="skeleton h-8 w-56 mb-4"></div>
-					<div class="skeleton h-64 rounded-2xl"></div>
+				<div class="material-perspective">
+					<div class="card material-card-3d p-6">
+						<div class="skeleton h-8 w-56 mb-4"></div>
+						<div class="skeleton h-64 rounded-2xl"></div>
+					</div>
 				</div>
 			{:then module}
 				{@const OpsOperationalHealthSection = module.default}
 				<OpsOperationalHealthSection {data} />
 			{:catch}
-				<div class="card">
-					<div class="skeleton h-8 w-56 mb-4"></div>
+				<div class="material-perspective">
+					<div class="card material-card-3d p-6">
+						<div class="skeleton h-8 w-56 mb-4"></div>
+						<p class="text-xs text-danger-400 mt-2">Error loading Operational Health.</p>
+					</div>
 				</div>
 			{/await}
 
 			<div bind:this={backlogAnchor}>
 				{#if backlogVisible}
 					{#await loadOpsBacklogSection()}
-						<div class="card">
-							<div class="skeleton h-8 w-48 mb-4"></div>
-							<div class="skeleton h-80 rounded-2xl"></div>
+						<div class="material-perspective space-y-6">
+							<div class="card material-card-3d p-6">
+								<div class="skeleton h-8 w-48 mb-4"></div>
+								<div class="skeleton h-80 rounded-2xl"></div>
+							</div>
 						</div>
 					{:then module}
 						{@const OpsBacklogSection = module.default}
@@ -386,14 +393,19 @@
 							onApplyRecommendation={applyRecommendation}
 						/>
 					{:catch}
-						<div class="card">
-							<div class="skeleton h-8 w-48 mb-4"></div>
+						<div class="material-perspective">
+							<div class="card material-card-3d p-6">
+								<div class="skeleton h-8 w-48 mb-4"></div>
+								<p class="text-xs text-danger-400 mt-2">Error loading Remediation backlog.</p>
+							</div>
 						</div>
 					{/await}
 				{:else}
-					<div class="card">
-						<div class="skeleton h-8 w-48 mb-4"></div>
-						<div class="skeleton h-80 rounded-2xl"></div>
+					<div class="material-perspective">
+						<div class="card material-card-3d p-6">
+							<div class="skeleton h-8 w-48 mb-4"></div>
+							<div class="skeleton h-80 rounded-2xl"></div>
+						</div>
 					</div>
 				{/if}
 			</div>

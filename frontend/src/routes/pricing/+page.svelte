@@ -302,7 +302,8 @@
 
 			{#if freePlan}
 				{@const freeStory = getPlanStory(freePlan)}
-				<article class="public-page__card public-page__card--accent pricing-entry-card">
+			<div class="material-perspective">
+				<article class="material-card-3d public-page__card public-page__card--accent pricing-entry-card">
 					<div class="pricing-entry-card__head">
 						<div class="pricing-entry-card__copy">
 							<p class="public-page__card-kicker">{freeStory.badge}</p>
@@ -330,7 +331,7 @@
 
 					<div class="pricing-entry-card__footer">
 						<div class="public-page__actions-row">
-							<a href={getFreeTierHref()} class="btn btn-primary">Start on Free Tier</a>
+							<a href={getFreeTierHref()} class="btn btn-primary material-button-3d">Start on Free Tier</a>
 							{#if isCurrentPlan('free')}
 								<span class="pricing-current-plan">Current plan active</span>
 							{:else}
@@ -339,13 +340,14 @@
 						</div>
 					</div>
 				</article>
+			</div>
 			{/if}
 
-			<div class="pricing-plan-grid">
+			<div class="pricing-plan-grid material-perspective">
 				{#each paidPlans as plan (plan.id)}
 					{@const story = getPlanStory(plan)}
 					<article
-						class={`public-page__card pricing-plan-card ${plan.popular ? 'public-page__card--featured pricing-plan-card--popular' : ''}`}
+						class={`material-card-3d public-page__card pricing-plan-card ${plan.popular ? 'public-page__card--featured pricing-plan-card--popular' : ''}`}
 					>
 						<div class="pricing-plan-card__head">
 							<div>
@@ -391,13 +393,13 @@
 
 						<div class="pricing-plan-card__footer">
 							{#if isCurrentPlan(plan.id)}
-								<button type="button" class="btn btn-secondary pricing-plan-button" disabled>
+								<button type="button" class="btn btn-secondary pricing-plan-button material-button-3d" disabled>
 									Current Plan
 								</button>
 							{:else if data.user}
 								<button
 									type="button"
-									class={`btn ${plan.popular ? 'btn-primary' : 'btn-secondary'} pricing-plan-button`}
+									class={`btn ${plan.popular ? 'btn-primary' : 'btn-secondary'} pricing-plan-button material-button-3d`}
 									onclick={() => void selectPlan(plan.id)}
 									disabled={!!upgrading}
 									aria-label={`${plan.cta} for ${plan.name} plan`}
@@ -412,7 +414,7 @@
 							{:else}
 								<a
 									href={getSignupHref(plan.id)}
-									class={`btn ${plan.popular ? 'btn-primary' : 'btn-secondary'} pricing-plan-button`}
+									class={`btn ${plan.popular ? 'btn-primary' : 'btn-secondary'} pricing-plan-button material-button-3d`}
 								>
 									{plan.cta}
 								</a>

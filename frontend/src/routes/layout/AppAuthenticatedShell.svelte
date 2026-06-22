@@ -391,9 +391,7 @@
 			actions={[...primaryNavItems, ...secondaryNavItems]}
 			{role}
 			{platformOperator}
-			bind:isOpen={
-				() => uiState.isCommandPaletteOpen, (value) => (uiState.isCommandPaletteOpen = value)
-			}
+			bind:isOpen={uiState.isCommandPaletteOpen}
 		/>
 	{/await}
 {/if}

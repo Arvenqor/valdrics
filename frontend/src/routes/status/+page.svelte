@@ -71,35 +71,43 @@
 			</div>
 		</div>
 
-		<dl class="status-facts" aria-label="Status provenance">
-			<div>
-				<dt>Last checked</dt>
-				<dd>{checkedAtLabel}</dd>
-			</div>
-			<div>
-				<dt>Source</dt>
-				<dd>{sourceLabel}</dd>
-			</div>
-			<div>
-				<dt>Components tracked</dt>
-				<dd>{statusCounts.total}</dd>
-			</div>
-		</dl>
+		<div class="material-perspective">
+			<dl class="status-facts material-card-3d" aria-label="Status provenance">
+				<div>
+					<dt>Last checked</dt>
+					<dd>{checkedAtLabel}</dd>
+				</div>
+				<div>
+					<dt>Source</dt>
+					<dd>{sourceLabel}</dd>
+				</div>
+				<div>
+					<dt>Components tracked</dt>
+					<dd>{statusCounts.total}</dd>
+				</div>
+			</dl>
+		</div>
 	</section>
 
 	<section class="status-rollup" aria-label="Status rollup">
-		<article>
-			<strong>{statusCounts.operational}</strong>
-			<span>operational</span>
-		</article>
-		<article>
-			<strong>{statusCounts.attention}</strong>
-			<span>need attention</span>
-		</article>
-		<article>
-			<strong>{statusCounts.unknown}</strong>
-			<span>unknown</span>
-		</article>
+		<div class="material-perspective">
+			<article class="material-card-3d">
+				<strong>{statusCounts.operational}</strong>
+				<span>operational</span>
+			</article>
+		</div>
+		<div class="material-perspective">
+			<article class="material-card-3d">
+				<strong>{statusCounts.attention}</strong>
+				<span>need attention</span>
+			</article>
+		</div>
+		<div class="material-perspective">
+			<article class="material-card-3d">
+				<strong>{statusCounts.unknown}</strong>
+				<span>unknown</span>
+			</article>
+		</div>
 	</section>
 
 	{#if data.source !== 'live'}
@@ -119,13 +127,15 @@
 
 		<div class="status-grid">
 			{#each data.components as component (component.name)}
-				<article class="status-card">
-					<div class="status-card__head">
-						<h3>{component.name}</h3>
-						<span class={toneClassByValue[component.tone]}>{component.statusLabel}</span>
-					</div>
-					<p>{component.detail}</p>
-				</article>
+				<div class="material-perspective">
+					<article class="status-card material-card-3d">
+						<div class="status-card__head">
+							<h3>{component.name}</h3>
+							<span class={toneClassByValue[component.tone]}>{component.statusLabel}</span>
+						</div>
+						<p>{component.detail}</p>
+					</article>
+				</div>
 			{/each}
 		</div>
 	</section>
@@ -158,7 +168,7 @@
 	}
 
 	.status-hero h1 {
-		color: rgb(15, 23, 42);
+		color: var(--color-ink-50, #f0f4f8);
 		font-size: clamp(2.75rem, 7vw, 5.75rem);
 		font-weight: 760;
 		line-height: 0.95;
@@ -167,7 +177,7 @@
 	.status-hero__copy > p {
 		max-width: 42rem;
 		margin: 1.3rem 0 0;
-		color: rgb(71, 85, 105);
+		color: var(--color-ink-300, rgba(240, 244, 248, 0.7));
 		font-size: clamp(1rem, 1.6vw, 1.18rem);
 		line-height: 1.7;
 	}
@@ -181,7 +191,7 @@
 	}
 
 	.status-summary span {
-		color: rgb(15, 23, 42);
+		color: var(--color-ink-50, #f0f4f8);
 		font-size: 0.9rem;
 		font-weight: 760;
 		text-transform: uppercase;
@@ -189,7 +199,7 @@
 	}
 
 	.status-summary strong {
-		color: rgb(71, 85, 105);
+		color: var(--color-ink-300, rgba(240, 244, 248, 0.7));
 		font-size: 0.95rem;
 		font-weight: 500;
 		line-height: 1.55;
@@ -317,7 +327,7 @@
 	}
 
 	.status-services h2 {
-		color: rgb(15, 23, 42);
+		color: var(--color-ink-50, #f0f4f8);
 		font-size: clamp(1.4rem, 3vw, 2rem);
 		font-weight: 740;
 	}
@@ -325,7 +335,7 @@
 	.status-services__head p {
 		max-width: 34rem;
 		margin: 0;
-		color: rgb(71, 85, 105);
+		color: var(--color-ink-300, rgba(240, 244, 248, 0.7));
 		font-size: 0.9rem;
 		line-height: 1.55;
 	}

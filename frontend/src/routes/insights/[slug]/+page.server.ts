@@ -1,10 +1,6 @@
+import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { listRelatedPublicContent, mustGetPublicContentEntry } from '$lib/content/publicContent';
 
 export const load: PageServerLoad = ({ params }) => {
-	const entry = mustGetPublicContentEntry('insights', params.slug);
-	return {
-		entry,
-		relatedEntries: listRelatedPublicContent(entry)
-	};
+	throw redirect(308, `/resources/${params.slug}`);
 };

@@ -82,7 +82,7 @@ describe('ops page unit economics interactions', () => {
 		});
 
 		await screen.findByText('Cost Ingestion SLA', {}, { timeout: ASYNC_RENDER_TIMEOUT });
-		await screen.findByText('SLA At Risk');
+		await screen.findByText('SLA At Risk', {}, { timeout: ASYNC_RENDER_TIMEOUT });
 
 		await fireEvent.change(screen.getByLabelText('SLA Window'), { target: { value: '168' } });
 		await fireEvent.click(screen.getByRole('button', { name: 'Refresh SLA' }));
@@ -105,8 +105,8 @@ describe('ops page unit economics interactions', () => {
 		});
 
 		await screen.findByText('Job Reliability SLO', {}, { timeout: ASYNC_RENDER_TIMEOUT });
-		await screen.findByText('SLO Healthy');
-		await screen.findByText('cost_ingestion');
+		await screen.findByText('SLO Healthy', {}, { timeout: ASYNC_RENDER_TIMEOUT });
+		await screen.findByText('cost_ingestion', {}, { timeout: ASYNC_RENDER_TIMEOUT });
 
 		await fireEvent.change(screen.getByLabelText('Job SLO Window'), { target: { value: '72' } });
 		await fireEvent.click(screen.getByRole('button', { name: 'Refresh SLO' }));
@@ -129,7 +129,7 @@ describe('ops page unit economics interactions', () => {
 		});
 
 		await screen.findByText('Acceptance KPI Evidence', {}, { timeout: ASYNC_RENDER_TIMEOUT });
-		await screen.findByText('Gaps Open');
+		await screen.findByText('Gaps Open', {}, { timeout: ASYNC_RENDER_TIMEOUT });
 
 		const unitCard = screen.getByText('Unit Economics Monitor').closest('.card') as HTMLElement;
 		const dateInputs = Array.from(
@@ -191,7 +191,7 @@ describe('ops page unit economics interactions', () => {
 		});
 
 		await screen.findByText('Integration Acceptance Runs', {}, { timeout: ASYNC_RENDER_TIMEOUT });
-		await screen.findByText('PARTIAL FAILURE');
+		await screen.findByText('PARTIAL FAILURE', {}, { timeout: ASYNC_RENDER_TIMEOUT });
 		expect(screen.getByText('2 passed / 1 failed')).toBeTruthy();
 		expect(screen.getByText('slack: OK')).toBeTruthy();
 		expect(screen.getByText('jira: FAIL')).toBeTruthy();

@@ -32,7 +32,8 @@
 	let publicResourcesMenuOpen = $state(false);
 	let publicResourcesPanel = $state<HTMLDivElement | null>(null);
 	let publicResourcesButton = $state<HTMLButtonElement | null>(null);
-	let publicTheme = $state<PublicTheme>('light');
+	// svelte-ignore state_referenced_locally
+	let publicTheme = $state<PublicTheme>(publicTone === 'landing' ? 'dark' : 'light');
 	let publicThemeLoaded = $state(false);
 
 	type PublicMobileMenuDialogProps = {
@@ -54,7 +55,18 @@
 		theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
 	const themeToggleCopy = (theme: PublicTheme) => (theme === 'dark' ? 'Light mode' : 'Dark mode');
 
+	let lastTone: PublicTone | undefined = undefined;
+
 	$effect(() => {
+		if (lastTone !== undefined && publicTone !== lastTone) {
+			publicThemeLoaded = false;
+		}
+		lastTone = publicTone;
+		if (publicTone === 'landing') {
+			publicTheme = 'dark';
+			publicThemeLoaded = true;
+			return;
+		}
 		if (!browser || publicThemeLoaded) return;
 		publicTheme = resolveInitialPublicTheme({
 			storage: window.localStorage,

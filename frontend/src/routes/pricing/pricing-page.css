@@ -475,3 +475,137 @@
 	font-size: 0.84rem;
 	line-height: 1.45;
 }
+
+/* ==========================================================================
+   Tactile 3D and Glassmorphic Theme Overrides (2026)
+   ========================================================================== */
+
+/* Light Theme overrides */
+.public-site-shell[data-public-theme='light'] .pricing-entry-card.material-card-3d,
+.public-site-shell[data-public-theme='light'] .pricing-plan-card.material-card-3d {
+	background:
+		linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(244, 248, 250, 0.9) 100%),
+		radial-gradient(400px at 0% 0%, rgba(8, 126, 164, 0.03), transparent 70%);
+	border: 1px solid rgba(8, 126, 164, 0.16);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.6),
+		0 10px 24px rgba(15, 23, 42, 0.05);
+	color: var(--color-ink-950);
+}
+
+.public-site-shell[data-public-theme='light'] .pricing-entry-card.material-card-3d:hover,
+.public-site-shell[data-public-theme='light'] .pricing-plan-card.material-card-3d:hover {
+	border-color: rgba(8, 126, 164, 0.32);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.8),
+		0 22px 40px rgba(15, 23, 42, 0.12),
+		0 0 16px rgba(18, 158, 192, 0.1);
+}
+
+.public-site-shell[data-public-theme='light'] .pricing-entry-card__price {
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(228, 246, 250, 0.95));
+	border-color: rgba(18, 158, 192, 0.22);
+}
+
+.public-site-shell[data-public-theme='light'] .pricing-plan-card--popular .pricing-plan-price {
+	background: linear-gradient(180deg, rgba(228, 246, 250, 0.95), rgba(255, 255, 255, 0.95));
+	border-color: rgba(18, 158, 192, 0.26);
+}
+
+.public-site-shell[data-public-theme='light'] .pricing-cycle {
+	border-color: rgba(8, 126, 164, 0.16);
+	background: rgba(255, 255, 255, 0.85);
+	box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.public-site-shell[data-public-theme='light'] .pricing-cycle__switch {
+	background: rgba(8, 126, 164, 0.1);
+	border-color: rgba(8, 126, 164, 0.2);
+}
+
+.public-site-shell[data-public-theme='light'] .pricing-cycle__switch.annual {
+	background: rgba(18, 158, 192, 0.25);
+	border-color: rgba(18, 158, 192, 0.4);
+}
+
+.public-site-shell[data-public-theme='light'] .pricing-alert {
+	border-color: rgba(239, 68, 68, 0.28);
+	background: rgba(254, 242, 242, 0.88);
+	backdrop-filter: blur(10px);
+	color: rgb(153, 27, 27);
+}
+
+/* Dark Theme overrides */
+.public-site-shell[data-public-theme='dark'] .pricing-entry-card.material-card-3d,
+.public-site-shell[data-public-theme='dark'] .pricing-plan-card.material-card-3d {
+	background:
+		linear-gradient(180deg, rgba(15, 23, 36, 0.72) 0%, rgba(9, 15, 24, 0.78) 100%),
+		radial-gradient(400px at 0% 0%, rgba(34, 211, 239, 0.06), transparent 70%);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.04),
+		0 14px 34px rgba(0, 0, 0, 0.35);
+	color: var(--color-ink-100);
+}
+
+.public-site-shell[data-public-theme='dark'] .pricing-entry-card.material-card-3d:hover,
+.public-site-shell[data-public-theme='dark'] .pricing-plan-card.material-card-3d:hover {
+	border-color: rgba(34, 211, 239, 0.28);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.08),
+		0 26px 48px rgba(0, 0, 0, 0.5),
+		0 0 20px rgba(0, 207, 124, 0.08);
+}
+
+.public-site-shell[data-public-theme='dark'] .pricing-entry-card__price {
+	background: rgba(255, 255, 255, 0.04);
+	border-color: rgba(255, 255, 255, 0.08);
+}
+
+.public-site-shell[data-public-theme='dark'] .pricing-plan-card--popular .pricing-plan-price {
+	background: rgba(255, 255, 255, 0.04);
+	border-color: rgba(255, 255, 255, 0.08);
+}
+
+.public-site-shell[data-public-theme='dark'] .pricing-cycle {
+	border-color: rgba(255, 255, 255, 0.08);
+	background: rgba(255, 255, 255, 0.03);
+	box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+}
+
+.public-site-shell[data-public-theme='dark'] .pricing-cycle__switch {
+	background: rgba(255, 255, 255, 0.06);
+	border-color: rgba(255, 255, 255, 0.12);
+}
+
+.public-site-shell[data-public-theme='dark'] .pricing-cycle__switch.annual {
+	background: rgba(34, 211, 239, 0.18);
+	border-color: rgba(34, 211, 239, 0.35);
+}
+
+.public-site-shell[data-public-theme='dark'] .pricing-cycle__knob {
+	background: var(--color-ink-100);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.public-site-shell[data-public-theme='dark'] .pricing-alert {
+	border-color: rgba(244, 63, 94, 0.35);
+	background: rgba(244, 63, 94, 0.08);
+	backdrop-filter: blur(14px);
+	color: rgb(253, 224, 233);
+}
+
+.public-site-shell[data-public-theme='dark'] .pricing-plan-context__label {
+	border-color: rgba(255, 255, 255, 0.08);
+	background: rgba(255, 255, 255, 0.04);
+	color: var(--color-ink-300);
+}
+
+.public-site-shell[data-public-theme='dark'] .pricing-plan-context__value {
+	color: var(--color-ink-200);
+}
+
+.public-site-shell[data-public-theme='dark'] .pricing-entry-card__price-value,
+.public-site-shell[data-public-theme='dark'] .pricing-plan-price__amount {
+	color: var(--color-ink-50);
+}

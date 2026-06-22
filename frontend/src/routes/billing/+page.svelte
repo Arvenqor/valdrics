@@ -194,41 +194,45 @@
 	{#if error}
 		<div class="billing-alert billing-alert--error" role="alert">
 			<p>{error}</p>
-			<button type="button" class="btn btn-secondary" onclick={() => (error = '')}>Dismiss</button>
+			<button type="button" class="btn btn-secondary material-button-3d" onclick={() => (error = '')}>Dismiss</button>
 		</div>
 	{/if}
 
 	<section class="billing-summary-grid">
-		<article class="card billing-current-plan">
-			<p class="billing-card__kicker">Current plan</p>
-			<h2 class="billing-card__title capitalize">{subscription?.tier ?? 'free'}</h2>
-			<p class="billing-card__copy">
-				Self-serve checkout supports paid-plan upgrades. For downgrades or enterprise commercial
-				changes, contact billing or sales.
-			</p>
-			<div class="billing-current-plan__meta">
-				<span class="badge badge-success capitalize">{subscription?.status ?? 'active'}</span>
-				{#if subscription?.next_payment_date}
-					<span class="billing-current-plan__date">
-						Next billing: {formatDate(subscription.next_payment_date)}
-					</span>
-				{/if}
-			</div>
-		</article>
+		<div class="material-perspective">
+			<article class="card billing-current-plan material-card-3d">
+				<p class="billing-card__kicker">Current plan</p>
+				<h2 class="billing-card__title capitalize">{subscription?.tier ?? 'free'}</h2>
+				<p class="billing-card__copy">
+					Self-serve checkout supports paid-plan upgrades. For downgrades or enterprise commercial
+					changes, contact billing or sales.
+				</p>
+				<div class="billing-current-plan__meta">
+					<span class="badge badge-success capitalize">{subscription?.status ?? 'active'}</span>
+					{#if subscription?.next_payment_date}
+						<span class="billing-current-plan__date">
+							Next billing: {formatDate(subscription.next_payment_date)}
+						</span>
+					{/if}
+				</div>
+			</article>
+		</div>
 
-		<article class="card billing-notes">
-			<p class="billing-card__kicker">Commercial notes</p>
-			<h2 class="billing-card__title">What self-serve covers</h2>
-			<ul class="billing-bullets">
-				<li>Prices are shown in USD for plan comparison.</li>
-				<li>The free tier is permanent for one live workflow; it is not a time-limited trial.</li>
-				<li>BYOK does not add a separate platform surcharge in the current lineup.</li>
-				<li>
-					Enterprise packaging, procurement, SCIM, and private deployment stay on the sales-assisted
-					path.
-				</li>
-			</ul>
-		</article>
+		<div class="material-perspective">
+			<article class="card billing-notes material-card-3d">
+				<p class="billing-card__kicker">Commercial notes</p>
+				<h2 class="billing-card__title">What self-serve covers</h2>
+				<ul class="billing-bullets">
+					<li>Prices are shown in USD for plan comparison.</li>
+					<li>The free tier is permanent for one live workflow; it is not a time-limited trial.</li>
+					<li>BYOK does not add a separate platform surcharge in the current lineup.</li>
+					<li>
+						Enterprise packaging, procurement, SCIM, and private deployment stay on the sales-assisted
+						path.
+					</li>
+				</ul>
+			</article>
+		</div>
 	</section>
 
 	<section class="space-y-4" aria-labelledby="billing-usage-title">
@@ -250,46 +254,50 @@
 			<div class="billing-usage-grid">
 				{#each BILLING_USAGE_ORDER as provider (provider)}
 					{@const usage = getUsageItem(provider)}
-					<article class="card billing-usage-card">
-						<p class="billing-card__kicker">{BILLING_USAGE_LABELS[provider]}</p>
-						<p class="billing-usage-card__value">
-							{usage.connected}
-							{#if usage.limit !== null}
-								<span>/ {usage.limit}</span>
+					<div class="material-perspective">
+						<article class="card billing-usage-card material-card-3d">
+							<p class="billing-card__kicker">{BILLING_USAGE_LABELS[provider]}</p>
+							<p class="billing-usage-card__value">
+								{usage.connected}
+								{#if usage.limit !== null}
+									<span>/ {usage.limit}</span>
+								{/if}
+							</p>
+							<p class="billing-card__copy">
+								{#if usage.limit === null}
+									No enforced limit on this tier.
+								{:else if usage.remaining === 0}
+									At plan limit for this provider.
+								{:else}
+									{usage.remaining} remaining before the plan limit.
+								{/if}
+							</p>
+							{#if usage.utilization_percent !== null}
+								<div
+									class="billing-usage-card__bar"
+									role="progressbar"
+									aria-label={`${BILLING_USAGE_LABELS[provider]} utilization`}
+									aria-valuemin={0}
+									aria-valuemax={100}
+									aria-valuenow={Math.round(usage.utilization_percent)}
+								>
+									<span style={`width: ${getUsageBarWidth(provider)}%`}></span>
+								</div>
+								<p class="billing-usage-card__footnote">{usage.utilization_percent}% utilized</p>
 							{/if}
-						</p>
-						<p class="billing-card__copy">
-							{#if usage.limit === null}
-								No enforced limit on this tier.
-							{:else if usage.remaining === 0}
-								At plan limit for this provider.
-							{:else}
-								{usage.remaining} remaining before the plan limit.
-							{/if}
-						</p>
-						{#if usage.utilization_percent !== null}
-							<div
-								class="billing-usage-card__bar"
-								role="progressbar"
-								aria-label={`${BILLING_USAGE_LABELS[provider]} utilization`}
-								aria-valuemin={0}
-								aria-valuemax={100}
-								aria-valuenow={Math.round(usage.utilization_percent)}
-							>
-								<span style={`width: ${getUsageBarWidth(provider)}%`}></span>
-							</div>
-							<p class="billing-usage-card__footnote">{usage.utilization_percent}% utilized</p>
-						{/if}
-					</article>
+						</article>
+					</div>
 				{/each}
 			</div>
 		{:else}
-			<article class="card billing-usage-empty">
-				<p class="billing-card__copy">
-					A live connection-usage snapshot was not available. Plan comparison and checkout remain
-					available.
-				</p>
-			</article>
+			<div class="material-perspective">
+				<article class="card billing-usage-empty material-card-3d">
+					<p class="billing-card__copy">
+						A live connection-usage snapshot was not available. Plan comparison and checkout remain
+						available.
+					</p>
+				</article>
+			</div>
 		{/if}
 	</section>
 
@@ -320,86 +328,92 @@
 		</div>
 
 		{#if !hasSelfServeUpgrade}
-			<article class="card billing-upgrade-note">
-				<p class="billing-card__copy">
-					You are already on the highest available self-serve tier. Use enterprise review for
-					security, procurement, or custom commercial review.
-				</p>
-			</article>
+			<div class="material-perspective">
+				<article class="card billing-upgrade-note material-card-3d">
+					<p class="billing-card__copy">
+						You are already on the highest available self-serve tier. Use enterprise review for
+						security, procurement, or custom commercial review.
+					</p>
+				</article>
+			</div>
 		{/if}
 
 		<div class="billing-plan-grid">
 			{#each visiblePlans as plan (plan.id)}
-				<article
-					class={`card billing-plan-card ${plan.popular ? 'billing-plan-card--popular' : ''}`}
-				>
-					<div class="billing-plan-card__head">
-						<div>
-							<p class="billing-card__kicker">{getPlanBadge(plan)}</p>
-							<h3 class="billing-card__title">{plan.name}</h3>
-						</div>
-						{#if isCurrentPlan(plan.id)}
-							<span class="badge badge-success">Current</span>
-						{/if}
-					</div>
-					<p class="billing-plan-card__price">
-						{formatUsd(getDisplayedMonthlyPrice(plan, billingCycle))}
-						<span>/mo</span>
-					</p>
-					<p class="billing-card__copy">{plan.description}</p>
-					<p class="billing-plan-card__annual-note">{getPlanValueNote(plan)}</p>
-					{#if plan.story}
-						<div class="billing-plan-card__story">
-							<div class="billing-plan-card__story-row">
-								<span>Best for</span>
-								<p>{plan.story.bestFor}</p>
-							</div>
-							<div class="billing-plan-card__story-row">
-								<span>Why teams upgrade</span>
-								<p>{plan.story.whyUpgrade}</p>
-							</div>
-						</div>
-					{/if}
-					<ul class="billing-bullets">
-						{#each plan.features as feature (feature)}
-							<li>{feature}</li>
-						{/each}
-					</ul>
-					<button
-						type="button"
-						class={`btn ${plan.popular ? 'btn-primary' : 'btn-secondary'} w-full`}
-						disabled={!!upgrading || !canSelfServeCheckout(plan.id, currentTier)}
-						onclick={() => upgrade(plan.id)}
+				<div class="material-perspective">
+					<article
+						class={`card billing-plan-card material-card-3d ${plan.popular ? 'billing-plan-card--popular' : ''}`}
 					>
-						{#if upgrading === plan.id}
-							<span class="spinner"></span>
-							Processing...
-						{:else}
-							{getActionLabel(plan)}
+						<div class="billing-plan-card__head">
+							<div>
+								<p class="billing-card__kicker">{getPlanBadge(plan)}</p>
+								<h3 class="billing-card__title">{plan.name}</h3>
+							</div>
+							{#if isCurrentPlan(plan.id)}
+								<span class="badge badge-success">Current</span>
+							{/if}
+						</div>
+						<p class="billing-plan-card__price">
+							{formatUsd(getDisplayedMonthlyPrice(plan, billingCycle))}
+							<span>/mo</span>
+						</p>
+						<p class="billing-card__copy">{plan.description}</p>
+						<p class="billing-plan-card__annual-note">{getPlanValueNote(plan)}</p>
+						{#if plan.story}
+							<div class="billing-plan-card__story">
+								<div class="billing-plan-card__story-row">
+									<span>Best for</span>
+									<p>{plan.story.bestFor}</p>
+								</div>
+								<div class="billing-plan-card__story-row">
+									<span>Why teams upgrade</span>
+									<p>{plan.story.whyUpgrade}</p>
+								</div>
+							</div>
 						{/if}
-					</button>
-				</article>
+						<ul class="billing-bullets">
+							{#each plan.features as feature (feature)}
+								<li>{feature}</li>
+							{/each}
+						</ul>
+						<button
+							type="button"
+							class={`btn ${plan.popular ? 'btn-primary' : 'btn-secondary'} material-button-3d w-full`}
+							disabled={!!upgrading || !canSelfServeCheckout(plan.id, currentTier)}
+							onclick={() => upgrade(plan.id)}
+						>
+							{#if upgrading === plan.id}
+								<span class="spinner"></span>
+								Processing...
+							{:else}
+								{getActionLabel(plan)}
+							{/if}
+						</button>
+					</article>
+				</div>
 			{/each}
 
-			<article class="card billing-enterprise-card">
-				<p class="billing-card__kicker">Enterprise review</p>
-				<h3 class="billing-card__title">Security, procurement, and rollout review</h3>
-				<p class="billing-card__copy">
-					Use the sales-assisted review when your workspace needs SCIM, procurement diligence,
-					private deployment, or complex rollout governance.
-				</p>
-				<ul class="billing-bullets">
-					<li>Security and identity review for SCIM and private deployment requirements</li>
-					<li>Procurement-ready diligence artifacts and rollout planning</li>
-					<li>Commercial alignment for large or complex operating environments</li>
-				</ul>
-				<div class="billing-enterprise-card__actions">
-					<a href={`${base}/talk-to-sales?intent=billing_enterprise`} class="btn btn-primary"
-						>Talk to Sales</a
-					>
-					<a href={`${base}/enterprise`} class="btn btn-secondary">View enterprise overview</a>
-				</div>
-			</article>
+			<div class="material-perspective">
+				<article class="card billing-enterprise-card material-card-3d">
+					<p class="billing-card__kicker">Enterprise review</p>
+					<h3 class="billing-card__title">Security, procurement, and rollout review</h3>
+					<p class="billing-card__copy">
+						Use the sales-assisted review when your workspace needs SCIM, procurement diligence,
+						private deployment, or complex rollout governance.
+					</p>
+					<ul class="billing-bullets">
+						<li>Security and identity review for SCIM and private deployment requirements</li>
+						<li>Procurement-ready diligence artifacts and rollout planning</li>
+						<li>Commercial alignment for large or complex operating environments</li>
+					</ul>
+					<div class="billing-enterprise-card__actions">
+						<a href={`${base}/talk-to-sales?intent=billing_enterprise`} class="btn btn-primary material-button-3d"
+							>Talk to Sales</a
+						>
+						<a href={`${base}/enterprise`} class="btn btn-secondary material-button-3d">View enterprise overview</a>
+					</div>
+				</article>
+			</div>
 		</div>
 	</section>
 </div>

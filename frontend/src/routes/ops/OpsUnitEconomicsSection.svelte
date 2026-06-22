@@ -38,11 +38,12 @@
 	}: Props = $props();
 </script>
 
-<div class="card space-y-6">
-	<!-- Section header + date controls -->
-	<div class="flex flex-wrap items-center justify-between gap-3">
-		<div>
-			<h2 class="text-lg font-semibold">Unit Economics Monitor</h2>
+<div class="material-perspective">
+	<div class="card material-card-3d p-6 space-y-6">
+		<!-- Section header + date controls -->
+		<div class="flex flex-wrap items-center justify-between gap-3">
+			<div>
+				<h2 class="text-lg font-semibold text-ink-100">Unit Economics Monitor</h2>
 			<p class="text-xs text-ink-400 mt-0.5">
 				Track cost-per-request/workload/customer versus a previous window baseline.
 			</p>
@@ -62,7 +63,7 @@
 			</label>
 			<button
 				type="button"
-				class="btn btn-secondary text-xs"
+				class="btn btn-secondary text-xs material-button-3d"
 				disabled={refreshingUnitEconomics}
 				onclick={refreshUnitEconomics}
 			>
@@ -263,10 +264,11 @@
 			</div>
 
 			<div class="flex justify-end">
-				<button class="btn btn-primary text-xs" type="submit" disabled={savingUnitSettings}>
+				<button class="btn btn-primary text-xs material-button-3d" type="submit" disabled={savingUnitSettings}>
 					{savingUnitSettings ? 'Saving...' : 'Save Settings'}
 				</button>
 			</div>
 		</form>
 	{/if}
+	</div>
 </div>

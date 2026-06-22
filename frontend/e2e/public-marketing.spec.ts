@@ -351,9 +351,9 @@ test.describe('Public marketing smoke (desktop)', () => {
 		await resourcesTrigger.click();
 		const dropdown = page.locator('#public-resources-menu');
 		await expect(dropdown).toBeVisible();
-		await dropdown.getByRole('menuitem', { name: /^insights$/i }).click();
+		await dropdown.getByRole('menuitem', { name: /^about$/i }).click();
 		await page.waitForLoadState('networkidle');
-		await expect(page).toHaveURL(/\/insights$/);
+		await expect(page).toHaveURL(/\/about$/);
 
 		// Test landing page CTAs
 		await goToLanding(page);
@@ -396,17 +396,18 @@ test.describe('Public marketing smoke (desktop)', () => {
 			/quick start a valdrics workspace/i
 		);
 		await assertPublicRoute(page, '/resources/executive-one-pager', /executive one-pager/i);
-		await assertPublicRoute(
-			page,
-			'/insights/from-alert-to-approved-action',
-			/from alert to approved action/i
-		);
-		await assertPublicRoute(page, '/proof/safe-access-model', /safe access model/i);
-		await assertPublicRoute(
-			page,
-			'/proof/deployment-and-data-residency',
-			/deployment and data residency review/i
-		);
+		// Verify 308 redirects from legacy insights/proof to resources
+		await gotoPublic(page, `${BASE_URL}/insights/from-alert-to-approved-action`);
+		await expect(page).toHaveURL(/\/resources\/from-alert-to-approved-action$/);
+		await expect(page.getByRole('heading', { level: 1, name: /from alert to approved action/i })).toBeVisible();
+
+		await gotoPublic(page, `${BASE_URL}/proof/safe-access-model`);
+		await expect(page).toHaveURL(/\/resources\/safe-access-model$/);
+		await expect(page.getByRole('heading', { level: 1, name: /safe access model/i })).toBeVisible();
+
+		await gotoPublic(page, `${BASE_URL}/proof/deployment-and-data-residency`);
+		await expect(page).toHaveURL(/\/resources\/deployment-and-data-residency$/);
+		await expect(page.getByRole('heading', { level: 1, name: /deployment and data residency review/i })).toBeVisible();
 
 		await gotoPublic(page, `${BASE_URL}/enterprise`);
 		await page

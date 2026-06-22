@@ -197,7 +197,7 @@ def test_ci_workflow_shards_backend_pytest_and_combines_coverage() -> None:
     assert "github.event_name != 'pull_request' || needs.classify-changes.outputs.backend_ci == 'true'" in text
     assert "github.event_name != 'pull_request' || needs.classify-changes.outputs.frontend_ci == 'true'" in text
     assert "app/*|tests/*|migrations/*|alembic.ini|pyproject.toml|uv.lock|scripts/*" in text
-    assert "new_frontend/*" in text
+    assert "frontend_reference_handoff/*" in text
     assert "docs/architecture/new_frontend_disposition_register.json" in text
     assert "scripts/verify_new_frontend_disposition_register.py" in text
     assert "Verify New Frontend Disposition Register" in text

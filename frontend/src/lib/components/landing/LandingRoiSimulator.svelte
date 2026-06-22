@@ -70,7 +70,8 @@
 	}
 </script>
 
-<section id="simulator" class="container mx-auto px-6 py-12" data-landing-section="simulator">
+<section id="simulator" data-landing-section="simulator">
+	<div class="container">
 	<div class="landing-section-head">
 		<div>
 			<h2 class="landing-h2">Model the savings case in minutes</h2>
@@ -206,5 +207,6 @@
 				</a>
 			</div>
 		</div>
+	</div>
 	</div>
 </section>

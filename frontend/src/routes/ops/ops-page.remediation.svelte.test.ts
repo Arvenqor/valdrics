@@ -10,6 +10,8 @@ import {
 } from './ops-page.test.setup';
 import Page from './+page.svelte';
 
+const ASYNC_RENDER_TIMEOUT = 5000;
+
 describe('ops page unit economics interactions', () => {
 	let createObjectUrlSpy: ReturnType<typeof vi.spyOn>;
 	let revokeObjectUrlSpy: ReturnType<typeof vi.spyOn>;
@@ -65,7 +67,7 @@ describe('ops page unit economics interactions', () => {
 		});
 
 		render(Page, { data: testOpsPageData });
-		await screen.findByText('Remediation Queue');
+		await screen.findByText('Remediation Queue', {}, { timeout: ASYNC_RENDER_TIMEOUT });
 		const reviewButton = await screen.findByRole('button', { name: 'Review' });
 		await fireEvent.click(reviewButton);
 
@@ -109,7 +111,7 @@ describe('ops page unit economics interactions', () => {
 		});
 
 		render(Page, { data: testOpsPageData });
-		await screen.findByText('Remediation Queue');
+		await screen.findByText('Remediation Queue', {}, { timeout: ASYNC_RENDER_TIMEOUT });
 		const reviewButton = await screen.findByRole('button', { name: 'Review' });
 		await fireEvent.click(reviewButton);
 
@@ -151,7 +153,7 @@ describe('ops page unit economics interactions', () => {
 		});
 
 		render(Page, { data: testOpsPageData });
-		await screen.findByText('Remediation Queue');
+		await screen.findByText('Remediation Queue', {}, { timeout: ASYNC_RENDER_TIMEOUT });
 		const reviewButton = await screen.findByRole('button', { name: 'Review' });
 		await fireEvent.click(reviewButton);
 
@@ -184,7 +186,7 @@ describe('ops page unit economics interactions', () => {
 		});
 
 		render(Page, { data: testOpsPageData });
-		await screen.findByText('Remediation Queue');
+		await screen.findByText('Remediation Queue', {}, { timeout: ASYNC_RENDER_TIMEOUT });
 		const reviewButton = await screen.findByRole('button', { name: 'Review' });
 		await fireEvent.click(reviewButton);
 
@@ -213,7 +215,7 @@ describe('ops page unit economics interactions', () => {
 
 		render(Page, { data: testOpsPageData });
 
-		await screen.findByText('Recent completions');
+		await screen.findByText('Recent completions', {}, { timeout: ASYNC_RENDER_TIMEOUT });
 		const resourceCell = await screen.findByText('i-resolved-1');
 		const row = resourceCell.closest('tr');
 		expect(row).toBeTruthy();

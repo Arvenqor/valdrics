@@ -9,12 +9,16 @@
 </script>
 
 {#if error}
-	<div class="card border-danger-500/50 bg-danger-500/10">
-		<p class="text-danger-400">{error}</p>
+	<div class="material-perspective">
+		<div class="card material-card-3d border-danger-500/30 bg-danger-500/10 p-4">
+			<p class="text-danger-400 text-sm">{error}</p>
+		</div>
 	</div>
 {/if}
 {#if success}
-	<div class="card border-success-500/50 bg-success-500/10">
-		<p class="text-success-400">{success}</p>
+	<div class="material-perspective">
+		<div class="card material-card-3d border-success-500/30 bg-success-500/10 p-4">
+			<p class="text-success-400 text-sm">{success}</p>
+		</div>
 	</div>
 {/if}

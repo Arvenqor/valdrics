@@ -39,233 +39,235 @@
 	} = $props();
 </script>
 
-<div class="card">
-	<div class="flex items-center justify-between mb-4">
-		<h2 class="text-lg font-semibold">Remediation Queue</h2>
+<div class="material-perspective space-y-6">
+	<div class="card material-card-3d p-6">
+		<div class="flex items-center justify-between mb-4">
+			<h2 class="text-lg font-semibold text-ink-100">Remediation Queue</h2>
+		</div>
+		{#if pendingRequests.length === 0}
+			<p class="text-ink-400 text-sm">No pending remediation requests.</p>
+		{:else}
+			<div class="overflow-x-auto">
+				<table class="table">
+					<thead>
+						<tr>
+							<th>Request</th>
+							<th>Resource</th>
+							<th>Action</th>
+							<th>Savings</th>
+							<th>Created</th>
+							<th>Controls</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each pendingRequests as req (req.id)}
+							<tr>
+								<td class="font-mono text-xs">{req.id.slice(0, 8)}...</td>
+								<td>
+									<div class="text-sm">{req.resource_type}</div>
+									<div class="text-xs text-ink-500 font-mono">{req.resource_id}</div>
+									<div class="text-xs text-ink-500 capitalize">{req.status.replaceAll('_', ' ')}</div>
+									{#if req.escalation_required}
+										<div class="badge badge-warning mt-1 text-xs">
+											Escalated: {req.escalation_reason || 'Owner approval required'}
+										</div>
+									{/if}
+								</td>
+								<td class="capitalize">{req.action.replaceAll('_', ' ')}</td>
+								<td>{formatUsd(req.estimated_savings)}</td>
+								<td class="text-xs text-ink-500">{formatDate(req.created_at)}</td>
+								<td class="flex gap-2">
+									<button
+										type="button"
+										class="btn btn-primary text-xs material-button-3d"
+										disabled={actingId === req.id}
+										onclick={() => onOpenRemediationModal(req)}
+									>
+										Review
+									</button>
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		{/if}
 	</div>
-	{#if pendingRequests.length === 0}
-		<p class="text-ink-400 text-sm">No pending remediation requests.</p>
-	{:else}
+
+	<div class="card material-card-3d p-6">
+		<div class="flex items-center justify-between mb-4">
+			<h2 class="text-lg font-semibold text-ink-100">Recent completions</h2>
+		</div>
+		{#if recentCompletions.length === 0}
+			<p class="text-ink-400 text-sm">No completed remediation history yet.</p>
+		{:else}
+			<div class="overflow-x-auto">
+				<table class="table">
+					<thead>
+						<tr>
+							<th>Resource</th>
+							<th>Action</th>
+							<th>Completed</th>
+							<th>Finding category</th>
+							<th>Finding status</th>
+							<th>Outcome</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each recentCompletions as req (req.id)}
+							<tr>
+								<td>
+									<div class="text-sm">{req.resource_type}</div>
+									<div class="text-xs text-ink-500 font-mono">{req.resource_id}</div>
+								</td>
+								<td class="capitalize">{req.action.replaceAll('_', ' ')}</td>
+								<td class="text-xs text-ink-500">{formatDate(req.executed_at || req.created_at)}</td>
+								<td class="text-xs font-mono">{req.finding_category || 'unknown'}</td>
+								<td>
+									{#if req.finding_status === 'resolved'}
+										<span class="badge badge-success text-xs">Resolved</span>
+									{:else}
+										<span class="text-xs text-ink-500 capitalize">
+											{(req.finding_status || 'unknown').replaceAll('_', ' ')}
+										</span>
+									{/if}
+								</td>
+								<td>
+									{#if req.status === 'completed'}
+										<span class="text-success-400 text-sm font-semibold">Completed</span>
+									{:else if req.execution_error}
+										<div class="text-xs text-danger-400">{req.execution_error}</div>
+									{:else}
+										<span class="text-xs text-ink-500 capitalize">
+											{req.status.replaceAll('_', ' ')}
+										</span>
+									{/if}
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		{/if}
+	</div>
+
+	<div class="card material-card-3d p-6">
+		<div class="flex items-center justify-between mb-4">
+			<h2 class="text-lg font-semibold text-ink-100">Background Jobs</h2>
+			<div class="flex gap-2">
+				<button
+					type="button"
+					class="btn btn-secondary text-xs material-button-3d"
+					disabled={processingJobs}
+					onclick={onLoadOpsData}
+				>
+					Refresh
+				</button>
+				<button
+					type="button"
+					class="btn btn-primary text-xs material-button-3d"
+					disabled={processingJobs}
+					onclick={onProcessPendingJobs}
+				>
+					{processingJobs ? 'Processing...' : 'Process Pending'}
+				</button>
+			</div>
+		</div>
 		<div class="overflow-x-auto">
 			<table class="table">
 				<thead>
 					<tr>
-						<th>Request</th>
-						<th>Resource</th>
-						<th>Action</th>
-						<th>Savings</th>
+						<th>Type</th>
+						<th>Status</th>
+						<th>Attempts</th>
 						<th>Created</th>
-						<th>Controls</th>
+						<th>Error</th>
 					</tr>
 				</thead>
 				<tbody>
-					{#each pendingRequests as req (req.id)}
+					{#if jobs.length === 0}
 						<tr>
-							<td class="font-mono text-xs">{req.id.slice(0, 8)}...</td>
-							<td>
-								<div class="text-sm">{req.resource_type}</div>
-								<div class="text-xs text-ink-500 font-mono">{req.resource_id}</div>
-								<div class="text-xs text-ink-500 capitalize">{req.status.replaceAll('_', ' ')}</div>
-								{#if req.escalation_required}
-									<div class="badge badge-warning mt-1 text-xs">
-										Escalated: {req.escalation_reason || 'Owner approval required'}
-									</div>
-								{/if}
-							</td>
-							<td class="capitalize">{req.action.replaceAll('_', ' ')}</td>
-							<td>{formatUsd(req.estimated_savings)}</td>
-							<td class="text-xs text-ink-500">{formatDate(req.created_at)}</td>
-							<td class="flex gap-2">
-								<button
-									type="button"
-									class="btn btn-primary text-xs"
-									disabled={actingId === req.id}
-									onclick={() => onOpenRemediationModal(req)}
-								>
-									Review
-								</button>
-							</td>
+							<td colspan="5" class="text-ink-400 text-center py-4">No jobs found.</td>
 						</tr>
-					{/each}
+					{:else}
+						{#each jobs as job (job.id)}
+							<tr>
+								<td class="font-mono text-xs">{job.job_type}</td>
+								<td class="capitalize">{job.status}</td>
+								<td>{job.attempts}</td>
+								<td class="text-xs text-ink-500">{formatDate(job.created_at)}</td>
+								<td class="text-xs text-danger-400">{job.error_message || '-'}</td>
+							</tr>
+						{/each}
+					{/if}
 				</tbody>
 			</table>
 		</div>
-	{/if}
-</div>
-
-<div class="card">
-	<div class="flex items-center justify-between mb-4">
-		<h2 class="text-lg font-semibold">Recent completions</h2>
 	</div>
-	{#if recentCompletions.length === 0}
-		<p class="text-ink-400 text-sm">No completed remediation history yet.</p>
-	{:else}
+
+	<div class="card material-card-3d p-6">
+		<div class="flex items-center justify-between mb-4">
+			<h2 class="text-lg font-semibold text-ink-100">RI/SP Strategy Recommendations</h2>
+			<div class="flex gap-2">
+				<button type="button" class="btn btn-secondary text-xs material-button-3d" onclick={onLoadOpsData}
+					>Refresh</button
+				>
+				<button
+					type="button"
+					class="btn btn-primary text-xs material-button-3d"
+					disabled={refreshingStrategies}
+					onclick={onRefreshRecommendations}
+				>
+					{refreshingStrategies ? 'Refreshing...' : 'Regenerate'}
+				</button>
+			</div>
+		</div>
 		<div class="overflow-x-auto">
 			<table class="table">
 				<thead>
 					<tr>
 						<th>Resource</th>
+						<th>Region</th>
+						<th>Term</th>
+						<th>Payment</th>
+						<th>Savings</th>
+						<th>ROI</th>
 						<th>Action</th>
-						<th>Completed</th>
-						<th>Finding category</th>
-						<th>Finding status</th>
-						<th>Outcome</th>
 					</tr>
 				</thead>
 				<tbody>
-					{#each recentCompletions as req (req.id)}
+					{#if recommendations.length === 0}
 						<tr>
-							<td>
-								<div class="text-sm">{req.resource_type}</div>
-								<div class="text-xs text-ink-500 font-mono">{req.resource_id}</div>
-							</td>
-							<td class="capitalize">{req.action.replaceAll('_', ' ')}</td>
-							<td class="text-xs text-ink-500">{formatDate(req.executed_at || req.created_at)}</td>
-							<td class="text-xs font-mono">{req.finding_category || 'unknown'}</td>
-							<td>
-								{#if req.finding_status === 'resolved'}
-									<span class="badge badge-success text-xs">Resolved</span>
-								{:else}
-									<span class="text-xs text-ink-500 capitalize">
-										{(req.finding_status || 'unknown').replaceAll('_', ' ')}
-									</span>
-								{/if}
-							</td>
-							<td>
-								{#if req.status === 'completed'}
-									<span class="text-success-400 text-sm font-semibold">Completed</span>
-								{:else if req.execution_error}
-									<div class="text-xs text-danger-400">{req.execution_error}</div>
-								{:else}
-									<span class="text-xs text-ink-500 capitalize">
-										{req.status.replaceAll('_', ' ')}
-									</span>
-								{/if}
-							</td>
+							<td colspan="7" class="text-ink-400 text-center py-4"
+								>No open strategy recommendations.</td
+							>
 						</tr>
-					{/each}
+					{:else}
+						{#each recommendations as rec (rec.id)}
+							<tr>
+								<td class="text-sm">{rec.resource_type}</td>
+								<td class="text-sm">{rec.region}</td>
+								<td class="text-sm">{rec.term}</td>
+								<td class="text-sm">{rec.payment_option}</td>
+								<td class="text-success-400 font-semibold"
+									>{formatUsd(rec.estimated_monthly_savings)}</td
+								>
+								<td>{rec.roi_percentage.toFixed(1)}%</td>
+								<td>
+									<button
+										type="button"
+										class="btn btn-secondary text-xs material-button-3d"
+										disabled={actingId === rec.id}
+										onclick={() => onApplyRecommendation(rec.id)}
+									>
+										Apply
+									</button>
+								</td>
+							</tr>
+						{/each}
+					{/if}
 				</tbody>
 			</table>
 		</div>
-	{/if}
-</div>
-
-<div class="card">
-	<div class="flex items-center justify-between mb-4">
-		<h2 class="text-lg font-semibold">Background Jobs</h2>
-		<div class="flex gap-2">
-			<button
-				type="button"
-				class="btn btn-secondary text-xs"
-				disabled={processingJobs}
-				onclick={onLoadOpsData}
-			>
-				Refresh
-			</button>
-			<button
-				type="button"
-				class="btn btn-primary text-xs"
-				disabled={processingJobs}
-				onclick={onProcessPendingJobs}
-			>
-				{processingJobs ? 'Processing...' : 'Process Pending'}
-			</button>
-		</div>
-	</div>
-	<div class="overflow-x-auto">
-		<table class="table">
-			<thead>
-				<tr>
-					<th>Type</th>
-					<th>Status</th>
-					<th>Attempts</th>
-					<th>Created</th>
-					<th>Error</th>
-				</tr>
-			</thead>
-			<tbody>
-				{#if jobs.length === 0}
-					<tr>
-						<td colspan="5" class="text-ink-400 text-center py-4">No jobs found.</td>
-					</tr>
-				{:else}
-					{#each jobs as job (job.id)}
-						<tr>
-							<td class="font-mono text-xs">{job.job_type}</td>
-							<td class="capitalize">{job.status}</td>
-							<td>{job.attempts}</td>
-							<td class="text-xs text-ink-500">{formatDate(job.created_at)}</td>
-							<td class="text-xs text-danger-400">{job.error_message || '-'}</td>
-						</tr>
-					{/each}
-				{/if}
-			</tbody>
-		</table>
-	</div>
-</div>
-
-<div class="card">
-	<div class="flex items-center justify-between mb-4">
-		<h2 class="text-lg font-semibold">RI/SP Strategy Recommendations</h2>
-		<div class="flex gap-2">
-			<button type="button" class="btn btn-secondary text-xs" onclick={onLoadOpsData}
-				>Refresh</button
-			>
-			<button
-				type="button"
-				class="btn btn-primary text-xs"
-				disabled={refreshingStrategies}
-				onclick={onRefreshRecommendations}
-			>
-				{refreshingStrategies ? 'Refreshing...' : 'Regenerate'}
-			</button>
-		</div>
-	</div>
-	<div class="overflow-x-auto">
-		<table class="table">
-			<thead>
-				<tr>
-					<th>Resource</th>
-					<th>Region</th>
-					<th>Term</th>
-					<th>Payment</th>
-					<th>Savings</th>
-					<th>ROI</th>
-					<th>Action</th>
-				</tr>
-			</thead>
-			<tbody>
-				{#if recommendations.length === 0}
-					<tr>
-						<td colspan="7" class="text-ink-400 text-center py-4"
-							>No open strategy recommendations.</td
-						>
-					</tr>
-				{:else}
-					{#each recommendations as rec (rec.id)}
-						<tr>
-							<td class="text-sm">{rec.resource_type}</td>
-							<td class="text-sm">{rec.region}</td>
-							<td class="text-sm">{rec.term}</td>
-							<td class="text-sm">{rec.payment_option}</td>
-							<td class="text-success-400 font-semibold"
-								>{formatUsd(rec.estimated_monthly_savings)}</td
-							>
-							<td>{rec.roi_percentage.toFixed(1)}%</td>
-							<td>
-								<button
-									type="button"
-									class="btn btn-secondary text-xs"
-									disabled={actingId === rec.id}
-									onclick={() => onApplyRecommendation(rec.id)}
-								>
-									Apply
-								</button>
-							</td>
-						</tr>
-					{/each}
-				{/if}
-			</tbody>
-		</table>
 	</div>
 </div>

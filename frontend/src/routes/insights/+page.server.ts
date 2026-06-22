@@ -1,6 +1,7 @@
+import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { listPublicContent } from '$lib/content/publicContent';
 
-export const load: PageServerLoad = () => ({
-	insights: listPublicContent('insights')
-});
+export const load: PageServerLoad = ({ url }) => {
+	const search = url.search || '';
+	throw redirect(308, `/resources${search}`);
+};

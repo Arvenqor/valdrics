@@ -26,13 +26,11 @@ export const PUBLIC_RESOURCES_DROPDOWN_LINKS: readonly PublicNavLink[] = Object.
 	{ href: '/resources', label: 'Resource Hub' },
 	{ href: '/about', label: 'About' },
 	{ href: '/docs', label: 'Docs' },
-	{ href: '/proof', label: 'Proof Pack' },
-	{ href: '/insights', label: 'Insights' }
+	{ href: '/proof', label: 'Proof Pack' }
 ]);
 
 export const PUBLIC_SECONDARY_LINKS: readonly PublicNavLink[] = Object.freeze([
 	{ href: '/docs', label: 'Docs' },
-	{ href: '/insights', label: 'Insights' },
 	{ href: '/enterprise', label: 'Enterprise Review' }
 ]);
 

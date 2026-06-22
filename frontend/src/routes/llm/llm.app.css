@@ -6,3 +6,127 @@
 @source not './**/*.test.js';
 @source not './**/*.spec.js';
 @source '.';
+
+/* Custom Cybernetic Stats Glows */
+.card-stat.cost-stat {
+	background:
+		radial-gradient(120% 120% at 50% 0%, rgba(34, 211, 239, 0.12), transparent 44%),
+		linear-gradient(180deg, rgba(16, 22, 32, 0.6) 0%, rgba(10, 13, 20, 0.7) 100%) !important;
+	border-color: rgba(34, 211, 239, 0.3) !important;
+	box-shadow: 
+		inset 0 1px 0 rgba(255, 255, 255, 0.05),
+		0 12px 42px rgba(34, 211, 239, 0.08) !important;
+}
+
+.card-stat.tokens-stat {
+	background:
+		radial-gradient(120% 120% at 50% 0%, rgba(16, 185, 129, 0.12), transparent 44%),
+		linear-gradient(180deg, rgba(16, 22, 32, 0.6) 0%, rgba(10, 13, 20, 0.7) 100%) !important;
+	border-color: rgba(16, 185, 129, 0.3) !important;
+	box-shadow: 
+		inset 0 1px 0 rgba(255, 255, 255, 0.05),
+		0 12px 42px rgba(16, 185, 129, 0.08) !important;
+}
+
+.card-stat.calls-stat {
+	background:
+		radial-gradient(120% 120% at 50% 0%, rgba(251, 191, 36, 0.12), transparent 44%),
+		linear-gradient(180deg, rgba(16, 22, 32, 0.6) 0%, rgba(10, 13, 20, 0.7) 100%) !important;
+	border-color: rgba(251, 191, 36, 0.3) !important;
+	box-shadow: 
+		inset 0 1px 0 rgba(255, 255, 255, 0.05),
+		0 12px 42px rgba(251, 191, 36, 0.08) !important;
+}
+
+/* Glassy Tables */
+.table-container {
+	border-radius: var(--radius-lg);
+	border: 1px solid rgba(128, 154, 176, 0.14) !important;
+	background: rgba(10, 13, 20, 0.4) !important;
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+	overflow: hidden;
+}
+
+.table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.table th {
+	background: rgba(24, 32, 40, 0.6) !important;
+	color: var(--color-ink-300) !important;
+	font-weight: 600;
+	text-transform: uppercase;
+	font-size: 0.75rem;
+	letter-spacing: 0.05em;
+	padding: 1rem 1.25rem !important;
+	border-bottom: 1px solid rgba(128, 154, 176, 0.14) !important;
+}
+
+.table td {
+	padding: 1rem 1.25rem !important;
+	border-bottom: 1px solid rgba(128, 154, 176, 0.08) !important;
+	color: var(--color-ink-100);
+	font-size: 0.875rem;
+}
+
+.table tr:last-child td {
+	border-bottom: none !important;
+}
+
+.table tr:hover td {
+	background: rgba(128, 154, 176, 0.04) !important;
+}
+
+/* Badge and Model tag stylings */
+.model-badge {
+	font-family: var(--font-mono);
+	font-size: 0.75rem !important;
+	font-weight: 600;
+	color: var(--color-accent-300) !important;
+	background: rgba(34, 211, 239, 0.08) !important;
+	border: 1px solid rgba(34, 211, 239, 0.2) !important;
+	border-radius: 0.375rem !important;
+	padding: 0.25rem 0.5rem !important;
+	display: inline-block;
+	text-shadow: 0 0 8px rgba(34, 211, 239, 0.15);
+	transition: all 0.2s ease;
+}
+
+.model-badge:hover {
+	background: rgba(34, 211, 239, 0.14) !important;
+	border-color: rgba(34, 211, 239, 0.4) !important;
+	box-shadow: 0 0 10px rgba(34, 211, 239, 0.15);
+}
+
+.request-type-badge {
+	font-size: 0.75rem !important;
+	font-weight: 600 !important;
+	letter-spacing: 0.03em;
+	color: var(--color-ink-300) !important;
+	background: rgba(55, 70, 87, 0.4) !important;
+	border: 1px solid rgba(128, 154, 176, 0.16) !important;
+	border-radius: 9999px !important;
+	padding: 0.2rem 0.6rem !important;
+}
+
+/* Text styles overrides */
+.text-ink-400 {
+	color: var(--color-ink-400);
+}
+.text-ink-500 {
+	color: var(--color-ink-500);
+}
+.text-accent-400 {
+	color: var(--color-accent-400);
+}
+.text-danger-400 {
+	color: var(--color-danger-400);
+}
+.bg-danger-500\/10 {
+	background-color: rgba(244, 63, 94, 0.1) !important;
+}
+.border-danger-500\/50 {
+	border-color: rgba(244, 63, 94, 0.5) !important;
+}

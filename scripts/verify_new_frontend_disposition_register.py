@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Verify the `new_frontend/` handoff disposition register.
+"""Verify the frontend handoff disposition register.
 
-The register must account for every file in `new_frontend/` before handoff files
-can be deleted or migrated. Completed migrations must point at real production
-targets under `frontend/`, and pending entries must name a concrete blocker.
+The register must account for every live file in `frontend_reference_handoff/`.
+Completed migrations may be archived in the handoff folder after their evidence
+is recorded; pending entries must remain present so unresolved product/backend
+blockers stay visible.
 """
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ from scripts.env_generation_common import (
 
 
 DEFAULT_REGISTER_PATH = Path("docs/architecture/new_frontend_disposition_register.json")
+HANDOFF_ROOT = "frontend_reference_handoff"
 VALID_STATUSES = {"pending", "migrated", "rejected"}
 
 
@@ -48,8 +50,8 @@ def _load_json(path: Path) -> Any:
         raise ValueError(f"register must be valid JSON: {exc}") from exc
 
 
-def _new_frontend_files(repo_root: Path) -> set[str]:
-    handoff_root = repo_root / "new_frontend"
+def _handoff_files(repo_root: Path) -> set[str]:
+    handoff_root = repo_root / HANDOFF_ROOT
     if not handoff_root.is_dir():
         return set()
     return {
@@ -76,8 +78,8 @@ def verify_register(*, repo_root: Path, register_path: Path) -> list[str]:
         errors.append("entries must be a non-empty list")
         return errors
 
-    handoff_root_exists = (repo_root / "new_frontend").is_dir()
-    actual_sources = _new_frontend_files(repo_root)
+    handoff_root_exists = (repo_root / HANDOFF_ROOT).is_dir()
+    actual_sources = _handoff_files(repo_root)
     registered_sources: list[str] = []
 
     for index, entry in enumerate(entries):
@@ -90,18 +92,21 @@ def verify_register(*, repo_root: Path, register_path: Path) -> list[str]:
         if not isinstance(source_file, str) or not _is_safe_relative_path(source_file):
             errors.append(f"{label}.source_file must be a safe repo-relative path")
             continue
-        if not source_file.startswith("new_frontend/"):
-            errors.append(f"{label}.source_file must live under new_frontend/")
-        registered_sources.append(source_file)
-        if handoff_root_exists and source_file not in actual_sources:
-            errors.append(f"{source_file}: source file does not exist")
-
+        if not source_file.startswith(f"{HANDOFF_ROOT}/"):
+            errors.append(f"{label}.source_file must live under {HANDOFF_ROOT}/")
         status = entry.get("status")
         if status not in VALID_STATUSES:
             errors.append(
                 f"{source_file}: status must be one of {sorted(VALID_STATUSES)}"
             )
             continue
+        registered_sources.append(source_file)
+        if (
+            handoff_root_exists
+            and status == "pending"
+            and source_file not in actual_sources
+        ):
+            errors.append(f"{source_file}: pending source file does not exist")
 
         decision = entry.get("decision")
         if not isinstance(decision, str) or not decision.strip():
@@ -157,13 +162,8 @@ def verify_register(*, repo_root: Path, register_path: Path) -> list[str]:
         errors.append(f"{duplicate}: duplicate register entry")
 
     missing_sources = sorted(actual_sources - set(registered_sources))
-    extra_sources = (
-        sorted(set(registered_sources) - actual_sources) if handoff_root_exists else []
-    )
     for source in missing_sources:
         errors.append(f"{source}: missing register entry")
-    for source in extra_sources:
-        errors.append(f"{source}: registered source is not present in new_frontend/")
 
     return errors
 

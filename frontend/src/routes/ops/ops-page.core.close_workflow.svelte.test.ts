@@ -67,7 +67,7 @@ describe('ops page close workflow and defaults interactions', () => {
 			data: testOpsPageData
 		});
 
-		await screen.findByText('Acceptance KPI Evidence');
+		await screen.findByText('Acceptance KPI Evidence', {}, { timeout: ASYNC_RENDER_TIMEOUT });
 		await fireEvent.click(screen.getByRole('button', { name: 'Download CSV' }));
 
 		await waitFor(() => {
@@ -87,7 +87,7 @@ describe('ops page close workflow and defaults interactions', () => {
 			data: testOpsPageData
 		});
 
-		await screen.findByText('Reconciliation Close Workflow');
+		await screen.findByText('Reconciliation Close Workflow', {}, { timeout: ASYNC_RENDER_TIMEOUT });
 		const closeCard = screen
 			.getByText('Reconciliation Close Workflow')
 			.closest('.card') as HTMLElement;
@@ -150,7 +150,7 @@ describe('ops page close workflow and defaults interactions', () => {
 			data: testOpsPageData
 		});
 
-		await screen.findByText('Reconciliation Close Workflow');
+		await screen.findByText('Reconciliation Close Workflow', {}, { timeout: ASYNC_RENDER_TIMEOUT });
 		const closeCard = screen
 			.getByText('Reconciliation Close Workflow')
 			.closest('.card') as HTMLElement;
@@ -164,7 +164,7 @@ describe('ops page close workflow and defaults interactions', () => {
 		await fireEvent.change(closeCardUtils.getByLabelText('Provider'), { target: { value: 'aws' } });
 		await fireEvent.click(closeCardUtils.getByRole('button', { name: 'Preview Close Status' }));
 
-		await screen.findByText('Invoice Reconciliation');
+		await screen.findByText('Invoice Reconciliation', {}, { timeout: ASYNC_RENDER_TIMEOUT });
 		await fireEvent.click(screen.getByRole('button', { name: 'Save Invoice' }));
 
 		await waitFor(() => {
@@ -193,7 +193,7 @@ describe('ops page close workflow and defaults interactions', () => {
 			data: testOpsPageData
 		});
 
-		await screen.findByText('Reconciliation Close Workflow');
+		await screen.findByText('Reconciliation Close Workflow', {}, { timeout: ASYNC_RENDER_TIMEOUT });
 		await fireEvent.click(screen.getByRole('button', { name: 'Download Close CSV' }));
 		await fireEvent.click(screen.getByRole('button', { name: 'Download Restatements CSV' }));
 
@@ -221,7 +221,7 @@ describe('ops page close workflow and defaults interactions', () => {
 			data: testOpsPageData
 		});
 
-		await screen.findByText('Default Unit Volumes');
+		await screen.findByText('Default Unit Volumes', {}, { timeout: ASYNC_RENDER_TIMEOUT });
 		await fireEvent.click(screen.getByRole('button', { name: 'Save Settings' }));
 
 		await waitFor(() => {

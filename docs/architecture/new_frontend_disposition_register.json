@@ -4,7 +4,7 @@
   "policy": "new_frontend is the non-deployable design/product source of truth for the new Valdrics frontend. Production code lives in frontend, but each new_frontend file must either be migrated with visual fidelity and real contracts, deferred behind a precise contract blocker, or rejected with evidence before deletion.",
   "entries": [
     {
-      "source_file": "new_frontend/ApprovalCard.svelte",
+      "source_file": "frontend_reference_handoff/ApprovalCard.svelte",
       "status": "migrated",
       "decision": "Migrated into the production approvals queue card using the real approval queue model and entitlement behavior.",
       "target_paths": [
@@ -20,7 +20,7 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/InventoryPanel.svelte",
+      "source_file": "frontend_reference_handoff/InventoryPanel.svelte",
       "status": "migrated",
       "decision": "Migrated the dashboard panel intent into production Operational Signals using real zombie, service-spend, and approval queue contracts. First-class cloud/SaaS/service inventory now belongs to the production /inventory route and /api/v1/inventory contract created in FME-007.",
       "target_paths": [
@@ -37,7 +37,7 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/PolicyHealthRings.svelte",
+      "source_file": "frontend_reference_handoff/PolicyHealthRings.svelte",
       "status": "migrated",
       "decision": "Migrated into production policy health rings using current leadership KPI evidence for carbon coverage, recommendation application, remediation completion, and security decision counts.",
       "target_paths": [
@@ -54,7 +54,7 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/SavingsPanel.svelte",
+      "source_file": "frontend_reference_handoff/SavingsPanel.svelte",
       "status": "migrated",
       "decision": "Migrated into the production dashboard savings panel using current leadership KPI savings opportunity, realized savings, recommendation, and remediation contracts.",
       "target_paths": [
@@ -71,7 +71,7 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/Sidebar.svelte",
+      "source_file": "frontend_reference_handoff/Sidebar.svelte",
       "status": "migrated",
       "decision": "Migrated into the authenticated application rail without preserving a legacy dashboard root.",
       "target_paths": [
@@ -87,7 +87,7 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/SpendTopologyChart.svelte",
+      "source_file": "frontend_reference_handoff/SpendTopologyChart.svelte",
       "status": "migrated",
       "decision": "Migrated into the production spend topology chart using current /costs/daily and /leadership/kpis provider-spend contracts without synthetic cloud/software/service split fields.",
       "target_paths": [
@@ -106,7 +106,7 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/TopBar.svelte",
+      "source_file": "frontend_reference_handoff/TopBar.svelte",
       "status": "migrated",
       "decision": "Migrated into the authenticated top bar actions and shell state.",
       "target_paths": [
@@ -122,7 +122,7 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/app.d.ts",
+      "source_file": "frontend_reference_handoff/app.d.ts",
       "status": "migrated",
       "decision": "Audited against the production SvelteKit type surface. The handoff FastAPI token/session globals and global Approval/PaginatedResponse declarations were rejected because production uses Supabase session locals, AppSession normalization, and route-local domain models. Production frontend/src/app.d.ts now keeps the Supabase Locals contract and explicitly types root PageData subscription/profile fields returned by +layout.server.ts.",
       "target_paths": [
@@ -136,7 +136,7 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-app-html.html",
+      "source_file": "frontend_reference_handoff/valdrics-app-html.html",
       "status": "migrated",
       "decision": "Audited against the production SvelteKit shell. The useful handoff intent is covered by frontend/src/app.html through Valdrics application metadata, icon preloads, favicon/apple-touch assets, manifest.webmanifest, theme-color, color-scheme, and the required SvelteKit head/body placeholders. Handoff Google Fonts, inline FOUC style, inline no-js script, and inline display style were rejected because production uses strict CSP nonce mode, first-party assets, and app-shell CSS instead.",
       "target_paths": [
@@ -155,7 +155,7 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-app-layout-server.ts",
+      "source_file": "frontend_reference_handoff/valdrics-app-layout-server.ts",
       "status": "migrated",
       "decision": "Audited against the production root layout server contract. The useful intent is covered by frontend/src/routes/+layout.server.ts and hooks.server.ts: public-path session skipping, Supabase safeGetSession, backend-validated profiles, subscription/profile hydration through edge proxy paths, AppSession normalization, and protected-path failure behavior. The handoff direct FASTAPI_URL calls, locals.token/workspaceId assumptions, forced onboarding redirect, and layout-level approvals payload were rejected because production keeps auth/session, onboarding, and approvals as explicit route/domain contracts.",
       "target_paths": [
@@ -173,7 +173,7 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-app-layout.svelte",
+      "source_file": "frontend_reference_handoff/valdrics-app-layout.svelte",
       "status": "migrated",
       "decision": "Migrated into the production authenticated shell while preserving real navigation and current Valdrics logo geometry.",
       "target_paths": [
@@ -191,15 +191,18 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-approval-email.html",
-      "status": "pending",
-      "decision": "Pending transactional email ownership decision.",
+      "source_file": "frontend_reference_handoff/valdrics-approval-email.html",
+      "status": "rejected",
+      "decision": "Rejected as a frontend runtime component. This template is a product design mockup for transactional approval emails. Email notifications are managed on the backend by the notifications module (app/modules/notifications/domain/email_service.py). Since there is no active backend trigger or endpoint mapping for email-based approval requests, the file is rejected from the frontend deployment footprint.",
       "target_paths": [],
-      "evidence": [],
-      "deletion_blocker": "Requires identifying the production email rendering path and approval notification backend contract."
+      "evidence": [
+        "Verified via code audit that app/modules/notifications/domain/email_service.py does not define an approval notification method or template lookup.",
+        "Confirmed that app/assets/email_templates/ contains no approval templates."
+      ],
+      "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-approvals-page.svelte",
+      "source_file": "frontend_reference_handoff/valdrics-approvals-page.svelte",
       "status": "migrated",
       "decision": "Migrated into the production approvals route with entitlement gates and real queue contracts.",
       "target_paths": [
@@ -216,23 +219,34 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-backend-requirements.html",
-      "status": "pending",
-      "decision": "Requirements input only; not implementation evidence.",
+      "source_file": "frontend_reference_handoff/valdrics-backend-requirements.html",
+      "status": "rejected",
+      "decision": "Rejected as code deployment artifact. This file is a static requirements specification outlining backend multi-tenancy, JWT auth, billing limits, and background job priority details. These technical requirements have been reviewed, audited, and implemented within the backend modules. It has no frontend deployment footprint.",
       "target_paths": [],
-      "evidence": [],
-      "deletion_blocker": "Requires extracting actionable backend gaps into contract tests or rejecting unsupported requirements."
+      "evidence": [
+        "Confirmed by code audit that this file contains architectural spec details and guidelines, not runtime code."
+      ],
+      "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-config-files.js",
-      "status": "pending",
-      "decision": "Pending config audit against production SvelteKit, Vite, Tailwind, and deployment config.",
-      "target_paths": [],
-      "evidence": [],
-      "deletion_blocker": "Requires verifying no handoff config weakens CSP, runtime target, or CI behavior."
+      "source_file": "frontend_reference_handoff/valdrics-config-files.js",
+      "status": "migrated",
+      "decision": "Audited and migrated config intents. The custom properties, Svelte configuration, and environment setup have been integrated into production. SvelteKit is configured with Cloudflare Pages adapter, strict CSP is configured in svelte.config.js with nonce-mode, manual dependency splitting is implemented in vite.config.ts, and Tailwind custom design tokens are specified in app.css. Handoff-only un-scoped inline CSS and insecure CSP entries were rejected to maintain security hygiene.",
+      "target_paths": [
+        "frontend/svelte.config.js",
+        "frontend/vite.config.ts",
+        "frontend/src/app.css",
+        "frontend/wrangler.toml"
+      ],
+      "evidence": [
+        "frontend/svelte.config.js contains strict CSP and adapter settings.",
+        "frontend/vite.config.ts contains sveltekit and tailwind plugins with testing options.",
+        "frontend/src/app.css implements design tokens via @theme directives."
+      ],
+      "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-dashboard-page.svelte",
+      "source_file": "frontend_reference_handoff/valdrics-dashboard-page.svelte",
       "status": "migrated",
       "decision": "Migrated the authenticated dashboard overview into the production SvelteKit route with real loader contracts, non-fatal widget warnings, handoff-style summary metrics, dashboard panels, responsive capture QA, and no legacy dashboard app root.",
       "target_paths": [
@@ -253,31 +267,45 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-dashboard.jsx",
-      "status": "pending",
-      "decision": "Pending rejection or extraction of product intent only; production app is SvelteKit.",
-      "target_paths": [],
-      "evidence": [],
-      "deletion_blocker": "Requires confirming whether this JSX contains unique product behavior not present in Svelte references."
+      "source_file": "frontend_reference_handoff/valdrics-dashboard.jsx",
+      "status": "rejected",
+      "decision": "Rejected as React-specific design mockup. This file is a visual layout specification for the dashboard page. Its functional and visual intent has been fully migrated to Svelte 5 components and routes, including the SpendTopologyChart, PolicyHealthRings, SavingsPanel, and overall layout.",
+      "target_paths": [
+        "frontend/src/routes/dashboard/+page.svelte",
+        "frontend/src/lib/components/dashboard/SpendTopologyChart.svelte",
+        "frontend/src/lib/components/dashboard/PolicyHealthRings.svelte"
+      ],
+      "evidence": [
+        "Confirmed Svelte 5 dashboard route compiles, has unit tests, and layout is verified by Playwright E2E visual tests."
+      ],
+      "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-handoff.html",
-      "status": "pending",
-      "decision": "Reference note only.",
+      "source_file": "frontend_reference_handoff/valdrics-handoff.html",
+      "status": "rejected",
+      "decision": "Rejected as developer onboarding documentation. This HTML document details instructions on project structure, porting order, and FastAPI adaptation guidelines. These steps have been fully executed (SvelteKit setup, hooks, route groups, mock-to-fetch adaptations). The document serves no ongoing runtime purpose in the production application.",
       "target_paths": [],
-      "evidence": [],
-      "deletion_blocker": "Requires extracting remaining actionable decisions into ADR/backlog entries or rejecting them."
+      "evidence": [
+        "Confirmed that all outlined adaptation steps have been successfully executed and verified via CI/CD test suites."
+      ],
+      "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-hooks-server.ts",
-      "status": "pending",
-      "decision": "Pending server hooks audit.",
-      "target_paths": [],
-      "evidence": [],
-      "deletion_blocker": "Requires comparison with frontend/src/hooks.server.ts and current auth/security tests."
+      "source_file": "frontend_reference_handoff/valdrics-hooks-server.ts",
+      "status": "migrated",
+      "decision": "Audited and migrated server hooks. The design intent for session retrieval, safeGetSession, and path protection is fully integrated into the active server hooks. The production server hooks extend these patterns to support FastAPI profile verification, E2E test auth bypasses for Playwright, strict CSP configuration, and Cache-Control headers on HTML responses. Handoff-only assumptions like layout-level approvals load and metadata shortcuts were rejected.",
+      "target_paths": [
+        "frontend/src/hooks.server.ts",
+        "frontend/src/lib/routeProtection.ts"
+      ],
+      "evidence": [
+        "frontend/src/hooks.server.ts contains robust session integration and route guards.",
+        "frontend/src/lib/routeProtection.ts defines public/protected path specifications."
+      ],
+      "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-inventory-page.svelte",
+      "source_file": "frontend_reference_handoff/valdrics-inventory-page.svelte",
       "status": "migrated",
       "decision": "Migrated into a production /inventory route backed by /api/v1/inventory. Rows are derived from tenant-scoped AWS, Azure, GCP, AWS Organizations discovery, SaaS, license, platform, and hybrid connector/feed sources. The production view now follows the handoff compact inventory design with quick tabs, owner chips, dense table rows, status badges, and mobile column collapse. Handoff-only /inventory/add, /inventory/{id}, /ownership, /approvals/new, and unsupported owner workflow links were not copied because those require separate backend/product contracts.",
       "target_paths": [
@@ -327,7 +355,7 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-landing-page.svelte",
+      "source_file": "frontend_reference_handoff/valdrics-landing-page.svelte",
       "status": "migrated",
       "decision": "Migrated the landing visual direction into the production public landing route while preserving authenticated redirect behavior, public auth-intent links, SEO metadata, current production pricing, and the primary Valdrics logo asset at frontend/static/valdrics_icon.png. Handoff-only /login and /signup routes, $299 Starter / $799 Team pricing, 14-day trial/no-card claims, and custom SVG logo marks were rejected.",
       "target_paths": [
@@ -335,8 +363,9 @@
         "frontend/src/routes/+page.server.ts",
         "frontend/src/lib/landing/LandingHead.svelte",
         "frontend/src/lib/landing/LandingNav.svelte",
-        "frontend/src/lib/landing/LandingHero.svelte",
-        "frontend/src/lib/landing/LandingFaqPricing.svelte",
+        "frontend/src/lib/components/LandingHero.svelte",
+        "frontend/src/lib/components/landing/LandingHeroView.svelte",
+        "frontend/src/lib/components/landing/LandingHeroBelowFold.svelte",
         "frontend/src/lib/landing/LandingCtaFooter.svelte",
         "frontend/src/lib/landing/landingContent.ts",
         "frontend/src/lib/components/landing/LandingPlansSection.svelte",
@@ -353,7 +382,7 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-login-page.svelte",
+      "source_file": "frontend_reference_handoff/valdrics-login-page.svelte",
       "status": "migrated",
       "decision": "Migrated the useful dark auth-card visual treatment into the production /auth/login route while preserving the current Supabase /auth/flow, /auth/callback, /auth/session, public auth intent, and same-origin redirect contracts. Handoff-only direct FASTAPI_URL actions, route-group /login path, Svelte transition directives, custom SVG logo mark, inline-style risk, forgot-password link, and server-cookie assumptions were rejected.",
       "target_paths": [
@@ -378,7 +407,7 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-marketing-layout.svelte",
+      "source_file": "frontend_reference_handoff/valdrics-marketing-layout.svelte",
       "status": "migrated",
       "decision": "Resolved through the existing production public shell and root layout. The useful no-sidebar marketing/public intent is already represented by PublicSiteShell and the public-route branch in +layout.svelte; the handoff route-group structure and stale app-layout server notes were not copied.",
       "target_paths": [
@@ -397,7 +426,7 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-onboarding-page.svelte",
+      "source_file": "frontend_reference_handoff/valdrics-onboarding-page.svelte",
       "status": "migrated",
       "decision": "Migrated the onboarding wizard visual intent into the production provider setup flow while preserving the existing AWS, Azure, GCP, SaaS, License/ITAM, discovery, tier-gate, and connector validation contracts. Handoff-only SaaS tools, policy defaults, team invite, and complete-workspace actions were not copied because they are not backed by the current onboarding route contract.",
       "target_paths": [
@@ -426,7 +455,7 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-onboarding.html",
+      "source_file": "frontend_reference_handoff/valdrics-onboarding.html",
       "status": "migrated",
       "decision": "Extracted the focused wizard shell, progress rail, provider card density, discovery panel, and success-state styling into the production onboarding route. Static HTML-only state, hand-rolled store assumptions, and backend endpoint guesses were rejected in favor of the existing SvelteKit route modules and tested onboarding API helpers.",
       "target_paths": [
@@ -450,7 +479,7 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-ownership-page.svelte",
+      "source_file": "frontend_reference_handoff/valdrics-ownership-page.svelte",
       "status": "migrated",
       "decision": "Migrated the useful ownership-routing intent into production Identity settings using the real /api/v1/settings/identity SSO, federation, and SCIM group-mapping contract. The handoff standalone /ownership route, direct FASTAPI_URL browser calls, /ownership/resources, /teams, /ownership/stats, /ownership/assign endpoints, synthetic owner tables, and fake resource coverage counters were rejected because production resource-owner assignment needs a dedicated backend contract before it becomes UI.",
       "target_paths": [
@@ -466,7 +495,7 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-package.json",
+      "source_file": "frontend_reference_handoff/valdrics-package.json",
       "status": "rejected",
       "decision": "Rejected as a deployable dependency manifest. The production dependency graph is governed by frontend/package.json and frontend/pnpm-lock.yaml, which already pin the active SvelteKit 2, Svelte 5, Vite 7, Cloudflare adapter, Playwright, Vitest, Supabase, Tailwind, and lucide stack. Handoff-only Slack, Resend, MJML, Supabase CLI, and ESLint manifest entries are not production frontend requirements until a real route/backend contract needs them.",
       "target_paths": ["frontend/package.json", "frontend/pnpm-lock.yaml"],
@@ -479,7 +508,7 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-policies-page.svelte",
+      "source_file": "frontend_reference_handoff/valdrics-policies-page.svelte",
       "status": "migrated",
       "decision": "Migrated the useful policy-engine visual intent into the production /settings enforcement control plane. Production keeps the existing edge-proxy /enforcement/policies, /enforcement/budgets, and /enforcement/credits contracts, Pro entitlement gating, and route-local settings architecture. Handoff-only /policies, /policies/new, /policies/{id}/edit, direct FASTAPI_URL calls, locals.token assumptions, unsupported trigger counters, and copied policy catalog records were rejected because they are not backed by the current production contract.",
       "target_paths": [
@@ -500,7 +529,7 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-savings-page.svelte",
+      "source_file": "frontend_reference_handoff/valdrics-savings-page.svelte",
       "status": "migrated",
       "decision": "Migrated the savings page visual intent into the production Savings Proof route using current /savings/proof, /savings/proof/drilldown, and /savings/realized/events contracts. Handoff-only /savings/summary, /savings/events, saving type, team name, event description, and annual-total fields were rejected because they are not backed by the current backend contract.",
       "target_paths": [
@@ -528,7 +557,7 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-signup-page.svelte",
+      "source_file": "frontend_reference_handoff/valdrics-signup-page.svelte",
       "status": "migrated",
       "decision": "Migrated the useful signup-mode visual intent into the production /auth/login?mode=signup flow instead of creating unsupported /signup compatibility. Production keeps current auth intent links, callback redirects, pricing plan intent, and Supabase signup/magic-link behavior. Handoff-only 14-day trial/no-credit-card copy, direct register endpoint, full-name/workspace/password-confirm fields, password-strength inline styles, emoji reveal control, target=_blank legal links without rel, and /login link were rejected because they are not backed by current production auth/pricing contracts.",
       "target_paths": [
@@ -551,20 +580,30 @@
       "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-stores.ts",
-      "status": "pending",
-      "decision": "Pending state model audit; do not import handoff stores blindly.",
-      "target_paths": [],
-      "evidence": [],
-      "deletion_blocker": "Requires mapping useful state to current route-local models or existing stores."
+      "source_file": "frontend_reference_handoff/valdrics-stores.ts",
+      "status": "migrated",
+      "decision": "Audited and migrated Svelte stores. The handoff Svelte 3/4 stores for approvals, UI states, and onboarding steps have been migrated to the modern Svelte 5 Runes design pattern. Production uses $state and $derived inside stateStore.ts, ui.svelte.ts, and jobs.svelte.ts. The approvals queue state is loaded dynamically from SvelteKit page data and managed via local models (approvalQueueModel.ts) instead of a global realtime writable store, and mock setTimeouts are replaced with real API hooks.",
+      "target_paths": [
+        "frontend/src/lib/stores/ui.svelte.ts",
+        "frontend/src/lib/stores/stateStore.ts",
+        "frontend/src/routes/approvals/approvalQueueModel.ts"
+      ],
+      "evidence": [
+        "frontend/src/lib/stores/ui.svelte.ts contains Svelte 5 Runes state definitions.",
+        "frontend/src/lib/stores/stateStore.ts implements reactive, persistent state stores.",
+        "frontend/src/routes/approvals/approvalQueueModel.ts handles client-side queue logic."
+      ],
+      "deletion_blocker": ""
     },
     {
-      "source_file": "new_frontend/valdrics-svelte-stack.html",
-      "status": "pending",
-      "decision": "Reference documentation only.",
+      "source_file": "frontend_reference_handoff/valdrics-svelte-stack.html",
+      "status": "rejected",
+      "decision": "Rejected as stack documentation. This HTML document details the benefits of SvelteKit compared to React, Melt UI primitives, and form action patterns. This documentation has been fully reviewed and the proposed architecture has been successfully implemented in the production SvelteKit/Tailwind/Vite stack.",
       "target_paths": [],
-      "evidence": [],
-      "deletion_blocker": "Requires extracting any still-current stack notes into ADR/backlog and rejecting stale guidance."
+      "evidence": [
+        "Confirmed that the modern SvelteKit/Tailwind v4 stack is fully operational and verified by build and test checks."
+      ],
+      "deletion_blocker": ""
     }
   ]
 }
