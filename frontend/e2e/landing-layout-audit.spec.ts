@@ -104,19 +104,19 @@ test.describe('Landing layout audit regressions', () => {
 		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 
-		for (const sectionId of ['#hero', '#product', '#simulator', '#plans', '#trust']) {
+		for (const sectionId of ['#hero', '#problem', '#features', '#simulator', '#pricing']) {
 			await expect(page.locator(sectionId)).toBeVisible();
 		}
 
 		await expect(page.locator('#hero')).toContainText(
-			/control|cleaner|path|reports|context|margin|govern|optimize/i
+			/govern first|optimize always/i
 		);
-		await expect(page.locator('#hero .badge-accent')).toBeVisible();
-		await expect(page.locator('#product .landing-public-pillar-card')).toHaveCount(3);
-		await expect(page.locator('#plans .landing-public-plan-card')).toHaveCount(3);
-		await expect(page.locator('#trust .landing-public-trust-card')).toHaveCount(3);
+		await expect(page.locator('#hero .chip')).toHaveCount(3);
+		await expect(page.locator('#features .fcard')).toHaveCount(6);
+		await expect(page.locator('#pricing .pcard')).toHaveCount(4);
+		await expect(page.locator('.trust-bar .trust-badge')).toHaveCount(6);
 		await expect(
-			page.locator('.landing-public-proof-strip .landing-public-proof-item')
+			page.locator('.testimonials .tcard')
 		).toHaveCount(3);
 
 		const overflow = await page.evaluate(() => ({

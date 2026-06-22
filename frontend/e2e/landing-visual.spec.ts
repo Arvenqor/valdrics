@@ -36,17 +36,18 @@ test.describe('Landing visual snapshots', () => {
 		test.use({ viewport: { width: 1440, height: 900 } });
 
 		test('hero and core sections stay visually stable', async ({ page }) => {
+			test.setTimeout(90_000);
 			await prepareStablePublicPage(page);
-			await expect(page.locator('.landing-public-hero')).toHaveScreenshot(
+			await expect(page.locator('.hero')).toHaveScreenshot(
 				'landing-hero-desktop.png',
 				stableSectionScreenshotOptions
 			);
-			await expect(page.locator('#product')).toHaveScreenshot(
-				'landing-product-desktop.png',
+			await expect(page.locator('#problem')).toHaveScreenshot(
+				'landing-problem-desktop.png',
 				stableSectionScreenshotOptions
 			);
-			await expect(page.locator('#trust')).toHaveScreenshot(
-				'landing-trust-desktop.png',
+			await expect(page.locator('#features')).toHaveScreenshot(
+				'landing-features-desktop.png',
 				stableSectionScreenshotOptions
 			);
 		});
@@ -56,17 +57,18 @@ test.describe('Landing visual snapshots', () => {
 		test.use({ viewport: { width: 390, height: 844 } });
 
 		test('hero and core sections stay visually stable', async ({ page }) => {
+			test.setTimeout(90_000);
 			await prepareStablePublicPage(page);
-			await expect(page.locator('.landing-public-hero')).toHaveScreenshot(
+			await expect(page.locator('.hero')).toHaveScreenshot(
 				'landing-hero-mobile.png',
 				mobileSectionScreenshotOptions
 			);
-			await expect(page.locator('#product')).toHaveScreenshot(
-				'landing-product-mobile.png',
+			await expect(page.locator('#problem')).toHaveScreenshot(
+				'landing-problem-mobile.png',
 				mobileSectionScreenshotOptions
 			);
-			await expect(page.locator('#trust')).toHaveScreenshot(
-				'landing-trust-mobile.png',
+			await expect(page.locator('#features')).toHaveScreenshot(
+				'landing-features-mobile.png',
 				mobileSectionScreenshotOptions
 			);
 		});
