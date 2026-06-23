@@ -363,13 +363,8 @@
         "frontend/src/routes/+page.server.ts",
         "frontend/src/lib/landing/LandingHead.svelte",
         "frontend/src/lib/landing/LandingNav.svelte",
-        "frontend/src/lib/components/LandingHero.svelte",
-        "frontend/src/lib/components/landing/LandingHeroView.svelte",
-        "frontend/src/lib/components/landing/LandingHeroBelowFold.svelte",
         "frontend/src/lib/landing/LandingCtaFooter.svelte",
         "frontend/src/lib/landing/landingContent.ts",
-        "frontend/src/lib/components/landing/LandingPlansSection.svelte",
-        "frontend/src/lib/components/landing/LandingHeroTrustSections.svelte",
         "frontend/src/lib/landing/landingPricingContract.test.ts"
       ],
       "evidence": [
