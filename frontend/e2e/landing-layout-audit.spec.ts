@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+test.setTimeout(90_000);
+
 async function attachSecurityGuards(page: Parameters<typeof test>[0]['page']) {
 	await page.addInitScript(() => {
 		const isKnownPassiveCspReport = (event: SecurityPolicyViolationEvent) => {

@@ -206,6 +206,7 @@ test.describe('Public marketing smoke (desktop)', () => {
 		await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'index,follow');
 
 		await gotoPublic(page, `${BASE_URL}/pricing`, { waitUntil: 'domcontentloaded' });
+		await waitForPublicHydration(page);
 		await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
 			'href',
 			`${BASE_URL}/pricing`
@@ -213,6 +214,7 @@ test.describe('Public marketing smoke (desktop)', () => {
 		await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'index,follow');
 
 		await gotoPublic(page, `${BASE_URL}/auth/login`, { waitUntil: 'domcontentloaded' });
+		await waitForPublicHydration(page);
 		await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
 			'content',
 			'noindex,nofollow'
@@ -266,17 +268,18 @@ test.describe('Public marketing smoke (desktop)', () => {
 		await expect(landingHeading).toContainText(
 			/control|cleaner|path|reports|context|margin|govern|optimize/i
 		);
-		await expect(page.locator('#product')).toBeVisible();
+		await expect(page.locator('#problem')).toBeVisible();
 		await expect(page.locator('#simulator')).toBeVisible();
-		await expect(page.locator('#plans')).toBeVisible();
-		await expect(page.locator('[aria-label="Why teams choose Valdrics"]')).toBeVisible();
+		await expect(page.locator('#pricing')).toBeVisible();
+		await expect(page.locator('.comparison')).toBeVisible();
 
 		const primaryCta = page.getByRole('link', { name: /start free/i }).first();
 		await expect(primaryCta).toHaveAttribute('href', /\/auth\/login(\?.*)?$/);
 
 		await page
-			.locator('#trust')
-			.getByRole('link', { name: /technical validation/i })
+			.locator('.footer')
+			.getByRole('link', { name: /documentation/i })
+			.first()
 			.click();
 		await expect(page).toHaveURL(/\/docs(\?.*)?$/);
 		await expect(page.getByRole('heading', { level: 1, name: /documentation/i })).toBeVisible();
@@ -296,8 +299,8 @@ test.describe('Public marketing smoke (desktop)', () => {
 
 		await goToLanding(page);
 		await page
-			.locator('#trust')
-			.getByRole('link', { name: /status page/i })
+			.locator('.footer')
+			.getByRole('link', { name: /sla/i })
 			.click();
 		await expect(page).toHaveURL(/\/status(\?.*)?$/);
 		await expect(page.getByRole('heading', { level: 1, name: /system status/i })).toBeVisible();
@@ -326,10 +329,12 @@ test.describe('Public marketing smoke (desktop)', () => {
 		await page.waitForLoadState('networkidle');
 		const header = page.locator('.public-site-header');
 
+		// Product link has href /#problem and data-sveltekit-reload, so clicking
+		// it from /pricing triggers a full page navigation back to / with hash.
 		await header.getByRole('link', { name: /^product$/i }).click();
-		await page.waitForLoadState('networkidle');
-		await expect(page).toHaveURL(new RegExp('/#product'));
-		await expect(page.locator('#product')).toBeVisible();
+		await page.waitForURL(/\/#problem/, { timeout: 30_000 });
+		await expect(page).toHaveURL(new RegExp('/#problem'));
+		await expect(page.locator('#problem')).toBeVisible();
 
 		await gotoPublic(page, `${BASE_URL}/pricing`);
 		await header.getByRole('link', { name: /^pricing$/i }).click();
@@ -367,22 +372,18 @@ test.describe('Public marketing smoke (desktop)', () => {
 		await goToLanding(page);
 		await page
 			.locator('#hero')
-			.getByRole('link', { name: /see pricing/i })
+			.getByRole('link', { name: /see a live demo/i })
 			.first()
 			.click();
-		await expect(page).toHaveURL(/\/pricing(\?.*)?$/);
+		await expect(page).toHaveURL(/\/talk-to-sales(\?.*)?$/);
 
 		await goToLanding(page);
-		await page.locator('#plans').getByRole('link', { name: /start/i }).first().click();
+		await page.locator('#pricing').getByRole('link', { name: /start free workspace/i }).first().click();
 		await expect(page).toHaveURL(/\/auth\/login\?.*plan=free/);
 
 		await goToLanding(page);
-		await page
-			.locator('#plans')
-			.getByRole('link', { name: /see growth/i })
-			.first()
-			.click();
-		await expect(page).toHaveURL(/\/pricing(\?.*)?$/);
+		await page.locator('#pricing').getByRole('link', { name: /start growth workspace/i }).first().click();
+		await expect(page).toHaveURL(/\/auth\/login\?.*plan=growth/);
 
 		await security.assertClean();
 	});
@@ -496,10 +497,10 @@ test.describe('Public marketing smoke (mobile)', () => {
 		await expect(landingHeading).toContainText(
 			/control|cleaner|path|reports|context|margin|govern|optimize/i
 		);
-		await expect(page.locator('#product')).toBeVisible();
+		await expect(page.locator('#problem')).toBeVisible();
 		await expect(page.locator('#simulator')).toBeVisible();
-		await expect(page.locator('#plans')).toBeVisible();
-		await expect(page.locator('[aria-label="Why teams choose Valdrics"]')).toBeVisible();
+		await expect(page.locator('#pricing')).toBeVisible();
+		await expect(page.locator('.comparison')).toBeVisible();
 
 		await assertPublicRoute(page, '/docs', /documentation/i);
 		await assertPublicRoute(page, '/docs/api', /api reference/i);
@@ -520,8 +521,8 @@ test.describe('Public marketing smoke (mobile)', () => {
 
 		await gotoPublic(page, `${BASE_URL}/pricing`);
 		await (await openMobileMenu(page)).getByRole('link', { name: /^product$/i }).click();
-		await page.waitForLoadState('networkidle');
-		await expect(page).toHaveURL(new RegExp('/#product'));
+		await page.waitForURL(/\/#problem/, { timeout: 30_000 });
+		await expect(page).toHaveURL(new RegExp('/#problem'));
 
 		await gotoPublic(page, `${BASE_URL}/pricing`);
 		await (await openMobileMenu(page)).getByRole('link', { name: /^pricing$/i }).click();

@@ -233,6 +233,7 @@
 								class="public-nav-link"
 								data-sveltekit-preload-data="hover"
 								data-sveltekit-preload-code="hover"
+								{...link.href.includes('#') ? { 'data-sveltekit-reload': '' } : {}}
 							>
 								{link.label}
 							</a>

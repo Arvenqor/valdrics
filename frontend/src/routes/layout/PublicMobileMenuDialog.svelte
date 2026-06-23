@@ -170,6 +170,7 @@
 					class="py-3 min-h-11 flex items-center hover:text-ink-100"
 					data-sveltekit-preload-data="hover"
 					data-sveltekit-preload-code="hover"
+					{...link.href.includes('#') ? { 'data-sveltekit-reload': '' } : {}}
 					onclick={onClose}
 				>
 					{link.label}

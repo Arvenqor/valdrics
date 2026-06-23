@@ -16,7 +16,7 @@ export interface PublicContactChannel {
 }
 
 export const PUBLIC_PRIMARY_LINKS: readonly PublicNavLink[] = Object.freeze([
-	{ href: '/#product', label: 'Product' },
+	{ href: '/#problem', label: 'Product' },
 	{ href: '/pricing', label: 'Pricing' },
 	{ href: '/enterprise', label: 'Enterprise' },
 	{ href: '/resources', label: 'Resources' }
@@ -35,7 +35,7 @@ export const PUBLIC_SECONDARY_LINKS: readonly PublicNavLink[] = Object.freeze([
 ]);
 
 export const PUBLIC_MOBILE_LINKS: readonly PublicNavLink[] = Object.freeze([
-	{ href: '/#product', label: 'Product' },
+	{ href: '/#problem', label: 'Product' },
 	{ href: '/pricing', label: 'Pricing' },
 	{ href: '/enterprise', label: 'Enterprise' },
 	{ href: '/resources', label: 'Resources' }
