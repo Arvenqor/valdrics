@@ -510,7 +510,9 @@ class TestCarbonCalculatorForecasting:
     def test_forecast_emissions_baseline(self):
         """Test baseline emissions forecast."""
         calculator = CarbonCalculator()
-        forecast = calculator.forecast_emissions(10.0, days=30, region_trend_factor=1.0)
+        forecast = calculator.forecast_emissions(
+            Decimal("10.0"), days=30, region_trend_factor=1.0
+        )
 
         assert forecast["forecast_days"] == 30
         assert forecast["baseline_co2_kg"] == 300.0
@@ -520,35 +522,35 @@ class TestCarbonCalculatorForecasting:
         """Test forecast with grid efficiency improvement."""
         calculator = CarbonCalculator()
         forecast = calculator.forecast_emissions(
-            current_daily_co2_kg=10.0,
+            current_daily_co2_kg=Decimal("10.0"),
             days=30,
             region_trend_factor=0.99,  # 1% improvement
         )
 
-        baseline = 10.0 * 30
-        projected = baseline * 0.99
+        baseline = Decimal("10.0") * Decimal("30")
+        projected = baseline * Decimal("0.99")
 
-        assert forecast["baseline_co2_kg"] == baseline
-        assert forecast["projected_co2_kg"] == projected
+        assert forecast["baseline_co2_kg"] == float(baseline)
+        assert forecast["projected_co2_kg"] == float(projected)
 
     def test_forecast_emissions_with_grid_degradation(self):
         """Test forecast with grid efficiency degradation."""
         calculator = CarbonCalculator()
         forecast = calculator.forecast_emissions(
-            current_daily_co2_kg=10.0,
+            current_daily_co2_kg=Decimal("10.0"),
             days=30,
             region_trend_factor=1.02,  # 2% degradation
         )
 
-        baseline = 10.0 * 30
-        projected = baseline * 1.02
+        baseline = Decimal("10.0") * Decimal("30")
+        projected = baseline * Decimal("1.02")
 
-        assert forecast["projected_co2_kg"] == projected
+        assert forecast["projected_co2_kg"] == float(projected)
 
     def test_forecast_includes_description(self):
         """Test forecast includes descriptive text."""
         calculator = CarbonCalculator()
-        forecast = calculator.forecast_emissions(5.0, days=60)
+        forecast = calculator.forecast_emissions(Decimal("5.0"), days=60)
 
         assert "description" in forecast
         assert "60" in forecast["description"]

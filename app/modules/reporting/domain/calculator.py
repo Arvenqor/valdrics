@@ -368,17 +368,12 @@ class CarbonCalculator:
 
     def forecast_emissions(
         self,
-        current_daily_co2_kg: float | Decimal,
+        current_daily_co2_kg: Decimal,
         days: int = 30,
         region_trend_factor: float = 0.99,
     ) -> Dict[str, Any]:
         """Predict future emissions based on current workload and grid trends."""
-        current = (
-            current_daily_co2_kg
-            if isinstance(current_daily_co2_kg, Decimal)
-            else Decimal(str(current_daily_co2_kg))
-        )
-        baseline_projection = current * Decimal(str(days))
+        baseline_projection = current_daily_co2_kg * Decimal(str(days))
         projected_co2_kg = baseline_projection * Decimal(str(region_trend_factor))
 
         return {
