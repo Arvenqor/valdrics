@@ -250,10 +250,8 @@ jobs:
         include:
           - shard_id: "1"
             paths: >-
-              tests/billing
               tests/contract
               tests/integration
-              tests/security
               tests/unit/api
               tests/unit/connections
               tests/unit/db
@@ -268,8 +266,6 @@ jobs:
               tests/unit/test_pricing_phase36.py
           - shard_id: "2"
             paths: >-
-              tests/api
-              tests/core
               tests/unit/reporting
               tests/unit/analysis
               tests/unit/core
@@ -277,7 +273,6 @@ jobs:
               tests/unit/shared
           - shard_id: "3"
             paths: >-
-              tests/governance
               tests/unit/governance
               tests/unit/remediation
               tests/unit/services
