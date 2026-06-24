@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date
 from typing import Any
 from uuid import UUID
 
@@ -10,14 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.cloud import CloudAccount, CostRecord
 from app.models.llm import LLMUsage
+from app.modules.reporting.domain.focus_export_rows import _date_window_bounds
 from app.modules.reporting.api.v1.costs_models import AcceptanceKpiMetric
-
-
-def _date_window_bounds(start_date: date, end_date: date) -> tuple[datetime, datetime]:
-    return (
-        datetime.combine(start_date, time.min, tzinfo=timezone.utc),
-        datetime.combine(end_date + timedelta(days=1), time.min, tzinfo=timezone.utc),
-    )
 
 
 async def _load_ai_ledger_quality_counts(

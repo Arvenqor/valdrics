@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
@@ -11,19 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.llm import LLMUsage
 from app.models.attribution import CostAllocation
+from app.modules.reporting.domain.focus_export_rows import _date_window_bounds
 from app.modules.reporting.domain.spend_ledger_decimal import (
     _decimal_string,
     _optional_decimal_string,
 )
 
 AI_LEDGER_PROVIDER = "ai"
-
-
-def _date_window_bounds(start_date: date, end_date: date) -> tuple[datetime, datetime]:
-    return (
-        datetime.combine(start_date, time.min, tzinfo=timezone.utc),
-        datetime.combine(end_date + timedelta(days=1), time.min, tzinfo=timezone.utc),
-    )
 
 
 async def ai_spend_summary(

@@ -282,7 +282,7 @@ async def apply_rules_to_tenant_ai(
 ) -> dict[str, int]:
     """Batch apply attribution rules to all LLM usage records in a date range."""
     from app.models.llm import LLMUsage
-    from app.modules.reporting.domain.spend_ledger_ai import _date_window_bounds
+    from app.modules.reporting.domain.focus_export_rows import _date_window_bounds
 
     window_start, window_end = _date_window_bounds(start_date, end_date)
     query = (
