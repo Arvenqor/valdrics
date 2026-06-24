@@ -211,6 +211,7 @@ async def test_generate_close_package_ready_and_blocked_paths() -> None:
             start_date=date(2026, 1, 1),
             end_date=date(2026, 1, 31),
             enforce_finalized=True,
+            include_csv=True,
         )
     assert package["close_status"] == "ready"
     assert "integrity_hash" in package

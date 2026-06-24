@@ -69,17 +69,19 @@ async def get_reconciliation_close_package_impl(
             end_date=end_date,
             enforce_finalized=enforce_finalized,
             provider=normalized_provider,
+            include_csv=(response_format == "csv"),
         )
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     if response_format == "csv":
+        csv_content = package.get("csv", "")
         filename = (
             f"close-package-{start_date.isoformat()}-{end_date.isoformat()}"
             f"-{normalized_provider or 'all'}.csv"
         )
         return Response(
-            content=package["csv"],
+            content=csv_content,
             media_type="text/csv",
             headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )

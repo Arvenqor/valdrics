@@ -246,6 +246,7 @@ class CostReconciliationService:
         enforce_finalized: bool = True,
         provider: str | None = None,
         max_restatement_entries: int | None = None,
+        include_csv: bool = False,
     ) -> Dict[str, Any]:
         return await generate_close_package_impl(
             self,
@@ -255,6 +256,7 @@ class CostReconciliationService:
             enforce_finalized=enforce_finalized,
             provider=provider,
             max_restatement_entries=max_restatement_entries,
+            include_csv=include_csv,
         )
 
     async def list_invoices(

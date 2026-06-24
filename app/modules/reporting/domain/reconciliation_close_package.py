@@ -17,6 +17,7 @@ async def generate_close_package_impl(
     enforce_finalized: bool = True,
     provider: str | None = None,
     max_restatement_entries: int | None = None,
+    include_csv: bool = False,
 ) -> Dict[str, Any]:
     normalized_provider = service._normalize_provider(provider)
     lifecycle_stmt = select(
@@ -122,16 +123,16 @@ async def generate_close_package_impl(
         "package_version": "reconciliation-v3",
     }
     package_hash = service._stable_hash(package_core)
-    close_csv = service._render_close_package_csv(
-        tenant_id=str(tenant_id),
-        start_date=start_date,
-        end_date=end_date,
-        close_status=close_status,
-        lifecycle_summary=lifecycle_summary,
-        reconciliation_summary=reconciliation_summary,
-        invoice_reconciliation=invoice_summary,
-        restatement_entries=restatement_entries,
-    )
     package_core["integrity_hash"] = package_hash
-    package_core["csv"] = close_csv
+    if include_csv:
+        package_core["csv"] = service._render_close_package_csv(
+            tenant_id=str(tenant_id),
+            start_date=start_date,
+            end_date=end_date,
+            close_status=close_status,
+            lifecycle_summary=lifecycle_summary,
+            reconciliation_summary=reconciliation_summary,
+            invoice_reconciliation=invoice_summary,
+            restatement_entries=restatement_entries,
+        )
     return package_core
