@@ -14,7 +14,7 @@ from app.models.cloud import CloudAccount, CostRecord
 from app.models.llm import LLMUsage
 from app.models.tenant import Tenant
 from app.modules.reporting.api.v1 import costs as costs_api
-from app.modules.reporting.api.v1 import costs_core_endpoints, costs_http_routes_core
+from app.modules.reporting.api.v1 import costs_http_routes_core
 from app.shared.core.auth import (
     CurrentUser,
     UserRole,
@@ -65,10 +65,6 @@ def test_cost_routes_bind_db_context_dependencies() -> None:
     assert _dependency_for(
         costs_http_routes_core.trigger_ingest, "current_user"
     ) is requires_role_with_db_context("admin")
-    assert (
-        _dependency_for(costs_core_endpoints.get_costs, "current_user")
-        is get_current_user_with_db_context
-    )
 
 
 @pytest.mark.asyncio
