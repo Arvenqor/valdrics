@@ -94,8 +94,12 @@ def context_aware_key(request: Request) -> str:
         try:
             token_hash = hashlib.sha256(token.encode()).hexdigest()[:16]
             return f"token:{token_hash}"
-        except TOKEN_HASH_FALLBACK_RECOVERABLE_EXCEPTIONS:
-            pass
+        except TOKEN_HASH_FALLBACK_RECOVERABLE_EXCEPTIONS as hash_exc:
+            logger.warning(
+                "rate_limit_token_hash_failed",
+                error=str(hash_exc),
+                error_type=type(hash_exc).__name__,
+            )
 
     return resolve_client_ip(request, settings_obj=get_settings())
 

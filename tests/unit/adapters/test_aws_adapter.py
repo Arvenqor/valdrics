@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.shared.adapters.aws import AWSAdapter
+from app.shared.adapters.aws_multitenant import MultiTenantAWSAdapter as AWSAdapter
 from app.shared.core.credentials import AWSCredentials
 from app.shared.core.exceptions import ConfigurationError
 

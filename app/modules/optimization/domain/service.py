@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime, timezone
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, Any, List, Optional, Callable, Awaitable
 from uuid import UUID
 from httpx import HTTPError
@@ -21,6 +22,7 @@ from app.modules.optimization.domain.waste_rightsizing import (
 from app.modules.optimization.domain.zombie_scan_state import ZombieScanState
 from app.shared.core.connection_queries import CONNECTION_MODEL_PAIRS
 from app.shared.core.connection_state import resolve_connection_region
+from app.shared.core.config import get_settings
 from app.shared.core.provider import normalize_provider, resolve_provider_from_connection
 from app.shared.core.pricing import PricingTier, FeatureFlag, is_feature_enabled
 
@@ -196,6 +198,20 @@ class ZombieService(BaseService):
         tier = await get_tenant_tier(tenant_id, self.db)
         has_precision = is_feature_enabled(tier, FeatureFlag.PRECISION_DISCOVERY)
         has_attribution = is_feature_enabled(tier, FeatureFlag.OWNER_ATTRIBUTION)
+
+        max_connections = int(
+            getattr(get_settings(), "ZOMBIE_SCAN_MAX_CONNECTIONS", 50)
+        )
+        original_connection_count = len(all_connections)
+        if original_connection_count > max_connections:
+            logger.warning(
+                "zombie_scan_connection_cap_applied",
+                tenant_id=str(tenant_id),
+                connection_count=original_connection_count,
+                max_connections=max_connections,
+            )
+            all_connections = all_connections[:max_connections]
+
         scan_state = ZombieScanState.create(
             scanned_connections=len(all_connections),
             has_precision=has_precision,
@@ -321,11 +337,15 @@ class ZombieService(BaseService):
 
         from app.shared.core.ops_metrics import SCAN_LATENCY, SCAN_TIMEOUTS
 
+        settings = get_settings()
+        scan_timeout = int(
+            getattr(settings, "ZOMBIE_SCAN_TIMEOUT_SECONDS", 300)
+        )
         start_time = time.perf_counter()
         try:
             await asyncio.wait_for(
                 asyncio.gather(*(run_scan(c) for c in all_connections)),
-                timeout=300,
+                timeout=scan_timeout,
             )
             latency = time.perf_counter() - start_time
             SCAN_LATENCY.labels(provider="multi", region="aggregated").observe(latency)
@@ -335,7 +355,11 @@ class ZombieService(BaseService):
             all_zombies["partial_results"] = True
             SCAN_TIMEOUTS.labels(level="overall", provider="multi").inc()
 
-        all_zombies["total_monthly_waste"] = round(scan_state.total_waste, 2)
+        all_zombies["total_monthly_waste"] = float(
+            Decimal(str(scan_state.total_waste)).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
+        )
         all_zombies["waste_rightsizing"] = build_waste_rightsizing_payload(all_zombies)
         all_zombies["architectural_inefficiency"] = (
             build_architectural_inefficiency_payload(all_zombies)

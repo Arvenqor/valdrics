@@ -24,6 +24,12 @@ from dataclasses import dataclass
 from enum import Enum
 import httpx
 import structlog
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from app.shared.core.exceptions import ExternalAPIError
 from app.shared.core.runtime_paths import get_data_path
@@ -38,6 +44,22 @@ CARBON_FORECAST_RECOVERABLE_EXCEPTIONS: tuple[type[Exception], ...] = (
     ValueError,
     KeyError,
 )
+
+CARBON_HTTP_RETRY_EXCEPTIONS: tuple[type[Exception], ...] = (
+    httpx.TimeoutException,
+    httpx.NetworkError,
+    httpx.HTTPStatusError,
+)
+
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    retry=retry_if_exception_type(CARBON_HTTP_RETRY_EXCEPTIONS),
+    reraise=True,
+)
+async def _http_get_with_retry(client: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
+    return await client.get(url, **kwargs)
 
 
 class CarbonIntensity(str, Enum):
@@ -482,7 +504,8 @@ class CarbonAwareScheduler:
                 "horizon": hours,
             }
 
-            response = await client.get(
+            response = await _http_get_with_retry(
+                client,
                 "https://api2.watttime.org/v2/forecast",
                 params=payload,
                 headers={"Authorization": f"Bearer {self.wattime_key}"},
@@ -546,7 +569,8 @@ class CarbonAwareScheduler:
                 if self.electricitymaps_key
                 else {}
             )
-            response = await client.get(
+            response = await _http_get_with_retry(
+                client,
                 "https://api.electricitymap.org/v3/carbon-intensity/forecast",
                 params={"lat": coords[0], "lon": coords[1], "horizon": hours},
                 headers=headers,
@@ -581,7 +605,8 @@ class CarbonAwareScheduler:
                 if self.electricitymaps_key
                 else {}
             )
-            response = await client.get(
+            response = await _http_get_with_retry(
+                client,
                 "https://api.electricitymap.org/v3/carbon-intensity/latest",
                 params={"lat": coords[0], "lon": coords[1]},
                 headers=headers,

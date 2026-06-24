@@ -398,6 +398,10 @@ class JobProcessor:
             span.set_attribute(
                 "tenant_id", str(job.tenant_id) if job.tenant_id else "system"
             )
+            span.set_attribute("job_type", str(job.job_type))
+            span.set_attribute("attempt", int(job.attempts or 0))
+            span.set_attribute("priority", int(job.priority or 0))
+            span.set_attribute("max_attempts", int(job.max_attempts or 0))
 
             logger.info(
                 "job_processing_start",
@@ -406,120 +410,132 @@ class JobProcessor:
                 attempt=job.attempts,
             )
 
-        result = None
+            result = None
+            outcome = "unknown"
 
-        try:
-            # Get and instantiate handler for job type
-            job_type_key = (
-                job.job_type.value
-                if hasattr(job.job_type, "value")
-                else str(job.job_type)
-            )
             try:
-                handler_cls = get_handler_factory(job_type_key)
-            except ValueError as exc:
-                raise PermanentJobError(str(exc)) from exc
-            handler = handler_cls()
+                handler_cls = get_handler_factory(
+                    job.job_type.value
+                    if hasattr(job.job_type, "value")
+                    else str(job.job_type)
+                )
+                handler = handler_cls()
 
-            # Use a savepoint to isolate this job's database changes
-            async with self.db.begin_nested():
-                tenant_context_set = False
-                # Set tenant context for RLS isolation during job execution
-                if job.tenant_id:
-                    from app.shared.db.session import set_session_tenant_id
+                async with self.db.begin_nested():
+                    tenant_context_set = False
+                    if job.tenant_id:
+                        from app.shared.db.session import set_session_tenant_id
 
-                    await set_session_tenant_id(self.db, job.tenant_id)
-                    tenant_context_set = True
+                        await set_session_tenant_id(self.db, job.tenant_id)
+                        tenant_context_set = True
 
-                try:
-                    # Execute handler with timeout protection (BE-SCHED-2)
-                    result = await asyncio.wait_for(
-                        handler.execute(job, self.db), timeout=JOB_TIMEOUT_SECONDS
-                    )
-                    self._raise_for_failed_result(result)
-                finally:
-                    # Always reset tenant context after tenant-scoped execution.
-                    if tenant_context_set:
-                        from app.shared.db.session import (
-                            clear_session_tenant_context,
+                    try:
+                        result = await asyncio.wait_for(
+                            handler.execute(job, self.db),
+                            timeout=JOB_TIMEOUT_SECONDS,
                         )
+                        outcome = "completed"
+                        self._raise_for_failed_result(result)
+                    finally:
+                        if tenant_context_set:
+                            from app.shared.db.session import (
+                                clear_session_tenant_context,
+                            )
 
-                        await clear_session_tenant_context(self.db)
+                            await clear_session_tenant_context(self.db)
 
-            # Mark as completed
-            job.status = JobStatus.COMPLETED.value
-            job.completed_at = datetime.now(timezone.utc)
-            job.result = self._prepare_result_for_storage(job, result)
-            job.error_message = None
+                job.status = JobStatus.COMPLETED.value
+                job.completed_at = datetime.now(timezone.utc)
+                job.result = self._prepare_result_for_storage(job, result)
+                job.error_message = None
+                span.set_attribute("outcome", outcome)
 
-            logger.info(
-                "job_processing_success", job_id=str(job.id), job_type=job.job_type
-            )
+                logger.info(
+                    "job_processing_success", job_id=str(job.id), job_type=job.job_type
+                )
 
-        except PermanentJobError as e:
-            logger.error(
-                "job_processing_permanent_failure",
-                job_id=str(job.id),
-                job_type=job.job_type,
-                error=str(e),
-            )
-            self._apply_failure_transition(
-                job,
-                error_message=str(e),
-                now=datetime.now(timezone.utc),
-                permanent=True,
-            )
+            except PermanentJobError as e:
+                outcome = "permanent_failure"
+                span.set_attribute("outcome", outcome)
+                span.set_attribute("error", str(e))
+                logger.error(
+                    "job_processing_permanent_failure",
+                    job_id=str(job.id),
+                    job_type=job.job_type,
+                    error=str(e),
+                )
+                self._apply_failure_transition(
+                    job,
+                    error_message=str(e),
+                    now=datetime.now(timezone.utc),
+                    permanent=True,
+                )
 
-        except asyncio.TimeoutError:
-            logger.error(
-                "job_processing_timeout",
-                job_id=str(job.id),
-                job_type=job.job_type,
-                timeout_seconds=JOB_TIMEOUT_SECONDS,
-            )
-            self._apply_failure_transition(
-                job,
-                error_message=f"Job timed out after {JOB_TIMEOUT_SECONDS}s",
-                now=datetime.now(timezone.utc),
-                permanent=False,
-            )
+            except asyncio.TimeoutError:
+                outcome = "timeout"
+                span.set_attribute("outcome", outcome)
+                span.set_attribute("timeout_seconds", JOB_TIMEOUT_SECONDS)
+                logger.error(
+                    "job_processing_timeout",
+                    job_id=str(job.id),
+                    job_type=job.job_type,
+                    timeout_seconds=JOB_TIMEOUT_SECONDS,
+                )
+                self._apply_failure_transition(
+                    job,
+                    error_message=f"Job timed out after {JOB_TIMEOUT_SECONDS}s",
+                    now=datetime.now(timezone.utc),
+                    permanent=False,
+                )
 
-        except asyncio.CancelledError:
-            logger.warning("job_processing_cancelled", job_id=str(job.id))
-            job.error_message = "Job was cancelled"
-            job.status = JobStatus.PENDING.value
-            job.scheduled_for = datetime.now(timezone.utc) + timedelta(seconds=60)
-            job.started_at = None
+            except asyncio.CancelledError:
+                outcome = "cancelled"
+                span.set_attribute("outcome", outcome)
+                logger.warning("job_processing_cancelled", job_id=str(job.id))
+                job.error_message = "Job was cancelled"
+                job.status = JobStatus.PENDING.value
+                job.scheduled_for = datetime.now(timezone.utc) + timedelta(seconds=60)
+                job.started_at = None
 
-        except JOB_RUNTIME_RECOVERABLE_ERRORS as e:
-            logger.error(
-                "job_processing_failed",
-                job_id=str(job.id),
-                job_type=job.job_type,
-                error=str(e),
-            )
-            self._apply_failure_transition(
-                job,
-                error_message=str(e),
-                now=datetime.now(timezone.utc),
-                permanent=False,
-            )
+            except JOB_RUNTIME_RECOVERABLE_ERRORS as e:
+                outcome = "recoverable_failure"
+                span.set_attribute("outcome", outcome)
+                span.set_attribute("error", str(e))
+                logger.error(
+                    "job_processing_failed",
+                    job_id=str(job.id),
+                    job_type=job.job_type,
+                    error=str(e),
+                )
+                self._apply_failure_transition(
+                    job,
+                    error_message=str(e),
+                    now=datetime.now(timezone.utc),
+                    permanent=False,
+                )
 
-        except JOB_RUNTIME_UNEXPECTED_ERRORS as e:
-            logger.error(
-                "job_processing_unexpected_failure",
-                job_id=str(job.id),
-                job_type=job.job_type,
-                error=str(e),
-            )
-            self._apply_failure_transition(
-                job,
-                error_message=f"{type(e).__name__}: {e}",
-                now=datetime.now(timezone.utc),
-                permanent=False,
-            )
+            except JOB_RUNTIME_UNEXPECTED_ERRORS as e:
+                outcome = "unexpected_failure"
+                span.set_attribute("outcome", outcome)
+                span.set_attribute("error", str(e))
+                from opentelemetry.trace import Status, StatusCode
 
-        await self.db.commit()
+                span.record_exception(e)
+                span.set_status(Status(StatusCode.ERROR, str(e)))
+                logger.error(
+                    "job_processing_unexpected_failure",
+                    job_id=str(job.id),
+                    job_type=job.job_type,
+                    error=str(e),
+                )
+                self._apply_failure_transition(
+                    job,
+                    error_message=f"{type(e).__name__}: {e}",
+                    now=datetime.now(timezone.utc),
+                    permanent=False,
+                )
+
+            await self.db.commit()
 
 
 # ==================== Job Creation Helpers ====================

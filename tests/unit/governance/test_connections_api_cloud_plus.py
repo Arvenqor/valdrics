@@ -237,3 +237,51 @@ async def test_list_hybrid_connections_tenant_isolation(
     data = resp.json()
     assert len(data) == 1
     assert data[0]["name"] == "Mine-Hybrid"
+
+
+@pytest.mark.asyncio
+async def test_delete_saas_connection_blocks_cross_tenant_access(
+    ac, db, override_auth, auth_user
+):
+    auth_user.tier = PricingTier.PRO
+
+    other_tenant = Tenant(id=uuid4(), name="Other", plan=PricingTier.PRO.value)
+    db.add(other_tenant)
+    await db.commit()
+
+    victim_conn = SaaSConnection(
+        tenant_id=other_tenant.id,
+        name="Victim SaaS",
+        vendor="salesforce",
+        auth_method="manual",
+        spend_feed=[],
+    )
+    db.add(victim_conn)
+    await db.commit()
+
+    resp = await ac.delete(f"/api/v1/settings/connections/saas/{victim_conn.id}")
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_delete_connection_blocks_cross_tenant_access(
+    ac, db, override_auth, auth_user
+):
+    auth_user.tier = PricingTier.PRO
+
+    other_tenant = Tenant(id=uuid4(), name="Other", plan=PricingTier.PRO.value)
+    db.add(other_tenant)
+    await db.commit()
+
+    victim_conn = SaaSConnection(
+        tenant_id=other_tenant.id,
+        name="Victim SaaS",
+        vendor="salesforce",
+        auth_method="manual",
+        spend_feed=[],
+    )
+    db.add(victim_conn)
+    await db.commit()
+
+    resp = await ac.delete(f"/api/v1/settings/connections/saas/{victim_conn.id}")
+    assert resp.status_code == 404

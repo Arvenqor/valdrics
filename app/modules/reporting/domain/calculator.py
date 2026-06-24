@@ -14,7 +14,7 @@ Methodology Sources:
 - EPA emissions factors
 """
 
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 import hashlib
 import json
 from typing import Any, Dict, List
@@ -92,6 +92,9 @@ class CarbonCalculator:
             payload.get("methodology_version") or CARBON_METHODOLOGY_VERSION
         )
         self._factors_checksum = compute_carbon_factor_checksum(payload)
+
+    def _quantize(self, value: Decimal, places: int) -> Decimal:
+        return value.quantize(Decimal(f"0.{'0' * places}"), rounding=ROUND_HALF_UP)
 
     def _normalize_provider(self, provider: str | None) -> str:
         provider_key = (provider or "generic").strip().lower()
@@ -244,12 +247,14 @@ class CarbonCalculator:
 
         normalized_provider = self._normalize_provider(provider)
         result = {
-            "total_co2_kg": round(float(total_co2_kg), 3),
-            "scope2_co2_kg": round(float(scope2_co2_kg), 3),
-            "scope3_co2_kg": round(float(scope3_co2_kg), 3),
-            "total_cost_usd": round(float(total_cost_usd), 2),
-            "estimated_energy_kwh": round(float(total_energy_with_pue), 3),
-            "carbon_efficiency_score": round(carbon_efficiency_score, 2),
+            "total_co2_kg": float(self._quantize(total_co2_kg, 3)),
+            "scope2_co2_kg": float(self._quantize(scope2_co2_kg, 3)),
+            "scope3_co2_kg": float(self._quantize(scope3_co2_kg, 3)),
+            "total_cost_usd": float(self._quantize(total_cost_usd, 2)),
+            "estimated_energy_kwh": float(self._quantize(total_energy_with_pue, 3)),
+            "carbon_efficiency_score": float(
+                self._quantize(Decimal(str(carbon_efficiency_score)), 2)
+            ),
             "carbon_efficiency_unit": "gCO2e per $1 spent",
             "provider": normalized_provider,
             "region": region,
@@ -259,7 +264,9 @@ class CarbonCalculator:
             "methodology_metadata": methodology_metadata,
             "includes_embodied_emissions": True,
             "forecast_30d": self.forecast_emissions(
-                float(total_co2_kg) / 30 if total_co2_kg > 0 else 0
+                self._quantize(total_co2_kg, 3) / Decimal("30")
+                if total_co2_kg > 0
+                else Decimal("0")
             ),
             "green_region_recommendations": self.get_green_region_recommendations(
                 region
@@ -323,12 +330,12 @@ class CarbonCalculator:
         }
 
     def _calculate_equivalencies(self, co2_kg: float) -> Dict[str, Any]:
-        """Convert CO2 to relatable equivalencies."""
+        co2 = Decimal(str(co2_kg))
         return {
-            "miles_driven": round(co2_kg * 1000 / 404, 1),
-            "trees_needed_for_year": round(co2_kg / 22, 1),
-            "smartphone_charges": round(co2_kg * 1000 / 3.4, 0),
-            "percent_of_home_month": round((co2_kg / 360) * 100, 2),
+            "miles_driven": float(self._quantize(co2 * Decimal("1000") / Decimal("404"), 1)),
+            "trees_needed_for_year": float(self._quantize(co2 / Decimal("22"), 1)),
+            "smartphone_charges": float(self._quantize(co2 * Decimal("1000") / Decimal("3.4"), 0)),
+            "percent_of_home_month": float(self._quantize((co2 / Decimal("360")) * Decimal("100"), 2)),
         }
 
     def get_green_region_recommendations(
@@ -348,12 +355,12 @@ class CarbonCalculator:
             if region == "default":
                 continue
             if intensity < current_intensity and current_intensity > 0:
-                savings_percent = round((1 - intensity / current_intensity) * 100, 1)
+                savings_pct = Decimal("1") - (Decimal(str(intensity)) / Decimal(str(current_intensity)))
                 recommendations.append(
                     {
                         "region": region,
                         "carbon_intensity": intensity,
-                        "savings_percent": savings_percent,
+                        "savings_percent": float(self._quantize(savings_pct * Decimal("100"), 1)),
                     }
                 )
 
@@ -361,18 +368,18 @@ class CarbonCalculator:
 
     def forecast_emissions(
         self,
-        current_daily_co2_kg: float,
+        current_daily_co2_kg: Decimal,
         days: int = 30,
         region_trend_factor: float = 0.99,
     ) -> Dict[str, Any]:
         """Predict future emissions based on current workload and grid trends."""
-        baseline_projection = current_daily_co2_kg * days
-        projected_co2_kg = baseline_projection * region_trend_factor
+        baseline_projection = current_daily_co2_kg * Decimal(str(days))
+        projected_co2_kg = baseline_projection * Decimal(str(region_trend_factor))
 
         return {
             "forecast_days": days,
-            "baseline_co2_kg": round(baseline_projection, 2),
-            "projected_co2_kg": round(projected_co2_kg, 2),
+            "baseline_co2_kg": float(self._quantize(baseline_projection, 2)),
+            "projected_co2_kg": float(self._quantize(projected_co2_kg, 2)),
             "trend_factor": region_trend_factor,
             "description": f"Forecast for next {days} days based on current usage.",
         }

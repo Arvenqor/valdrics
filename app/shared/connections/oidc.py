@@ -71,8 +71,13 @@ class OIDCService:
                 message = body.get("error", {}).get("message")
                 if isinstance(message, str) and message.strip():
                     return False, message
-            except OIDC_STS_RESPONSE_PARSE_RECOVERABLE_EXCEPTIONS:
-                pass
+            except OIDC_STS_RESPONSE_PARSE_RECOVERABLE_EXCEPTIONS as parse_exc:
+                logger.warning(
+                    "oidc_gcp_project_access_response_parse_failed",
+                    project_id=project_id,
+                    status_code=response.status_code,
+                    error=str(parse_exc),
+                )
             return False, f"Failed to access GCP project '{project_id}'"
         return True, None
 
@@ -105,8 +110,15 @@ class OIDCService:
                     message = error.get("message")
                     if isinstance(message, str) and message.strip():
                         return False, message
-            except OIDC_STS_RESPONSE_PARSE_RECOVERABLE_EXCEPTIONS:
-                pass
+            except OIDC_STS_RESPONSE_PARSE_RECOVERABLE_EXCEPTIONS as parse_exc:
+                logger.warning(
+                    "oidc_gcp_billing_export_response_parse_failed",
+                    billing_project_id=billing_project_id,
+                    billing_dataset=billing_dataset,
+                    billing_table=billing_table,
+                    status_code=response.status_code,
+                    error=str(parse_exc),
+                )
             table_path = (
                 f"{billing_project_id}.{billing_dataset}.{billing_table}"
             )

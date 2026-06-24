@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
 from datetime import datetime, timezone
-from app.shared.adapters.aws import AWSAdapter
+from app.shared.adapters.aws_multitenant import MultiTenantAWSAdapter as AWSAdapter
 from app.models.aws_connection import AWSConnection
 from app.shared.core.credentials import AWSCredentials
 from app.shared.core.exceptions import ConfigurationError

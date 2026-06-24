@@ -1,4 +1,7 @@
 from typing import List, Dict, Any, Optional
+from datetime import datetime, timezone
+from decimal import Decimal
+import time
 import aioboto3
 import structlog
 from app.modules.optimization.domain.ports import BaseZombieDetector
@@ -16,7 +19,8 @@ logger = structlog.get_logger()
 class AWSZombieDetector(BaseZombieDetector):
     """
     Concrete implementation of ZombieDetector for AWS.
-    Manages aioboto3 session and AWS-specific plugin execution.
+    Manages aioboto3 session and AWS-specific plugin execution with
+    application-level circuit breaking for connection-level failures.
     """
 
     def __init__(
@@ -35,6 +39,8 @@ class AWSZombieDetector(BaseZombieDetector):
             self._adapter = MultiTenantAWSAdapter(connection)
 
         self._initialize_plugins()
+        self._circuit_failures: int = 0
+        self._circuit_opened_at: float | None = None
 
     @property
     def provider_name(self) -> str:
@@ -43,6 +49,52 @@ class AWSZombieDetector(BaseZombieDetector):
     def _initialize_plugins(self) -> None:
         """Register every available AWS detection plugin from the registry."""
         self.plugins = registry.get_plugins_for_provider("aws")
+
+    def _circuit_should_skip(self) -> bool:
+        from app.shared.core.config import get_settings
+
+        threshold = int(
+            getattr(
+                get_settings(),
+                "ZOMBIE_SCAN_FAILURE_CIRCUIT_THRESHOLD",
+                3,
+            )
+        )
+        if self._circuit_failures < threshold:
+            return False
+        if self._circuit_opened_at is None:
+            self._circuit_opened_at = time.monotonic()
+            logger.warning(
+                "aws_detector_circuit_opened",
+                connection_id=str(getattr(self.connection, "id", "unknown")),
+                region=self.region,
+                failure_count=self._circuit_failures,
+            )
+        return True
+
+    def _circuit_record_success(self) -> None:
+        self._circuit_failures = 0
+        self._circuit_opened_at = None
+
+    def _circuit_record_failure(self) -> None:
+        self._circuit_failures += 1
+        from app.shared.core.config import get_settings
+
+        threshold = int(
+            getattr(
+                get_settings(),
+                "ZOMBIE_SCAN_FAILURE_CIRCUIT_THRESHOLD",
+                3,
+            )
+        )
+        if self._circuit_failures >= threshold:
+            logger.warning(
+                "aws_detector_circuit_failure_threshold_reached",
+                connection_id=str(getattr(self.connection, "id", "unknown")),
+                region=self.region,
+                failure_count=self._circuit_failures,
+                threshold=threshold,
+            )
 
     @staticmethod
     def _inventory_scan_metadata(inventory: Any) -> dict[str, Any]:
@@ -95,13 +147,35 @@ class AWSZombieDetector(BaseZombieDetector):
     ) -> Dict[str, Any]:
         """
         Overrides the base scan_all to include global discovery via Resource Explorer 2.
+        Includes application-level circuit breaking for repeated connection failures.
         """
+        if self._circuit_should_skip():
+            logger.warning(
+                "aws_detector_scan_skipped_circuit_open",
+                connection_id=str(getattr(self.connection, "id", "unknown")),
+                region=self.region,
+                failure_count=self._circuit_failures,
+            )
+            return {
+                "provider": self.provider_name,
+                "region": self.region,
+                "scanned_at": datetime.now(timezone.utc).isoformat(),
+                "total_monthly_waste": Decimal("0"),
+                "scan_completeness": {
+                    "provider": self.provider_name,
+                    "region": self.region,
+                    "degraded": True,
+                    "error_count": 1,
+                    "plugins": {},
+                    "overall_error": "circuit_open",
+                },
+                "partial_results": True,
+            }
+
         from app.modules.optimization.domain.unified_discovery import (
             UnifiedDiscoveryService,
         )
 
-        # 1. Perform Global Inventory Discovery (Hybrid Model)
-        # This is fast and cheap, providing a bird's eye view of the account.
         inventory = None
         if self.connection:
             discovery_service = UnifiedDiscoveryService(str(self.connection.tenant_id))
@@ -112,12 +186,15 @@ class AWSZombieDetector(BaseZombieDetector):
                 method=inventory.discovery_method,
             )
 
-        # Store inventory for plugins to use
         self._inventory = inventory
 
-        # 2. Proceed with standard parallel plugin execution
-        results = await super().scan_all(on_category_complete=on_category_complete)
-        return self._apply_inventory_completeness(results, inventory)
+        try:
+            results = await super().scan_all(on_category_complete=on_category_complete)
+            self._circuit_record_success()
+            return self._apply_inventory_completeness(results, inventory)
+        except Exception:
+            self._circuit_record_failure()
+            raise
 
     async def _execute_plugin_scan(self, plugin: ZombiePlugin) -> List[Dict[str, Any]]:
         """

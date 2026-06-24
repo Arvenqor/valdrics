@@ -66,8 +66,6 @@ class CoreRuntimeSettings:
     TRUSTED_PROXY_CIDRS: list[str] = Field(default_factory=list)
     SSE_MAX_CONNECTIONS_PER_TENANT: int = 5
     SSE_POLL_INTERVAL_SECONDS: int = 3
-
-    # AWS Credentials
     AWS_ACCESS_KEY_ID: str | None = None
     AWS_SECRET_ACCESS_KEY: str | None = None
     AWS_DEFAULT_REGION: str = "us-east-1"

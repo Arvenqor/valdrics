@@ -6,7 +6,7 @@ from sqlalchemy import select
 from unittest.mock import AsyncMock, MagicMock, patch
 from types import SimpleNamespace
 from app.main import app
-from app.models.tenant import Tenant, User
+from app.models.tenant import Tenant, User, UserRole
 from app.shared.core.auth import get_current_user_from_jwt
 
 
@@ -221,3 +221,57 @@ async def test_onboard_rejects_invalid_turnstile(async_client: AsyncClient):
         )
     assert response.status_code == 403
     assert response.json()["error"] == "turnstile_verification_failed"
+
+
+@pytest.mark.asyncio
+async def test_onboard_requires_authentication(async_client: AsyncClient):
+    app.dependency_overrides.pop(get_current_user_from_jwt, None)
+    try:
+        response = await async_client.post(
+            "/api/v1/settings/onboard",
+            json={"tenant_name": "No Auth Tenant"},
+        )
+    finally:
+        pass
+
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_onboard_does_not_leak_credentials_in_error(
+    async_client: AsyncClient,
+):
+    secret_role_arn = "arn:aws:iam::123456789012:role/SuperSecretRole"
+    onboard_data = {
+        "tenant_name": "Leak Test Tenant",
+        "cloud_config": {
+            "platform": "aws",
+            "role_arn": secret_role_arn,
+            "external_id": "ext-123",
+        },
+    }
+
+    with patch(
+        "app.modules.governance.api.v1.settings.onboard.get_settings"
+    ) as mock_get_settings:
+        mock_settings = MagicMock()
+        mock_settings.ENVIRONMENT = "production"
+        mock_settings.WEBHOOK_BLOCK_PRIVATE_IPS = True
+        mock_get_settings.return_value = mock_settings
+
+        with patch(
+            "app.shared.adapters.factory.AdapterFactory.get_adapter"
+        ) as mock_get_adapter:
+            mock_adapter = AsyncMock()
+            mock_adapter.verify_connection.side_effect = Exception(
+                "Internal AWS credentials check failed"
+            )
+            mock_get_adapter.return_value = mock_adapter
+
+            response = await async_client.post(
+                "/api/v1/settings/onboard", json=onboard_data
+            )
+
+    assert response.status_code in (400, 500)
+    body = response.text
+    assert secret_role_arn not in body

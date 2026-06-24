@@ -53,6 +53,9 @@ class GovernanceSettings:
     # Scanner Settings
     ZOMBIE_PLUGIN_TIMEOUT_SECONDS: int = 30
     ZOMBIE_REGION_TIMEOUT_SECONDS: int = 120
+    ZOMBIE_SCAN_TIMEOUT_SECONDS: int = 300
+    ZOMBIE_SCAN_FAILURE_CIRCUIT_THRESHOLD: int = 3
+    ZOMBIE_SCAN_MAX_CONNECTIONS: int = 50
     CLOUD_API_BUDGET_GOVERNOR_ENABLED: bool = True
     CLOUD_API_BUDGET_ENFORCE: bool = True
     # Daily per-tenant caps for expensive telemetry APIs.
