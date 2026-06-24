@@ -8,6 +8,7 @@ from uuid import UUID
 from sqlalchemy import select
 
 from app.models.invoice import ProviderInvoice
+from app.shared.core.config import get_settings
 
 
 async def list_invoices_impl(
@@ -203,9 +204,20 @@ async def get_invoice_reconciliation_summary_impl(
     start_date: date,
     end_date: date,
     ledger_final_cost_usd: float,
-    threshold_percent: float = 1.0,
+    threshold_percent: float | None = None,
 ) -> Dict[str, Any]:
     normalized_provider = service._normalize_provider(provider)
+    resolved_threshold = (
+        threshold_percent
+        if threshold_percent is not None
+        else float(
+            getattr(
+                get_settings(),
+                "INVOICE_RECONCILIATION_DEFAULT_THRESHOLD_PCT",
+                1.0,
+            )
+        )
+    )
     invoice_result = await service.db.execute(
         select(ProviderInvoice).where(
             ProviderInvoice.tenant_id == tenant_id,
@@ -224,7 +236,7 @@ async def get_invoice_reconciliation_summary_impl(
                 "end_date": end_date.isoformat(),
             },
             "ledger_final_cost_usd": service._to_float(ledger_final_cost_usd),
-            "threshold_percent": threshold_percent,
+            "threshold_percent": resolved_threshold,
         }
 
     invoice_usd = service._to_float(invoice.total_amount_usd)
@@ -233,7 +245,7 @@ async def get_invoice_reconciliation_summary_impl(
     abs_delta_usd = abs(delta_usd)
     denominator = invoice_usd if invoice_usd > 0 else max(ledger_usd, 1e-9)
     delta_percent = (abs_delta_usd / denominator) * 100.0 if denominator > 0 else 0.0
-    threshold_value = service._to_float(threshold_percent)
+    threshold_value = service._to_float(resolved_threshold)
     matches = delta_percent <= threshold_value
 
     payload = {

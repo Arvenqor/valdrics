@@ -25,6 +25,7 @@ from app.shared.core.config_validation_observability import (
 from app.shared.core.config_sections_core import CoreRuntimeSettings
 from app.shared.core.config_sections_governance import GovernanceSettings
 from app.shared.core.config_sections_integrations import IntegrationSettings
+from app.shared.core.config_sections_reporting import ReportingSettings
 from app.shared.core.config_sections_security import SecuritySettings
 
 # Environment Constants (Finding #10)
@@ -92,6 +93,7 @@ class Settings(
     CoreRuntimeSettings,
     SecuritySettings,
     IntegrationSettings,
+    ReportingSettings,
     GovernanceSettings,
     BaseSettings,
 ):

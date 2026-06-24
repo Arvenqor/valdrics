@@ -4,7 +4,7 @@ from datetime import date
 from typing import Any, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.reporting.api.v1.costs_models import (
@@ -205,53 +205,3 @@ async def export_focus_v13_costs_csv(
         get_settings=costs_module.get_settings,
     )
 
-
-def register_reconciliation_routes(router: APIRouter) -> None:
-    router.add_api_route(
-        "/reconciliation/close-package",
-        get_reconciliation_close_package,
-        methods=["GET"],
-        response_model=None,
-    )
-    router.add_api_route(
-        "/reconciliation/restatements",
-        get_restatement_history,
-        methods=["GET"],
-        response_model=None,
-    )
-    router.add_api_route(
-        "/reconciliation/restatement-runs",
-        get_restatement_runs,
-        methods=["GET"],
-        response_model=None,
-    )
-    router.add_api_route(
-        "/reconciliation/invoices",
-        list_provider_invoices,
-        methods=["GET"],
-        response_model=None,
-    )
-    router.add_api_route(
-        "/reconciliation/invoices",
-        upsert_provider_invoice,
-        methods=["POST"],
-        response_model=None,
-    )
-    router.add_api_route(
-        "/reconciliation/invoices/{invoice_id}",
-        update_provider_invoice_status,
-        methods=["PATCH"],
-        response_model=None,
-    )
-    router.add_api_route(
-        "/reconciliation/invoices/{invoice_id}",
-        delete_provider_invoice,
-        methods=["DELETE"],
-        response_model=None,
-    )
-    router.add_api_route(
-        "/export/focus",
-        export_focus_v13_costs_csv,
-        methods=["GET"],
-        response_model=None,
-    )

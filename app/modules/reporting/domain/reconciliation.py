@@ -42,11 +42,15 @@ from app.modules.reporting.domain.reconciliation_invoice import (
 )
 from app.shared.core.exceptions import ExternalAPIError
 from app.shared.utils.data_coercion import coerce_finite_float, coerce_finite_int
+from app.shared.core.config import get_settings
 
 logger = structlog.get_logger()
 
 
-RECON_ALERT_THRESHOLD_PCT = 1.0
+def _get_recon_alert_threshold_pct() -> float:
+    from app.shared.core.config import get_settings
+
+    return float(getattr(get_settings(), "RECON_ALERT_THRESHOLD_PCT", 1.0))
 SUPPORTED_RECON_PROVIDERS = {
     "aws",
     "azure",
@@ -125,7 +129,14 @@ class CostReconciliationService:
         if total_service_count <= 0 or comparable_service_count <= 0:
             return 0.0
         coverage_ratio = comparable_service_count / total_service_count
-        volume_factor = min(comparable_record_count / 1000.0, 1.0)
+        confidence_denominator = float(
+            getattr(
+                get_settings(),
+                "RECON_CONFIDENCE_VOLUME_DENOMINATOR",
+                1000.0,
+            )
+        )
+        volume_factor = min(comparable_record_count / confidence_denominator, 1.0)
         return round(min(1.0, 0.6 * coverage_ratio + 0.4 * volume_factor), 2)
 
     @staticmethod
@@ -356,7 +367,7 @@ class CostReconciliationService:
         tenant_id: UUID,
         start_date: date,
         end_date: date,
-        alert_threshold_pct: float = RECON_ALERT_THRESHOLD_PCT,
+        alert_threshold_pct: float | None = None,
         provider: str | None = None,
     ) -> Dict[str, Any]:
         return await compare_explorer_vs_cur_impl(
@@ -364,7 +375,7 @@ class CostReconciliationService:
             tenant_id=tenant_id,
             start_date=start_date,
             end_date=end_date,
-            alert_threshold_pct=alert_threshold_pct,
+            alert_threshold_pct=alert_threshold_pct or _get_recon_alert_threshold_pct(),
             provider=provider,
             recoverable_alert_errors=RECON_ALERT_RECOVERABLE_EXCEPTIONS,
             log=logger,

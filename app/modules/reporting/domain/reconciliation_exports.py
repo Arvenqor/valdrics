@@ -8,11 +8,15 @@ import io
 from datetime import date
 from typing import Any
 
+from app.modules.reporting.domain.spend_ledger_decimal import _decimal_string
 from app.modules.reporting.api.v1.costs_helpers import sanitize_csv_cell
 
 
 def _sanitize_row(values: list[Any]) -> list[str]:
     return [sanitize_csv_cell(value) for value in values]
+
+
+_CSV_NUMERIC_PLACES = 4
 
 
 def _coerce_finite_csv_value(value: Any, *, field_name: str) -> Any:
@@ -28,7 +32,7 @@ def _coerce_finite_csv_value(value: Any, *, field_name: str) -> Any:
         return value
     if not amount.is_finite():
         raise ValueError(f"{field_name} must be finite")
-    return value
+    return _decimal_string(amount, places=_CSV_NUMERIC_PLACES)
 
 
 def _csv_field_value(section: str, key: str, value: Any) -> Any:
@@ -281,9 +285,11 @@ def render_restatements_csv(entries: list[dict[str, Any]]) -> str:
                     entry["recorded_at"],
                     entry["service"],
                     entry["region"],
-                    entry["old_cost"],
-                    entry["new_cost"],
-                    entry["delta_usd"],
+                    _csv_field_value("restatements", "old_cost", entry["old_cost"]),
+                    _csv_field_value("restatements", "new_cost", entry["new_cost"]),
+                    _csv_field_value(
+                        "restatements", "delta_usd", entry["delta_usd"]
+                    ),
                     entry["reason"],
                     entry["cost_record_id"],
                     entry["ingestion_batch_id"],
@@ -312,9 +318,17 @@ def render_restatement_runs_csv(runs: list[dict[str, Any]]) -> str:
             _sanitize_row(
                 [
                     run.get("ingestion_batch_id"),
-                    run.get("entry_count"),
-                    run.get("net_delta_usd"),
-                    run.get("absolute_delta_usd"),
+                    _csv_field_value(
+                        "restatement_runs", "entry_count", run.get("entry_count")
+                    ),
+                    _csv_field_value(
+                        "restatement_runs", "net_delta_usd", run.get("net_delta_usd")
+                    ),
+                    _csv_field_value(
+                        "restatement_runs",
+                        "absolute_delta_usd",
+                        run.get("absolute_delta_usd"),
+                    ),
                     run.get("first_recorded_at"),
                     run.get("last_recorded_at"),
                     run.get("integrity_hash"),
