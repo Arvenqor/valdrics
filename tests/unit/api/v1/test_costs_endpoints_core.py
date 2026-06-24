@@ -1030,3 +1030,286 @@ async def test_get_spend_ledger_ai_allocated(
     assert len(entry["allocations"]) == 1
     assert entry["allocations"][0]["allocated_to"] == "Engineering"
     assert entry["allocations"][0]["amount_usd"] == "10.00000000"
+
+
+@pytest.mark.asyncio
+async def test_get_spend_ledger_pagination_with_offset(
+    async_client: AsyncClient, app, db
+) -> None:
+    tenant_id = uuid.uuid4()
+    user_id = uuid.uuid4()
+    account_id = uuid.uuid4()
+
+    db.add(Tenant(id=tenant_id, name="Pagination Tenant", plan=PricingTier.PRO.value))
+    db.add(
+        CloudAccount(
+            id=account_id,
+            tenant_id=tenant_id,
+            provider="saas",
+            name="Cloud Spend",
+            is_active=True,
+        )
+    )
+    for idx in range(5):
+        db.add(
+            CostRecord(
+                id=uuid.uuid4(),
+                tenant_id=tenant_id,
+                account_id=account_id,
+                service=f"svc-{idx}",
+                region="us-east-1",
+                usage_type="OnDemand",
+                resource_id=f"res-{idx}",
+                usage_amount=Decimal("1"),
+                usage_unit="Unit",
+                cost_usd=Decimal(str(idx + 1)),
+                amount_raw=Decimal(str(idx + 1)),
+                currency="USD",
+                cost_status="FINAL",
+                is_preliminary=False,
+                canonical_charge_category="compute",
+                canonical_charge_subcategory="vm",
+                canonical_mapping_version="focus-1.3-v1",
+                tags={},
+                recorded_at=date(2026, 1, 10 + idx),
+                timestamp=datetime(2026, 1, 10 + idx, 0, 0, tzinfo=timezone.utc),
+            )
+        )
+    await db.commit()
+
+    mock_user = CurrentUser(
+        id=user_id,
+        tenant_id=tenant_id,
+        email="pagination@valdrics.io",
+        role=UserRole.ADMIN,
+        tier=PricingTier.PRO,
+    )
+
+    _override_reporting_auth(app, mock_user)
+    try:
+        first_page = await async_client.get(
+            "/api/v1/costs/ledger",
+            params={
+                "start_date": "2026-01-01",
+                "end_date": "2026-01-31",
+                "limit": 2,
+                "offset": 0,
+            },
+        )
+        second_page = await async_client.get(
+            "/api/v1/costs/ledger",
+            params={
+                "start_date": "2026-01-01",
+                "end_date": "2026-01-31",
+                "limit": 2,
+                "offset": 2,
+            },
+        )
+    finally:
+        _clear_reporting_auth_overrides(app)
+
+    assert first_page.status_code == 200
+    assert second_page.status_code == 200
+
+    first_payload = first_page.json()
+    second_payload = second_page.json()
+
+    assert first_payload["record_count"] == 5
+    assert len(first_payload["entries"]) == 2
+    assert first_payload["entries"][0]["service"] == "svc-0"
+    assert first_payload["entries"][1]["service"] == "svc-1"
+
+    assert second_payload["record_count"] == 5
+    assert len(second_payload["entries"]) == 2
+    assert second_payload["entries"][0]["service"] == "svc-2"
+    assert second_payload["entries"][1]["service"] == "svc-3"
+
+
+@pytest.mark.asyncio
+async def test_get_spend_ledger_include_preliminary_false_filters_preliminary(
+    async_client: AsyncClient, app, db
+) -> None:
+    tenant_id = uuid.uuid4()
+    user_id = uuid.uuid4()
+    account_id = uuid.uuid4()
+
+    db.add(Tenant(id=tenant_id, name="Prelim Tenant", plan=PricingTier.PRO.value))
+    db.add(
+        CloudAccount(
+            id=account_id,
+            tenant_id=tenant_id,
+            provider="saas",
+            name="Cloud Spend",
+            is_active=True,
+        )
+    )
+    db.add(
+        CostRecord(
+            id=uuid.uuid4(),
+            tenant_id=tenant_id,
+            account_id=account_id,
+            service="svc-final",
+            region="us-east-1",
+            usage_type="OnDemand",
+            resource_id="res-final",
+            usage_amount=Decimal("10"),
+            usage_unit="Unit",
+            cost_usd=Decimal("10.00"),
+            amount_raw=Decimal("10.00"),
+            currency="USD",
+            cost_status="FINAL",
+            is_preliminary=False,
+            canonical_charge_category="compute",
+            canonical_charge_subcategory="vm",
+            canonical_mapping_version="focus-1.3-v1",
+            tags={},
+            recorded_at=date(2026, 1, 15),
+            timestamp=datetime(2026, 1, 15, 0, 0, tzinfo=timezone.utc),
+        )
+    )
+    db.add(
+        CostRecord(
+            id=uuid.uuid4(),
+            tenant_id=tenant_id,
+            account_id=account_id,
+            service="svc-prelim",
+            region="us-east-1",
+            usage_type="OnDemand",
+            resource_id="res-prelim",
+            usage_amount=Decimal("5"),
+            usage_unit="Unit",
+            cost_usd=Decimal("5.00"),
+            amount_raw=Decimal("5.00"),
+            currency="USD",
+            cost_status="PRELIMINARY",
+            is_preliminary=True,
+            canonical_charge_category="compute",
+            canonical_charge_subcategory="vm",
+            canonical_mapping_version="focus-1.3-v1",
+            tags={},
+            recorded_at=date(2026, 1, 15),
+            timestamp=datetime(2026, 1, 15, 0, 0, tzinfo=timezone.utc),
+        )
+    )
+    await db.commit()
+
+    mock_user = CurrentUser(
+        id=user_id,
+        tenant_id=tenant_id,
+        email="prelim@valdrics.io",
+        role=UserRole.ADMIN,
+        tier=PricingTier.PRO,
+    )
+
+    _override_reporting_auth(app, mock_user)
+    try:
+        exclude_preliminary = await async_client.get(
+            "/api/v1/costs/ledger",
+            params={
+                "start_date": "2026-01-01",
+                "end_date": "2026-01-31",
+                "include_preliminary": "false",
+            },
+        )
+        include_preliminary = await async_client.get(
+            "/api/v1/costs/ledger",
+            params={
+                "start_date": "2026-01-01",
+                "end_date": "2026-01-31",
+                "include_preliminary": "true",
+            },
+        )
+    finally:
+        _clear_reporting_auth_overrides(app)
+
+    assert exclude_preliminary.status_code == 200
+    exclude_payload = exclude_preliminary.json()
+    assert exclude_payload["record_count"] == 1
+    assert exclude_payload["entries"][0]["service"] == "svc-final"
+
+    assert include_preliminary.status_code == 200
+    include_payload = include_preliminary.json()
+    assert include_payload["record_count"] == 2
+    include_services = {e["service"] for e in include_payload["entries"]}
+    assert include_services == {"svc-final", "svc-prelim"}
+
+
+@pytest.mark.asyncio
+async def test_get_spend_ledger_unallocated_costs(
+    async_client: AsyncClient, app, db
+) -> None:
+    tenant_id = uuid.uuid4()
+    user_id = uuid.uuid4()
+    account_id = uuid.uuid4()
+
+    db.add(Tenant(id=tenant_id, name="Unalloc Tenant", plan=PricingTier.PRO.value))
+    db.add(
+        CloudAccount(
+            id=account_id,
+            tenant_id=tenant_id,
+            provider="saas",
+            name="Cloud Spend",
+            is_active=True,
+        )
+    )
+    cost_id = uuid.uuid4()
+    db.add(
+        CostRecord(
+            id=cost_id,
+            tenant_id=tenant_id,
+            account_id=account_id,
+            service="uncategorized",
+            region="us-east-1",
+            usage_type="OnDemand",
+            resource_id="res-uncat",
+            usage_amount=Decimal("10"),
+            usage_unit="Unit",
+            cost_usd=Decimal("100.00"),
+            amount_raw=Decimal("100.00"),
+            currency="USD",
+            cost_status="FINAL",
+            is_preliminary=False,
+            canonical_charge_category="uncategorized",
+            canonical_charge_subcategory=None,
+            canonical_mapping_version="focus-1.3-v1",
+            tags={},
+            allocated_to=None,
+            attribution_id=None,
+            recorded_at=date(2026, 1, 15),
+            timestamp=datetime(2026, 1, 15, 0, 0, tzinfo=timezone.utc),
+        )
+    )
+    await db.commit()
+
+    mock_user = CurrentUser(
+        id=user_id,
+        tenant_id=tenant_id,
+        email="unalloc@valdrics.io",
+        role=UserRole.ADMIN,
+        tier=PricingTier.PRO,
+    )
+
+    _override_reporting_auth(app, mock_user)
+    try:
+        response = await async_client.get(
+            "/api/v1/costs/ledger",
+            params={
+                "start_date": "2026-01-01",
+                "end_date": "2026-01-31",
+                "provider": "saas",
+            },
+        )
+    finally:
+        _clear_reporting_auth_overrides(app)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert Decimal(payload["total_cost_usd"]) == Decimal("100.00")
+    assert Decimal(payload["total_unallocated_usd"]) == Decimal("100.00")
+    assert Decimal(payload["total_allocated_usd"]) == Decimal("0.00")
+
+    entry = payload["entries"][0]
+    assert entry["allocation_status"] == "unallocated"
+    assert Decimal(entry["unallocated_amount_usd"]) == Decimal("100.00")
+    assert Decimal(entry["allocated_amount_usd"]) == Decimal("0.00")
+    assert len(entry["allocations"]) == 0
