@@ -14,8 +14,8 @@ Prometheus metrics continue to group requests by their templated path.
 
 References
 ----------
-- https://github.com/trallnag/prometheus-fastapi-instrumentator/issues/XXX
 - FastAPI 0.137 changelog: ``_IncludedRouter`` introduced.
+- Prometheus Instrumentator upstream: https://github.com/trallnag/prometheus-fastapi-instrumentator
 """
 
 from __future__ import annotations
