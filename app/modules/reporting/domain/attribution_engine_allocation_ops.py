@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.attribution import AttributionRule, CostAllocation
 from app.models.cloud import CostRecord
+from app.shared.core.config import get_settings
 from app.modules.reporting.domain.attribution_engine_allocation_analytics import (
     get_allocation_coverage,
     get_allocation_summary,
@@ -214,8 +215,9 @@ async def apply_rules_to_tenant(
 
     rules = await get_active_rules_fn(tenant_id)
     record_ids = [record.id for record in records]
-    for i in range(0, len(record_ids), 1000):
-        chunk = record_ids[i : i + 1000]
+    chunk_size = int(getattr(get_settings(), "BATCH_PROCESSING_CHUNK_SIZE", 1000))
+    for i in range(0, len(record_ids), chunk_size):
+        chunk = record_ids[i : i + chunk_size]
         await db.execute(
             delete(CostAllocation).where(CostAllocation.cost_record_id.in_(chunk))
         )
@@ -301,8 +303,9 @@ async def apply_rules_to_tenant_ai(
 
     rules = await get_active_rules_fn(tenant_id)
     record_ids = [record.id for record in records]
-    for i in range(0, len(record_ids), 1000):
-        chunk = record_ids[i : i + 1000]
+    chunk_size = int(getattr(get_settings(), "BATCH_PROCESSING_CHUNK_SIZE", 1000))
+    for i in range(0, len(record_ids), chunk_size):
+        chunk = record_ids[i : i + chunk_size]
         await db.execute(
             delete(CostAllocation).where(CostAllocation.llm_usage_id.in_(chunk))
         )

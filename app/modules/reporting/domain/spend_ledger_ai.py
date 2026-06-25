@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.llm import LLMUsage
 from app.models.attribution import CostAllocation
+from app.shared.core.config import get_settings
 from app.modules.reporting.domain.focus_export_rows import _date_window_bounds
 from app.modules.reporting.domain.spend_ledger_decimal import (
     _decimal_string,
@@ -49,8 +50,9 @@ async def ai_spend_summary(
 
     # Query all allocations for these records
     allocations: list[CostAllocation] = []
-    for i in range(0, len(usage_ids), 1000):
-        chunk = usage_ids[i : i + 1000]
+    chunk_size = int(getattr(get_settings(), "BATCH_PROCESSING_CHUNK_SIZE", 1000))
+    for i in range(0, len(usage_ids), chunk_size):
+        chunk = usage_ids[i : i + chunk_size]
         alloc_stmt = select(CostAllocation).where(
             CostAllocation.llm_usage_id.in_(chunk)
         )

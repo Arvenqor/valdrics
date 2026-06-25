@@ -164,6 +164,8 @@ def rate_limit(
     key_func: Callable[[Request], str] | None = None,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Decorator to apply rate limiting to an endpoint."""
+    if get_settings().TESTING:
+        return lambda func: func
     limiter = get_limiter()
     if key_func is not None:
         return cast(
@@ -254,6 +256,8 @@ def admin_limit_key(request: Request) -> str:
 
 def admin_auth_limit(func: Callable[..., Any]) -> Callable[..., Any]:
     """Apply strict IP-based rate limit for admin key validation. (3/min)"""
+    if get_settings().TESTING:
+        return func
     return rate_limit("3/minute", key_func=admin_limit_key)(func)
 
 

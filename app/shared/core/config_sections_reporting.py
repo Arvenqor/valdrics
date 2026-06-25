@@ -14,3 +14,8 @@ class ReportingSettings:
         default=1000.0,
         description="Denominator used to cap confidence weighting by record volume.",
     )
+    BATCH_PROCESSING_CHUNK_SIZE: int = Field(
+        default=1000,
+        description="Chunk size for batch database operations such as bulk deletes "
+        "and inserts in attribution and ledger pipelines.",
+    )
