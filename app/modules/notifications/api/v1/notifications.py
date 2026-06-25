@@ -40,7 +40,6 @@ _active_notification_streams: Dict[str, int] = {}
 
 
 @router.get("/stream")
-@auth_limit
 async def stream_notifications(
     user: CurrentUser = Depends(requires_role("member")),
     db: AsyncSession = Depends(get_db),
