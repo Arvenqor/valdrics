@@ -154,6 +154,7 @@ strict = true
 ignore_missing_imports = true
 disallow_untyped_defs = true
 check_untyped_defs = true
+explicit_package_bases = true
 
 [tool.pydantic-mypy]
 init_forbid_extra = true
