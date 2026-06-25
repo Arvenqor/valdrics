@@ -32,7 +32,7 @@ jobs:
       frontend_ci: ${{ steps.classify.outputs.frontend_ci }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
         with:
           fetch-depth: 0
 
@@ -121,7 +121,7 @@ jobs:
     steps:
       - &checkout_code_step
         name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
 
       - name: Setup Backend Toolchain
         uses: ./.github/actions/setup-python-uv
@@ -384,7 +384,7 @@ jobs:
             --fail-under=95
 
       - name: Upload Coverage Report
-        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
+        uses: codecov/codecov-action@cddd853df119a48c5be31a973f8cd97e12e35e16 # v6.0.2
         with:
           files: ./coverage.xml
           fail_ci_if_error: false
