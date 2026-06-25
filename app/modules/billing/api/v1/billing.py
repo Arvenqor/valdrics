@@ -37,7 +37,7 @@ from app.shared.core.auth import CurrentUser, requires_platform_role, requires_r
 from app.shared.db.session import get_db
 from app.shared.core.config import get_settings
 from app.shared.core.proxy_headers import resolve_client_ip
-from app.shared.core.rate_limit import auth_limit, standard_limit
+from app.shared.core.rate_limit import admin_auth_limit, auth_limit, standard_limit
 from app.shared.core.currency import ExchangeRateUnavailableError
 
 if TYPE_CHECKING:
@@ -374,7 +374,7 @@ async def handle_webhook(request: Request, db: AsyncSession = Depends(get_db)) -
 
 
 @router.post("/admin/rates")
-@auth_limit
+@admin_auth_limit
 async def update_exchange_rate(
     _request: Request,
     request: ExchangeRateUpdate,
@@ -390,7 +390,7 @@ async def update_exchange_rate(
 
 
 @router.get("/admin/rates")
-@auth_limit
+@admin_auth_limit
 async def get_exchange_rate(
     request: Request,
     user: Annotated[CurrentUser, Depends(requires_platform_role("admin"))],
@@ -402,7 +402,7 @@ async def get_exchange_rate(
 
 
 @router.post("/admin/plans/{plan_id}")
-@auth_limit
+@admin_auth_limit
 async def update_pricing_plan(
     request: Request,
     plan_id: str,  # Note: plan_id is a slug (e.g., 'starter'), not a UUID

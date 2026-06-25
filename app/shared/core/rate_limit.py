@@ -160,14 +160,18 @@ def setup_rate_limiting(app: FastAPI) -> None:
 # Rate limit decorators for use in routes
 def rate_limit(
     limit: str | Callable[[Request], str] = "100/minute",
+    *,
+    key_func: Callable[[Request], str] | None = None,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Decorator to apply rate limiting to an endpoint."""
-    # Finding #L3: If we bypass the decorator here based on settings.TESTING,
-    # it captures the state at import time. Instead, we always return the
-    # limiter's decorator, which internally checks its 'enabled' status
-    # during each request.
+    limiter = get_limiter()
+    if key_func is not None:
+        return cast(
+            Callable[[Callable[..., Any]], Callable[..., Any]],
+            limiter.limit(limit, key_func=key_func),
+        )
     return cast(
-        Callable[[Callable[..., Any]], Callable[..., Any]], get_limiter().limit(limit)
+        Callable[[Callable[..., Any]], Callable[..., Any]], limiter.limit(limit)
     )
 
 
@@ -236,6 +240,21 @@ def get_analysis_limit(request: Optional[Request] = None) -> str:
     limits = _analysis_limit_mapping(get_settings())
 
     return limits.get(tier, "1/hour")
+
+
+def admin_limit_key(request: Request) -> str:
+    """
+    Admin brute-force protection: always key by client IP, never by tenant
+    or token. This prevents attackers from bypassing admin key rate limits
+    by rotating tokens or tenant contexts.
+    """
+    client_ip = resolve_client_ip(request, settings_obj=get_settings())
+    return f"admin:{client_ip}"
+
+
+def admin_auth_limit(func: Callable[..., Any]) -> Callable[..., Any]:
+    """Apply strict IP-based rate limit for admin key validation. (3/min)"""
+    return rate_limit("3/minute", key_func=admin_limit_key)(func)
 
 
 def standard_limit(func: Callable[..., Any]) -> Callable[..., Any]:

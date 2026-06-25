@@ -11,7 +11,7 @@ from sqlalchemy import case, func, select
 import secrets
 import structlog
 from uuid import UUID
-from app.shared.core.rate_limit import auth_limit
+from app.shared.core.rate_limit import admin_auth_limit, auth_limit
 from app.shared.core.proxy_headers import resolve_client_ip
 from app.shared.core.logging import audit_log_async
 from pydantic import BaseModel, Field
@@ -108,6 +108,7 @@ async def validate_admin_key(
 
 
 @router.post("/trigger-analysis")
+@admin_auth_limit
 @auth_limit  # Item 11: Rate limit admin key checks
 async def trigger_analysis(
     request: Request, _: bool = Depends(validate_admin_key)
@@ -177,6 +178,7 @@ async def trigger_analysis(
 
 
 @router.get("/reconcile/{tenant_id}")
+@admin_auth_limit
 @auth_limit  # Item 11: Consistent rate limiting
 async def reconcile_tenant_costs(
     request: Request,
