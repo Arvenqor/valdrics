@@ -223,16 +223,21 @@ async def apply_rules_to_tenant(
         )
 
     all_allocations: list[CostAllocation] = []
-    for record in records:
-        allocations = await apply_rules_fn(record, rules)
-        all_allocations.extend(allocations)
+    for i in range(0, len(records), chunk_size):
+        record_chunk = records[i : i + chunk_size]
+        chunk_allocations: list[CostAllocation] = []
+        for record in record_chunk:
+            allocations = await apply_rules_fn(record, rules)
+            chunk_allocations.extend(allocations)
 
-    if all_allocations:
-        db.add_all(all_allocations)
+        if chunk_allocations:
+            db.add_all(chunk_allocations)
+            all_allocations.extend(chunk_allocations)
+            if commit:
+                await db.flush()
+
     if commit:
         await db.commit()
-    else:
-        await db.flush()
 
     logger_obj.info(
         "batch_attribution_complete",
@@ -311,16 +316,21 @@ async def apply_rules_to_tenant_ai(
         )
 
     all_allocations: list[CostAllocation] = []
-    for record in records:
-        allocations = await apply_rules_fn(record, rules)
-        all_allocations.extend(allocations)
+    for i in range(0, len(records), chunk_size):
+        record_chunk = records[i : i + chunk_size]
+        chunk_allocations: list[CostAllocation] = []
+        for record in record_chunk:
+            allocations = await apply_rules_fn(record, rules)
+            chunk_allocations.extend(allocations)
 
-    if all_allocations:
-        db.add_all(all_allocations)
+        if chunk_allocations:
+            db.add_all(chunk_allocations)
+            all_allocations.extend(chunk_allocations)
+            if commit:
+                await db.flush()
+
     if commit:
         await db.commit()
-    else:
-        await db.flush()
 
     logger_obj.info(
         "batch_ai_attribution_complete",
