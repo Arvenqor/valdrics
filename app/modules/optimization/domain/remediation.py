@@ -83,7 +83,6 @@ class RemediationService(BaseService):
     4. execute() - System executes approved requests
     """
 
-    # Mapping CamelCase to snake_case for aioboto3 credentials - DEPRECATED: Use aws_utils
     _SYSTEM_POLICY_CONTEXT_KEY = "_system_policy_context"
 
     def __init__(
