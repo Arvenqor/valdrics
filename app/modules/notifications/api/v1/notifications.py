@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from typing import Any, AsyncIterator, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -14,6 +15,13 @@ import structlog
 from app.modules.notifications.domain.notifications import NotificationService
 from app.shared.core.auth import CurrentUser, requires_role
 from app.shared.core.config import get_settings
+from app.shared.core.ops_metrics import (
+    SSE_STREAM_CONNECTIONS_ACTIVE,
+    SSE_STREAM_CONNECTIONS_TOTAL,
+    SSE_STREAM_ERRORS_TOTAL,
+    SSE_STREAM_POLL_DURATION,
+)
+from app.shared.core.rate_limit import auth_limit
 from app.shared.db.session import get_db
 
 router = APIRouter()
@@ -32,6 +40,7 @@ _active_notification_streams: Dict[str, int] = {}
 
 
 @router.get("/stream")
+@auth_limit
 async def stream_notifications(
     user: CurrentUser = Depends(requires_role("member")),
     db: AsyncSession = Depends(get_db),
@@ -54,10 +63,16 @@ async def stream_notifications(
             )
         _active_notification_streams[tenant_key] = current + 1
 
+    SSE_STREAM_CONNECTIONS_TOTAL.labels(tenant_id=tenant_key).inc()
+    SSE_STREAM_CONNECTIONS_ACTIVE.labels(tenant_id=tenant_key).inc()
+
     async def event_generator() -> AsyncIterator[Dict[str, str]]:
         last_seen: Dict[Any, str] = {}
+        idle_iterations = 0
+        max_idle = max(poll_interval * 4, 60)
         try:
             while True:
+                poll_start = time.perf_counter()
                 try:
                     async with async_session_maker() as session:
                         scoped_service = NotificationService(session)
@@ -82,17 +97,28 @@ async def stream_notifications(
                                     }
                                 )
                         if updates:
+                            idle_iterations = 0
                             yield {"event": "notification_update", "data": json.dumps(updates)}
+                        else:
+                            idle_iterations += 1
                         yield {"event": "ping", "data": "heartbeat"}
                 except Exception as exc:  # pragma: no cover - resilience path
+                    SSE_STREAM_ERRORS_TOTAL.labels(
+                        tenant_id=tenant_key, error_type=type(exc).__name__
+                    ).inc()
                     logger.warning(
                         "notification_stream_poll_failed",
                         tenant_id=tenant_key,
                         error=str(exc),
                     )
                     yield {"event": "error", "data": json.dumps({"error": "Stream interrupted"})}
+                poll_duration = time.perf_counter() - poll_start
+                SSE_STREAM_POLL_DURATION.labels(tenant_id=tenant_key).observe(poll_duration)
+                if idle_iterations >= max_idle:
+                    break
                 await asyncio.sleep(poll_interval)
         finally:
+            SSE_STREAM_CONNECTIONS_ACTIVE.labels(tenant_id=tenant_key).dec()
             async with _notification_stream_lock:
                 remaining = _active_notification_streams.get(tenant_key, 0) - 1
                 if remaining > 0:

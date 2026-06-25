@@ -187,6 +187,31 @@ API_ERRORS_TOTAL = Counter(
     ["path", "method", "status_code"],
 )
 
+SSE_STREAM_CONNECTIONS_ACTIVE = Gauge(
+    "valdrics_ops_sse_stream_connections_active",
+    "Currently active SSE notification streams by tenant",
+    ["tenant_id"],
+)
+
+SSE_STREAM_CONNECTIONS_TOTAL = Counter(
+    "valdrics_ops_sse_stream_connections_total",
+    "Total SSE notification stream connections established",
+    ["tenant_id"],
+)
+
+SSE_STREAM_ERRORS_TOTAL = Counter(
+    "valdrics_ops_sse_stream_errors_total",
+    "Total SSE stream errors by tenant and error type",
+    ["tenant_id", "error_type"],
+)
+
+SSE_STREAM_POLL_DURATION = Histogram(
+    "valdrics_ops_sse_stream_poll_duration_seconds",
+    "Duration of SSE notification poll cycles",
+    ["tenant_id"],
+    buckets=(0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 5),
+)
+
 LANDING_TELEMETRY_EVENTS_TOTAL = Counter(
     "valdrics_ops_landing_telemetry_events_total",
     "Landing telemetry events received by event, section, and funnel stage",
