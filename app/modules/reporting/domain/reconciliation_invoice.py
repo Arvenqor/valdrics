@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Dict, cast
 from uuid import UUID
 
@@ -153,7 +153,7 @@ async def invoice_total_to_usd_impl(
 ) -> Decimal:
     currency_key = (currency or "USD").strip().upper()
     if currency_key == "USD":
-        return amount
+        return amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
     try:
         from app.models.pricing import ExchangeRate
@@ -162,7 +162,7 @@ async def invoice_total_to_usd_impl(
             "Exchange rate model unavailable; use USD currency for invoice totals."
         )
 
-    rate_row = (
+    canonical_rate = (
         await service.db.execute(
             select(ExchangeRate.rate).where(
                 ExchangeRate.from_currency == "USD",
@@ -170,13 +170,13 @@ async def invoice_total_to_usd_impl(
             )
         )
     ).first()
-    if rate_row and rate_row[0]:
-        rate_usd_to_currency = Decimal(str(rate_row[0]))
-        if rate_usd_to_currency <= 0:
+    if canonical_rate and canonical_rate[0]:
+        rate = Decimal(str(canonical_rate[0]))
+        if rate <= 0:
             raise ValueError(f"Invalid exchange rate for USD->{currency_key}.")
-        return amount / rate_usd_to_currency
+        return (amount / rate).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
-    inverse_row = (
+    inverse_rate = (
         await service.db.execute(
             select(ExchangeRate.rate).where(
                 ExchangeRate.from_currency == currency_key,
@@ -184,11 +184,11 @@ async def invoice_total_to_usd_impl(
             )
         )
     ).first()
-    if inverse_row and inverse_row[0]:
-        rate_currency_to_usd = Decimal(str(inverse_row[0]))
-        if rate_currency_to_usd <= 0:
+    if inverse_rate and inverse_rate[0]:
+        rate = Decimal(str(inverse_rate[0]))
+        if rate <= 0:
             raise ValueError(f"Invalid exchange rate for {currency_key}->USD.")
-        return amount * rate_currency_to_usd
+        return (amount * rate).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
     raise ValueError(
         f"Missing exchange rate for invoice currency {currency_key}. "
