@@ -125,11 +125,13 @@ async def test_generate_close_package_is_stable_and_includes_restatements() -> N
             tenant_id=tenant_id,
             start_date=date(2026, 1, 1),
             end_date=date(2026, 1, 31),
+            include_csv=True,
         )
         second = await service.generate_close_package(
             tenant_id=tenant_id,
             start_date=date(2026, 1, 1),
             end_date=date(2026, 1, 31),
+            include_csv=True,
         )
 
     assert first["close_status"] == "ready"

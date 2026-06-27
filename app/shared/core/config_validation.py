@@ -12,6 +12,7 @@ import structlog
 from app.shared.core.config_validation_placeholders import (
     require_no_managed_placeholder,
 )
+from app.shared.core.bools import coerce_bool
 from app.shared.core.config_validation_runtime import (
     validate_enforcement_guardrails,
     validate_environment_safety,
@@ -262,7 +263,7 @@ def validate_billing_config(settings_obj: object, *, is_production: bool) -> Non
                 bool(getattr(settings_obj, "TESTING", False))
                 or bool(getattr(settings_obj, "PYTEST_CURRENT_TEST", None))
                 or "pytest" in sys.modules
-                or str(os.getenv("CI", "") or "").strip().lower() == "true"
+                or coerce_bool(os.getenv("CI", ""))
             )
             if not synthetic_validation_context:
                 raise ValueError(

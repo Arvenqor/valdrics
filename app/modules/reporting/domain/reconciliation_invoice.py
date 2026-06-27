@@ -188,7 +188,8 @@ async def invoice_total_to_usd_impl(
         rate = Decimal(str(inverse_rate[0]))
         if rate <= 0:
             raise ValueError(f"Invalid exchange rate for {currency_key}->USD.")
-        return (amount * rate).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        usd_to_x = Decimal("1") / rate
+        return (amount / usd_to_x).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
     raise ValueError(
         f"Missing exchange rate for invoice currency {currency_key}. "

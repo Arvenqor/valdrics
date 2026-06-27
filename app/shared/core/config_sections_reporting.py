@@ -19,3 +19,8 @@ class ReportingSettings:
         description="Chunk size for batch database operations such as bulk deletes "
         "and inserts in attribution and ledger pipelines.",
     )
+    CLOSE_PACKAGE_HMAC_SECRET: str = Field(
+        default="",
+        description="HMAC-SHA256 secret used to sign close-package evidence bundles. "
+        "Must be >= 32 chars in production.",
+    )
