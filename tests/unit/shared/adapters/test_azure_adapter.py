@@ -252,3 +252,33 @@ async def test_get_resource_usage_invalid_cost_row_bubbles():
     ):
         with pytest.raises(ValueError, match="Azure usage date must be a valid datetime string"):
             await adapter.get_resource_usage("virtual machines")
+
+
+@pytest.mark.asyncio
+async def test_stream_cost_and_usage():
+    """Test the stream_cost_and_usage async generator yields all records."""
+    adapter = AzureAdapter(_connection())
+    mock_records = [{"cost_usd": 5.0, "service": "Virtual Machines"}]
+    with patch.object(adapter, "get_cost_and_usage", AsyncMock(return_value=mock_records)):
+        start = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        end = datetime(2026, 1, 2, tzinfo=timezone.utc)
+
+        results = []
+        async for r in adapter.stream_cost_and_usage(start, end):
+            results.append(r)
+
+        assert len(results) == 1
+        assert results[0]["cost_usd"] == 5.0
+
+
+def test_parse_row_multiple_date_formats():
+    """Test that _parse_row handles all Azure date format variants."""
+    adapter = AzureAdapter(_connection())
+    formats = ["20260101", "2026-01-01", "2026-01-01T00:00:00Z"]
+    for fmt in formats:
+        row = [10.0, "Svc", "Loc", "Type", fmt]
+        parsed = adapter._parse_row(row, "ActualCost")
+        assert parsed["timestamp"].year == 2026
+        assert parsed["timestamp"].month == 1
+        assert parsed["timestamp"].day == 1
+
