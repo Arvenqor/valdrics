@@ -25,7 +25,7 @@ Generated from live enforcement test execution for release gate verification.
 - source_result_rollback_validation_passed: pass
 - source_replay_protection_intact: tests/unit/enforcement/enforcement_service_cases_part03.py::test_consume_approval_token_rejects_replay
 - source_result_replay_protection_intact: pass
-- source_alert_pipeline_verified: tests/unit/enforcement/test_reconciliation_worker.py::test_reconciliation_worker_sends_sla_release_alert
+- source_alert_pipeline_verified: tests/unit/enforcement/test_reservation_settlement_worker.py::test_reservation_settlement_worker_sends_sla_release_alert
 - source_result_alert_pipeline_verified: pass
 - source_endpoint_replay_tamper_guard: tests/unit/enforcement/test_key_rotation_drill_selectors.py::test_consume_approval_token_endpoint_rejects_replay_and_tamper
 - source_result_endpoint_replay_tamper_guard: pass

@@ -6,7 +6,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.background_job import BackgroundJob
-from app.modules.enforcement.domain.reconciliation_worker import (
+from app.modules.enforcement.domain.reservation_settlement_worker import (
     EnforcementReconciliationWorker,
 )
 from app.modules.governance.domain.jobs.errors import PermanentJobError

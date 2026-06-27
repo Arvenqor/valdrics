@@ -7,8 +7,8 @@ from uuid import uuid4
 
 import pytest
 
-import app.modules.enforcement.domain.reconciliation_worker as worker_module
-from app.modules.enforcement.domain.reconciliation_worker import (
+import app.modules.enforcement.domain.reservation_settlement_worker as worker_module
+from app.modules.enforcement.domain.reservation_settlement_worker import (
     EnforcementReconciliationSweepResult,
     EnforcementReconciliationWorker,
     _as_decimal,

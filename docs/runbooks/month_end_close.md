@@ -53,9 +53,11 @@ uv run python scripts/capture_acceptance_evidence.py \
 
 This produces (among other artifacts):
 
-- `close_package.json`
-- `close_package.csv`
-- `restatements.csv`
+- `close_package.json` — lifecycle counts, reconciliation summary, restatement history, integrity hash
+- `close_package.csv` — same data in tabular form
+- `restatements.csv` — raw restatement entries
+
+When `CLOSE_PACKAGE_HMAC_SECRET` (>= 32 chars) is configured, `close_package.json` includes a `evidence` block with HMAC-SHA256 signature and key metadata for tamper verification.
 
 This bundle supports finance/procurement review. It does not replace the
 managed deployment bundle or the cutover evidence path in

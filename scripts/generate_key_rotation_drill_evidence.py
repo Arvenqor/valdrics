@@ -77,7 +77,7 @@ DEFAULT_DRILL_CHECKS: tuple[DrillCheck, ...] = (
     DrillCheck(
         key="alert_pipeline_verified",
         selector=(
-            "tests/unit/enforcement/test_reconciliation_worker.py::"
+            "tests/unit/enforcement/test_reservation_settlement_worker.py::"
             "test_reconciliation_worker_sends_sla_release_alert"
         ),
     ),
