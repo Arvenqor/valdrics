@@ -11,22 +11,14 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.models.cloud import CloudAccount
 from app.models.remediation_settings import RemediationSettings
 from app.modules.governance.domain.security.remediation_policy import PolicyConfig
-def _get_settings() -> Any:
-    from app.modules.optimization.domain import remediation as remediation_module
-    return remediation_module.get_settings()
-
-def _get_connection_model(provider: str) -> Any:
-    from app.modules.optimization.domain import remediation as remediation_module
-    return remediation_module.get_connection_model(provider)
-
-def _resolve_connection_profile(connection: Any) -> dict[str, Any]:
-    from app.modules.optimization.domain import remediation as remediation_module
-    return remediation_module.resolve_connection_profile(connection)
-
-def _resolve_connection_region(connection: Any) -> str:
-    from app.modules.optimization.domain import remediation as remediation_module
-    return remediation_module.resolve_connection_region(connection)
+from app.shared.core.config import get_settings
+from app.shared.core.connection_queries import get_connection_model
+from app.shared.core.connection_state import (
+    resolve_connection_profile,
+    resolve_connection_region,
+)
 from app.shared.core.provider import normalize_provider
+
 
 logger = structlog.get_logger()
 
@@ -71,17 +63,17 @@ async def resolve_aws_region_hint(
         return region_hint
 
     if connection is not None:
-        connection_region = _resolve_connection_region(connection)
+        connection_region = resolve_connection_region(connection)
         if connection_region != "global":
             return connection_region
 
     if tenant_id and connection_id:
-        connection_model = _get_connection_model("aws")
+        connection_model = get_connection_model("aws")
         if connection_model is not None:
             try:
                 scoped = await service.get_by_id(connection_model, connection_id, tenant_id)
                 if scoped is not None:
-                    scoped_region = _resolve_connection_region(scoped)
+                    scoped_region = resolve_connection_region(scoped)
                     if scoped_region != "global":
                         return scoped_region
             except REMEDIATION_REGION_RESOLUTION_RECOVERABLE_EXCEPTIONS as exc:
@@ -93,7 +85,7 @@ async def resolve_aws_region_hint(
                 )
 
     return (
-        str(_get_settings().AWS_DEFAULT_REGION or "").strip()
+        str(get_settings().AWS_DEFAULT_REGION or "").strip()
         or "us-east-1"
     )
 
@@ -181,7 +173,7 @@ async def build_system_policy_context(
             if account_context["is_production"] or account_context["criticality"]:
                 return account_context
 
-        connection_model = _get_connection_model(provider_norm)
+        connection_model = get_connection_model(provider_norm)
         if connection_model is not None:
             connection_result = await service.db.execute(
                 select(connection_model)
@@ -190,7 +182,7 @@ async def build_system_policy_context(
             )
             connection = await service._scalar_one_or_none(connection_result)
             if connection is not None:
-                profile = _resolve_connection_profile(connection)
+                profile = resolve_connection_profile(connection)
                 is_production = profile.get("is_production")
                 return {
                     "source": str(profile.get("source") or "connection_profile"),

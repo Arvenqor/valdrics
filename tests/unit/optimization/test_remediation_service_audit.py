@@ -4,10 +4,12 @@ from uuid import uuid4
 from decimal import Decimal
 from app.modules.optimization.domain.remediation import (
     RemediationService,
+)
+from app.models.remediation import (
+    RemediationRequest,
     RemediationStatus,
     RemediationAction,
 )
-from app.models.remediation import RemediationRequest
 from app.modules.optimization.domain.actions.base import ExecutionResult, ExecutionStatus
 from app.shared.core.pricing import PricingTier
 
@@ -163,15 +165,16 @@ async def test_execute_approved_triggers_grace_period(mock_db, tenant_id):
     mock_db.execute.return_value = mock_res
 
     # Mock safety check
-    mock_safety = AsyncMock()
+    mock_safety = MagicMock()
+    mock_safety.check_all_guards = AsyncMock(return_value=None)
     with patch(
-        "app.modules.optimization.domain.remediation.SafetyGuardrailService",
+        "app.modules.optimization.domain.remediation_execute.SafetyGuardrailService",
         return_value=mock_safety,
     ):
         # Mock audit logger
         with (
             patch(
-                "app.modules.optimization.domain.remediation.AuditLogger"
+                "app.modules.optimization.domain.remediation_execute.AuditLogger"
             ) as mock_audit,
             patch(
                 "app.modules.governance.domain.jobs.processor.enqueue_job",
@@ -207,11 +210,11 @@ async def test_execute_immediate_action_success(mock_db, tenant_id):
 
     with (
         patch(
-            "app.modules.optimization.domain.remediation.SafetyGuardrailService"
+            "app.modules.optimization.domain.remediation_execute.SafetyGuardrailService"
         ) as MockSafety,
-        patch("app.modules.optimization.domain.remediation.AuditLogger") as MockAudit,
+        patch("app.modules.optimization.domain.remediation_execute.AuditLogger") as MockAudit,
         patch(
-            "app.modules.optimization.domain.remediation.RemediationActionFactory.get_strategy"
+            "app.modules.optimization.domain.remediation_execute.RemediationActionFactory.get_strategy"
         ) as mock_get_strategy,
         patch(
             "app.modules.optimization.domain.remediation.get_tenant_tier",
@@ -269,11 +272,11 @@ async def test_execute_with_backup_aws_rds(mock_db, tenant_id):
 
     with (
         patch(
-            "app.modules.optimization.domain.remediation.SafetyGuardrailService"
+            "app.modules.optimization.domain.remediation_execute.SafetyGuardrailService"
         ) as MockSafety,
-        patch("app.modules.optimization.domain.remediation.AuditLogger") as MockAudit,
+        patch("app.modules.optimization.domain.remediation_execute.AuditLogger") as MockAudit,
         patch(
-            "app.modules.optimization.domain.remediation.RemediationActionFactory.get_strategy"
+            "app.modules.optimization.domain.remediation_execute.RemediationActionFactory.get_strategy"
         ) as mock_get_strategy,
         patch(
             "app.modules.optimization.domain.remediation.get_tenant_tier",

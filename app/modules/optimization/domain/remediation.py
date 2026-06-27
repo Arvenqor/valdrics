@@ -21,13 +21,7 @@ from app.models.remediation import (
 )
 from app.models.remediation_settings import RemediationSettings
 from app.shared.core.aws_credentials import map_aws_credentials
-from app.modules.governance.domain.security.audit_log import AuditLogger
-from app.shared.core.safety_service import SafetyGuardrailService
-from app.modules.optimization.domain.actions.factory import RemediationActionFactory
 from app.shared.core.config import get_settings
-from app.shared.core.connection_queries import get_connection_model
-from app.shared.core.connection_state import resolve_connection_profile, resolve_connection_region
-from app.modules.governance.domain.security.audit_log import AuditEventType
 from app.shared.core.pricing import PricingTier
 from app.shared.core.service import BaseService
 

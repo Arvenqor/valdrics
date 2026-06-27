@@ -12,7 +12,9 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.models.remediation import RemediationRequest, RemediationStatus
 from app.models.optimization import FindingStatus
-from app.modules.governance.domain.security.audit_log import AuditEventType
+from app.modules.governance.domain.security.audit_log import AuditEventType, AuditLogger
+from app.modules.optimization.domain.actions.factory import RemediationActionFactory
+from app.shared.core.safety_service import SafetyGuardrailService
 from app.modules.governance.domain.security.remediation_policy import PolicyDecision, RemediationPolicyEngine
 from app.modules.optimization.domain.findings import validate_request_finding_binding
 from app.modules.optimization.domain.remediation_execute_helpers import (
@@ -105,7 +107,7 @@ async def execute_remediation_request(
     actor_id = str(getattr(request, "reviewed_by_user_id", None) or SYSTEM_USER_ID)
     finding_id = str(getattr(request, "finding_id", None) or "")
 
-    audit_logger = remediation_module.AuditLogger(
+    audit_logger = AuditLogger(
         db=service.db, tenant_id=str(tenant_id)
     )
     grace_period_bypassed = False
@@ -127,7 +129,7 @@ async def execute_remediation_request(
             recoverable_errors=REMEDIATION_ACTION_PARSE_RECOVERABLE_EXCEPTIONS,
         )
         action_value = action.value
-        safety = remediation_module.SafetyGuardrailService(service.db)
+        safety = SafetyGuardrailService(service.db)
         await safety.check_all_guards(tenant_id, savings_value)
 
         if request.status != RemediationStatus.APPROVED:
@@ -264,7 +266,7 @@ async def execute_remediation_request(
             request=request,
         )
 
-        strategy = remediation_module.RemediationActionFactory.get_strategy(
+        strategy = RemediationActionFactory.get_strategy(
             provider, action
         )
         execution_result = await strategy.execute(resource_id, context)

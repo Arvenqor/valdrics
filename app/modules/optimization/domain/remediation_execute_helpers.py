@@ -6,6 +6,7 @@ from typing import Any
 from uuid import UUID
 
 from app.models.remediation import RemediationAction, RemediationRequest, RemediationStatus
+from app.modules.governance.domain.security.audit_log import AuditEventType
 from app.modules.governance.domain.security.remediation_policy import PolicyDecision
 from app.modules.optimization.domain.actions.base import ExecutionResult, ExecutionStatus, RemediationContext
 from app.shared.core.pricing import FeatureFlag, is_feature_enabled
@@ -126,7 +127,7 @@ async def handle_policy_decision(
             summary=policy_evaluation.summary,
         )
         await audit_logger.log(
-            event_type=remediation_module.AuditEventType.POLICY_WARNED,
+            event_type=AuditEventType.POLICY_WARNED,
             actor_id=actor_id,
             resource_id=resource_id,
             resource_type=resource_type,
@@ -139,7 +140,7 @@ async def handle_policy_decision(
         request.status = RemediationStatus.FAILED
         request.execution_error = f"POLICY_BLOCK: {policy_evaluation.summary}"
         await audit_logger.log(
-            event_type=remediation_module.AuditEventType.POLICY_BLOCKED,
+            event_type=AuditEventType.POLICY_BLOCKED,
             actor_id=actor_id,
             resource_id=resource_id,
             resource_type=resource_type,
@@ -172,7 +173,7 @@ async def handle_policy_decision(
             tenant_tier, FeatureFlag.ESCALATION_WORKFLOW
         )
         await audit_logger.log(
-            event_type=remediation_module.AuditEventType.POLICY_ESCALATED,
+            event_type=AuditEventType.POLICY_ESCALATED,
             actor_id=actor_id,
             resource_id=resource_id,
             resource_type=resource_type,
@@ -244,7 +245,7 @@ async def maybe_schedule_grace_period_execution(
             auto_commit=False,
         )
         await audit_logger.log(
-            event_type=remediation_module.AuditEventType.REMEDIATION_EXECUTION_STARTED,
+            event_type=AuditEventType.REMEDIATION_EXECUTION_STARTED,
             actor_id=actor_id,
             resource_id=resource_id,
             resource_type=resource_type,
