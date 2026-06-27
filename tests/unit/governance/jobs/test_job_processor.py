@@ -5,13 +5,17 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.models.background_job import BackgroundJob, JobType
 from app.modules.governance.domain.jobs.processor import (
     JobProcessor,
     JobStatus,
     MAX_JOB_RESULT_BYTES,
+    enqueue_job,
+    BACKOFF_BASE_SECONDS,
 )
 from app.modules.governance.domain.jobs.errors import PermanentJobError
-from app.models.background_job import BackgroundJob
 
 
 @pytest.fixture
@@ -574,3 +578,99 @@ async def test_process_single_job_tenant_context_cleared_on_handler_failure(
     mock_clear_tenant.assert_awaited_once_with(mock_db_session)
     assert job.status == JobStatus.PENDING.value
     assert "handler boom" in (job.error_message or "")
+
+
+class TestEnqueueJob:
+    """Tests for enqueue_job helper."""
+
+    @pytest.mark.asyncio
+    async def test_creates_job_with_defaults(self):
+        """Should create job with default values."""
+        mock_db = MagicMock(spec=AsyncSession)
+        mock_db.bind = MagicMock()
+        mock_db.bind.url = "sqlite://"
+        mock_db.commit = AsyncMock()
+        mock_db.add = MagicMock()
+
+        with patch(
+            "app.modules.governance.domain.jobs.processor.BackgroundJob"
+        ) as MockJob:
+            mock_instance = MagicMock()
+            mock_instance.id = uuid4()
+            MockJob.return_value = mock_instance
+
+            await enqueue_job(
+                db=mock_db, job_type=JobType.FINOPS_ANALYSIS, tenant_id=uuid4()
+            )
+
+            mock_db.add.assert_called_once()
+            mock_db.commit.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_respects_scheduled_for(self):
+        """Should use provided scheduled_for time."""
+        mock_db = MagicMock(spec=AsyncSession)
+        mock_db.bind = MagicMock()
+        mock_db.bind.url = "sqlite://"
+        mock_db.commit = AsyncMock()
+        mock_db.add = MagicMock()
+
+        future_time = datetime.now(timezone.utc) + timedelta(hours=1)
+
+        with patch(
+            "app.modules.governance.domain.jobs.processor.BackgroundJob"
+        ) as MockJob:
+            mock_instance = MagicMock()
+            mock_instance.id = uuid4()
+            MockJob.return_value = mock_instance
+
+            await enqueue_job(
+                db=mock_db, job_type=JobType.ZOMBIE_SCAN, scheduled_for=future_time
+            )
+
+            # Verify scheduled_for was passed
+            call_kwargs = MockJob.call_args[1]
+            assert call_kwargs["scheduled_for"] == future_time
+
+    @pytest.mark.asyncio
+    async def test_returns_existing_job_when_dedup_key_conflicts(self):
+        """Deduplicated enqueues should return the existing row, not fail."""
+        mock_db = MagicMock(spec=AsyncSession)
+        mock_db.bind = MagicMock()
+        mock_db.bind.url = "postgresql://test"
+        mock_db.add = MagicMock()
+        mock_db.commit = AsyncMock(
+            side_effect=[IntegrityError("dup", params=None, orig=None)]
+        )
+        mock_db.rollback = AsyncMock()
+
+        existing_job = MagicMock(spec=BackgroundJob)
+        existing_job.id = uuid4()
+        existing_job.tenant_id = uuid4()
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = existing_job
+        mock_db.execute = AsyncMock(return_value=mock_result)
+        result = await enqueue_job(
+            db=mock_db,
+            job_type=JobType.WEBHOOK_RETRY,
+            tenant_id=existing_job.tenant_id,
+            payload={"k": "v"},
+            deduplication_key="webhook:paystack:abc123",
+        )
+
+        assert result is existing_job
+        mock_db.rollback.assert_awaited_once()
+        mock_db.execute.assert_awaited_once()
+
+
+class TestJobBackoff:
+    """Tests for exponential backoff logic."""
+
+    def test_backoff_exponential(self):
+        """Backoff should increase exponentially."""
+        # Attempt 1: 60 seconds
+        # Attempt 2: 120 seconds
+        # Attempt 3: 240 seconds
+        assert BACKOFF_BASE_SECONDS * (2**0) == 60
+        assert BACKOFF_BASE_SECONDS * (2**1) == 120
+        assert BACKOFF_BASE_SECONDS * (2**2) == 240

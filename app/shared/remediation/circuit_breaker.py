@@ -3,7 +3,7 @@ import asyncio
 from collections import OrderedDict
 from enum import Enum
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, cast
+from typing import Any, cast
 from datetime import datetime, timezone
 import structlog
 
@@ -45,7 +45,7 @@ class CircuitBreakerState:
 
     def __init__(self, tenant_id: str) -> None:
         self.tenant_id = tenant_id
-        self._memory_state: Dict[str, Any] = {}
+        self._memory_state: dict[str, Any] = {}
 
     async def get(self, key: str, default: Any = None) -> Any:
         return self._memory_state.get(key, default)
@@ -78,7 +78,7 @@ class CircuitBreaker:
     def __init__(
         self,
         tenant_id: str,
-        config: Optional[CircuitBreakerConfig] = None,
+        config: CircuitBreakerConfig | None = None,
     ) -> None:
         self.tenant_id = tenant_id
         self.config = config or CircuitBreakerConfig.from_settings()
@@ -170,7 +170,7 @@ class CircuitBreaker:
         await self.state.delete("last_failure_monotonic")
         await self.state.delete("last_error")
 
-    async def get_status(self) -> Dict[str, Any]:
+    async def get_status(self) -> dict[str, Any]:
         return {
             "tenant_id": self.tenant_id,
             "state": (await self.get_state()).value,

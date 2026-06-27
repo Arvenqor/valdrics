@@ -176,8 +176,12 @@ async def list_google_workspace_activity(
             if last_login_raw:
                 try:
                     last_active_at = parse_timestamp_fn(last_login_raw)
-                except (ValueError, TypeError):
-                    pass
+                except (ValueError, TypeError) as exc:
+                    logger.warning(
+                        "google_workspace_timestamp_parse_failed",
+                        raw=last_login_raw,
+                        error=str(exc),
+                    )
 
             activity_records.append(
                 {

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+
 from langchain_core.language_models.chat_models import BaseChatModel
 
 
@@ -12,14 +12,14 @@ class BaseProvider(ABC):
     @abstractmethod
     def create_model(
         self,
-        model: Optional[str] = None,
-        api_key: Optional[str] = None,
-        max_output_tokens: Optional[int] = None,
+        model: str | None = None,
+        api_key: str | None = None,
+        max_output_tokens: int | None = None,
     ) -> BaseChatModel:
         """Create a LangChain compatible ChatModel."""
         ...
 
-    def validate_api_key(self, api_key: Optional[str], provider_name: str) -> None:
+    def validate_api_key(self, api_key: str | None, provider_name: str) -> None:
         """Standardized API key validation logic."""
         if not api_key:
             raise ValueError(f"{provider_name.upper()}_API_KEY not configured")

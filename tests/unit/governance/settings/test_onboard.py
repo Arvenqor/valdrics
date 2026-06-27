@@ -6,7 +6,7 @@ from sqlalchemy import select
 from unittest.mock import AsyncMock, MagicMock, patch
 from types import SimpleNamespace
 from app.main import app
-from app.models.tenant import Tenant, User, UserRole
+from app.models.tenant import Tenant, User
 from app.shared.core.auth import get_current_user_from_jwt
 
 

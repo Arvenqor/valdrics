@@ -7,7 +7,7 @@ This allows adding new channels (Teams, Discord, Email) without modifying domain
 
 import structlog
 from datetime import datetime
-from typing import Any, Dict, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 from app.modules.notifications.domain import (
     get_jira_service,
     get_slack_service,
@@ -175,7 +175,7 @@ class NotificationDispatcher:
 
     @staticmethod
     async def notify_zombies(
-        zombies: Dict[str, Any],
+        zombies: dict[str, Any],
         estimated_savings: float = 0.0,
         tenant_id: str | None = None,
         db: "AsyncSession | None" = None,

@@ -4,7 +4,7 @@ from unittest.mock import patch, ANY
 
 import pytest
 
-from app.modules.notifications.domain.email_service import EmailService
+from app.modules.notifications.domain.email_service import EmailService, escape_html
 
 
 @pytest.fixture
@@ -16,6 +16,11 @@ def email_service():
         smtp_password="password",
         from_email="noreply@valdrics.io",
     )
+
+
+def test_escape_html():
+    """Verify HTML special characters are escaped to prevent injection."""
+    assert escape_html("<script>") == "&lt;script&gt;"
 
 
 @pytest.mark.asyncio

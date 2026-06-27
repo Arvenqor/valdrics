@@ -19,7 +19,7 @@ Usage:
 import sqlalchemy as sa
 import json
 from datetime import datetime, timezone, timedelta
-from typing import Optional, Dict, Any
+from typing import Any
 from uuid import UUID
 import structlog
 import asyncio
@@ -257,11 +257,11 @@ class JobProcessor:
 
     async def process_pending_jobs(
         self,
-        limit: Optional[int] = None,
+        limit: int | None = None,
         *,
         tenant_id: UUID | None = None,
         job_type: str | None = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Process pending jobs up to the limit with OTel tracing.
         """
@@ -277,7 +277,7 @@ class JobProcessor:
             if job_type is not None:
                 span.set_attribute("job_type_filter", str(job_type))
             logger.info("processing_pending_jobs", limit=limit)
-            results: Dict[str, Any] = {
+            results: dict[str, Any] = {
                 "processed": 0,
                 "succeeded": 0,
                 "failed": 0,
@@ -544,9 +544,9 @@ class JobProcessor:
 async def enqueue_job(
     db: AsyncSession,
     job_type: str,
-    tenant_id: Optional[UUID] = None,
-    payload: Optional[Dict[str, Any]] = None,
-    scheduled_for: Optional[datetime] = None,
+    tenant_id: UUID | None = None,
+    payload: dict[str, Any] | None = None,
+    scheduled_for: datetime | None = None,
     max_attempts: int = 3,
     deduplication_key: str | None = None,
     *,

@@ -61,6 +61,7 @@ from app.shared.db.local_sqlite_bootstrap import (
 from app.shared.db.session import dispose_db_runtime, get_engine
 from app.shared.core.exceptions import ValdricsException
 from app.shared.core.rate_limit import setup_rate_limiting
+from app.shared.core.bools import coerce_bool
 
 # Ensure all models are registered with SQLAlchemy
 from app.modules.governance.api.v1.scim import ScimError, scim_error_response
@@ -135,7 +136,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info(
             "public_access_check",
             allow_unauthenticated_onboarding=True,
-            demo_mode_available=os.getenv("ENABLE_DEMO_MODE", "false").lower() == "true",
+            demo_mode_available=coerce_bool(os.getenv("ENABLE_DEMO_MODE", "false")),
         )
 
     runtime_data_dir = _runtime_data_dir()

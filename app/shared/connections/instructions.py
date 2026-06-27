@@ -38,7 +38,7 @@ class ConnectionInstructionService:
         return build_saas_setup_snippet(
             tenant_id,
             api_url,
-            ConnectionInstructionService.get_saas_connector_catalog(),
+            get_saas_connector_catalog(),
         )
 
     @staticmethod
@@ -48,7 +48,7 @@ class ConnectionInstructionService:
         return build_license_setup_snippet(
             tenant_id,
             api_url,
-            ConnectionInstructionService.get_license_connector_catalog(),
+            get_license_connector_catalog(),
         )
 
     @staticmethod
@@ -62,11 +62,3 @@ class ConnectionInstructionService:
         settings = get_settings()
         api_url = settings.API_URL.rstrip("/")
         return build_hybrid_setup_snippet(tenant_id, api_url)
-
-    @staticmethod
-    def get_saas_connector_catalog() -> list[dict[str, object]]:
-        return get_saas_connector_catalog()
-
-    @staticmethod
-    def get_license_connector_catalog() -> list[dict[str, object]]:
-        return get_license_connector_catalog()

@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP
-from typing import Dict, Any, List, Optional, Callable, Awaitable
+from typing import Any, Awaitable, Callable
 from uuid import UUID
 from httpx import HTTPError
 import structlog
@@ -174,10 +174,8 @@ class ZombieService(BaseService):
         analyze: bool = False,
         requested_by_user_id: UUID | None = None,
         requested_client_ip: str | None = None,
-        on_category_complete: Optional[
-            Callable[[str, List[Dict[str, Any]]], Awaitable[None]]
-        ] = None,
-    ) -> Dict[str, Any]:
+        on_category_complete: Callable[[str, list[dict[str, Any]]], Awaitable[None]] | None = None,
+    ) -> dict[str, Any]:
         region = str(region or "").strip() or "global"
         all_connections: list[Any] = []
         connection_models = [model for _provider, model in CONNECTION_MODEL_PAIRS]
@@ -391,7 +389,7 @@ class ZombieService(BaseService):
         return all_zombies
 
     async def _enrich_with_ai(
-        self, zombies: Dict[str, Any], tenant_id: Any, tier: PricingTier
+        self, zombies: dict[str, Any], tenant_id: Any, tier: PricingTier
     ) -> None:
         try:
             if not is_feature_enabled(tier, FeatureFlag.LLM_ANALYSIS):
@@ -422,7 +420,7 @@ class ZombieService(BaseService):
             }
 
     async def _send_notifications(
-        self, zombies: Dict[str, Any], tenant_id: UUID
+        self, zombies: dict[str, Any], tenant_id: UUID
     ) -> None:
         try:
             from app.shared.core.notifications import NotificationDispatcher

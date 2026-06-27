@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Optional
+from typing import Any
 from datetime import datetime, timezone
 from decimal import Decimal
 import time
@@ -26,8 +26,8 @@ class AWSZombieDetector(BaseZombieDetector):
     def __init__(
         self,
         region: str = "us-east-1",
-        credentials: Optional[Dict[str, Any]] = None,
-        db: Optional[AsyncSession] = None,
+        credentials: dict[str, Any] | None = None,
+        db: AsyncSession | None = None,
         connection: Any = None,
     ) -> None:
         super().__init__(region, credentials, db, connection)
@@ -122,8 +122,8 @@ class AWSZombieDetector(BaseZombieDetector):
 
     @classmethod
     def _apply_inventory_completeness(
-        cls, results: Dict[str, Any], inventory: Any | None
-    ) -> Dict[str, Any]:
+        cls, results: dict[str, Any], inventory: Any | None
+    ) -> dict[str, Any]:
         if inventory is None:
             return results
 
@@ -143,8 +143,8 @@ class AWSZombieDetector(BaseZombieDetector):
         return results
 
     async def scan_all(
-        self, on_category_complete: Optional[Any] = None
-    ) -> Dict[str, Any]:
+        self, on_category_complete: Any | None = None
+    ) -> dict[str, Any]:
         """
         Overrides the base scan_all to include global discovery via Resource Explorer 2.
         Includes application-level circuit breaking for repeated connection failures.
@@ -196,7 +196,7 @@ class AWSZombieDetector(BaseZombieDetector):
             self._circuit_record_failure()
             raise
 
-    async def _execute_plugin_scan(self, plugin: ZombiePlugin) -> List[Dict[str, Any]]:
+    async def _execute_plugin_scan(self, plugin: ZombiePlugin) -> list[dict[str, Any]]:
         """
         Execute AWS plugin scan, passing the aioboto3 session and standard config.
         Injects the discovered inventory if available.

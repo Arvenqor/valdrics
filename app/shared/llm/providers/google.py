@@ -1,4 +1,3 @@
-from typing import Optional
 from langchain_google_genai import ChatGoogleGenerativeAI
 from app.shared.llm.providers.base import BaseProvider
 from app.shared.core.config import get_settings
@@ -7,9 +6,9 @@ from app.shared.core.config import get_settings
 class GoogleProvider(BaseProvider):
     def create_model(
         self,
-        model: Optional[str] = None,
-        api_key: Optional[str] = None,
-        max_output_tokens: Optional[int] = None,
+        model: str | None = None,
+        api_key: str | None = None,
+        max_output_tokens: int | None = None,
     ) -> ChatGoogleGenerativeAI:
         settings = get_settings()
         key = api_key or settings.GOOGLE_API_KEY

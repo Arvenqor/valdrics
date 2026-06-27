@@ -6,7 +6,7 @@ edge controls and keeps the in-app slowapi limiter disabled. Local and test
 runtime flows use the in-process limiter with instance-local memory storage.
 """
 
-from typing import Any, Callable, Optional, cast
+from typing import Any, Callable, cast
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from fastapi import FastAPI, Request
@@ -218,7 +218,7 @@ STANDARD_LIMIT = "100/minute"
 AUTH_LIMIT = "30/minute"
 
 
-def get_analysis_limit(request: Optional[Request] = None) -> str:
+def get_analysis_limit(request: Request | None = None) -> str:
     """
     BE-LLM-4: Dynamic rate limiting based on tenant tier.
     Protects LLM operational costs while rewarding higher tiers.

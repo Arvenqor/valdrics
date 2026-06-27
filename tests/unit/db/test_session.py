@@ -1,3 +1,4 @@
+import uuid
 import pytest
 """
 Tests for Database Session Management
@@ -7,6 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi import Request
 from app.shared.db.session import (
     get_db,
+    set_session_tenant_id,
     before_cursor_execute,
     after_cursor_execute,
     check_rls_policy,
@@ -92,3 +94,40 @@ def test_check_rls_policy_no_leak():
 
     # Should not raise
     check_rls_policy(mock_conn, None, "SELECT 1", None, None, False)
+
+
+@pytest.mark.asyncio
+async def test_set_session_tenant_id_tracks_info():
+    """Test that set_session_tenant_id updates info on session and connection."""
+    tenant_id = uuid.uuid4()
+    mock_conn = AsyncMock()
+    mock_conn.info = {}
+    mock_session = AsyncMock()
+    mock_session.info = {}
+    mock_session.connection = AsyncMock(return_value=mock_conn)
+
+    await set_session_tenant_id(mock_session, tenant_id)
+
+    assert mock_session.info.get("rls_context_set") is True
+    assert mock_conn.info.get("rls_context_set") is True
+
+
+@pytest.mark.asyncio
+async def test_get_db_with_request_context_missing_tenant():
+    """Test get_db session info for request without tenant_id."""
+    with patch("app.shared.db.session.async_session_maker") as mock_maker:
+        mock_session = AsyncMock()
+        mock_session.bind = MagicMock()
+        mock_session.bind.url = "postgresql://localhost/db"
+        mock_maker.return_value = mock_session
+        mock_session.__aenter__.return_value = mock_session
+
+        mock_request = MagicMock(spec=Request)
+        mock_request.state.tenant_id = None
+
+        db_gen = get_db(mock_request)
+        session = await db_gen.__anext__()
+
+        assert session is mock_session
+        # With no tenant_id, RLS context should not be set via execute
+        mock_session.execute.assert_not_called()

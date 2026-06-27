@@ -1,4 +1,4 @@
-from typing import Any, Optional, cast
+from typing import Any, cast
 from langchain_groq import ChatGroq
 from langchain_core.language_models.chat_models import BaseChatModel
 from app.shared.llm.providers.base import BaseProvider
@@ -8,9 +8,9 @@ from app.shared.core.config import get_settings
 class GroqProvider(BaseProvider):
     def create_model(
         self,
-        model: Optional[str] = None,
-        api_key: Optional[str] = None,
-        max_output_tokens: Optional[int] = None,
+        model: str | None = None,
+        api_key: str | None = None,
+        max_output_tokens: int | None = None,
     ) -> BaseChatModel:
         settings = get_settings()
         key = api_key or settings.GROQ_API_KEY
