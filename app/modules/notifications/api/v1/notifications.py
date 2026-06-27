@@ -21,7 +21,6 @@ from app.shared.core.ops_metrics import (
     SSE_STREAM_ERRORS_TOTAL,
     SSE_STREAM_POLL_DURATION,
 )
-from app.shared.core.rate_limit import auth_limit
 from app.shared.db.session import get_db
 
 router = APIRouter()

@@ -4,9 +4,17 @@ from datetime import date
 from typing import Any, Dict
 from uuid import UUID
 
+import structlog
 from sqlalchemy import func, select
 
 from app.models.cloud import CloudAccount, CostRecord
+from app.modules.reporting.domain.close_package_evidence import (
+    build_evidence_payload,
+    resolve_evidence_secret,
+    sign_evidence,
+)
+
+logger = structlog.get_logger()
 
 
 async def generate_close_package_impl(
@@ -135,4 +143,20 @@ async def generate_close_package_impl(
             invoice_reconciliation=invoice_summary,
             restatement_entries=restatement_entries,
         )
+
+    try:
+        secret = resolve_evidence_secret()
+        evidence = build_evidence_payload(
+            tenant_id=tenant_id,
+            package_payload=package_core,
+        )
+        signed = sign_evidence(evidence_payload=evidence, secret=secret)
+        package_core["evidence"] = signed
+    except Exception as exc:
+        logger.warning(
+            "close_package_evidence_signing_failed",
+            tenant_id=str(tenant_id),
+            error=str(exc),
+        )
+
     return package_core

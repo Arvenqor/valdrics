@@ -8,59 +8,33 @@ Manages the remediation approval workflow:
 4. execute() - System executes approved requests
 """
 
-from uuid import UUID
-from typing import List, Dict, Any, Optional
 import inspect
+from typing import Any
+
 import aioboto3
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.shared.core.service import BaseService
 import structlog
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.remediation import (
-    RemediationRequest,
-    RemediationStatus,
     RemediationAction,
+    RemediationRequest,
 )
-
-__all__ = [
-    "RemediationService",
-    "RemediationStatus",
-    "RemediationAction",
-    "get_tenant_tier",
-    "RemediationPolicyEngine",
-    "get_connection_model",
-    "AuditLogger",
-    "SafetyGuardrailService",
-    "AuditEventType",
-    "RemediationActionFactory",
-    "resolve_connection_region",
-    "get_settings",
-    "resolve_connection_profile",
-]
 from app.models.remediation_settings import RemediationSettings
-from app.modules.governance.domain.security.audit_log import (  # noqa: F401
-    AuditEventType,
-    AuditLogger,
-)
-from app.modules.governance.domain.security.remediation_policy import (
-    PolicyConfig,
-    RemediationPolicyEngine,  # noqa: F401
-)
 from app.shared.core.aws_credentials import map_aws_credentials
+from app.modules.governance.domain.security.audit_log import AuditLogger
+from app.shared.core.safety_service import SafetyGuardrailService
+from app.modules.optimization.domain.actions.factory import RemediationActionFactory
 from app.shared.core.config import get_settings
-from app.shared.core.connection_queries import get_connection_model  # noqa: F401
-from app.shared.core.connection_state import (  # noqa: F401
-    resolve_connection_profile,
-    resolve_connection_region,
-)
-from app.shared.core.safety_service import SafetyGuardrailService  # noqa: F401
+from app.shared.core.connection_queries import get_connection_model
+from app.shared.core.connection_state import resolve_connection_profile, resolve_connection_region
+from app.modules.governance.domain.security.audit_log import AuditEventType
 from app.shared.core.pricing import PricingTier
-from app.modules.optimization.domain.actions import RemediationActionFactory  # noqa: F401
+from app.shared.core.service import BaseService
 
 logger = structlog.get_logger()
 
 
-async def get_tenant_tier(tenant_id: UUID, db: AsyncSession) -> PricingTier:
+async def get_tenant_tier(tenant_id: Any, db: AsyncSession) -> PricingTier:
     """
     Resolve tenant tier via pricing module.
 
@@ -89,14 +63,13 @@ class RemediationService(BaseService):
         self,
         db: AsyncSession,
         region: str = "global",
-        credentials: Optional[Dict[str, Any]] = None,
+        credentials: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(db)
         self.region = region
         self.credentials = credentials
         self.session = aioboto3.Session()
-        # Request-scoped cache for repeated policy/settings lookups in the same service lifecycle.
-        self._remediation_settings_cache: dict[UUID, RemediationSettings | None] = {}
+        self._remediation_settings_cache: dict[Any, RemediationSettings | None] = {}
 
     async def _get_client(self, service_name: str) -> Any:
         """Helper to get aioboto3 client with optional credentials and endpoint override."""
@@ -131,9 +104,9 @@ class RemediationService(BaseService):
     async def _resolve_aws_region_hint(
         self,
         *,
-        tenant_id: UUID | None = None,
-        connection_id: UUID | None = None,
-        connection: Any | None = None,
+        tenant_id: Any = None,
+        connection_id: Any = None,
+        connection: Any = None,
     ) -> str:
         from app.modules.optimization.domain.remediation_context import (
             resolve_aws_region_hint,
@@ -147,7 +120,7 @@ class RemediationService(BaseService):
         )
 
     async def _get_remediation_settings(
-        self, tenant_id: UUID
+        self, tenant_id: Any
     ) -> RemediationSettings | None:
         from app.modules.optimization.domain.remediation_context import (
             get_remediation_settings,
@@ -156,8 +129,8 @@ class RemediationService(BaseService):
         return await get_remediation_settings(self, tenant_id)
 
     async def _build_policy_config(
-        self, tenant_id: UUID
-    ) -> tuple[PolicyConfig, RemediationSettings | None]:
+        self, tenant_id: Any
+    ) -> tuple[Any, RemediationSettings | None]:
         from app.modules.optimization.domain.remediation_context import (
             build_policy_config,
         )
@@ -167,9 +140,9 @@ class RemediationService(BaseService):
     async def _build_system_policy_context(
         self,
         *,
-        tenant_id: UUID,
+        tenant_id: Any,
         provider: str,
-        connection_id: UUID | None,
+        connection_id: Any,
     ) -> dict[str, Any]:
         from app.modules.optimization.domain.remediation_context import (
             build_system_policy_context,
@@ -184,11 +157,11 @@ class RemediationService(BaseService):
 
     def _sanitize_action_parameters(
         self,
-        parameters: Optional[Dict[str, Any]],
+        parameters: dict[str, Any] | None,
         *,
-        system_policy_context: Optional[dict[str, Any]] = None,
-    ) -> Optional[Dict[str, Any]]:
-        safe_parameters: Dict[str, Any] = (
+        system_policy_context: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
+        safe_parameters: dict[str, Any] = (
             dict(parameters) if isinstance(parameters, dict) else {}
         )
         safe_parameters.pop(self._SYSTEM_POLICY_CONTEXT_KEY, None)
@@ -201,9 +174,9 @@ class RemediationService(BaseService):
         return safe_parameters or None
 
     def _strip_system_policy_context(
-        self, parameters: Optional[Dict[str, Any]]
-    ) -> Dict[str, Any]:
-        safe_parameters: Dict[str, Any] = (
+        self, parameters: dict[str, Any] | None
+    ) -> dict[str, Any]:
+        safe_parameters: dict[str, Any] = (
             dict(parameters) if isinstance(parameters, dict) else {}
         )
         safe_parameters.pop(self._SYSTEM_POLICY_CONTEXT_KEY, None)
@@ -213,9 +186,9 @@ class RemediationService(BaseService):
         self,
         request: RemediationRequest,
         *,
-        tenant_id: UUID,
+        tenant_id: Any,
         provider: str,
-        connection_id: UUID | None,
+        connection_id: Any,
     ) -> dict[str, Any]:
         system_context = await self._build_system_policy_context(
             tenant_id=tenant_id,
@@ -228,7 +201,7 @@ class RemediationService(BaseService):
         )
         return system_context
 
-    async def _resolve_credentials(self, request: RemediationRequest) -> Dict[str, Any]:
+    async def _resolve_credentials(self, request: RemediationRequest) -> dict[str, Any]:
         """Resolve provider credentials from the tenant connection bound to the request."""
         from app.modules.optimization.domain.remediation_credentials import (
             resolve_connection_credentials,
@@ -237,7 +210,7 @@ class RemediationService(BaseService):
         return await resolve_connection_credentials(self, request)
 
     async def preview_policy(
-        self, request: RemediationRequest, tenant_id: UUID
+        self, request: RemediationRequest, tenant_id: Any
     ) -> dict[str, Any]:
         from app.modules.optimization.domain.remediation_workflow import (
             preview_policy_for_request,
@@ -248,8 +221,8 @@ class RemediationService(BaseService):
     async def preview_policy_input(
         self,
         *,
-        tenant_id: UUID,
-        user_id: UUID,
+        tenant_id: Any,
+        user_id: Any,
         resource_id: str,
         resource_type: str,
         action: RemediationAction,
@@ -257,8 +230,8 @@ class RemediationService(BaseService):
         confidence_score: float | None = None,
         explainability_notes: str | None = None,
         review_notes: str | None = None,
-        parameters: Optional[Dict[str, Any]] = None,
-        connection_id: Optional[UUID] = None,
+        parameters: dict[str, Any] | None = None,
+        connection_id: Any = None,
     ) -> dict[str, Any]:
         from app.modules.optimization.domain.remediation_workflow import (
             preview_policy_input_payload,
@@ -282,12 +255,12 @@ class RemediationService(BaseService):
     async def preview_policy_for_finding(
         self,
         *,
-        tenant_id: UUID,
-        user_id: UUID,
-        finding_id: UUID,
+        tenant_id: Any,
+        user_id: Any,
+        finding_id: Any,
         action: RemediationAction,
-        review_notes: Optional[str] = None,
-        parameters: Optional[Dict[str, Any]] = None,
+        review_notes: str | None = None,
+        parameters: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         from app.modules.optimization.domain.remediation_workflow import (
             preview_policy_for_finding_payload,
@@ -305,8 +278,8 @@ class RemediationService(BaseService):
 
     async def create_request(
         self,
-        tenant_id: UUID,
-        user_id: UUID,
+        tenant_id: Any,
+        user_id: Any,
         resource_id: str,
         resource_type: str,
         action: RemediationAction,
@@ -315,10 +288,10 @@ class RemediationService(BaseService):
         create_backup: bool = False,
         backup_retention_days: int = 30,
         backup_cost_estimate: float = 0,
-        confidence_score: Optional[float] = None,
-        explainability_notes: Optional[str] = None,
-        connection_id: Optional[UUID] = None,
-        parameters: Optional[Dict[str, Any]] = None,
+        confidence_score: float | None = None,
+        explainability_notes: str | None = None,
+        connection_id: Any = None,
+        parameters: dict[str, Any] | None = None,
     ) -> RemediationRequest:
         from app.modules.optimization.domain.remediation_workflow import (
             create_remediation_request,
@@ -345,14 +318,14 @@ class RemediationService(BaseService):
     async def create_request_from_finding(
         self,
         *,
-        tenant_id: UUID,
-        user_id: UUID,
-        finding_id: UUID,
+        tenant_id: Any,
+        user_id: Any,
+        finding_id: Any,
         action: RemediationAction,
         create_backup: bool = False,
         backup_retention_days: int = 30,
         backup_cost_estimate: float = 0,
-        parameters: Optional[Dict[str, Any]] = None,
+        parameters: dict[str, Any] | None = None,
     ) -> RemediationRequest:
         from app.modules.optimization.domain.remediation_workflow import (
             create_remediation_request_from_finding,
@@ -371,8 +344,8 @@ class RemediationService(BaseService):
         )
 
     async def list_pending(
-        self, tenant_id: UUID, limit: int = 50, offset: int = 0
-    ) -> List[RemediationRequest]:
+        self, tenant_id: Any, limit: int = 50, offset: int = 0
+    ) -> list[RemediationRequest]:
         from app.modules.optimization.domain.remediation_workflow import (
             list_pending_requests,
         )
@@ -386,12 +359,12 @@ class RemediationService(BaseService):
 
     async def list_history(
         self,
-        tenant_id: UUID,
+        tenant_id: Any,
         *,
         status: str = "completed",
         limit: int = 20,
         offset: int = 0,
-    ) -> List[RemediationRequest]:
+    ) -> list[RemediationRequest]:
         from app.modules.optimization.domain.remediation_workflow import (
             list_request_history,
         )
@@ -406,11 +379,11 @@ class RemediationService(BaseService):
 
     async def approve(
         self,
-        request_id: UUID,
-        tenant_id: UUID,
-        reviewer_id: UUID,
-        notes: Optional[str] = None,
-        reviewer_role: Optional[str] = None,
+        request_id: Any,
+        tenant_id: Any,
+        reviewer_id: Any,
+        notes: str | None = None,
+        reviewer_role: str | None = None,
     ) -> RemediationRequest:
         from app.modules.optimization.domain.remediation_workflow import (
             approve_request,
@@ -427,10 +400,10 @@ class RemediationService(BaseService):
 
     async def reject(
         self,
-        request_id: UUID,
-        tenant_id: UUID,
-        reviewer_id: UUID,
-        notes: Optional[str] = None,
+        request_id: Any,
+        tenant_id: Any,
+        reviewer_id: Any,
+        notes: str | None = None,
     ) -> RemediationRequest:
         from app.modules.optimization.domain.remediation_workflow import (
             reject_request,
@@ -445,7 +418,7 @@ class RemediationService(BaseService):
         )
 
     async def execute(
-        self, request_id: UUID, tenant_id: UUID, bypass_grace_period: bool = False
+        self, request_id: Any, tenant_id: Any, bypass_grace_period: bool = False
     ) -> RemediationRequest:
         """
         Execute an approved remediation request through the registered action strategy.
@@ -454,7 +427,6 @@ class RemediationService(BaseService):
             execute_remediation_request,
         )
 
-        # Row locking is enforced via with_for_update in execute_remediation_request.
         return await execute_remediation_request(
             self,
             request_id,
@@ -462,7 +434,7 @@ class RemediationService(BaseService):
             bypass_grace_period=bypass_grace_period,
         )
 
-    async def enforce_hard_limit(self, tenant_id: UUID) -> List[UUID]:
+    async def enforce_hard_limit(self, tenant_id: Any) -> list[Any]:
         """
         Enforce hard limits for a tenant.
         1. Checks budget status via LLMBudgetManager.
@@ -479,7 +451,7 @@ class RemediationService(BaseService):
     async def generate_iac_plan(
         self,
         request: RemediationRequest,
-        tenant_id: UUID,
+        tenant_id: Any,
         *,
         tenant_tier: PricingTier | str | None = None,
     ) -> str:
@@ -512,7 +484,7 @@ class RemediationService(BaseService):
         return sanitize_tf_identifier(provider, resource_type, resource_id)
 
     async def bulk_generate_iac_plan(
-        self, requests: List[RemediationRequest], tenant_id: UUID
+        self, requests: list[RemediationRequest], tenant_id: Any
     ) -> str:
         """Generates a combined IaC plan for multiple resources."""
         from app.modules.optimization.domain.remediation_iac import (

@@ -12,6 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.models.remediation import RemediationRequest, RemediationStatus
 from app.models.optimization import FindingStatus
+from app.modules.governance.domain.security.audit_log import AuditEventType
 from app.modules.governance.domain.security.remediation_policy import PolicyDecision, RemediationPolicyEngine
 from app.modules.optimization.domain.findings import validate_request_finding_binding
 from app.modules.optimization.domain.remediation_execute_helpers import (
@@ -177,7 +178,7 @@ async def execute_remediation_request(
             ),
         }
         await audit_logger.log(
-            event_type=remediation_module.AuditEventType.POLICY_EVALUATED,
+            event_type=AuditEventType.POLICY_EVALUATED,
             actor_id=actor_id,
             resource_id=resource_id,
             resource_type=resource_type,
@@ -232,7 +233,7 @@ async def execute_remediation_request(
         await service.db.commit()
 
         await audit_logger.log(
-            event_type=remediation_module.AuditEventType.REMEDIATION_EXECUTION_STARTED,
+            event_type=AuditEventType.REMEDIATION_EXECUTION_STARTED,
             actor_id=actor_id,
             resource_id=resource_id,
             resource_type=resource_type,
@@ -281,7 +282,7 @@ async def execute_remediation_request(
         )
 
         await audit_logger.log(
-            event_type=remediation_module.AuditEventType.REMEDIATION_EXECUTED,
+            event_type=AuditEventType.REMEDIATION_EXECUTED,
             actor_id=actor_id,
             resource_id=resource_id,
             resource_type=resource_type,
@@ -307,7 +308,7 @@ async def execute_remediation_request(
         request.execution_error = str(exc)[:500]
 
         await audit_logger.log(
-            event_type=remediation_module.AuditEventType.REMEDIATION_FAILED,
+            event_type=AuditEventType.REMEDIATION_FAILED,
             actor_id=actor_id,
             resource_id=resource_id,
             resource_type=resource_type,

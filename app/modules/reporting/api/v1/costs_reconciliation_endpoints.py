@@ -30,7 +30,7 @@ from app.shared.db.session import get_db
 async def get_reconciliation_close_package(
     start_date: date = Query(...),
     end_date: date = Query(...),
-    provider: Optional[str] = Query(default=None),
+    provider: str | None = Query(default=None),
     response_format: str = Query(default="json", pattern="^(json|csv)$"),
     enforce_finalized: bool = Query(default=True),
     user: CurrentUser = Depends(requires_feature(FeatureFlag.CLOSE_WORKFLOW)),
@@ -54,7 +54,7 @@ async def get_reconciliation_close_package(
 async def get_restatement_history(
     start_date: date = Query(...),
     end_date: date = Query(...),
-    provider: Optional[str] = Query(default=None),
+    provider: str | None = Query(default=None),
     response_format: str = Query(default="json", pattern="^(json|csv)$"),
     user: CurrentUser = Depends(requires_feature(FeatureFlag.RECONCILIATION)),
     db: AsyncSession = Depends(get_db),
@@ -77,7 +77,7 @@ async def get_restatement_history(
 async def get_restatement_runs(
     start_date: date = Query(...),
     end_date: date = Query(...),
-    provider: Optional[str] = Query(default=None),
+    provider: str | None = Query(default=None),
     response_format: str = Query(default="json", pattern="^(json|csv)$"),
     user: CurrentUser = Depends(requires_feature(FeatureFlag.RECONCILIATION)),
     db: AsyncSession = Depends(get_db),
@@ -97,9 +97,9 @@ async def get_restatement_runs(
 
 
 async def list_provider_invoices(
-    provider: Optional[str] = Query(default=None),
-    start_date: Optional[date] = Query(default=None),
-    end_date: Optional[date] = Query(default=None),
+    provider: str | None = Query(default=None),
+    start_date: date | None = Query(default=None),
+    end_date: date | None = Query(default=None),
     user: CurrentUser = Depends(requires_feature(FeatureFlag.CLOSE_WORKFLOW)),
     db: AsyncSession = Depends(get_db),
 ) -> Any:

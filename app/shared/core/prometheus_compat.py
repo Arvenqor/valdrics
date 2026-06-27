@@ -21,7 +21,6 @@ References
 from __future__ import annotations
 
 import logging
-from typing import List, Optional
 
 from starlette.routing import Match, Mount, Route
 from starlette.types import Scope
@@ -33,9 +32,9 @@ logger = logging.getLogger(__name__)
 
 def _get_route_name_patched(
     scope: Scope,
-    routes: List[Route],
-    route_name: Optional[str] = None,
-) -> Optional[str]:
+    routes: list[Route],
+    route_name: str | None = None,
+) -> str | None:
     """Drop-in replacement for ``_pfi_routing._get_route_name``.
 
     Handles three route types:

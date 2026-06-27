@@ -23,14 +23,16 @@ Usage:
 """
 
 import time
-from datetime import datetime, timezone
-from dataclasses import dataclass
-from enum import Enum
-from typing import Any, Dict, Optional
-import structlog
 from contextlib import contextmanager
-import sys
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from threading import RLock
+from typing import Any
+from enum import Enum
+
+import structlog
+
+from app.shared.core.exceptions import ValdricsException
 
 logger = structlog.get_logger()
 FATAL_EXCEPTIONS = (SystemExit, KeyboardInterrupt, GeneratorExit)
@@ -54,16 +56,15 @@ class ProviderCircuit:
     state: CircuitState = CircuitState.CLOSED
     failure_count: int = 0
     success_count: int = 0
-    last_failure_time: Optional[datetime] = None
-    last_success_time: Optional[datetime] = None
-    last_failure_monotonic: Optional[float] = None
-    last_success_monotonic: Optional[float] = None
+    last_failure_time: datetime | None = None
+    last_success_time: datetime | None = None
+    last_failure_monotonic: float | None = None
+    last_success_monotonic: float | None = None
     probe_in_flight: bool = False
 
-    # Thresholds
-    failure_threshold: int = 3  # Failures to open circuit
-    success_threshold: int = 2  # Successes to close circuit
-    recovery_timeout: int = 60  # Seconds before half-open
+    failure_threshold: int = 3
+    success_threshold: int = 2
+    recovery_timeout: int = 60
 
 
 class LLMCircuitBreaker:
@@ -85,7 +86,7 @@ class LLMCircuitBreaker:
         self.failure_threshold = failure_threshold
         self.success_threshold = success_threshold
         self.recovery_timeout = recovery_timeout
-        self._circuits: Dict[str, ProviderCircuit] = {}
+        self._circuits: dict[str, ProviderCircuit] = {}
         self._lock = RLock()
 
     def _get_circuit(self, provider: str) -> ProviderCircuit:
@@ -206,7 +207,7 @@ class LLMCircuitBreaker:
                 circuit.failure_count = 0
                 circuit.probe_in_flight = False
 
-    def record_failure(self, provider: str, error: Optional[str] = None) -> None:
+    def record_failure(self, provider: str, error: str | None = None) -> None:
         """Record failed request to provider."""
         with self._lock:
             circuit = self._get_circuit(provider)
@@ -256,14 +257,13 @@ class LLMCircuitBreaker:
 
         try:
             yield
-        finally:
-            _, exc, _ = sys.exc_info()
-            if exc is None or isinstance(exc, FATAL_EXCEPTIONS):
-                pass
-            elif isinstance(exc, Exception):
-                self.record_failure(provider, str(exc))
+        except FATAL_EXCEPTIONS:
+            raise
+        except Exception as exc:
+            self.record_failure(provider, str(exc))
+            raise
 
-    def get_status(self) -> Dict[str, dict[str, Any]]:
+    def get_status(self) -> dict[str, dict[str, Any]]:
         """Get status of all circuits for monitoring."""
         with self._lock:
             return {
@@ -294,14 +294,20 @@ class LLMCircuitBreaker:
                 logger.info("circuit_reset", provider=provider)
 
 
-class CircuitOpenError(Exception):
+class CircuitOpenError(ValdricsException):
     """Raised when circuit is open and request should be skipped."""
 
-    pass
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
+        super().__init__(
+            message,
+            code="circuit_open",
+            status_code=503,
+            details=details,
+        )
 
 
 # Singleton instance for app-wide use
-_circuit_breaker: Optional[LLMCircuitBreaker] = None
+_circuit_breaker: LLMCircuitBreaker | None = None
 
 
 def get_circuit_breaker() -> LLMCircuitBreaker:

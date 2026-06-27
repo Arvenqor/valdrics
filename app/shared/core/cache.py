@@ -7,16 +7,16 @@ an external Redis contract or dependency in the active runtime surface.
 """
 
 import asyncio
-from fnmatch import fnmatchcase
 import hashlib
 import json
-from collections.abc import AsyncGenerator, Callable
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from datetime import datetime, timedelta, timezone
 from functools import wraps
-from typing import Any, Optional
-from uuid import UUID
+from typing import Protocol, cast
 
 import structlog
+from fnmatch import fnmatchcase
+from uuid import UUID
 
 from app.shared.core.config import get_settings
 
@@ -32,7 +32,7 @@ PREFIX_ANALYSIS = "analysis"
 PREFIX_COSTS = "costs"
 
 # Singleton instances
-_async_client: Optional["_InMemoryAsyncCacheClient"] = None
+_async_client: "_InMemoryAsyncCacheClient | None" = None
 
 CACHE_RECOVERABLE_ERRORS = (
     OSError,
@@ -43,11 +43,40 @@ CACHE_RECOVERABLE_ERRORS = (
 )
 
 
+class _CacheBackend(Protocol):
+    """Protocol for cache backend clients (Redis, Valkey, in-memory)."""
+
+    async def get(self, key: str) -> object | None: ...
+
+    async def set(
+        self,
+        key: str,
+        value: object,
+        *,
+        ex: int | None = None,
+        nx: bool | None = None,
+    ) -> bool: ...
+
+    async def delete(self, *keys: str) -> int: ...
+
+    async def scan(
+        self, cursor: int, *, match: str, count: int = 100
+    ) -> tuple[int, list[str]]: ...
+
+    async def scan_iter(self, *, match: str) -> AsyncGenerator[str, None]: ...
+
+    async def incr(self, key: str) -> int: ...
+
+    async def decr(self, key: str) -> int: ...
+
+    async def expire(self, key: str, ttl_seconds: int) -> bool: ...
+
+
 class _InMemoryAsyncCacheClient:
     """Async in-memory cache backend for local and non-managed execution."""
 
     def __init__(self) -> None:
-        self._store: dict[str, tuple[Any, datetime | None]] = {}
+        self._store: dict[str, tuple[object, datetime | None]] = {}
 
     def _now(self) -> datetime:
         return datetime.now(timezone.utc)
@@ -65,7 +94,7 @@ class _InMemoryAsyncCacheClient:
             self._purge_if_expired(key)
         return sorted(key for key in self._store if fnmatchcase(key, pattern))
 
-    async def get(self, key: str) -> Any:
+    async def get(self, key: str) -> object | None:
         self._purge_if_expired(key)
         record = self._store.get(key)
         if record is None:
@@ -75,7 +104,7 @@ class _InMemoryAsyncCacheClient:
     async def set(
         self,
         key: str,
-        value: Any,
+        value: object,
         *,
         ex: int | None = None,
         nx: bool | None = None,
@@ -106,17 +135,17 @@ class _InMemoryAsyncCacheClient:
         return next_cursor, batch
 
     async def incr(self, key: str) -> int:
-        current = await self.get(key)
-        value = int(current) if current is not None else 0
+        current = self._store.get(key)
+        value = int(current[0]) if current is not None else 0  # type: ignore[call-overload]
         value += 1
-        await self.set(key, value)
+        self._store[key] = (value, current[1] if current else None)
         return value
 
     async def decr(self, key: str) -> int:
-        current = await self.get(key)
-        value = int(current) if current is not None else 0
+        current = self._store.get(key)
+        value = int(current[0]) if current is not None else 0  # type: ignore[call-overload]
         value -= 1
-        await self.set(key, value)
+        self._store[key] = (value, current[1] if current else None)
         return value
 
     async def expire(self, key: str, ttl_seconds: int) -> bool:
@@ -146,16 +175,16 @@ def _managed_cacheless_profile(settings: object) -> bool:
     return environment in {"staging", "production"} and runtime_profile == "gcp"
 
 
-def _safe_json_loads(payload: str, key: str) -> Optional[Any]:
+def _safe_json_loads(payload: str, key: str) -> object | None:
     """Strict JSON decode with bounded-failure behavior."""
     try:
-        return json.loads(payload)
+        return cast(object | None, json.loads(payload))
     except (TypeError, ValueError, json.JSONDecodeError) as exc:
         logger.warning("cache_payload_invalid_json", key=key, error=str(exc))
         return None
 
 
-def _get_async_client() -> Optional[_InMemoryAsyncCacheClient]:
+def _get_async_client() -> _InMemoryAsyncCacheClient | None:
     """Get or create the process-local cache backend for non-managed runtimes."""
     global _async_client
     settings = get_settings()
@@ -178,34 +207,34 @@ class CacheService:
     active runtime profile.
     """
 
-    def __init__(self, client: _InMemoryAsyncCacheClient | Any | None = None) -> None:
+    def __init__(self, client: _CacheBackend | None = None) -> None:
         self._client = _get_async_client() if client is None else client
         self.enabled = self._client is not None
 
     @property
-    def client(self) -> _InMemoryAsyncCacheClient | Any | None:
+    def client(self) -> _CacheBackend | None:
         """Expose the resolved backend for read-only inspection."""
-        return self._client
+        return cast(_CacheBackend | None, self._client)
 
-    async def get_analysis(self, tenant_id: UUID) -> Optional[dict[str, Any]]:
+    async def get_analysis(self, tenant_id: UUID) -> object | None:
         """Get cached LLM analysis for a tenant."""
         key = f"{PREFIX_ANALYSIS}:{tenant_id}"
         return await self._get(key)
 
-    async def set_analysis(self, tenant_id: UUID, analysis: dict[str, Any]) -> bool:
+    async def set_analysis(self, tenant_id: UUID, analysis: object) -> bool:
         """Cache LLM analysis with 24h TTL."""
         key = f"{PREFIX_ANALYSIS}:{tenant_id}"
         return await self._set(key, analysis, ANALYSIS_TTL)
 
     async def get_cost_data(
         self, tenant_id: UUID, date_range: str
-    ) -> Optional[list[Any]]:
+    ) -> object | None:
         """Get cached cost data for a tenant and date range."""
         key = f"{PREFIX_COSTS}:{tenant_id}:{date_range}"
         return await self._get(key)
 
     async def set_cost_data(
-        self, tenant_id: UUID, date_range: str, costs: list[Any]
+        self, tenant_id: UUID, date_range: str, costs: object
     ) -> bool:
         """Cache cost data with 6h TTL."""
         key = f"{PREFIX_COSTS}:{tenant_id}:{date_range}"
@@ -223,15 +252,15 @@ class CacheService:
             logger.warning("cache_invalidate_error", error=str(exc))
             return False
 
-    async def get(self, key: str) -> Optional[Any]:
+    async def get(self, key: str) -> object | None:
         """Public helper for backend GET."""
         return await self._get(key)
 
-    async def set(self, key: str, value: Any, ttl: Optional[timedelta] = None) -> bool:
+    async def set(self, key: str, value: object, ttl: timedelta | None = None) -> bool:
         """Public helper for backend SET."""
         return await self._set(key, value, ttl or ANALYSIS_TTL)
 
-    async def get_raw(self, key: str) -> Any:
+    async def get_raw(self, key: str) -> object:
         """
         Public raw GET primitive for coordination paths.
 
@@ -246,13 +275,8 @@ class CacheService:
         return data
 
     async def set_raw(
-        self,
-        key: str,
-        value: Any,
-        *,
-        ex: int | None = None,
-        nx: bool | None = None,
-    ) -> Any:
+        self, key: str, value: object, *, ex: int | None = None, nx: bool | None = None
+    ) -> object:
         """
         Public raw SET primitive for coordination paths.
 
@@ -260,12 +284,9 @@ class CacheService:
         """
         if not self.enabled or self._client is None:
             return False
-        kwargs: dict[str, Any] = {}
-        if ex is not None:
-            kwargs["ex"] = ex
-        if nx is not None:
-            kwargs["nx"] = nx
-        return await self._client.set(key, value, **kwargs)
+        return await self._client.set(
+            key, value, ex=ex, nx=nx
+        )
 
     async def increment(self, key: str) -> int | None:
         """Public raw INCR primitive for coordination paths."""
@@ -307,6 +328,7 @@ class CacheService:
                     cursor, match=pattern, count=100
                 )
                 if keys:
+                    # Delete the batch directly when the backend supports variadic delete.
                     await self._client.delete(*keys)
                     total_deleted += len(keys)
                 cursor = int(next_cursor)
@@ -323,7 +345,7 @@ class CacheService:
             )
             return False
 
-    async def _get(self, key: str) -> Optional[Any]:
+    async def _get(self, key: str) -> object | None:
         """Internal helper for backend GET with error handling."""
         if not self.enabled or self._client is None:
             return None
@@ -355,7 +377,7 @@ class CacheService:
             logger.warning("cache_get_error", key=key, error=str(exc))
         return None
 
-    async def _set(self, key: str, value: Any, ttl: timedelta) -> bool:
+    async def _set(self, key: str, value: object, ttl: timedelta) -> bool:
         """Internal helper for backend SET with error handling."""
         if not self.enabled or self._client is None:
             return False
@@ -373,13 +395,13 @@ class CacheService:
 class QueryCache:
     """Query result caching with automatic invalidation."""
 
-    def __init__(self, backend_client: Any = None, default_ttl: int = 300) -> None:
+    def __init__(self, backend_client: _CacheBackend | None = None, default_ttl: int = 300) -> None:
         self.backend_client = backend_client
         self.default_ttl = default_ttl
         self.enabled = backend_client is not None
 
     def _make_cache_key(
-        self, query: str, params: dict[str, Any], tenant_id: Optional[str] = None
+        self, query: str, params: dict[str, object], tenant_id: str | None = None
     ) -> str:
         """Generate deterministic cache key from query and parameters."""
         key_data = {"query": query, "params": params, "tenant_id": tenant_id}
@@ -389,7 +411,7 @@ class QueryCache:
             return f"query_cache:tenant:{tenant_id}:{digest}"
         return f"query_cache:{digest}"
 
-    async def get_cached_result(self, cache_key: str) -> Optional[Any]:
+    async def get_cached_result(self, cache_key: str) -> object | None:
         """Retrieve cached query result."""
         if not self.enabled or self.backend_client is None:
             return None
@@ -425,7 +447,7 @@ class QueryCache:
             return None
 
     async def set_cached_result(
-        self, cache_key: str, result: Any, ttl: Optional[int] = None
+        self, cache_key: str, result: object, ttl: int | None = None
     ) -> None:
         """Cache query result with TTL."""
         if not self.enabled or self.backend_client is None:
@@ -468,9 +490,9 @@ class QueryCache:
 
     def cached_query(
         self,
-        ttl: Optional[int] = None,
+        ttl: int | None = None,
         tenant_aware: bool = True,
-    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    ) -> Callable[[Callable[..., Awaitable[object]]], Callable[..., Awaitable[object]]]:
         """
         Decorator for caching SQLAlchemy query results.
 
@@ -480,9 +502,9 @@ class QueryCache:
                 return await db.execute(select(AWSConnection).where(...))
         """
 
-        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        def decorator(func: Callable[..., Awaitable[object]]) -> Callable[..., Awaitable[object]]:
             @wraps(func)
-            async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            async def wrapper(*args: object, **kwargs: object) -> object:
                 if not self.enabled:
                     return await func(*args, **kwargs)
 
@@ -520,7 +542,7 @@ class QueryCache:
                     try:
                         # SET NX (if not exists) EX (expire)
                         lock_acquired = bool(
-                            await self.backend_client.set(
+                            self.backend_client.set(
                                 lock_key,
                                 "locked",
                                 ex=lock_ttl_seconds,
@@ -546,7 +568,7 @@ class QueryCache:
                                 return cached_result
                         try:
                             lock_acquired = bool(
-                                await self.backend_client.set(
+                                self.backend_client.set(
                                     lock_key,
                                     "locked",
                                     ex=lock_ttl_seconds,
@@ -593,7 +615,7 @@ class QueryCache:
 
 
 # Singleton cache service
-_cache_service: Optional[CacheService] = None
+_cache_service: CacheService | None = None
 
 
 def reset_cache_service_state() -> None:
@@ -609,7 +631,7 @@ def get_cache_service() -> CacheService:
     current_client = _get_async_client()
     if (
         _cache_service is None
-        or _cache_service.client is not current_client
+        or _cache_service.client is not cast(object | None, current_client)
         or _cache_service.enabled is not (current_client is not None)
     ):
         _cache_service = CacheService()
