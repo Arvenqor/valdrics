@@ -20,12 +20,10 @@
 	} from './opsOperationalSectionLoaders';
 	import { buildOpsOperationalInitialState } from './opsOperationalState';
 	import { createOpsOperationalUnitActions } from './opsOperationalUnitActions';
+	import { formatDate, formatDuration, formatNumber } from '$lib/format';
 	import {
 		acceptanceBadgeClass,
 		closeStatusBadgeClass,
-		formatDate,
-		formatDuration,
-		formatNumber,
 		formatUsd,
 		ingestionSlaBadgeClass,
 		jobSloBadgeClass,

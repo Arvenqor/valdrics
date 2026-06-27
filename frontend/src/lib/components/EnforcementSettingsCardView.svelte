@@ -5,10 +5,9 @@
 	import { getUpgradePrompt } from '$lib/pricing/upgradePrompt';
 	import {
 		buildEnforcementPolicyRails,
-		formatTtl,
-		formatUsd,
 		type EnforcementPolicy
 	} from './enforcementSettingsModel';
+	import { formatTtl, formatUsd } from '$lib/format';
 	import './EnforcementSettingsCardView.css';
 
 	let {

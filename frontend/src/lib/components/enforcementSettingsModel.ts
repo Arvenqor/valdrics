@@ -1,4 +1,6 @@
 import { z } from '$lib/validation/clientZod';
+import { bearerHeaders, extractApiErrorMessage } from '$lib/http';
+import { formatUsd, formatTtl } from '$lib/format';
 
 export const ENFORCEMENT_REQUEST_TIMEOUT_MS = 8000;
 
@@ -63,18 +65,6 @@ export function isProPlus(currentTier: string | null | undefined): boolean {
 	return ['pro', 'enterprise'].includes((currentTier ?? '').toLowerCase());
 }
 
-export function extractErrorMessage(data: unknown, fallback: string): string {
-	if (!data || typeof data !== 'object') return fallback;
-	const payload = data as Record<string, unknown>;
-	if (typeof payload.detail === 'string' && payload.detail.trim()) return payload.detail;
-	if (typeof payload.message === 'string' && payload.message.trim()) return payload.message;
-	return fallback;
-}
-
-export function buildEnforcementHeaders(accessToken?: string | null): Record<string, string> {
-	return { Authorization: `Bearer ${accessToken}` };
-}
-
 export function enforcementModeLabel(mode: EnforcementPolicy['terraform_mode']): string {
 	return mode;
 }
@@ -103,32 +93,6 @@ export function enforcementModeMeta(mode: EnforcementPolicy['terraform_mode']): 
 		meta: 'observe only',
 		blocking: false
 	};
-}
-
-export function formatUsd(value: number | string): string {
-	const amount = Number(value);
-	if (!Number.isFinite(amount)) return '$0';
-	return new Intl.NumberFormat('en-US', {
-		style: 'currency',
-		currency: 'USD',
-		maximumFractionDigits: Number.isInteger(amount) ? 0 : 2
-	}).format(amount);
-}
-
-export function formatTtl(seconds: number): string {
-	if (!Number.isFinite(seconds) || seconds <= 0) return '0s';
-	if (seconds < 60) return `${seconds}s`;
-
-	const hours = Math.floor(seconds / 3600);
-	const minutes = Math.floor((seconds % 3600) / 60);
-	const remainingSeconds = seconds % 60;
-	const parts: string[] = [];
-
-	if (hours > 0) parts.push(`${hours}h`);
-	if (minutes > 0) parts.push(`${minutes}m`);
-	if (remainingSeconds > 0) parts.push(`${remainingSeconds}s`);
-
-	return parts.join(' ');
 }
 
 export function buildEnforcementPolicyRails(policy: EnforcementPolicy): EnforcementPolicyRail[] {

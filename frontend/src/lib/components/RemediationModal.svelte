@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { AlertTriangle, Clock } from '@lucide/svelte';
 	import { api } from '$lib/api';
+	import { bearerHeaders, extractApiErrorMessage } from '$lib/http';
 	import { edgeApiPath } from '$lib/edgeProxy';
 
 	type RemediationFinding = {
@@ -140,7 +141,7 @@
 
 		try {
 			const headers = {
-				Authorization: `Bearer ${accessToken}`,
+				...bearerHeaders(accessToken),
 				'Content-Type': 'application/json'
 			};
 			const action = deriveRemediationAction(finding);
@@ -156,7 +157,7 @@
 
 			if (!previewResponse.ok) {
 				const payload = await previewResponse.json().catch(() => ({}));
-				throw new Error(payload.detail || payload.message || 'Policy preview failed.');
+				throw new Error(extractApiErrorMessage(payload, 'Policy preview failed.'));
 			}
 
 			preview = await previewResponse.json();
@@ -192,7 +193,7 @@
 
 		try {
 			const headers = {
-				Authorization: `Bearer ${accessToken}`,
+				...bearerHeaders(accessToken),
 				'Content-Type': 'application/json'
 			};
 			const action = deriveRemediationAction(finding);

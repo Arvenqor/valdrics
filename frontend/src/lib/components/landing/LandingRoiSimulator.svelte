@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { base } from '$app/paths';
 	import type { LandingCurrencyCode } from '$lib/landing/currencyPreference';
-	import { formatCurrencyAmount } from '$lib/landing/currencyDisplay';
+	import { formatCurrency } from '$lib/format';
 	import { calculateLandingScenarioMetrics } from '$lib/landing/landingScenarioMetrics';
 	import LandingCurrencyToggle from '$lib/components/landing/LandingCurrencyToggle.svelte';
 	import './LandingMarketingShared.css';
@@ -44,8 +44,6 @@
 			windowMonths: scenarioWindowMonths
 		})
 	);
-	const formatUsd = (amount: number, currency: string = String(currencyCode)) =>
-		formatCurrencyAmount(amount, currency);
 
 	function updateWasteWithout(event: Event): void {
 		const value = Number((event.currentTarget as HTMLInputElement).value);
@@ -141,18 +139,18 @@
 			<div class="landing-sim-metrics">
 				<div class="landing-sim-metric is-highlight is-primary">
 					<p>Potential monthly recovery</p>
-					<strong>{formatUsd(scenarioMetrics.scenarioWasteRecoveryMonthlyUsd, currencyCode)}</strong
+					<strong>{formatCurrency(scenarioMetrics.scenarioWasteRecoveryMonthlyUsd, currencyCode)}</strong
 					>
 					<span>Recoverable waste from reactive versus managed execution.</span>
 				</div>
 				<div class="landing-sim-metric is-highlight">
 					<p>{scenarioMetrics.normalizedScenarioWindowMonths}-month recovery</p>
-					<strong>{formatUsd(scenarioMetrics.scenarioWasteRecoveryWindowUsd, currencyCode)}</strong>
+					<strong>{formatCurrency(scenarioMetrics.scenarioWasteRecoveryWindowUsd, currencyCode)}</strong>
 					<span>Directionally modeled over your selected decision window.</span>
 				</div>
 				<div class="landing-sim-metric is-context">
 					<p>Spend context used</p>
-					<strong>{formatUsd(monthlySpendUsd, currencyCode)} / month</strong>
+					<strong>{formatCurrency(monthlySpendUsd, currencyCode)} / month</strong>
 				</div>
 			</div>
 			<div
@@ -170,7 +168,7 @@
 						{scenarioMetrics.scenarioWithoutBarPct}
 					</progress>
 					<div class="landing-sim-bar-value">
-						{formatUsd(scenarioMetrics.scenarioWasteWithoutUsd, currencyCode)}
+						{formatCurrency(scenarioMetrics.scenarioWasteWithoutUsd, currencyCode)}
 					</div>
 				</div>
 				<div class="landing-sim-bar-row">
@@ -183,7 +181,7 @@
 						{scenarioMetrics.scenarioWithBarPct}
 					</progress>
 					<div class="landing-sim-bar-value">
-						{formatUsd(scenarioMetrics.scenarioWasteWithUsd, currencyCode)}
+						{formatCurrency(scenarioMetrics.scenarioWasteWithUsd, currencyCode)}
 					</div>
 				</div>
 			</div>

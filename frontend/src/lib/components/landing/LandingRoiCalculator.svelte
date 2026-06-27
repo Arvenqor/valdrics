@@ -13,7 +13,7 @@
 		roiTeamMembers,
 		roiBlendedHourlyUsd,
 		buildRoiCtaHref,
-		formatUsd,
+		formatCurrency,
 		onRoiControlInput,
 		onRoiMonthlySpendChange,
 		onRoiExpectedReductionChange,
@@ -38,7 +38,7 @@
 		roiTeamMembers: number;
 		roiBlendedHourlyUsd: number;
 		buildRoiCtaHref: string;
-		formatUsd: (amount: number, currency?: string) => string;
+		formatCurrency: (amount: number, currencyCode?: string) => string;
 		onRoiControlInput: () => void;
 		onRoiMonthlySpendChange: (value: number) => void;
 		onRoiExpectedReductionChange: (value: number) => void;
@@ -116,7 +116,7 @@
 					>Cloud + software monthly spend</label
 				>
 				<div class="landing-roi-meta">
-					<span>{formatUsd(roiInputs.monthlySpendUsd, activeCurrency)}</span>
+					<span>{formatCurrency(roiInputs.monthlySpendUsd, activeCurrency)}</span>
 				</div>
 				<input
 					id="roi-monthly-spend"
@@ -196,20 +196,20 @@
 			<div class="landing-roi-metrics">
 				<div class="landing-roi-metric">
 					<p>Monthly savings potential</p>
-					<strong>{formatUsd(roiResult.monthlySavingsUsd, activeCurrency)}</strong>
+					<strong>{formatCurrency(roiResult.monthlySavingsUsd, activeCurrency)}</strong>
 				</div>
 				<div class="landing-roi-metric">
 					<p>Annual gross savings</p>
-					<strong>{formatUsd(roiResult.annualGrossSavingsUsd, activeCurrency)}</strong>
+					<strong>{formatCurrency(roiResult.annualGrossSavingsUsd, activeCurrency)}</strong>
 				</div>
 				<div class="landing-roi-metric">
 					<p>Implementation + platform cost</p>
-					<strong>{formatUsd(roiResult.implementationCostUsd, activeCurrency)}</strong>
+					<strong>{formatCurrency(roiResult.implementationCostUsd, activeCurrency)}</strong>
 				</div>
 				<div class="landing-roi-metric">
 					<p>Annual net economic value</p>
 					<strong class={roiResult.annualNetSavingsUsd >= 0 ? 'is-positive' : 'is-negative'}>
-						{formatUsd(roiResult.annualNetSavingsUsd, activeCurrency)}
+						{formatCurrency(roiResult.annualNetSavingsUsd, activeCurrency)}
 					</strong>
 				</div>
 				<div class="landing-roi-metric">

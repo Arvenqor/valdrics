@@ -25,6 +25,7 @@ import {
 	verifyPlaywrightE2EAccessToken
 } from '$lib/testing/playwrightE2EAuth';
 import { resolveBackendOrigin } from '$lib/server/backend-origin';
+import { bearerHeaders } from '$lib/http';
 
 const E2E_AUTH_HEADER = 'x-valdrics-e2e-auth';
 
@@ -193,9 +194,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 			try {
 				const backendOrigin = resolveBackendOrigin();
 				const profileResponse = await fetch(`${backendOrigin}/api/v1/settings/profile`, {
-					headers: {
-						Authorization: `Bearer ${token}`
-					}
+					headers: bearerHeaders(token)
 				});
 				if (profileResponse.ok) {
 					const profile = await profileResponse.json();
@@ -301,12 +300,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 				return { session: null, user: null };
 			}
 
-			// Validate user identity against FastAPI backend settings profile check
 			const backendOrigin = resolveBackendOrigin();
 			const profileResponse = await fetch(`${backendOrigin}/api/v1/settings/profile`, {
-				headers: {
-					Authorization: `Bearer ${session.access_token}`
-				}
+				headers: bearerHeaders(session.access_token)
 			});
 
 			if (!profileResponse.ok) {

@@ -3,10 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
 	buildEnforcementPolicyRails,
 	enforcementModeMeta,
-	formatTtl,
-	formatUsd,
 	type EnforcementPolicy
 } from './enforcementSettingsModel';
+import { formatTtl, formatUsd } from '$lib/format';
 
 const policy: EnforcementPolicy = {
 	terraform_mode: 'hard',

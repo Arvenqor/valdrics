@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { api } from '$lib/api';
+	import { bearerHeaders, extractApiErrorMessage } from '$lib/http';
 	import { edgeApiPath } from '$lib/edgeProxy';
 	import { formatValidationIssues } from '$lib/validation/clientZod';
 	import {
-		extractErrorMessage,
 		RotateTokenResponseSchema,
 		ScimTokenTestResponseSchema
 	} from './identitySettingsModel';
@@ -51,12 +51,12 @@
 			const res = await api.post(
 				edgeApiPath('/settings/identity/rotate-scim-token'),
 				{},
-				{ headers: { Authorization: `Bearer ${accessToken}` } }
+				{ headers: bearerHeaders(accessToken) }
 			);
 			if (!res.ok) {
 				const data = await res.json().catch(() => ({}));
 				throw new Error(
-					extractErrorMessage(
+					extractApiErrorMessage(
 						data,
 						res.status === 403
 							? 'SCIM token rotation requires Enterprise tier and admin access.'
@@ -103,11 +103,11 @@
 			const res = await api.post(
 				edgeApiPath('/settings/identity/scim/test-token'),
 				{ scim_token: scimTokenInput.trim() },
-				{ headers: { Authorization: `Bearer ${accessToken}` } }
+				{ headers: bearerHeaders(accessToken) }
 			);
 			if (!res.ok) {
 				const data = await res.json().catch(() => ({}));
-				throw new Error(extractErrorMessage(data, 'Failed to test SCIM token'));
+				throw new Error(extractApiErrorMessage(data, 'Failed to test SCIM token'));
 			}
 			const payloadResult = ScimTokenTestResponseSchema.safeParse(await res.json());
 			if (!payloadResult.success) {

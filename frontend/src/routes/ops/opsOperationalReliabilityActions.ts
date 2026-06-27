@@ -1,4 +1,5 @@
 import { api } from '$lib/api';
+import { bearerHeaders } from '$lib/http';
 import { edgeApiPath } from '$lib/edgeProxy';
 import { TimeoutError } from '$lib/fetchWithTimeout';
 import { buildIngestionSlaUrl, buildJobSloUrl } from './opsUtils';
@@ -16,12 +17,6 @@ interface ReliabilityActionsInput {
 
 function hasSessionToken(data: OpsRuntimeData | null | undefined): data is OpsRuntimeData {
 	return Boolean(data?.user && data.session?.access_token);
-}
-
-function buildHeaders(data: OpsRuntimeData): Record<string, string> {
-	return {
-		Authorization: `Bearer ${data.session?.access_token}`
-	};
 }
 
 async function getWithTimeout(
@@ -49,7 +44,7 @@ export function createOpsOperationalReliabilityActions(input: ReliabilityActions
 		}
 
 		try {
-			const headers = buildHeaders(data);
+			const headers = bearerHeaders(data.session?.access_token);
 			const results = await Promise.allSettled([
 				getWithTimeout(
 					edgeApiPath(buildIngestionSlaUrl(state.ingestionSlaWindowHours)),
@@ -99,7 +94,7 @@ export function createOpsOperationalReliabilityActions(input: ReliabilityActions
 		state.error = '';
 		state.success = '';
 		try {
-			const headers = buildHeaders(data);
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.get(edgeApiPath(buildIngestionSlaUrl(state.ingestionSlaWindowHours)), {
 				headers
 			});
@@ -123,7 +118,7 @@ export function createOpsOperationalReliabilityActions(input: ReliabilityActions
 		state.error = '';
 		state.success = '';
 		try {
-			const headers = buildHeaders(data);
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.get(edgeApiPath(buildJobSloUrl(state.jobSloWindowHours)), { headers });
 			if (!res.ok) {
 				throw new Error(await parseErrorMessage(res, 'Failed to load job SLO metrics.'));

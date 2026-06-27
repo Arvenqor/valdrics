@@ -9,6 +9,7 @@ import { edgeApiPath } from '$lib/edgeProxy';
 import { fetchWithTimeout } from '$lib/fetchWithTimeout';
 import { resolveAppSession } from '$lib/auth/appSession';
 import { isPublicPath } from '$lib/routeProtection';
+import { bearerHeaders } from '$lib/http';
 import type { LayoutServerLoad } from './$types';
 
 const SUBSCRIPTION_TIMEOUT_MS = 4000;
@@ -50,13 +51,11 @@ export const load: LayoutServerLoad = async ({ locals, fetch, url, cookies }) =>
 	// Fetch subscription tier if user is authenticated
 	if (session?.access_token) {
 		try {
-			const res = await fetchWithTimeout(
+			const res = await 			fetchWithTimeout(
 				fetch,
 				edgeApiPath('/billing/subscription'),
 				{
-					headers: {
-						Authorization: `Bearer ${session.access_token}`
-					}
+					headers: bearerHeaders(session.access_token)
 				},
 				SUBSCRIPTION_TIMEOUT_MS
 			);
@@ -69,13 +68,11 @@ export const load: LayoutServerLoad = async ({ locals, fetch, url, cookies }) =>
 
 		// Fetch user profile (persona preference) for persona-aware UX defaults
 		try {
-			const res = await fetchWithTimeout(
+			const res = await 			fetchWithTimeout(
 				fetch,
 				edgeApiPath('/settings/profile'),
 				{
-					headers: {
-						Authorization: `Bearer ${session.access_token}`
-					}
+					headers: bearerHeaders(session.access_token)
 				},
 				PROFILE_TIMEOUT_MS
 			);

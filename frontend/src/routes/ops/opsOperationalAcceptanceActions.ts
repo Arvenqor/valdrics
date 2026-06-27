@@ -1,4 +1,5 @@
 import { api } from '$lib/api';
+import { bearerHeaders } from '$lib/http';
 import { edgeApiPath } from '$lib/edgeProxy';
 import {
 	acceptanceRunStatusClass,
@@ -29,12 +30,6 @@ function hasSessionToken(data: OpsRuntimeData | null | undefined): data is OpsRu
 	return Boolean(data?.user && data.session?.access_token);
 }
 
-function buildHeaders(data: OpsRuntimeData): Record<string, string> {
-	return {
-		Authorization: `Bearer ${data.session?.access_token}`
-	};
-}
-
 async function parseErrorMessage(response: Response, fallback: string): Promise<string> {
 	const payload = await response.json().catch(() => ({}));
 	const detail = (payload as { detail?: string; message?: string }).detail;
@@ -60,7 +55,7 @@ export function createOpsOperationalAcceptanceActions(input: AcceptanceActionsIn
 			state.success = '';
 		}
 		try {
-			const headers = buildHeaders(data);
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.get(
 				edgeApiPath(
 					buildAcceptanceKpiUrl(
@@ -101,7 +96,7 @@ export function createOpsOperationalAcceptanceActions(input: AcceptanceActionsIn
 			state.success = '';
 		}
 		try {
-			const headers = buildHeaders(data);
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.get(edgeApiPath(buildAcceptanceKpiHistoryUrl(50)), { headers });
 			if (!res.ok) {
 				throw new Error(await parseErrorMessage(res, 'Failed to load acceptance KPI history.'));
@@ -138,7 +133,7 @@ export function createOpsOperationalAcceptanceActions(input: AcceptanceActionsIn
 		state.error = '';
 		state.success = '';
 		try {
-			const headers = buildHeaders(data);
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.post(
 				edgeApiPath(
 					buildAcceptanceKpiCaptureUrl(
@@ -175,7 +170,7 @@ export function createOpsOperationalAcceptanceActions(input: AcceptanceActionsIn
 			state.success = '';
 		}
 		try {
-			const headers = buildHeaders(data);
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.get(edgeApiPath(buildAcceptanceEvidenceUrl()), { headers });
 			if (!res.ok) {
 				throw new Error(
@@ -238,7 +233,7 @@ export function createOpsOperationalAcceptanceActions(input: AcceptanceActionsIn
 		state.error = '';
 		state.success = '';
 		try {
-			const headers = buildHeaders(data);
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.post(
 				edgeApiPath('/settings/notifications/acceptance-evidence/capture'),
 				{
@@ -269,7 +264,7 @@ export function createOpsOperationalAcceptanceActions(input: AcceptanceActionsIn
 	async function captureAcceptanceKpisOrThrow(
 		data: OpsRuntimeData
 	): Promise<AcceptanceKpiCaptureResponse> {
-		const headers = buildHeaders(data);
+		const headers = bearerHeaders(data.session?.access_token);
 		const res = await api.post(
 			edgeApiPath(
 				buildAcceptanceKpiCaptureUrl(
@@ -290,7 +285,7 @@ export function createOpsOperationalAcceptanceActions(input: AcceptanceActionsIn
 	async function captureIntegrationAcceptanceOrThrow(
 		data: OpsRuntimeData
 	): Promise<IntegrationAcceptanceCaptureResponse> {
-		const headers = buildHeaders(data);
+		const headers = bearerHeaders(data.session?.access_token);
 		const res = await api.post(
 			edgeApiPath('/settings/notifications/acceptance-evidence/capture'),
 			{
@@ -389,7 +384,7 @@ export function createOpsOperationalAcceptanceActions(input: AcceptanceActionsIn
 		state.error = '';
 		state.success = '';
 		try {
-			const headers = buildHeaders(data);
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.get(
 				edgeApiPath(
 					buildAcceptanceKpiUrl(

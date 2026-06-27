@@ -6,6 +6,7 @@
 	import PublicMarketingPage from '$lib/components/public/PublicMarketingPage.svelte';
 	import PublicPageMeta from '$lib/components/public/PublicPageMeta.svelte';
 	import { api } from '$lib/api';
+	import { bearerHeaders } from '$lib/http';
 	import { resolveSessionTenantId } from '$lib/auth/sessionTenant';
 	import { readCheckoutErrorMessage } from '$lib/checkoutError';
 	import { edgeApiPath } from '$lib/edgeProxy';
@@ -188,9 +189,7 @@
 					currency: getCheckoutCurrency()
 				},
 				{
-					headers: {
-						Authorization: `Bearer ${session.access_token}`
-					}
+				headers: bearerHeaders(session.access_token)
 				}
 			);
 

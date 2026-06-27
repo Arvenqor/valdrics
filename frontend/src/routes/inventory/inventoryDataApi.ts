@@ -1,5 +1,6 @@
 import { api } from '$lib/api';
 import { edgeApiPath } from '$lib/edgeProxy';
+import { bearerHeaders, extractApiErrorMessage } from '$lib/http';
 import type { InventoryListResponse, InventoryQuery } from './inventoryTypes';
 
 interface ApiErrorPayload {
@@ -9,9 +10,7 @@ interface ApiErrorPayload {
 }
 
 function buildHeaders(accessToken: string | undefined): Record<string, string> {
-	return {
-		Authorization: `Bearer ${accessToken}`
-	};
+	return bearerHeaders(accessToken);
 }
 
 function buildInventoryParams(query: InventoryQuery): URLSearchParams {
@@ -26,13 +25,6 @@ function buildInventoryParams(query: InventoryQuery): URLSearchParams {
 	return params;
 }
 
-function extractErrorMessage(payload: ApiErrorPayload, fallback: string): string {
-	if (payload.detail) return payload.detail;
-	if (payload.message) return payload.message;
-	if (typeof payload.error === 'string') return payload.error;
-	if (typeof payload.error?.message === 'string') return payload.error.message;
-	return fallback;
-}
 
 export async function loadInventorySnapshot(
 	accessToken: string | undefined,
@@ -46,7 +38,7 @@ export async function loadInventorySnapshot(
 	});
 	if (!response.ok) {
 		const payload = (await response.json().catch(() => ({}))) as ApiErrorPayload;
-		throw new Error(extractErrorMessage(payload, 'Failed to load asset inventory.'));
+		throw new Error(extractApiErrorMessage(payload, 'Failed to load asset inventory.'));
 	}
 	return (await response.json()) as InventoryListResponse;
 }

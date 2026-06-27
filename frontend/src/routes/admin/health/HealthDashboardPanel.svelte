@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Activity, Cloud, RefreshCw, Server, Wallet } from '@lucide/svelte';
+	import { formatDate, formatUsd } from '$lib/format';
 
 	import type { FairUseRuntime, HealthDashboard } from './healthTypes';
 
@@ -16,18 +17,6 @@
 		refreshing?: boolean;
 		onRefresh: () => Promise<void> | void;
 	} = $props();
-
-	function formatDate(value: string): string {
-		return new Date(value).toLocaleString();
-	}
-
-	function formatUsd(value: number): string {
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD',
-			maximumFractionDigits: 2
-		}).format(value || 0);
-	}
 
 	function formatMs(value: number): string {
 		return `${Math.round(value || 0).toLocaleString()} ms`;

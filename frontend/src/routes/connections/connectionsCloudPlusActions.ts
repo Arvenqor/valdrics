@@ -1,8 +1,8 @@
 import { api } from '$lib/api';
 import { edgeApiPath } from '$lib/edgeProxy';
+import { bearerHeaders, extractApiErrorMessage } from '$lib/http';
 import {
 	buildCloudPlusCreatePayload,
-	extractErrorMessage,
 	prepareCloudPlusCreateRequest
 } from './connectionsCloudPlus';
 
@@ -52,7 +52,7 @@ type CloudPlusCreateFields = {
 function authHeaders(accessToken: string | null | undefined): Record<string, string> {
 	return {
 		'Content-Type': 'application/json',
-		Authorization: `Bearer ${accessToken ?? ''}`
+		...bearerHeaders(accessToken)
 	};
 }
 
@@ -171,7 +171,7 @@ export async function createAndVerifyCloudPlusConnection(args: {
 	const body = await response.json().catch(() => ({}));
 	if (!response.ok) {
 		throw new Error(
-			extractErrorMessage(body, `Failed to create ${provider.toUpperCase()} connection.`)
+			extractApiErrorMessage(body, `Failed to create ${provider.toUpperCase()} connection.`)
 		);
 	}
 
@@ -204,8 +204,8 @@ export async function verifyCloudPlusConnectionRequest(args: {
 	const body = await response.json().catch(() => ({}));
 	if (!response.ok) {
 		throw new Error(
-			extractErrorMessage(body, `Failed to verify ${provider.toUpperCase()} connection.`)
+			extractApiErrorMessage(body, `Failed to verify ${provider.toUpperCase()} connection.`)
 		);
 	}
-	return { message: extractErrorMessage(body, `${provider.toUpperCase()} connection verified.`) };
+	return { message: extractApiErrorMessage(body, `${provider.toUpperCase()} connection verified.`) };
 }

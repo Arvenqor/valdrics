@@ -68,7 +68,7 @@
 	} = $props();
 
 	const loadIdentitySettingsCard = createLazyComponent<TieredSettingsCardProps>(
-		() => import('$lib/components/IdentitySettingsCard.svelte')
+		() => import('$lib/components/IdentitySettingsCardContent.svelte')
 	);
 	const loadEnforcementSettingsCard = createLazyComponent<TieredSettingsCardProps>(
 		() => import('$lib/components/EnforcementSettingsCard.svelte')

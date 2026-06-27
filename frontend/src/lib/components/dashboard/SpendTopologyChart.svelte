@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Activity } from '@lucide/svelte';
+	import { formatCompactUsd } from '$lib/format';
 	import type { DailySpendPoint, ProviderSpendBreakdown } from './overviewTypes';
 
 	let {
@@ -29,13 +30,8 @@
 			: `${spendTrendPercent >= 0 ? '+' : ''}${spendTrendPercent.toFixed(1)}% first-to-last day`
 	);
 
-	function formatMoney(value: number): string {
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD',
-			maximumFractionDigits: value >= 1000 ? 0 : 2
-		}).format(value);
-	}
+	// formatCompactUsd: omit decimals for amounts >= 1000
+	// Used inline below for chart tick labels
 
 	function formatDate(value: string): string {
 		const date = new Date(`${value}T00:00:00Z`);
@@ -78,7 +74,7 @@
 			<h2 id="spend-topology-title">Spend Topology</h2>
 		</div>
 		<div class="spend-total">
-			<span>{formatMoney(totalSpendUsd)}</span>
+			<span>{formatCompactUsd(totalSpendUsd)}</span>
 			<small>{trendLabel}</small>
 		</div>
 	</div>
@@ -88,7 +84,7 @@
 			class="chart"
 			viewBox={`0 0 ${width} ${height}`}
 			role="img"
-			aria-label={`Daily spend trend for ${periodLabel}; total spend ${formatMoney(totalSpendUsd)}.`}
+			aria-label={`Daily spend trend for ${periodLabel}; total spend ${formatCompactUsd(totalSpendUsd)}.`}
 		>
 			<defs>
 				<linearGradient id="spend-area-gradient" x1="0" y1="0" x2="0" y2="1">
@@ -110,11 +106,11 @@
 			<path class="line" d={chart.linePath} />
 			{#each chart.points as point (point.date)}
 				<circle class="point" cx={point.x} cy={point.y} r="4">
-					<title>{formatDate(point.date)}: {formatMoney(point.costUsd)}</title>
+					<title>{formatDate(point.date)}: {formatCompactUsd(point.costUsd)}</title>
 				</circle>
 			{/each}
 			<text class="axis-label axis-label--left" x={padding.left} y="18">
-				{formatMoney(chart.maxCost)}
+				{formatCompactUsd(chart.maxCost)}
 			</text>
 			<text class="axis-label" x={padding.left} y={height - 8}>
 				{formatDate(chart.points[0].date)}
@@ -143,7 +139,7 @@
 							style={`width: ${Math.max(2, provider.share)}%; --meter: ${colors[index % colors.length]}`}
 						></span>
 					</div>
-					<strong>{formatMoney(provider.costUsd)}</strong>
+					<strong>{formatCompactUsd(provider.costUsd)}</strong>
 				</div>
 			{/each}
 		{:else}

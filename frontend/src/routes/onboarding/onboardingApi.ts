@@ -1,5 +1,6 @@
 import { api } from '$lib/api';
 import { edgeApiPath } from '$lib/edgeProxy';
+import { bearerHeaders } from '$lib/http';
 import { getTurnstileToken } from '$lib/security/turnstile';
 import type {
 	CloudPlusAuthMethod,
@@ -35,9 +36,7 @@ async function parseJson(response: Response): Promise<JsonObject> {
 }
 
 function authHeaders(accessToken: string): Record<string, string> {
-	return {
-		Authorization: `Bearer ${accessToken}`
-	};
+	return bearerHeaders(accessToken);
 }
 
 export async function ensureOnboardedRequest(

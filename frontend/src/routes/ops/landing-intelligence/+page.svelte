@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { BarChart3, RefreshCw, Layers, TrendingUp } from '@lucide/svelte';
 	import AuthGate from '$lib/components/AuthGate.svelte';
+	import { bearerHeaders } from '$lib/http';
 	import { TimeoutError, fetchWithTimeout } from '$lib/fetchWithTimeout';
 	import {
 		buildLandingWeeklyTrendChecks,
@@ -105,9 +106,7 @@
 				fetch,
 				buildLandingCampaignApiPath(windowDays),
 				{
-					headers: {
-						Authorization: `Bearer ${accessToken}`
-					}
+			headers: bearerHeaders(accessToken)
 				},
 				LANDING_CAMPAIGN_REQUEST_TIMEOUT_MS
 			);

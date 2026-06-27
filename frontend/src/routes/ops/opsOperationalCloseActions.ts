@@ -1,4 +1,5 @@
 import { api } from '$lib/api';
+import { bearerHeaders } from '$lib/http';
 import { edgeApiPath } from '$lib/edgeProxy';
 import {
 	buildClosePackageUrl,
@@ -21,12 +22,6 @@ interface CloseActionsInput {
 
 function hasSessionToken(data: OpsRuntimeData | null | undefined): data is OpsRuntimeData {
 	return Boolean(data?.user && data.session?.access_token);
-}
-
-function buildHeaders(data: OpsRuntimeData): Record<string, string> {
-	return {
-		Authorization: `Bearer ${data.session?.access_token}`
-	};
 }
 
 async function parseErrorMessage(response: Response, fallback: string): Promise<string> {
@@ -58,7 +53,7 @@ export function createOpsOperationalCloseActions(input: CloseActionsInput) {
 			state.success = '';
 		}
 		try {
-			const headers = buildHeaders(data);
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.get(
 				edgeApiPath(
 					buildClosePackageUrl(
@@ -113,7 +108,7 @@ export function createOpsOperationalCloseActions(input: CloseActionsInput) {
 		state.error = '';
 		state.success = '';
 		try {
-			const headers = buildHeaders(data);
+			const headers = bearerHeaders(data.session?.access_token);
 			const payload = {
 				provider: state.closeProvider,
 				start_date: state.closeStartDate,
@@ -153,7 +148,7 @@ export function createOpsOperationalCloseActions(input: CloseActionsInput) {
 		state.error = '';
 		state.success = '';
 		try {
-			const headers = buildHeaders(data);
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.delete(
 				edgeApiPath(`/costs/reconciliation/invoices/${encodeURIComponent(invoiceId)}`),
 				{ headers }
@@ -184,7 +179,7 @@ export function createOpsOperationalCloseActions(input: CloseActionsInput) {
 					'Close package date range is invalid: start date must be on or before end date.'
 				);
 			}
-			const headers = buildHeaders(data);
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.get(
 				edgeApiPath(
 					buildClosePackageUrl(
@@ -225,7 +220,7 @@ export function createOpsOperationalCloseActions(input: CloseActionsInput) {
 					'Close package date range is invalid: start date must be on or before end date.'
 				);
 			}
-			const headers = buildHeaders(data);
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.get(
 				edgeApiPath(
 					buildClosePackageUrl(
@@ -268,7 +263,7 @@ export function createOpsOperationalCloseActions(input: CloseActionsInput) {
 					'Close package date range is invalid: start date must be on or before end date.'
 				);
 			}
-			const headers = buildHeaders(data);
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.get(
 				edgeApiPath(
 					buildRestatementUrl(state.closeStartDate, state.closeEndDate, state.closeProvider, 'csv')

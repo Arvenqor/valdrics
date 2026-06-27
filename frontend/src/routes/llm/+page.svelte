@@ -10,6 +10,7 @@
 <script lang="ts">
 	import './llm.app.css';
 	import AuthGate from '$lib/components/AuthGate.svelte';
+	import { bearerHeaders } from '$lib/http';
 	import { edgeApiPath } from '$lib/edgeProxy';
 	import { TimeoutError, fetchWithTimeout } from '$lib/fetchWithTimeout';
 
@@ -65,9 +66,7 @@
 				fetch,
 				edgeApiPath('/usage'),
 				{
-					headers: {
-						Authorization: `Bearer ${accessToken}`
-					}
+					headers: bearerHeaders(accessToken)
 				},
 				LLM_USAGE_TIMEOUT_MS
 			);

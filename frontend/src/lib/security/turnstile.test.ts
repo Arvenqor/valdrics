@@ -20,7 +20,7 @@ describe('turnstile helper', () => {
 		await expect(module.getTurnstileToken('sso_discovery')).resolves.toBeNull();
 	});
 
-	it('caches tokens per action to avoid duplicate execute calls', async () => {
+	it('caches tokens per action through the public API', async () => {
 		vi.doMock('$app/environment', () => ({ browser: true }));
 		vi.doMock('$env/dynamic/public', () => ({
 			env: {}

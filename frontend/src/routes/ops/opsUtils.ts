@@ -6,6 +6,7 @@ import type {
 	JobSLOMetric,
 	JobSLOResponse
 } from './opsTypes';
+export { formatUsd, formatCompactUsd, formatDate, formatNumber, formatDuration } from '$lib/format';
 
 export function buildIngestionSlaUrl(windowHours: number): string {
 	const params = new URLSearchParams({
@@ -111,36 +112,6 @@ export function buildRestatementUrl(
 		params.push(`provider=${encodeURIComponent(provider)}`);
 	}
 	return `/costs/reconciliation/restatements?${params.join('&')}`;
-}
-
-export function formatDate(value: string | null): string {
-	if (!value) return '-';
-	return new Date(value).toLocaleString();
-}
-
-export function formatUsd(value: number): string {
-	return new Intl.NumberFormat('en-US', {
-		style: 'currency',
-		currency: 'USD',
-		maximumFractionDigits: 2
-	}).format(value || 0);
-}
-
-export function formatNumber(value: number, fractionDigits = 2): string {
-	return new Intl.NumberFormat('en-US', {
-		maximumFractionDigits: fractionDigits
-	}).format(value || 0);
-}
-
-export function formatDuration(seconds: number | null): string {
-	if (seconds === null || Number.isNaN(seconds)) return '-';
-	if (seconds < 60) return `${Math.round(seconds)}s`;
-	const minutes = Math.floor(seconds / 60);
-	const remainder = Math.round(seconds % 60);
-	if (minutes < 60) return `${minutes}m ${remainder}s`;
-	const hours = Math.floor(minutes / 60);
-	const mins = minutes % 60;
-	return `${hours}h ${mins}m`;
 }
 
 export function ingestionSlaBadgeClass(sla: IngestionSLAResponse): string {

@@ -1,7 +1,7 @@
 import { api } from '$lib/api';
+import { bearerHeaders, extractApiErrorMessage } from '$lib/http';
 import { edgeApiPath } from '$lib/edgeProxy';
 import {
-	extractErrorMessage,
 	IdentitySettingsResponseSchema,
 	IdentitySettingsUpdateSchema
 } from './identitySettingsModel';
@@ -19,18 +19,12 @@ function normalizeIdentitySettings(settings: IdentitySettings): IdentitySettings
 	};
 }
 
-function buildHeaders(accessToken: string): Record<string, string> {
-	return {
-		Authorization: `Bearer ${accessToken}`
-	};
-}
-
 export async function loadIdentitySettingsState(
 	accessToken: string,
 	requestTimeoutMs: number
 ): Promise<{ settings: IdentitySettings | null; domainsText: string }> {
 	const res = await api.get(edgeApiPath('/settings/identity'), {
-		headers: buildHeaders(accessToken),
+		headers: bearerHeaders(accessToken),
 		timeoutMs: requestTimeoutMs
 	});
 
@@ -43,7 +37,7 @@ export async function loadIdentitySettingsState(
 
 	if (!res.ok) {
 		const data = await res.json().catch(() => ({}));
-		throw new Error(extractErrorMessage(data, 'Failed to load identity settings'));
+		throw new Error(extractApiErrorMessage(data, 'Failed to load identity settings'));
 	}
 
 	const parsed = IdentitySettingsResponseSchema.safeParse(await res.json());
@@ -86,11 +80,11 @@ export async function saveIdentitySettingsState(
 	}
 
 	const res = await api.put(edgeApiPath('/settings/identity'), validated.data, {
-		headers: buildHeaders(accessToken)
+		headers: bearerHeaders(accessToken)
 	});
 	if (!res.ok) {
 		const data = await res.json().catch(() => ({}));
-		throw new Error(extractErrorMessage(data, 'Failed to save identity settings'));
+		throw new Error(extractApiErrorMessage(data, 'Failed to save identity settings'));
 	}
 
 	const parsed = IdentitySettingsResponseSchema.safeParse(await res.json());

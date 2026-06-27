@@ -2,6 +2,7 @@
 	import AuthGate from '$lib/components/AuthGate.svelte';
 	import { canAccessAdminHealth } from '$lib/entitlements';
 	import { edgeApiPath } from '$lib/edgeProxy';
+	import { bearerHeaders, extractApiErrorMessage } from '$lib/http';
 	import { TimeoutError, fetchWithTimeout } from '$lib/fetchWithTimeout';
 
 	import HealthDashboardPanel from './HealthDashboardPanel.svelte';
@@ -21,15 +22,6 @@
 	let hasPlatformAccess = $derived(
 		canAccessAdminHealth(data.profile?.role ?? 'member', data.profile?.platform_operator)
 	);
-
-	function extractApiError(payload: unknown): string | null {
-		if (!payload || typeof payload !== 'object') return null;
-		const maybe = payload as Record<string, unknown>;
-		if (typeof maybe.detail === 'string' && maybe.detail.trim()) return maybe.detail;
-		if (typeof maybe.message === 'string' && maybe.message.trim()) return maybe.message;
-		if (typeof maybe.error === 'string' && maybe.error.trim()) return maybe.error;
-		return null;
-	}
 
 	async function loadHealthDashboard(accessToken: string | undefined, hasUser: boolean) {
 		const requestId = ++healthRequestId;
@@ -57,9 +49,7 @@
 				fetch,
 				edgeApiPath('/admin/health-dashboard'),
 				{
-					headers: {
-						Authorization: `Bearer ${accessToken}`
-					}
+				headers: bearerHeaders(accessToken)
 				},
 				ADMIN_HEALTH_TIMEOUT_MS
 			);
@@ -90,7 +80,7 @@
 				fairUse = null;
 				fairUseError = '';
 				forbidden = false;
-				error = extractApiError(payload) || `Failed to load health metrics (HTTP ${res.status}).`;
+				error = extractApiErrorMessage(payload, `Failed to load health metrics (HTTP ${res.status}).`);
 				return;
 			}
 
@@ -103,9 +93,7 @@
 					fetch,
 					edgeApiPath('/admin/health-dashboard/fair-use'),
 					{
-						headers: {
-							Authorization: `Bearer ${accessToken}`
-						}
+						headers: bearerHeaders(accessToken)
 					},
 					ADMIN_HEALTH_TIMEOUT_MS
 				);
@@ -116,8 +104,7 @@
 					const payload = await fairUseRes.json().catch(() => ({}));
 					fairUse = null;
 					fairUseError =
-						extractApiError(payload) ||
-						`Fair-use runtime status unavailable (HTTP ${fairUseRes.status}).`;
+						extractApiErrorMessage(payload, `Fair-use runtime status unavailable (HTTP ${fairUseRes.status}).`);
 					return;
 				}
 

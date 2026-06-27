@@ -6,8 +6,8 @@
 	import { clientLogger } from '$lib/logging/client';
 	import { formatValidationIssues } from '$lib/validation/clientZod';
 	import { isGrowthPlus } from './identitySettingsHelpers';
+	import { bearerHeaders, extractApiErrorMessage } from '$lib/http';
 	import {
-		extractErrorMessage,
 		IDENTITY_REQUEST_TIMEOUT_MS,
 		IdentityDiagnosticsSchema
 	} from './identitySettingsModel';
@@ -34,7 +34,7 @@
 				return;
 			}
 			const res = await api.get(edgeApiPath('/settings/identity/diagnostics'), {
-				headers: { Authorization: `Bearer ${accessToken}` },
+				headers: bearerHeaders(accessToken),
 				timeoutMs: IDENTITY_REQUEST_TIMEOUT_MS
 			});
 			if (res.status === 403) {
@@ -43,7 +43,7 @@
 			}
 			if (!res.ok) {
 				const data = await res.json().catch(() => ({}));
-				throw new Error(extractErrorMessage(data, 'Failed to load identity diagnostics'));
+				throw new Error(extractApiErrorMessage(data, 'Failed to load identity diagnostics'));
 			}
 			const parsedResult = IdentityDiagnosticsSchema.safeParse(await res.json());
 			if (!parsedResult.success) {

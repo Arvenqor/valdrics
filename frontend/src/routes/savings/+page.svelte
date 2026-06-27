@@ -4,6 +4,9 @@
 	import { onMount } from 'svelte';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { api } from '$lib/api';
+	import { bearerHeaders, extractApiErrorMessage } from '$lib/http';
+	import { formatDate, formatUsd } from '$lib/format';
+	import { tierAtLeast } from '$lib/tier';
 	import { edgeApiPath } from '$lib/edgeProxy';
 	import { TimeoutError } from '$lib/fetchWithTimeout';
 	import { clientLogger } from '$lib/logging/client';
@@ -57,29 +60,8 @@
 		return params;
 	}
 
-	function isProPlus(tierValue: string | null | undefined): boolean {
-		return ['pro', 'enterprise'].includes((tierValue ?? '').toLowerCase());
-	}
-
-	function getHeaders() {
-		return {
-			Authorization: `Bearer ${data.session?.access_token}`
-		};
-	}
-
 	async function getWithTimeout(url: string, headers: Record<string, string>) {
 		return api.get(url, { headers, timeoutMs: SAVINGS_REQUEST_TIMEOUT_MS });
-	}
-
-	function formatUsd(value: number): string {
-		if (!Number.isFinite(value)) return '$0.00';
-		return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(value);
-	}
-
-	function formatDate(value: string): string {
-		const parsed = new Date(value);
-		if (Number.isNaN(parsed.getTime())) return value;
-		return parsed.toLocaleString();
 	}
 
 	function normalizeLoadError(e: unknown, timeoutMessage: string, fallbackMessage: string): string {
@@ -101,7 +83,7 @@
 			loading = false;
 			return;
 		}
-		if (!isProPlus(data.subscription?.tier)) {
+		if (!tierAtLeast(data.subscription?.tier, 'pro')) {
 			loading = false;
 			return;
 		}
@@ -114,16 +96,14 @@
 		drilldown = null;
 		realizedEvents = [];
 		try {
-			const headers = getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const params = buildSavingsParams();
 			params.set('response_format', 'json');
 
 			const res = await getWithTimeout(edgeApiPath(`/savings/proof?${params.toString()}`), headers);
 			if (!res.ok) {
 				const payload = await res.json().catch(() => ({}));
-				throw new Error(
-					payload.detail || payload.message || 'Failed to load savings proof report.'
-				);
+				throw new Error(extractApiErrorMessage(payload, 'Failed to load savings proof report.'));
 			}
 			report = (await res.json()) as SavingsProofResponse;
 			await Promise.allSettled([loadDrilldown(), loadRealizedEvents()]);
@@ -141,12 +121,12 @@
 
 	async function loadDrilldown() {
 		if (!data.user || !data.session?.access_token) return;
-		if (!isProPlus(data.subscription?.tier)) return;
+		if (!tierAtLeast(data.subscription?.tier, 'pro')) return;
 
 		drilldownError = '';
 		drilldown = null;
 		try {
-			const headers = getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const params = buildSavingsParams();
 			params.set('dimension', drilldownDimension);
 			params.set('response_format', 'json');
@@ -157,7 +137,7 @@
 			);
 			if (!res.ok) {
 				const payload = await res.json().catch(() => ({}));
-				throw new Error(payload.detail || payload.message || 'Failed to load drilldown.');
+				throw new Error(extractApiErrorMessage(payload, 'Failed to load drilldown.'));
 			}
 			drilldown = (await res.json()) as SavingsProofDrilldownResponse;
 		} catch (e) {
@@ -172,12 +152,12 @@
 
 	async function loadRealizedEvents() {
 		if (!data.user || !data.session?.access_token) return;
-		if (!isProPlus(data.subscription?.tier)) return;
+		if (!tierAtLeast(data.subscription?.tier, 'pro')) return;
 
 		realizedEventsError = '';
 		realizedEvents = [];
 		try {
-			const headers = getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const params = buildSavingsParams();
 			params.set('response_format', 'json');
 			params.set('limit', '25');
@@ -187,9 +167,7 @@
 			);
 			if (!res.ok) {
 				const payload = await res.json().catch(() => ({}));
-				throw new Error(
-					payload.detail || payload.message || 'Failed to load realized savings evidence.'
-				);
+				throw new Error(extractApiErrorMessage(payload, 'Failed to load realized savings evidence.'));
 			}
 			realizedEvents = (await res.json()) as RealizedSavingsEvent[];
 		} catch (e) {
@@ -209,7 +187,7 @@
 		error = '';
 		success = '';
 		try {
-			const headers = getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const params = new SvelteURLSearchParams();
 			if (dateRange.startDate) params.set('start_date', dateRange.startDate);
 			if (dateRange.endDate) params.set('end_date', dateRange.endDate);
@@ -219,7 +197,7 @@
 			const res = await getWithTimeout(edgeApiPath(`/savings/proof?${params.toString()}`), headers);
 			if (!res.ok) {
 				const payload = await res.json().catch(() => ({}));
-				throw new Error(payload.detail || payload.message || 'Failed to export savings report.');
+				throw new Error(extractApiErrorMessage(payload, 'Failed to export savings report.'));
 			}
 			const csv = await res.text();
 			const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -264,7 +242,7 @@
 	bind:provider
 	bind:datePreset
 	{dateRange}
-	{isProPlus}
+	isProPlus={(tierValue) => tierAtLeast(tierValue, 'pro')}
 	{formatUsd}
 	{formatDate}
 	{loadReport}

@@ -2,6 +2,7 @@ import { api } from '$lib/api';
 import { edgeApiPath } from '$lib/edgeProxy';
 import { TimeoutError } from '$lib/fetchWithTimeout';
 import { clientLogger } from '$lib/logging/client';
+import { bearerHeaders, extractApiErrorMessage } from '$lib/http';
 import { formatValidationIssues } from '$lib/validation/formatValidationIssues';
 import { INITIAL_NOTIFICATION_SETTINGS } from './settingsPageInitialState';
 import type { PolicyDiagnostics } from './settingsPageModels';
@@ -16,7 +17,7 @@ type NotificationSettingsState = typeof INITIAL_NOTIFICATION_SETTINGS;
 const SETTINGS_REQUEST_TIMEOUT_MS = 8000;
 
 function getHeaders(accessToken?: string) {
-	return { Authorization: `Bearer ${accessToken}` };
+	return bearerHeaders(accessToken);
 }
 
 async function getWithTimeout(url: string, headers?: Record<string, string>) {
@@ -26,10 +27,6 @@ async function getWithTimeout(url: string, headers?: Record<string, string>) {
 	});
 }
 
-async function getApiErrorMessage(res: Response, fallback: string): Promise<string> {
-	const payload = await res.json().catch(() => ({}));
-	return payload.detail || payload.message || fallback;
-}
 
 export async function loadNotificationSettings(
 	accessToken: string | undefined,
@@ -70,7 +67,8 @@ export async function saveNotificationSettings(
 		const headers = getHeaders(accessToken);
 		const res = await api.put(edgeApiPath('/settings/notifications'), validated, { headers });
 		if (!res.ok) {
-			throw new Error(await getApiErrorMessage(res, 'Failed to save settings'));
+			const payload = await res.json().catch(() => ({}));
+			throw new Error(extractApiErrorMessage(payload, 'Failed to save settings'));
 		}
 		return applyPostSaveNotificationSettings(settings, validated);
 	} catch (nextError) {
@@ -86,7 +84,8 @@ export async function runNotificationTest(
 	const headers = getHeaders(accessToken);
 	const res = await api.post(edgeApiPath(path), {}, { headers });
 	if (!res.ok) {
-		throw new Error(await getApiErrorMessage(res, fallbackMessage));
+		const payload = await res.json().catch(() => ({}));
+		throw new Error(extractApiErrorMessage(payload, fallbackMessage));
 	}
 }
 
@@ -98,7 +97,8 @@ export async function runNotificationPolicyDiagnostics(
 		headers
 	});
 	if (!res.ok) {
-		throw new Error(await getApiErrorMessage(res, 'Failed to run policy diagnostics'));
+		const payload = await res.json().catch(() => ({}));
+		throw new Error(extractApiErrorMessage(payload, 'Failed to run policy diagnostics'));
 	}
 	return (await res.json()) as PolicyDiagnostics;
 }

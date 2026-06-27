@@ -5,6 +5,7 @@ import {
 	operationalProviderParam,
 	spendProviderParam
 } from '$lib/spendProviderFilters';
+import { bearerHeaders } from '$lib/http';
 import type { PageLoad } from './$types';
 
 const DASHBOARD_REQUEST_TIMEOUT_MS = 8000;
@@ -63,9 +64,7 @@ export const load: PageLoad = async ({ fetch, parent, url }) => {
 		};
 	}
 
-	const headers = {
-		Authorization: `Bearer ${session?.access_token}`
-	};
+	const headers = bearerHeaders(session?.access_token);
 	const tier = String(subscription?.tier ?? 'free').toLowerCase();
 	const hasChargeback = ['growth', 'pro', 'enterprise'].includes(tier);
 	const hasUnitEconomics = ['starter', 'growth', 'pro', 'enterprise', 'free'].includes(tier);

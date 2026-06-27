@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Boxes, Clock, ShieldAlert } from '@lucide/svelte';
+	import { formatCompactUsd } from '$lib/format';
 	import type { ApprovalQueueSummary, TopServiceSpend } from './overviewTypes';
 
 	let {
@@ -7,20 +8,12 @@
 		monthlyWasteUsd = 0,
 		topServices = [],
 		approvals
-	} = $props<{
+	}: {
 		zombieCount: number;
 		monthlyWasteUsd: number;
 		topServices: TopServiceSpend[];
 		approvals: ApprovalQueueSummary;
-	}>();
-
-	function formatMoney(value: number): string {
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD',
-			maximumFractionDigits: value >= 1000 ? 0 : 2
-		}).format(value);
-	}
+	} = $props();
 
 	function formatAction(value: string): string {
 		return value.replace(/_/g, ' ');
@@ -51,7 +44,7 @@
 
 	<div class="waste-band">
 		<span>Monthly opportunity from waste signals</span>
-		<strong>{formatMoney(monthlyWasteUsd)}</strong>
+		<strong>{formatCompactUsd(monthlyWasteUsd)}</strong>
 	</div>
 
 	<div class="split-list">
@@ -62,7 +55,7 @@
 					{#each topServices.slice(0, 4) as service (service.service)}
 						<li>
 							<span>{service.service}</span>
-							<strong>{formatMoney(service.costUsd)}</strong>
+							<strong>{formatCompactUsd(service.costUsd)}</strong>
 						</li>
 					{/each}
 				</ul>
@@ -78,7 +71,7 @@
 					{#each approvals.items as item (item.id)}
 						<li>
 							<span>{formatAction(item.action)} · {item.environment}</span>
-							<strong>{formatMoney(item.monthlyDeltaUsd)}</strong>
+							<strong>{formatCompactUsd(item.monthlyDeltaUsd)}</strong>
 						</li>
 					{/each}
 				</ul>

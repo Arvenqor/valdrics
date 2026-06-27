@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { base } from '$app/paths';
+	import { formatCompactUsd, formatNumber } from '$lib/format';
 	import InventoryPanel from './InventoryPanel.svelte';
 	import PolicyHealthRings from './PolicyHealthRings.svelte';
 	import SavingsPanel from './SavingsPanel.svelte';
@@ -9,20 +10,6 @@
 	let { overview } = $props<{
 		overview: DashboardOverviewModel;
 	}>();
-
-	function formatMoney(value: number): string {
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD',
-			maximumFractionDigits: value >= 1000 ? 0 : 2
-		}).format(value);
-	}
-
-	function formatNumber(value: number): string {
-		return new Intl.NumberFormat('en-US', {
-			maximumFractionDigits: value >= 100 ? 0 : 1
-		}).format(value);
-	}
 
 	function formatPercent(value: number | null): string {
 		return value === null ? 'N/A' : `${value.toFixed(0)}%`;
@@ -51,7 +38,7 @@
 		{
 			id: 'spend',
 			label: `${overview.periodLabel} Spend`,
-			value: formatMoney(overview.totalSpendUsd),
+			value: formatCompactUsd(overview.totalSpendUsd),
 			sub: `${overview.cloudBreakdown.length} provider signals · ${overview.dailySpend.length} daily ledger points`,
 			tone: 'var(--color-ink-50)',
 			href: '',
@@ -63,7 +50,7 @@
 			value: String(overview.approvals.pendingCount),
 			sub:
 				overview.approvals.pendingCount > 0
-					? `${formatMoney(overview.approvals.monthlyDeltaUsd)} monthly delta awaiting review`
+					? `${formatCompactUsd(overview.approvals.monthlyDeltaUsd)} monthly delta awaiting review`
 					: 'No reviewer-visible approval requests',
 			tone:
 				overview.approvals.pendingCount > 0
@@ -87,8 +74,8 @@
 		{
 			id: 'savings',
 			label: 'Savings Realized',
-			value: formatMoney(overview.savings.realizedMonthlyUsd),
-			sub: `${formatMoney(annualizedSavings)}/yr run-rate from applied actions`,
+			value: formatCompactUsd(overview.savings.realizedMonthlyUsd),
+			sub: `${formatCompactUsd(annualizedSavings)}/yr run-rate from applied actions`,
 			tone: 'var(--color-success-300)',
 			href: `${base}/savings`,
 			blink: false
@@ -137,7 +124,7 @@
 	<div class="evidence-strip" aria-label="Additional operating evidence">
 		<span>{formatNumber(overview.carbonTotalKgco2e)} kg CO2e evidence</span>
 		<span>{overview.zombieCount} waste findings</span>
-		<span>{formatMoney(overview.monthlyWasteUsd)} monthly waste opportunity</span>
+		<span>{formatCompactUsd(overview.monthlyWasteUsd)} monthly waste opportunity</span>
 	</div>
 
 	<div class="overview-grid overview-grid--top">

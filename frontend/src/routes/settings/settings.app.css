@@ -10,7 +10,6 @@
 @source '../../lib/components/EnforcementSettingsCard.svelte';
 @source '../../lib/components/EnforcementSettingsCardView.svelte';
 @source '../../lib/components/EnforcementSettingsAdvancedSection.svelte';
-@source '../../lib/components/IdentitySettingsCard.svelte';
 @source '../../lib/components/IdentitySettingsCardContent.svelte';
 @source '../../lib/components/identity/IdentityDiagnosticsSection.svelte';
 @source '../../lib/components/identity/IdentityScimSection.svelte';

@@ -1,4 +1,5 @@
 import { api } from '$lib/api';
+import { bearerHeaders } from '$lib/http';
 import { edgeApiPath } from '$lib/edgeProxy';
 import { TimeoutError } from '$lib/fetchWithTimeout';
 import { buildUnitEconomicsUrl, hasInvalidUnitWindow } from './unitEconomics';
@@ -15,12 +16,6 @@ interface UnitActionsInput {
 
 function hasSessionToken(data: OpsRuntimeData | null | undefined): data is OpsRuntimeData {
 	return Boolean(data?.user && data.session?.access_token);
-}
-
-function buildHeaders(data: OpsRuntimeData): Record<string, string> {
-	return {
-		Authorization: `Bearer ${data.session?.access_token}`
-	};
 }
 
 async function getWithTimeout(
@@ -54,7 +49,7 @@ export function createOpsOperationalUnitActions(input: UnitActionsInput) {
 
 		state.error = '';
 		try {
-			const headers = buildHeaders(data);
+			const headers = bearerHeaders(data.session?.access_token);
 			const results = await Promise.allSettled([
 				getWithTimeout(edgeApiPath('/costs/unit-economics/settings'), headers, requestTimeoutMs),
 				getWithTimeout(
@@ -107,7 +102,7 @@ export function createOpsOperationalUnitActions(input: UnitActionsInput) {
 		state.error = '';
 		state.success = '';
 		try {
-			const headers = buildHeaders(data);
+			const headers = bearerHeaders(data.session?.access_token);
 			const [settingsRes, unitRes] = await Promise.all([
 				api.get(edgeApiPath('/costs/unit-economics/settings'), { headers }),
 				api.get(
@@ -148,7 +143,7 @@ export function createOpsOperationalUnitActions(input: UnitActionsInput) {
 		state.error = '';
 		state.success = '';
 		try {
-			const headers = buildHeaders(data);
+			const headers = bearerHeaders(data.session?.access_token);
 			const payload = {
 				default_request_volume: Number(state.unitSettings.default_request_volume),
 				default_workload_volume: Number(state.unitSettings.default_workload_volume),

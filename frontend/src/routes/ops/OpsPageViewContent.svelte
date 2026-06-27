@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
+	import { bearerHeaders, extractApiErrorMessage } from '$lib/http';
+	import { formatDate } from '$lib/format';
 	import AuthGate from '$lib/components/AuthGate.svelte';
 	import { edgeApiPath } from '$lib/edgeProxy';
 	import { TimeoutError } from '$lib/fetchWithTimeout';
@@ -16,7 +18,7 @@
 		RemediationHistoryItem,
 		StrategyRecommendation
 	} from './opsTypes';
-	import { formatDate, formatUsd, policyDecisionClass } from './opsUtils';
+	import { formatUsd, policyDecisionClass } from './opsUtils';
 
 	const OPS_REQUEST_TIMEOUT_MS = 10000;
 	const loadOpsOperationalHealthSection = createLazyComponent(
@@ -48,12 +50,6 @@
 	let backlogAnchor: HTMLDivElement | null = $state(null);
 	let backlogVisible = $state(false);
 
-	function getHeaders() {
-		return {
-			Authorization: `Bearer ${data.session?.access_token}`
-		};
-	}
-
 	async function getWithTimeout(url: string, headers: Record<string, string>) {
 		return api.get(url, { headers, timeoutMs: OPS_REQUEST_TIMEOUT_MS });
 	}
@@ -65,7 +61,7 @@
 
 		error = '';
 		try {
-			const headers = getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const results = await Promise.allSettled([
 				getWithTimeout(edgeApiPath('/zombies/pending'), headers),
 				getWithTimeout(edgeApiPath('/zombies/history'), headers),
@@ -127,13 +123,13 @@
 		remediationModalError = '';
 		remediationModalSuccess = '';
 		try {
-			const headers = getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.get(edgeApiPath(`/zombies/policy-preview/${selectedRequest.id}`), {
 				headers
 			});
 			if (!res.ok) {
 				const payload = await res.json().catch(() => ({}));
-				throw new Error(payload.detail || payload.message || 'Failed to preview policy decision.');
+				throw new Error(extractApiErrorMessage(payload, 'Failed to preview policy decision.'));
 			}
 			selectedPolicyPreview = await res.json();
 		} catch (e) {
@@ -166,7 +162,7 @@
 		error = '';
 		success = '';
 		try {
-			const headers = getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.post(
 				edgeApiPath(`/zombies/approve/${requestId}`),
 				{ notes: 'Approved from Ops Center' },
@@ -174,7 +170,7 @@
 			);
 			if (!res.ok) {
 				const payload = await res.json().catch(() => ({}));
-				throw new Error(payload.detail || payload.message || 'Failed to approve request.');
+				throw new Error(extractApiErrorMessage(payload, 'Failed to approve request.'));
 			}
 			remediationModalSuccess = `Request ${requestId.slice(0, 8)} approved.`;
 			success = remediationModalSuccess;
@@ -204,14 +200,14 @@
 		error = '';
 		success = '';
 		try {
-			const headers = getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const url = bypassGracePeriod
 				? edgeApiPath(`/zombies/execute/${requestId}?bypass_grace_period=true`)
 				: edgeApiPath(`/zombies/execute/${requestId}`);
 			const res = await api.post(url, undefined, { headers });
 			if (!res.ok) {
 				const payload = await res.json().catch(() => ({}));
-				throw new Error(payload.detail || payload.message || 'Failed to execute request.');
+				throw new Error(extractApiErrorMessage(payload, 'Failed to execute request.'));
 			}
 			const payload = (await res.json().catch(() => ({}))) as { status?: string };
 			const statusValue = (payload.status || '').toLowerCase();
@@ -241,11 +237,11 @@
 		error = '';
 		success = '';
 		try {
-			const headers = getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.post(edgeApiPath('/jobs/process?limit=10'), undefined, { headers });
 			if (!res.ok) {
 				const payload = await res.json().catch(() => ({}));
-				throw new Error(payload.detail || payload.message || 'Failed to process jobs.');
+				throw new Error(extractApiErrorMessage(payload, 'Failed to process jobs.'));
 			}
 			const payload = await res.json();
 			success = `Processed ${payload.processed} jobs (${payload.succeeded} succeeded, ${payload.failed} failed).`;
@@ -263,11 +259,11 @@
 		error = '';
 		success = '';
 		try {
-			const headers = getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.post(edgeApiPath('/strategies/refresh'), undefined, { headers });
 			if (!res.ok) {
 				const payload = await res.json().catch(() => ({}));
-				throw new Error(payload.detail || payload.message || 'Failed to refresh recommendations.');
+				throw new Error(extractApiErrorMessage(payload, 'Failed to refresh recommendations.'));
 			}
 			const payload = await res.json();
 			success = payload.message || 'Strategy refresh completed.';
@@ -285,13 +281,13 @@
 		error = '';
 		success = '';
 		try {
-			const headers = getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.post(edgeApiPath(`/strategies/apply/${id}`), undefined, {
 				headers
 			});
 			if (!res.ok) {
 				const payload = await res.json().catch(() => ({}));
-				throw new Error(payload.detail || payload.message || 'Failed to apply recommendation.');
+				throw new Error(extractApiErrorMessage(payload, 'Failed to apply recommendation.'));
 			}
 			success = `Recommendation ${id.slice(0, 8)} marked as applied.`;
 			await loadOpsData();

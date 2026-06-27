@@ -1,5 +1,6 @@
 import { edgeApiPath } from '$lib/edgeProxy';
 import { fetchWithTimeout } from '$lib/fetchWithTimeout';
+import { bearerHeaders } from '$lib/http';
 import type { PageLoad } from './$types';
 import { isBillingUsagePayload } from './billingPage';
 import { DEFAULT_PRICING_PLANS, isPricingPlanArray } from '../pricing/plans';
@@ -27,9 +28,7 @@ export const load: PageLoad = async ({ fetch, parent, url }) => {
 		};
 	}
 
-	const headers = {
-		Authorization: `Bearer ${accessToken}`
-	};
+	const headers = bearerHeaders(accessToken);
 
 	const [plansResponse, usageResponse] = await Promise.all([
 		fetchWithTimeout(fetch, edgeApiPath('/billing/plans'), {}, BILLING_REQUEST_TIMEOUT_MS).catch(

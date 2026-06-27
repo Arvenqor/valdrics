@@ -5,6 +5,7 @@
 	import { AlertTriangle, Check, Clock, RefreshCw, Route, ShieldCheck } from '@lucide/svelte';
 	import AuthGate from '$lib/components/AuthGate.svelte';
 	import { api } from '$lib/api';
+	import { bearerHeaders, extractApiErrorMessage } from '$lib/http';
 	import { edgeApiPath } from '$lib/edgeProxy';
 	import { TimeoutError } from '$lib/fetchWithTimeout';
 	import ApprovalQueueCard from './ApprovalQueueCard.svelte';
@@ -44,20 +45,6 @@
 	let pendingMonthlyDelta = $derived(getPendingMonthlyDelta(approvals));
 	let earliestExpiry = $derived(getEarliestExpiry(approvals));
 
-	function headers() {
-		return {
-			Authorization: `Bearer ${data.session?.access_token}`
-		};
-	}
-
-	function extractErrorMessage(payload: unknown, fallback: string): string {
-		if (!payload || typeof payload !== 'object') return fallback;
-		const record = payload as Record<string, unknown>;
-		if (typeof record.detail === 'string' && record.detail.trim()) return record.detail;
-		if (typeof record.message === 'string' && record.message.trim()) return record.message;
-		return fallback;
-	}
-
 	async function loadApprovals(options: { silent?: boolean } = {}) {
 		if (!data.user || !data.session?.access_token || !canAccessApprovals) {
 			loading = false;
@@ -73,12 +60,12 @@
 
 		try {
 			const response = await api.get(edgeApiPath('/enforcement/approvals/queue?limit=50'), {
-				headers: headers(),
+				headers: bearerHeaders(data.session?.access_token),
 				timeoutMs: APPROVALS_REQUEST_TIMEOUT_MS
 			});
 			if (!response.ok) {
 				const payload = await response.json().catch(() => ({}));
-				throw new Error(extractErrorMessage(payload, 'Failed to load approval queue.'));
+				throw new Error(extractApiErrorMessage(payload, 'Failed to load approval queue.'));
 			}
 			approvals = sortApprovalsByExpiry((await response.json()) as ApprovalQueueItem[]);
 		} catch (caught) {
@@ -100,11 +87,11 @@
 			const response = await api.post(
 				edgeApiPath(`/enforcement/approvals/${approval.approval_id}/${decision}`),
 				{ notes: `frontend_${decision}` },
-				{ headers: headers(), timeoutMs: APPROVALS_REQUEST_TIMEOUT_MS }
+				{ headers: bearerHeaders(data.session?.access_token), timeoutMs: APPROVALS_REQUEST_TIMEOUT_MS }
 			);
 			if (!response.ok) {
 				const payload = await response.json().catch(() => ({}));
-				throw new Error(extractErrorMessage(payload, `Failed to ${decision} approval.`));
+				throw new Error(extractApiErrorMessage(payload, `Failed to ${decision} approval.`));
 			}
 			approvals = approvals.filter((item) => item.approval_id !== approval.approval_id);
 			success = `Approval ${decision === 'approve' ? 'approved' : 'denied'} for ${approval.resource_reference}.`;

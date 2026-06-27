@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { api } from '$lib/api';
+	import { bearerHeaders, extractApiErrorMessage } from '$lib/http';
 	import { edgeApiPath } from '$lib/edgeProxy';
 	import { clientLogger } from '$lib/logging/client';
 	import type { SafetyStatus } from './settingsPageModels';
@@ -46,8 +47,6 @@
 	let deferredSettingsDataPromise: Promise<void> | null = null;
 	let deferredSettingsDataLoaded = $state(false);
 
-	const getHeaders = () => ({ Authorization: `Bearer ${data.session?.access_token}` });
-
 	function loadSettingsSchemas() {
 		if (!settingsSchemasPromise) {
 			settingsSchemasPromise = import('./settingsPageSchemas');
@@ -62,20 +61,15 @@
 		});
 	}
 
-	async function getApiErrorMessage(res: Response, fallback: string): Promise<string> {
-		const payload = await res.json().catch(() => ({}));
-		return payload.detail || payload.message || fallback;
-	}
-
 	async function savePersona() {
 		savingPersona = true;
 		error = '';
 		success = '';
 		try {
-			const headers = await getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.put(edgeApiPath('/settings/profile'), { persona }, { headers });
 			if (!res.ok) {
-				throw new Error(await getApiErrorMessage(res, 'Failed to save persona.'));
+				throw new Error(extractApiErrorMessage(await res.json().catch(() => ({})), 'Failed to save persona.'));
 			}
 			success = `Persona updated: ${persona}.`;
 			setTimeout(() => (success = ''), 3000);
@@ -90,7 +84,7 @@
 
 	async function loadCarbonSettings() {
 		try {
-			const headers = await getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await getWithTimeout(edgeApiPath('/settings/carbon'), headers);
 			if (res.ok) {
 				carbonSettings = await res.json();
@@ -109,10 +103,10 @@
 		try {
 			const { CarbonSettingsSchema } = await loadSettingsSchemas();
 			CarbonSettingsSchema.parse(carbonSettings);
-			const headers = await getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.put(edgeApiPath('/settings/carbon'), carbonSettings, { headers });
 			if (!res.ok) {
-				throw new Error(await getApiErrorMessage(res, 'Failed to save carbon settings'));
+				throw new Error(extractApiErrorMessage(await res.json().catch(() => ({})), 'Failed to save carbon settings'));
 			}
 			success = 'Carbon settings saved successfully!';
 			setTimeout(() => (success = ''), 3000);
@@ -125,7 +119,7 @@
 
 	async function loadModels() {
 		try {
-			const headers = await getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await getWithTimeout(edgeApiPath('/settings/llm/models'), headers);
 			if (res.ok) {
 				providerModels = await res.json();
@@ -137,7 +131,7 @@
 
 	async function loadLLMSettings() {
 		try {
-			const headers = await getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await getWithTimeout(edgeApiPath('/settings/llm'), headers);
 			if (res.ok) {
 				llmSettings = await res.json();
@@ -156,10 +150,10 @@
 		try {
 			const { LLMSettingsSchema } = await loadSettingsSchemas();
 			LLMSettingsSchema.parse(llmSettings);
-			const headers = await getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.put(edgeApiPath('/settings/llm'), llmSettings, { headers });
 			if (!res.ok) {
-				throw new Error(await getApiErrorMessage(res, 'Failed to save LLM settings'));
+				throw new Error(extractApiErrorMessage(await res.json().catch(() => ({})), 'Failed to save LLM settings'));
 			}
 			const updated = await res.json();
 			llmSettings.openai_api_key = '';
@@ -181,7 +175,7 @@
 
 	async function loadActiveOpsSettings() {
 		try {
-			const headers = await getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await getWithTimeout(edgeApiPath('/settings/activeops'), headers);
 			if (res.ok) {
 				activeOpsSettings = await res.json();
@@ -200,10 +194,10 @@
 		try {
 			const { ActiveOpsSettingsSchema } = await loadSettingsSchemas();
 			ActiveOpsSettingsSchema.parse(activeOpsSettings);
-			const headers = await getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.put(edgeApiPath('/settings/activeops'), activeOpsSettings, { headers });
 			if (!res.ok) {
-				throw new Error(await getApiErrorMessage(res, 'Failed to save ActiveOps settings'));
+				throw new Error(extractApiErrorMessage(await res.json().catch(() => ({})), 'Failed to save ActiveOps settings'));
 			}
 			success = 'ActiveOps / Auto-Pilot settings saved!';
 			setTimeout(() => (success = ''), 3000);
@@ -218,10 +212,10 @@
 		loadingSafety = true;
 		safetyError = '';
 		try {
-			const headers = await getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await getWithTimeout(edgeApiPath('/settings/safety'), headers);
 			if (!res.ok) {
-				throw new Error(await getApiErrorMessage(res, 'Failed to load safety status'));
+				throw new Error(extractApiErrorMessage(await res.json().catch(() => ({})), 'Failed to load safety status'));
 			}
 			safetyStatus = (await res.json()) as SafetyStatus;
 		} catch (e) {
@@ -237,17 +231,15 @@
 		safetyError = '';
 		safetySuccess = '';
 		try {
-			const headers = await getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.post(edgeApiPath('/settings/safety/reset'), {}, { headers });
 			if (!res.ok) {
 				const payload = await res.json().catch(() => ({}));
-				throw new Error(
-					payload.detail ||
-						payload.message ||
-						(res.status === 403
-							? 'Admin role required to reset the circuit breaker.'
-							: 'Failed to reset circuit breaker.')
-				);
+				const fallback =
+					res.status === 403
+						? 'Admin role required to reset the circuit breaker.'
+						: 'Failed to reset circuit breaker.';
+				throw new Error(extractApiErrorMessage(payload, fallback));
 			}
 			safetySuccess = 'Circuit breaker reset to closed state.';
 			await loadSafetyStatus();

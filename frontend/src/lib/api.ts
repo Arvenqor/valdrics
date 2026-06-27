@@ -11,6 +11,7 @@
 import { uiState } from './stores/ui.svelte';
 import { fetchWithTimeout } from './fetchWithTimeout';
 import { edgeApiPath } from './edgeProxy';
+import { bearerHeaders } from './http';
 import { base } from '$app/paths';
 
 export type ResilientRequestInit = RequestInit & {
@@ -190,9 +191,12 @@ export async function resilientFetch(
 		if (session.accessToken) {
 			cachedTenantId = session.tenantId;
 			cachedTenantIdExpiresAt = Date.now() + DEV_TENANT_ID_CACHE_TTL_MS;
-			const headers = new Headers(requestOptions.headers);
-			headers.set('Authorization', `Bearer ${session.accessToken}`);
-			requestOptions.headers = headers;
+			const authHeaders = bearerHeaders(session.accessToken);
+			if ('Authorization' in authHeaders) {
+				const updatedHeaders = new Headers(requestOptions.headers);
+				updatedHeaders.set('Authorization', authHeaders.Authorization);
+				requestOptions.headers = updatedHeaders;
+			}
 			response = await fetchWithTimeout(fetch, url, requestOptions, timeoutMs);
 		} else {
 			cachedTenantId = null;

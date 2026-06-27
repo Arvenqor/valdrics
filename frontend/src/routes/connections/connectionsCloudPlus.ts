@@ -52,15 +52,6 @@ export function parseJsonArray(raw: string, fieldName: string): Array<Record<str
 	return parsed as Array<Record<string, unknown>>;
 }
 
-export function extractErrorMessage(payload: unknown, fallback: string): string {
-	if (!payload || typeof payload !== 'object') return fallback;
-	const maybeError = payload as { detail?: unknown; message?: unknown; error?: unknown };
-	for (const candidate of [maybeError.detail, maybeError.message, maybeError.error]) {
-		if (typeof candidate === 'string' && candidate.trim()) return candidate;
-	}
-	return fallback;
-}
-
 function validatePlatformConnectorConfig(
 	vendorKey: string,
 	connectorConfig: Record<string, unknown>,

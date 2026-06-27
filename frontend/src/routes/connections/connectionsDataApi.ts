@@ -1,6 +1,7 @@
 import { api } from '$lib/api';
 import { edgeApiPath } from '$lib/edgeProxy';
 import { TimeoutError } from '$lib/fetchWithTimeout';
+import { bearerHeaders, extractApiErrorMessage } from '$lib/http';
 
 export interface CloudConnection {
 	id: string;
@@ -58,7 +59,7 @@ interface ParsedConnectionsResponse {
 function buildHeaders(accessToken: string | undefined): Record<string, string> {
 	return {
 		'Content-Type': 'application/json',
-		Authorization: `Bearer ${accessToken}`
+		...bearerHeaders(accessToken)
 	};
 }
 
@@ -154,7 +155,7 @@ export async function syncAwsOrg(
 	);
 	const payload = (await response.json().catch(() => ({}))) as JsonResponse;
 	if (!response.ok) {
-		throw new Error(payload.detail || 'Sync failed');
+		throw new Error(extractApiErrorMessage(payload, 'Sync failed'));
 	}
 	return payload.message || 'Organization sync started.';
 }
@@ -185,7 +186,7 @@ export async function linkAwsDiscoveredAccount(
 	);
 	const payload = (await response.json().catch(() => ({}))) as JsonResponse;
 	if (!response.ok) {
-		throw new Error(payload.detail || 'Linking failed');
+		throw new Error(extractApiErrorMessage(payload, 'Linking failed'));
 	}
 	return payload.message || 'Account linked successfully.';
 }

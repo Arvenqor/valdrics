@@ -16,6 +16,7 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import AuthGate from '$lib/components/AuthGate.svelte';
+	import { bearerHeaders } from '$lib/http';
 	import { TimeoutError, fetchWithTimeout } from '$lib/fetchWithTimeout';
 	import './greenops-bento.css';
 	import GreenOpsTierPreview from './GreenOpsTierPreview.svelte';
@@ -82,7 +83,7 @@
 			const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
 			const startDate = thirtyDaysAgo.toISOString().split('T')[0];
 			const endDate = today.toISOString().split('T')[0];
-			const headers = { Authorization: `Bearer ${accessToken}` };
+			const headers = bearerHeaders(accessToken);
 
 			const [carbonRes, gravitonRes, budgetRes, intensityRes] = await Promise.all([
 				fetchWithTimeout(

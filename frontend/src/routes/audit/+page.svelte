@@ -1,7 +1,9 @@
 <script lang="ts">
 	import './audit.app.css';
 	import { onMount } from 'svelte';
+	import { formatDate } from '$lib/format';
 	import { api } from '$lib/api';
+	import { bearerHeaders, extractApiErrorMessage } from '$lib/http';
 	import { buildCompliancePackPath } from '$lib/compliancePack';
 	import { canAccessAuditLogs } from '$lib/entitlements';
 	import { edgeApiPath } from '$lib/edgeProxy';
@@ -43,23 +45,13 @@
 	let packCloseMaxRestatements = $state(5000);
 	let canAccessAudit = $derived(canAccessAuditLogs(data.subscription?.tier, data.profile?.role));
 
-	function getHeaders() {
-		return {
-			Authorization: `Bearer ${data.session?.access_token}`
-		};
-	}
-
 	async function getWithTimeout(url: string, headers: Record<string, string>) {
 		return api.get(url, { headers, timeoutMs: AUDIT_REQUEST_TIMEOUT_MS });
 	}
 
-	function formatDate(value: string): string {
-		return new Date(value).toLocaleString();
-	}
-
 	async function loadEventTypes() {
 		if (!canAccessAudit) return;
-		const headers = getHeaders();
+		const headers = bearerHeaders(data.session?.access_token);
 		const res = await getWithTimeout(edgeApiPath('/audit/event-types'), headers);
 		if (res.ok) {
 			const payload = await res.json();
@@ -80,7 +72,7 @@
 		loading = true;
 		error = '';
 		try {
-			const headers = getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const queryParts = [`limit=${limit}`, `offset=${offset}`, 'order=desc'];
 			if (selectedEventType) {
 				queryParts.push(`event_type=${encodeURIComponent(selectedEventType)}`);
@@ -89,7 +81,7 @@
 			const res = await getWithTimeout(edgeApiPath(`/audit/logs?${queryParts.join('&')}`), headers);
 			if (!res.ok) {
 				const payload = await res.json().catch(() => ({}));
-				throw new Error(payload.detail || payload.message || 'Failed to load audit logs.');
+				throw new Error(extractApiErrorMessage(payload, 'Failed to load audit logs.'));
 			}
 
 			logs = await res.json();
@@ -108,11 +100,11 @@
 		loadingDetail = true;
 		error = '';
 		try {
-			const headers = getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const res = await getWithTimeout(edgeApiPath(`/audit/logs/${id}`), headers);
 			if (!res.ok) {
 				const payload = await res.json().catch(() => ({}));
-				throw new Error(payload.detail || payload.message || 'Failed to load audit log detail.');
+				throw new Error(extractApiErrorMessage(payload, 'Failed to load audit log detail.'));
 			}
 			selectedDetail = await res.json();
 		} catch (e) {
@@ -135,13 +127,13 @@
 		error = '';
 		success = '';
 		try {
-			const headers = getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const query = selectedEventType ? `event_type=${encodeURIComponent(selectedEventType)}` : '';
 
 			const res = await getWithTimeout(edgeApiPath(`/audit/export?${query}`), headers);
 			if (!res.ok) {
 				const payload = await res.json().catch(() => ({}));
-				throw new Error(payload.detail || payload.message || 'Failed to export audit logs.');
+				throw new Error(extractApiErrorMessage(payload, 'Failed to export audit logs.'));
 			}
 
 			const csv = await res.text();
@@ -167,7 +159,7 @@
 		error = '';
 		success = '';
 		try {
-			const headers = getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const path = buildCompliancePackPath(
 				buildAuditCompliancePackOptions({
 					packIncludeFocus,
@@ -185,13 +177,11 @@
 			const res = await getWithTimeout(edgeApiPath(path), headers);
 			if (!res.ok) {
 				const payload = await res.json().catch(() => ({}));
-				throw new Error(
-					payload.detail ||
-						payload.message ||
-						(res.status === 403
-							? 'Owner role required to export compliance pack.'
-							: 'Failed to export compliance pack.')
-				);
+				const fallback =
+					res.status === 403
+						? 'Owner role required to export compliance pack.'
+						: 'Failed to export compliance pack.';
+				throw new Error(extractApiErrorMessage(payload, fallback));
 			}
 
 			const buffer = await res.arrayBuffer();
@@ -220,7 +210,7 @@
 		error = '';
 		success = '';
 		try {
-			const headers = getHeaders();
+			const headers = bearerHeaders(data.session?.access_token);
 			const path = buildFocusExportPath({
 				startDate: focusStartDate,
 				endDate: focusEndDate,
@@ -230,13 +220,11 @@
 			const res = await getWithTimeout(edgeApiPath(path), headers);
 			if (!res.ok) {
 				const payload = await res.json().catch(() => ({}));
-				throw new Error(
-					payload.detail ||
-						payload.message ||
-						(res.status === 403
-							? 'Pro plan + admin role required to export FOCUS.'
-							: 'Failed to export FOCUS CSV.')
-				);
+				const fallback =
+					res.status === 403
+						? 'Pro plan + admin role required to export FOCUS.'
+						: 'Failed to export FOCUS CSV.';
+				throw new Error(extractApiErrorMessage(payload, fallback));
 			}
 
 			const csv = await res.text();

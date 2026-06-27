@@ -3,6 +3,7 @@
 	import { base } from '$app/paths';
 	import { untrack } from 'svelte';
 	import { api } from '$lib/api';
+	import { bearerHeaders, extractApiErrorMessage } from '$lib/http';
 	import LandingRoiCalculator from '$lib/components/landing/LandingRoiCalculator.svelte';
 	import { edgeApiPath } from '$lib/edgeProxy';
 	import { TimeoutError } from '$lib/fetchWithTimeout';
@@ -14,9 +15,9 @@
 	import {
 		DEFAULT_LANDING_ROI_INPUTS,
 		calculateLandingRoi,
-		normalizeLandingRoiInputs,
-		formatCurrencyAmount
+		normalizeLandingRoiInputs
 	} from '$lib/landing/roiCalculator';
+	import { formatCurrency } from '$lib/format';
 	import type { UnitEconomicsSettings } from '../ops/opsTypes';
 
 	let { data } = $props();
@@ -65,10 +66,6 @@
 	);
 	let roiResult = $derived(calculateLandingRoi(roiInputs));
 
-	function formatUsd(amount: number, currency: string = roiCurrencyCode): string {
-		return formatCurrencyAmount(amount, currency);
-	}
-
 	function handleCurrencyCodeChange(value: LandingCurrencyCode): void {
 		roiCurrencyOverride = value;
 		if (browser) {
@@ -85,15 +82,6 @@
 		};
 	}
 
-	async function parseErrorMessage(response: Response): Promise<string> {
-		const payload = (await response.json().catch(() => ({}))) as {
-			detail?: string;
-			message?: string;
-			error?: string;
-		};
-		return payload.detail || payload.message || payload.error || 'Failed to save planner defaults.';
-	}
-
 	async function savePlannerDefaults(): Promise<void> {
 		if (!canSavePlannerDefaults || !data.session?.access_token) {
 			return;
@@ -107,14 +95,13 @@
 				edgeApiPath('/costs/unit-economics/settings'),
 				buildPlannerSettingsPayload(),
 				{
-					headers: {
-						Authorization: `Bearer ${data.session.access_token}`
-					},
+					headers: bearerHeaders(data.session.access_token),
 					timeoutMs: SAVE_TIMEOUT_MS
 				}
 			);
 			if (!response.ok) {
-				throw new Error(await parseErrorMessage(response));
+				const payload = await response.json().catch(() => ({}));
+				throw new Error(extractApiErrorMessage(payload, 'Failed to save planner defaults.'));
 			}
 			savedSettings = (await response.json()) as UnitEconomicsSettings;
 			saveSuccess = 'Planner defaults saved for this workspace.';
@@ -174,7 +161,7 @@
 			{roiTeamMembers}
 			{roiBlendedHourlyUsd}
 			buildRoiCtaHref={`${base}/onboarding?intent=roi_assessment`}
-			{formatUsd}
+			{formatCurrency}
 			onRoiControlInput={() => {
 				saveError = '';
 				saveSuccess = '';

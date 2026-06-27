@@ -8,10 +8,10 @@
 		saveEnforcementBudget
 	} from './enforcementSettingsApi';
 	import {
-		formatUsd,
 		type EnforcementBudget,
 		type EnforcementCredit
 	} from './enforcementSettingsModel';
+	import { formatUsd } from '$lib/format';
 
 	let { accessToken }: { accessToken?: string | null } = $props();
 

@@ -2,8 +2,11 @@
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import { api } from '$lib/api';
+	import { bearerHeaders, extractApiErrorMessage } from '$lib/http';
 	import { edgeApiPath } from '$lib/edgeProxy';
+	import { formatUsd } from '$lib/format';
 	import { TimeoutError } from '$lib/fetchWithTimeout';
+	import { tierAtLeast } from '$lib/tier';
 	import { getUpgradePrompt } from '$lib/pricing/upgradePrompt';
 
 	const ENFORCEMENT_OPS_REQUEST_TIMEOUT_MS = 8000;
@@ -46,34 +49,12 @@
 		notes: string | null;
 	};
 
-	function isProPlus(currentTier: string | null | undefined): boolean {
-		return ['pro', 'enterprise'].includes((currentTier ?? '').toLowerCase());
-	}
-
-	function extractErrorMessage(data: unknown, fallback: string): string {
-		if (!data || typeof data !== 'object') return fallback;
-		const payload = data as Record<string, unknown>;
-		if (typeof payload.detail === 'string' && payload.detail.trim()) return payload.detail;
-		if (typeof payload.message === 'string' && payload.message.trim()) return payload.message;
-		return fallback;
-	}
-
-	function formatUsd(value: number | string): string {
-		const amount = Number(value ?? 0);
-		if (!Number.isFinite(amount)) return '$0.00';
-		return `$${amount.toFixed(2)}`;
-	}
-
 	function formatAge(seconds: number): string {
 		const total = Math.max(0, Number(seconds || 0));
 		const hours = Math.floor(total / 3600);
 		const minutes = Math.floor((total % 3600) / 60);
 		if (hours > 0) return `${hours}h ${minutes}m`;
 		return `${minutes}m`;
-	}
-
-	async function getHeaders() {
-		return { Authorization: `Bearer ${accessToken}` };
 	}
 
 	let loading = $state(true);
@@ -87,7 +68,7 @@
 	const upgradePrompt = getUpgradePrompt('pro', 'enforcement reconciliation');
 
 	async function loadActiveReservations() {
-		const headers = await getHeaders();
+		const headers = bearerHeaders(accessToken);
 		const response = await api.get(edgeApiPath('/enforcement/reservations/active'), {
 			headers,
 			timeoutMs: ENFORCEMENT_OPS_REQUEST_TIMEOUT_MS
@@ -98,13 +79,13 @@
 		}
 		if (!response.ok) {
 			const data = await response.json().catch(() => ({}));
-			throw new Error(extractErrorMessage(data, 'Failed to load active reservations'));
+			throw new Error(extractApiErrorMessage(data, 'Failed to load active reservations'));
 		}
 		activeReservations = ((await response.json()) as ActiveReservation[]) ?? [];
 	}
 
 	async function loadDriftExceptions() {
-		const headers = await getHeaders();
+		const headers = bearerHeaders(accessToken);
 		const response = await api.get(
 			edgeApiPath('/enforcement/reservations/reconciliation-exceptions?limit=200'),
 			{
@@ -118,13 +99,13 @@
 		}
 		if (!response.ok) {
 			const data = await response.json().catch(() => ({}));
-			throw new Error(extractErrorMessage(data, 'Failed to load drift exceptions'));
+			throw new Error(extractApiErrorMessage(data, 'Failed to load drift exceptions'));
 		}
 		driftExceptions = ((await response.json()) as DriftException[]) ?? [];
 	}
 
 	async function loadAll() {
-		if (!accessToken || !isProPlus(tier)) {
+		if (!accessToken || !tierAtLeast(tier, 'pro')) {
 			loading = false;
 			return;
 		}
@@ -156,7 +137,7 @@
 		error = '';
 		success = '';
 		try {
-			const headers = await getHeaders();
+			const headers = bearerHeaders(accessToken);
 			const response = await api.post(
 				edgeApiPath('/enforcement/reservations/reconcile-overdue'),
 				{ limit: 200 },
@@ -164,7 +145,7 @@
 			);
 			if (!response.ok) {
 				const data = await response.json().catch(() => ({}));
-				throw new Error(extractErrorMessage(data, 'Failed to run overdue reconciliation'));
+				throw new Error(extractApiErrorMessage(data, 'Failed to run overdue reconciliation'));
 			}
 			const data = (await response.json().catch(() => ({}))) as {
 				released_count?: number;
@@ -184,7 +165,7 @@
 		error = '';
 		success = '';
 		try {
-			const headers = await getHeaders();
+			const headers = bearerHeaders(accessToken);
 			const response = await api.post(
 				edgeApiPath(`/enforcement/reservations/${row.decision_id}/reconcile`),
 				{
@@ -195,7 +176,7 @@
 			);
 			if (!response.ok) {
 				const data = await response.json().catch(() => ({}));
-				throw new Error(extractErrorMessage(data, 'Failed to reconcile reservation'));
+				throw new Error(extractApiErrorMessage(data, 'Failed to reconcile reservation'));
 			}
 			success = `Reservation ${row.decision_id} reconciled.`;
 			await loadAll();
@@ -214,19 +195,19 @@
 
 <div
 	class="card stagger-enter relative"
-	class:opacity-60={!isProPlus(tier)}
-	class:pointer-events-none={!isProPlus(tier)}
+	class:opacity-60={!tierAtLeast(tier, 'pro')}
+	class:pointer-events-none={!tierAtLeast(tier, 'pro')}
 >
 	<div class="flex items-center justify-between mb-3">
 		<h2 class="text-lg font-semibold flex items-center gap-2">
 			<span>🧭</span> Enforcement Ops Reconciliation
 		</h2>
-		{#if !isProPlus(tier)}
+		{#if !tierAtLeast(tier, 'pro')}
 			<span class="badge badge-warning text-xs">Pro Plan Required</span>
 		{/if}
 	</div>
 
-	{#if !isProPlus(tier)}
+	{#if !tierAtLeast(tier, 'pro')}
 		<div
 			class="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-ink-950/55 px-6 text-center"
 		>

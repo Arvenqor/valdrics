@@ -1,20 +1,16 @@
 import { api } from '$lib/api';
+import { bearerHeaders, extractApiErrorMessage } from '$lib/http';
 import { edgeApiPath } from '$lib/edgeProxy';
 import {
 	ENFORCEMENT_REQUEST_TIMEOUT_MS,
-	extractErrorMessage,
 	type EnforcementBudget,
 	type EnforcementCredit,
 	type EnforcementPolicy
 } from './enforcementSettingsModel';
 
-function headers(accessToken?: string | null): Record<string, string> {
-	return { Authorization: `Bearer ${accessToken}` };
-}
-
 async function getWithTimeout(path: string, accessToken?: string | null): Promise<Response> {
 	return api.get(edgeApiPath(path), {
-		headers: headers(accessToken),
+		headers: bearerHeaders(accessToken),
 		timeoutMs: ENFORCEMENT_REQUEST_TIMEOUT_MS
 	});
 }
@@ -26,7 +22,7 @@ export async function loadEnforcementPolicy(
 	if (response.status === 403 || response.status === 404) return null;
 	if (!response.ok) {
 		const payload = await response.json().catch(() => ({}));
-		throw new Error(extractErrorMessage(payload, 'Failed to load enforcement policy'));
+		throw new Error(extractApiErrorMessage(payload, 'Failed to load enforcement policy'));
 	}
 	return (await response.json()) as EnforcementPolicy;
 }
@@ -38,7 +34,7 @@ export async function loadEnforcementBudgets(
 	if (response.status === 403 || response.status === 404) return [];
 	if (!response.ok) {
 		const payload = await response.json().catch(() => ({}));
-		throw new Error(extractErrorMessage(payload, 'Failed to load enforcement budgets'));
+		throw new Error(extractApiErrorMessage(payload, 'Failed to load enforcement budgets'));
 	}
 	return ((await response.json()) as EnforcementBudget[]) ?? [];
 }
@@ -50,7 +46,7 @@ export async function loadEnforcementCredits(
 	if (response.status === 403 || response.status === 404) return [];
 	if (!response.ok) {
 		const payload = await response.json().catch(() => ({}));
-		throw new Error(extractErrorMessage(payload, 'Failed to load enforcement credits'));
+		throw new Error(extractApiErrorMessage(payload, 'Failed to load enforcement credits'));
 	}
 	return ((await response.json()) as EnforcementCredit[]) ?? [];
 }
@@ -60,11 +56,11 @@ export async function saveEnforcementPolicy(
 	policy: EnforcementPolicy
 ): Promise<void> {
 	const response = await api.post(edgeApiPath('/enforcement/policies'), policy, {
-		headers: headers(accessToken)
+		headers: bearerHeaders(accessToken)
 	});
 	if (!response.ok) {
 		const payload = await response.json().catch(() => ({}));
-		throw new Error(extractErrorMessage(payload, 'Failed to save enforcement policy'));
+		throw new Error(extractApiErrorMessage(payload, 'Failed to save enforcement policy'));
 	}
 }
 
@@ -77,11 +73,11 @@ export async function saveEnforcementBudget(
 	}
 ): Promise<void> {
 	const response = await api.post(edgeApiPath('/enforcement/budgets'), payload, {
-		headers: headers(accessToken)
+		headers: bearerHeaders(accessToken)
 	});
 	if (!response.ok) {
 		const body = await response.json().catch(() => ({}));
-		throw new Error(extractErrorMessage(body, 'Failed to save enforcement budget'));
+		throw new Error(extractApiErrorMessage(body, 'Failed to save enforcement budget'));
 	}
 }
 
@@ -95,10 +91,10 @@ export async function createEnforcementCredit(
 	}
 ): Promise<void> {
 	const response = await api.post(edgeApiPath('/enforcement/credits'), payload, {
-		headers: headers(accessToken)
+		headers: bearerHeaders(accessToken)
 	});
 	if (!response.ok) {
 		const body = await response.json().catch(() => ({}));
-		throw new Error(extractErrorMessage(body, 'Failed to create enforcement credit'));
+		throw new Error(extractApiErrorMessage(body, 'Failed to create enforcement credit'));
 	}
 }

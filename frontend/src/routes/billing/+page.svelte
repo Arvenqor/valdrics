@@ -3,6 +3,7 @@
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import { api } from '$lib/api';
+	import { bearerHeaders } from '$lib/http';
 	import { resolveSessionTenantId } from '$lib/auth/sessionTenant';
 	import { readCheckoutErrorMessage } from '$lib/checkoutError';
 	import { edgeApiPath } from '$lib/edgeProxy';
@@ -137,9 +138,7 @@
 					billing_cycle: billingCycle
 				},
 				{
-					headers: {
-						Authorization: `Bearer ${session.access_token}`
-					}
+				headers: bearerHeaders(session.access_token)
 				}
 			);
 

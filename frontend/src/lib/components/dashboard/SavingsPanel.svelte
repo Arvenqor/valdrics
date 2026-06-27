@@ -8,7 +8,7 @@
 
 	const executionPercent = $derived(savings.executionPercent ?? 0);
 
-	function formatMoney(value: number): string {
+	function formatCompactUsd(value: number): string {
 		return new Intl.NumberFormat('en-US', {
 			style: 'currency',
 			currency: 'USD',
@@ -43,12 +43,12 @@
 		<div>
 			<TrendingDown size={18} />
 			<span>Opportunity</span>
-			<strong>{formatMoney(savings.opportunityMonthlyUsd)}</strong>
+			<strong>{formatCompactUsd(savings.opportunityMonthlyUsd)}</strong>
 		</div>
 		<div>
 			<CircleDollarSign size={18} />
 			<span>Realized</span>
-			<strong>{formatMoney(savings.realizedMonthlyUsd)}</strong>
+			<strong>{formatCompactUsd(savings.realizedMonthlyUsd)}</strong>
 		</div>
 	</div>
 
@@ -173,15 +173,7 @@
 	}
 
 	.money-grid div {
-		display: grid;
-		gap: 0.25rem;
-		color: var(--color-ink-400);
-	}
-
-	.money-grid span,
-	.workflow-grid small {
-		color: var(--color-ink-400);
-		font-size: var(--text-xs);
+		dispize: var(--text-xs);
 	}
 
 	.money-grid strong,

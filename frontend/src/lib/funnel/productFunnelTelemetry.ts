@@ -1,5 +1,6 @@
 import { api } from '$lib/api';
 import { edgeApiPath } from '$lib/edgeProxy';
+import { bearerHeaders } from '$lib/http';
 import { readLandingAttribution, type LandingAttribution } from '$lib/landing/landingFunnel';
 import type { StorageLike } from '$lib/landing/landingExperiment';
 
@@ -186,17 +187,15 @@ export async function trackProductFunnelStage(input: ProductFunnelEventInput): P
 	const send =
 		input.send ??
 		((requestUrl, body, options) =>
-			api.post(requestUrl, body, {
-				headers: {
-					Authorization: `Bearer ${input.accessToken}`,
-					...(options?.headers ?? {})
-				}
-			}));
+		api.post(requestUrl, body, {
+			headers: {
+				...bearerHeaders(input.accessToken),
+				...(options?.headers ?? {})
+			}
+		}));
 
 	const response = await send(edgeApiPath('/usage/funnel'), payload, {
-		headers: {
-			Authorization: `Bearer ${input.accessToken}`
-		}
+		headers: bearerHeaders(input.accessToken)
 	});
 	if (!response.ok) {
 		return false;

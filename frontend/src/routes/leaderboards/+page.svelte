@@ -13,6 +13,7 @@
 	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import AuthGate from '$lib/components/AuthGate.svelte';
+	import { bearerHeaders } from '$lib/http';
 	import { edgeApiPath } from '$lib/edgeProxy';
 	import { TimeoutError, fetchWithTimeout } from '$lib/fetchWithTimeout';
 
@@ -78,9 +79,7 @@
 				fetch,
 				edgeApiPath(`/leaderboards?period=${currentPeriod}`),
 				{
-					headers: {
-						Authorization: `Bearer ${accessToken}`
-					}
+			headers: bearerHeaders(accessToken)
 				},
 				LEADERBOARD_TIMEOUT_MS
 			);

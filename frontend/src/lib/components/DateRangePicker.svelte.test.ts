@@ -7,28 +7,30 @@ describe('DateRangePicker Component', () => {
 		cleanup();
 	});
 
-	it('mounts with default preset', () => {
+	it('mounts with the correct active preset', () => {
 		render(DateRangePicker, { value: '30d' });
 		const activeBtn = screen.getByText('30 Days');
 		expect(activeBtn).toBeTruthy();
 		expect(activeBtn.className).toContain('active');
 	});
 
-	it('changes selection when clicking another preset', async () => {
-		render(DateRangePicker, { value: '30d' });
-		const sevenDaysBtn = screen.getByText('7 Days');
-		await fireEvent.click(sevenDaysBtn);
-
-		// Wait for Svelte 5 reactivity if necessary, though fireEvent should trigger it.
-		expect(sevenDaysBtn.className).toContain('active');
+	it('switches preset when clicking a different preset', async () => {
+		render(DateRangePicker, { value: '7d' });
+		const ninetyDaysBtn = screen.getByText('90 Days');
+		await fireEvent.click(ninetyDaysBtn);
+		expect(ninetyDaysBtn.className).toContain('active');
 	});
 
-	it('toggles custom date range picker', async () => {
+	it('disables apply when a custom date field is cleared', async () => {
 		render(DateRangePicker, { value: '30d' });
 		const customBtn = screen.getByText(/Custom/);
 		await fireEvent.click(customBtn);
 
-		expect(screen.getByLabelText('From')).toBeTruthy();
-		expect(screen.getByLabelText('To')).toBeTruthy();
+		const applyBtn = screen.getByText('Apply') as HTMLButtonElement;
+		expect(applyBtn.disabled).toBe(false);
+
+		const toInput = screen.getByLabelText('To') as HTMLInputElement;
+		await fireEvent.input(toInput, { target: { value: '' } });
+		expect(applyBtn.disabled).toBe(true);
 	});
 });

@@ -86,25 +86,3 @@ export function uniqueScimMappingsOrThrow(mappings: ScimGroupMapping[]): void {
 		seen.add(key);
 	}
 }
-
-export function extractErrorMessage(data: unknown, fallback: string): string {
-	if (!data || typeof data !== 'object') return fallback;
-	const payload = data as Record<string, unknown>;
-	const detail = payload.detail;
-	if (typeof detail === 'string' && detail.trim()) return detail;
-	if (Array.isArray(detail)) {
-		const parts = detail
-			.map((entry) => {
-				if (!entry || typeof entry !== 'object') return '';
-				const obj = entry as Record<string, unknown>;
-				if (typeof obj.msg === 'string') return obj.msg;
-				if (typeof obj.message === 'string') return obj.message;
-				return '';
-			})
-			.filter(Boolean);
-		if (parts.length) return parts.join(', ');
-	}
-	const message = payload.message;
-	if (typeof message === 'string' && message.trim()) return message;
-	return fallback;
-}
