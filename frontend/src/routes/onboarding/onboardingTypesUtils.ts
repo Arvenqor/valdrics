@@ -1,7 +1,7 @@
 export type CloudPlusAuthMethod = 'manual' | 'api_key' | 'oauth' | 'csv';
 export type CloudPlusProvider = 'saas' | 'license';
 export type IdpProvider = 'microsoft_365' | 'google_workspace';
-export type DiscoveryStatus = 'pending' | 'accepted' | 'ignored' | 'connected';
+type DiscoveryStatus = 'pending' | 'accepted' | 'ignored' | 'connected';
 export type OnboardingProvider = 'aws' | 'azure' | 'gcp' | 'saas' | 'license';
 
 export interface NativeConnectorMeta {
@@ -107,7 +107,7 @@ export function resolveProviderFromCandidate(
 	return null;
 }
 
-export function toCloudPlusAuthMethod(
+function toCloudPlusAuthMethod(
 	value: unknown,
 	fallback: CloudPlusAuthMethod = 'manual'
 ): CloudPlusAuthMethod {
@@ -126,7 +126,7 @@ export function toCloudPlusAuthMethod(
 	return fallback;
 }
 
-export function parseStringArray(value: unknown): string[] {
+function parseStringArray(value: unknown): string[] {
 	if (!Array.isArray(value)) {
 		return [];
 	}

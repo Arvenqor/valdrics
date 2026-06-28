@@ -10,7 +10,7 @@ export function normalizePersona(value: unknown): Persona {
 	return 'engineering';
 }
 
-export function isAdminRole(role: unknown): boolean {
+function isAdminRole(role: unknown): boolean {
 	const normalized = String(role || '')
 		.toLowerCase()
 		.trim();

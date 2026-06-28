@@ -5,7 +5,7 @@ export const PUBLIC_THEME_STORAGE_KEY = 'valdrics.public.theme.v1';
 type StorageLike = Pick<Storage, 'getItem' | 'setItem'>;
 type MatchMediaFn = (query: string) => Pick<MediaQueryList, 'matches'>;
 
-export function isPublicTheme(value: string | null | undefined): value is PublicTheme {
+function isPublicTheme(value: string | null | undefined): value is PublicTheme {
 	return value === 'light' || value === 'dark';
 }
 

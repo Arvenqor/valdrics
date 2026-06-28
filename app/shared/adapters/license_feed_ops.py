@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any
 
 from app.shared.adapters.feed_utils import parse_required_timestamp
+from app.shared.core.bools import coerce_bool
 
 
 def normalize_text(value: Any) -> str | None:
@@ -23,18 +24,6 @@ def normalize_email(value: Any) -> str | None:
     return normalized
 
 
-def coerce_bool(value: Any) -> bool:
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, (int, float)):
-        return bool(value)
-    if isinstance(value, str):
-        lowered = value.strip().lower()
-        if lowered in {"1", "true", "yes", "y", "on"}:
-            return True
-        if lowered in {"0", "false", "no", "n", "off"}:
-            return False
-    return False
 
 
 def validate_manual_feed(

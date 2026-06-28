@@ -1,9 +1,22 @@
 export { bearerHeaders, withBearerAuth, extractApiErrorMessage } from '$lib/http';
-export { api, resilientFetch, resilientFetchWithRetry, type ResilientRequestInit } from '$lib/api';
+export {
+	api,
+	resilientFetch,
+	resilientFetchWithRetry,
+	type ResilientRequestInit
+} from '$lib/api.js';
 export { fetchWithTimeout, type TimeoutError } from '$lib/fetchWithTimeout';
 export { edgeApiPath, buildEdgeApiPath } from '$lib/edgeProxy';
 export { createLazyComponent } from '$lib/lazyComponent';
-export { formatUsd, formatCurrency, formatTtl, formatDate, formatNumber, formatDuration, formatCompactUsd } from '$lib/format';
+export {
+	formatUsd,
+	formatCurrency,
+	formatTtl,
+	formatDate,
+	formatNumber,
+	formatDuration,
+	formatCompactUsd
+} from '$lib/format';
 export {
 	cn,
 	filenameFromContentDispositionHeader,
@@ -12,7 +25,7 @@ export {
 	type WithoutChildren,
 	type WithoutChildrenOrChild,
 	type WithElementRef
-} from '$lib/utils';
+} from '$lib/utils.js';
 export { resolveSessionTenantId } from '$lib/auth/sessionTenant';
 export { resolveAppSession } from '$lib/auth/appSession';
 export { AUTH_SESSION_SIGNAL_KEY, broadcastAuthSessionChanged } from '$lib/auth/authSessionSignal';
@@ -25,7 +38,7 @@ export {
 	type PublicAuthPersona,
 	type PublicAuthContext,
 	type PublicAuthUtm
-} from '$lib/auth/publicAuthIntent';
+} from '$lib/auth/publicAuthIntent.js';
 export { clientLogger } from '$lib/logging/client';
 export { serverLogger } from '$lib/logging/server';
 export { getTurnstileToken, isTurnstileConfigured } from '$lib/security/turnstile';

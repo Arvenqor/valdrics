@@ -56,8 +56,7 @@ async function collectLandingMetrics(page: Parameters<typeof test>[0]['page']) {
 
 	return await page.evaluate(() => {
 		const nav = performance.getEntriesByType('navigation')[0] as
-			| PerformanceNavigationTiming
-			| undefined;
+			PerformanceNavigationTiming | undefined;
 		const fcp = performance.getEntriesByName('first-contentful-paint')[0]?.startTime ?? null;
 		const perfState = (window as Window & { __valdricsPerf?: { cls: number; lcp: number } })
 			.__valdricsPerf;

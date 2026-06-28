@@ -1,4 +1,4 @@
-export type DashboardAction = {
+type DashboardAction = {
 	href: string;
 	label: string;
 	variant: 'primary' | 'secondary';
@@ -11,7 +11,7 @@ export type DashboardPersonaContent = {
 	actions: DashboardAction[];
 };
 
-export const PUBLIC_HOME_META = {
+const PUBLIC_HOME_META = {
 	title: 'Valdrics | Turn Spend Signals into Governed Action',
 	description:
 		'Valdrics turns cloud, SaaS, and software spend signals into owner-routed approvals, workflow execution, remediation, and exportable proof.',

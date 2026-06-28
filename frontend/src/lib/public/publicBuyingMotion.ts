@@ -6,7 +6,6 @@ import {
 } from './publicBuyerSignals';
 import { buildPublicAuthHref } from './publicAppOrigin';
 
-export type { PublicBuyerPersona, PublicBuyingMotion } from './publicBuyerSignals';
 export { resolvePublicBuyerPersona, resolvePublicBuyingMotion } from './publicBuyerSignals';
 
 interface PublicPathOptions {

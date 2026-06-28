@@ -133,5 +133,5 @@ export default defineConfig({
 	},
 	webServer: skipManagedWebServer ? undefined : webServer,
 	testDir: '.',
-	testMatch: ['tests/e2e/**/*.{test,spec}.ts', 'e2e/**/*.{test,spec}.ts']
+	testMatch: ['e2e/**/*.{test,spec}.ts']
 });

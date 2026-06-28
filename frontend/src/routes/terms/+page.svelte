@@ -138,13 +138,21 @@
 				<li>
 					Pricing-fit and commercial questions route through the sales and procurement contacts.
 				</li>
-				<li>Privacy, DPA, and deployment-specific questions stay connected to the privacy review.</li>
+				<li>
+					Privacy, DPA, and deployment-specific questions stay connected to the privacy review.
+				</li>
 			</ul>
 			<div class="flex flex-wrap gap-3 pt-2">
-				<a class="btn btn-secondary material-button-3d" href={`${base}/enterprise`}> Enterprise Review </a>
+				<a class="btn btn-secondary material-button-3d" href={`${base}/enterprise`}>
+					Enterprise Review
+				</a>
 				<a class="btn btn-secondary material-button-3d" href={`${base}/pricing`}> View Pricing </a>
-				<a class="btn btn-secondary material-button-3d" href={`${base}/privacy`}> Privacy and DPA </a>
-				<a class="btn btn-secondary material-button-3d" href={`${base}/talk-to-sales`}> Talk to Sales </a>
+				<a class="btn btn-secondary material-button-3d" href={`${base}/privacy`}>
+					Privacy and DPA
+				</a>
+				<a class="btn btn-secondary material-button-3d" href={`${base}/talk-to-sales`}>
+					Talk to Sales
+				</a>
 			</div>
 		</section>
 	</div>

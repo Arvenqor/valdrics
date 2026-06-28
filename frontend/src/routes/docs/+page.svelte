@@ -129,7 +129,9 @@
 								</div>
 							{/each}
 						</div>
-						<a href={`${base}/docs/${entry.slug}`} class="btn btn-secondary material-button-3d">Open guide</a>
+						<a href={`${base}/docs/${entry.slug}`} class="btn btn-secondary material-button-3d"
+							>Open guide</a
+						>
 					</article>
 				{/each}
 			</div>
@@ -155,7 +157,9 @@
 						Browse GitHub Docs
 					</a>
 					<a href={`${base}/proof`} class="btn btn-secondary material-button-3d">Open Proof Pack</a>
-					<a href={`${base}/resources`} class="btn btn-secondary material-button-3d">Open Resources</a>
+					<a href={`${base}/resources`} class="btn btn-secondary material-button-3d"
+						>Open Resources</a
+					>
 				</div>
 			</div>
 		</section>

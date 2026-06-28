@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.governance.domain.security.audit_log import AuditEventType, AuditLogger
 from app.shared.core.auth import CurrentUser
 from app.shared.core.pricing import FeatureFlag, PricingTier
+from app.shared.core.bools import coerce_bool
 
 
 @dataclass(slots=True)
@@ -81,9 +82,7 @@ def build_system_user(tenant_id: UUID, tier: PricingTier) -> CurrentUser:
     )
 
 
-def parse_requested_flag(value: object) -> bool:
-    """Parse boolean-like payload flags from API and scheduler inputs."""
-    return value is True or str(value).strip().lower() in {"1", "true", "yes", "y"}
+
 
 
 async def capture_acceptance_artifacts(
@@ -207,7 +206,7 @@ async def capture_acceptance_artifacts(
             request_path="/jobs/acceptance-suite-capture",
         )
 
-    quarterly_capture_requested = parse_requested_flag(
+    quarterly_capture_requested = coerce_bool(
         payload.get("capture_quarterly_report", False)
     )
     if quarterly_capture_requested:
@@ -290,7 +289,7 @@ async def capture_acceptance_artifacts(
                 request_path="/jobs/acceptance-suite-capture",
             )
 
-    close_capture_requested = parse_requested_flag(payload.get("capture_close_package", False))
+    close_capture_requested = coerce_bool(payload.get("capture_close_package", False))
     close_capture_success = False
     close_capture_error: str | None = None
     close_capture_payload: dict[str, Any] | None = None

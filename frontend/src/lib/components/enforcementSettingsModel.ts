@@ -33,13 +33,7 @@ export type EnforcementCredit = {
 	active: boolean;
 };
 
-export type EnforcementPolicyRailTone =
-	| 'shadow'
-	| 'soft'
-	| 'hard'
-	| 'enabled'
-	| 'disabled'
-	| 'info';
+type EnforcementPolicyRailTone = 'shadow' | 'soft' | 'hard' | 'enabled' | 'disabled' | 'info';
 
 export type EnforcementPolicyRail = {
 	id: string;
@@ -65,7 +59,7 @@ export function isProPlus(currentTier: string | null | undefined): boolean {
 	return ['pro', 'enterprise'].includes((currentTier ?? '').toLowerCase());
 }
 
-export function enforcementModeLabel(mode: EnforcementPolicy['terraform_mode']): string {
+function enforcementModeLabel(mode: EnforcementPolicy['terraform_mode']): string {
 	return mode;
 }
 

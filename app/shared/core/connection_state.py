@@ -4,6 +4,7 @@ from typing import Any
 
 from app.shared.core.config import get_settings
 from app.shared.core.provider import normalize_provider, resolve_provider_from_connection
+from app.shared.core.bools import parse_bool
 
 _PRODUCTION_MARKERS = ("prod", "production", "critical", "pci", "hipaa")
 _NON_PRODUCTION_MARKERS = (
@@ -33,21 +34,6 @@ def _default_aws_region() -> str:
     return raw_default or "us-east-1"
 
 
-def _coerce_bool(value: Any) -> bool | None:
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, (int, float)):
-        if value == 1:
-            return True
-        if value == 0:
-            return False
-    if isinstance(value, str):
-        normalized = value.strip().lower()
-        if normalized in {"true", "1", "yes", "y", "on"}:
-            return True
-        if normalized in {"false", "0", "no", "n", "off"}:
-            return False
-    return None
 
 
 def _coerce_text(value: Any) -> str | None:
@@ -99,7 +85,7 @@ def resolve_connection_profile(connection: Any) -> dict[str, Any]:
     2. Explicit `environment` on the model or connector config.
     3. Inference from connection name.
     """
-    explicit_is_production = _coerce_bool(
+    explicit_is_production = parse_bool(
         _extract_profile_value(connection, "is_production")
     )
     if explicit_is_production is not None:

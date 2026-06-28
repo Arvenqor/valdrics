@@ -14,6 +14,7 @@ from app.modules.governance.domain.security.audit_log import (
     AuditLogger,
 )
 from app.shared.core.connection_queries import CONNECTION_MODEL_PAIRS
+from app.shared.core.bools import coerce_bool
 
 logger = structlog.get_logger()
 BUDGET_HARD_CAP_TRANSACTION_RECOVERABLE_EXCEPTIONS = (
@@ -50,20 +51,6 @@ class BudgetHardCapService:
         except (TypeError, ValueError):
             return None
 
-    @staticmethod
-    def _coerce_bool(value: Any, *, default: bool = False) -> bool:
-        if isinstance(value, bool):
-            return value
-        if value is None:
-            return default
-        if isinstance(value, (int, float)):
-            return bool(value)
-        text = str(value).strip().lower()
-        if text in {"1", "true", "yes", "on"}:
-            return True
-        if text in {"0", "false", "no", "off"}:
-            return False
-        return default
 
     @staticmethod
     def _empty_snapshot() -> dict[str, list[dict[str, Any]]]:
@@ -136,7 +123,7 @@ class BudgetHardCapService:
                         .values(status=status)
                     )
                 else:
-                    is_active = self._coerce_bool(row.get("is_active"), default=False)
+                    is_active = coerce_bool(row.get("is_active"), default=False)
                     await self.db.execute(
                         update(model)
                         .where(model.tenant_id == tenant_id, model.id == connection_id)

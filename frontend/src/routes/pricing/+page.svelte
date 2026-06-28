@@ -21,12 +21,12 @@
 		FREE_TIER_HIGHLIGHTS,
 		FREE_TIER_LIMIT_NOTE,
 		PLANS_PRICING_EXPLANATION
-	} from '$lib/landing/heroContent.extended';
+	} from '$lib/landing/content/hero.extended';
 	import {
 		formatCurrencyAmount,
 		getCurrencyMetadata,
 		normalizeSupportedCurrencyCode
-	} from '$lib/landing/currencyDisplay';
+	} from '$lib/landing/roi/currency';
 	import { normalizeCheckoutUrl } from '$lib/utils';
 	import type { PageData } from './$types';
 	import type { PricingPlan, PricingPlanStory } from './plans';
@@ -189,7 +189,7 @@
 					currency: getCheckoutCurrency()
 				},
 				{
-				headers: bearerHeaders(session.access_token)
+					headers: bearerHeaders(session.access_token)
 				}
 			);
 
@@ -301,45 +301,49 @@
 
 			{#if freePlan}
 				{@const freeStory = getPlanStory(freePlan)}
-			<div class="material-perspective">
-				<article class="material-card-3d public-page__card public-page__card--accent pricing-entry-card">
-					<div class="pricing-entry-card__head">
-						<div class="pricing-entry-card__copy">
-							<p class="public-page__card-kicker">{freeStory.badge}</p>
-							<h3 class="public-page__card-title">{freeStory.headline}</h3>
-							<p class="public-page__card-copy">{freeStory.summary}</p>
+				<div class="material-perspective">
+					<article
+						class="material-card-3d public-page__card public-page__card--accent pricing-entry-card"
+					>
+						<div class="pricing-entry-card__head">
+							<div class="pricing-entry-card__copy">
+								<p class="public-page__card-kicker">{freeStory.badge}</p>
+								<h3 class="public-page__card-title">{freeStory.headline}</h3>
+								<p class="public-page__card-copy">{freeStory.summary}</p>
+							</div>
+							<div class="pricing-entry-card__price">
+								<p class="pricing-entry-card__price-label">Entry price</p>
+								<p class="pricing-entry-card__price-value">{formatLocalizedAmount(0)}</p>
+							</div>
 						</div>
-						<div class="pricing-entry-card__price">
-							<p class="pricing-entry-card__price-label">Entry price</p>
-							<p class="pricing-entry-card__price-value">{formatLocalizedAmount(0)}</p>
-						</div>
-					</div>
 
-					<ul class="public-page__list">
-						{#each FREE_TIER_HIGHLIGHTS.slice(0, 3) as feature (feature)}
-							<li>{feature}</li>
-						{/each}
-					</ul>
+						<ul class="public-page__list">
+							{#each FREE_TIER_HIGHLIGHTS.slice(0, 3) as feature (feature)}
+								<li>{feature}</li>
+							{/each}
+						</ul>
 
-					<dl class="pricing-plan-context" aria-label="Free plan fit">
-						<div class="pricing-plan-context__row pricing-plan-context__row--stacked">
-							<dt class="pricing-plan-context__label">Best for</dt>
-							<dd class="pricing-plan-context__value">{freeStory.bestFor}</dd>
-						</div>
-					</dl>
+						<dl class="pricing-plan-context" aria-label="Free plan fit">
+							<div class="pricing-plan-context__row pricing-plan-context__row--stacked">
+								<dt class="pricing-plan-context__label">Best for</dt>
+								<dd class="pricing-plan-context__value">{freeStory.bestFor}</dd>
+							</div>
+						</dl>
 
-					<div class="pricing-entry-card__footer">
-						<div class="public-page__actions-row">
-							<a href={getFreeTierHref()} class="btn btn-primary material-button-3d">Start on Free Tier</a>
-							{#if isCurrentPlan('free')}
-								<span class="pricing-current-plan">Current plan active</span>
-							{:else}
-								<span class="pricing-support-note">{FREE_TIER_LIMIT_NOTE}</span>
-							{/if}
+						<div class="pricing-entry-card__footer">
+							<div class="public-page__actions-row">
+								<a href={getFreeTierHref()} class="btn btn-primary material-button-3d"
+									>Start on Free Tier</a
+								>
+								{#if isCurrentPlan('free')}
+									<span class="pricing-current-plan">Current plan active</span>
+								{:else}
+									<span class="pricing-support-note">{FREE_TIER_LIMIT_NOTE}</span>
+								{/if}
+							</div>
 						</div>
-					</div>
-				</article>
-			</div>
+					</article>
+				</div>
 			{/if}
 
 			<div class="pricing-plan-grid material-perspective">
@@ -392,7 +396,11 @@
 
 						<div class="pricing-plan-card__footer">
 							{#if isCurrentPlan(plan.id)}
-								<button type="button" class="btn btn-secondary pricing-plan-button material-button-3d" disabled>
+								<button
+									type="button"
+									class="btn btn-secondary pricing-plan-button material-button-3d"
+									disabled
+								>
 									Current Plan
 								</button>
 							{:else if data.user}

@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.shared.core.pricing import PricingTier
+from app.shared.core.bools import coerce_bool
 from app.shared.llm.budget_fair_use_abuse import (
     classify_client_ip as _classify_client_ip_impl,
     enforce_global_abuse_guard_impl,
@@ -40,19 +41,6 @@ def fair_use_global_abuse_block_key() -> str:
 def fair_use_tier_allowed(tier: PricingTier) -> bool:
     return tier in {PricingTier.PRO, PricingTier.ENTERPRISE}
 
-
-def _as_bool(value: Any, *, default: bool) -> bool:
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, (int, float)):
-        return bool(value)
-    if isinstance(value, str):
-        normalized = value.strip().lower()
-        if normalized in {"1", "true", "yes", "on"}:
-            return True
-        if normalized in {"0", "false", "no", "off"}:
-            return False
-    return default
 
 
 def _as_int(value: Any, *, default: int) -> int:
@@ -169,7 +157,7 @@ async def enforce_global_abuse_guard(
         db=db,
         tier=tier,
         fair_use_global_abuse_block_key_fn=fair_use_global_abuse_block_key,
-        as_bool_fn=_as_bool,
+        as_bool_fn=coerce_bool,
         as_int_fn=_as_int,
         fair_use_cache_recoverable_errors=FAIR_USE_CACHE_RECOVERABLE_ERRORS,
         fair_use_parse_recoverable_errors=FAIR_USE_PARSE_RECOVERABLE_ERRORS,

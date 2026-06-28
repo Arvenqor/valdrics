@@ -51,7 +51,7 @@ export const load: LayoutServerLoad = async ({ locals, fetch, url, cookies }) =>
 	// Fetch subscription tier if user is authenticated
 	if (session?.access_token) {
 		try {
-			const res = await 			fetchWithTimeout(
+			const res = await fetchWithTimeout(
 				fetch,
 				edgeApiPath('/billing/subscription'),
 				{
@@ -68,7 +68,7 @@ export const load: LayoutServerLoad = async ({ locals, fetch, url, cookies }) =>
 
 		// Fetch user profile (persona preference) for persona-aware UX defaults
 		try {
-			const res = await 			fetchWithTimeout(
+			const res = await fetchWithTimeout(
 				fetch,
 				edgeApiPath('/settings/profile'),
 				{

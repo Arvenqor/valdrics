@@ -97,7 +97,7 @@ export function dimensionLabel(dimension: string | null | undefined): string {
 	return DIMENSION_LABELS[normalized] ?? humanizeIdentifier(dimension ?? 'Unknown');
 }
 
-export function humanizeIdentifier(value: string | null | undefined): string {
+function humanizeIdentifier(value: string | null | undefined): string {
 	const normalized = String(value ?? '').trim();
 	if (!normalized) return 'Unknown';
 	return normalized

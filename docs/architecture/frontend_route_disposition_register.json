@@ -27,61 +27,6 @@
       "deletion_blocker": ""
     },
     {
-      "route_id": "/__capture/dashboard-hero",
-      "kind": "internal_capture_page",
-      "status": "internal",
-      "decision": "Keep temporary dashboard visual QA fixture until FME-011 evidence cleanup.",
-      "source_files": ["frontend/src/routes/__capture/dashboard-hero/+page.server.ts", "frontend/src/routes/__capture/dashboard-hero/+page.svelte"],
-      "target_paths": [],
-      "evidence": ["Dashboard browser QA capture fixture."],
-      "next_action": "Replace with route-native evidence bundle during FME-011.",
-      "deletion_blocker": ""
-    },
-    {
-      "route_id": "/__capture/inventory",
-      "kind": "internal_capture_page",
-      "status": "internal",
-      "decision": "Keep temporary inventory visual QA fixture until FME-011 evidence cleanup.",
-      "source_files": ["frontend/src/routes/__capture/inventory/+page.server.ts", "frontend/src/routes/__capture/inventory/+page.svelte"],
-      "target_paths": [],
-      "evidence": ["Inventory browser QA capture fixture."],
-      "next_action": "Replace with route-native evidence bundle during FME-011.",
-      "deletion_blocker": ""
-    },
-    {
-      "route_id": "/__capture/onboarding",
-      "kind": "internal_capture_page",
-      "status": "internal",
-      "decision": "Keep temporary onboarding visual QA fixture until FME-011 evidence cleanup.",
-      "source_files": ["frontend/src/routes/__capture/onboarding/+page.server.ts", "frontend/src/routes/__capture/onboarding/+page.svelte"],
-      "target_paths": [],
-      "evidence": ["Onboarding browser QA capture fixture."],
-      "next_action": "Replace with route-native evidence bundle during FME-011.",
-      "deletion_blocker": ""
-    },
-    {
-      "route_id": "/__capture/savings",
-      "kind": "internal_capture_page",
-      "status": "internal",
-      "decision": "Keep temporary savings visual QA fixture until FME-011 evidence cleanup.",
-      "source_files": ["frontend/src/routes/__capture/savings/+page.server.ts", "frontend/src/routes/__capture/savings/+page.svelte"],
-      "target_paths": [],
-      "evidence": ["Savings browser QA capture fixture."],
-      "next_action": "Replace with route-native evidence bundle during FME-011.",
-      "deletion_blocker": ""
-    },
-    {
-      "route_id": "/__capture/settings-policy",
-      "kind": "internal_capture_page",
-      "status": "internal",
-      "decision": "Keep temporary settings/policy visual QA fixture until FME-011 evidence cleanup.",
-      "source_files": ["frontend/src/routes/__capture/settings-policy/+page.server.ts", "frontend/src/routes/__capture/settings-policy/+page.svelte"],
-      "target_paths": [],
-      "evidence": ["Settings and policy browser QA capture fixture."],
-      "next_action": "Replace with route-native evidence bundle during FME-011.",
-      "deletion_blocker": ""
-    },
-    {
       "route_id": "/about",
       "kind": "public_page",
       "status": "migrated",

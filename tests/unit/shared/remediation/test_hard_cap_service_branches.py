@@ -9,6 +9,7 @@ import pytest
 from app.modules.governance.domain.security.audit_log import AuditEventType
 from app.shared.core.connection_queries import CONNECTION_MODEL_PAIRS
 from app.shared.remediation.hard_cap_service import BudgetHardCapService
+from app.shared.core.bools import coerce_bool
 
 
 def _result_with_all(rows: list[object]) -> MagicMock:
@@ -23,10 +24,10 @@ def test_helper_coercion_and_snapshot_keys() -> None:
     assert BudgetHardCapService._coerce_uuid(tenant_id) == tenant_id
     assert BudgetHardCapService._coerce_uuid("not-a-uuid") is None
 
-    assert BudgetHardCapService._coerce_bool(True) is True
-    assert BudgetHardCapService._coerce_bool("yes") is True
-    assert BudgetHardCapService._coerce_bool("off") is False
-    assert BudgetHardCapService._coerce_bool("unknown", default=True) is True
+    assert coerce_bool(True) is True
+    assert coerce_bool("yes") is True
+    assert coerce_bool("off") is False
+    assert coerce_bool("unknown", default=True) is True
 
     snapshot = BudgetHardCapService._empty_snapshot()
     expected_keys = {

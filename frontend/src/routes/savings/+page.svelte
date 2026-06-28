@@ -167,7 +167,9 @@
 			);
 			if (!res.ok) {
 				const payload = await res.json().catch(() => ({}));
-				throw new Error(extractApiErrorMessage(payload, 'Failed to load realized savings evidence.'));
+				throw new Error(
+					extractApiErrorMessage(payload, 'Failed to load realized savings evidence.')
+				);
 			}
 			realizedEvents = (await res.json()) as RealizedSavingsEvent[];
 		} catch (e) {

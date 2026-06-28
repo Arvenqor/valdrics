@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { LandingCurrencyCode } from '$lib/landing/currencyPreference';
-	import { getCurrencyMetadata } from '$lib/landing/roiCalculator';
+	import type { LandingCurrencyCode } from '$lib/landing/roi/currencyPreference';
+	import { getCurrencyMetadata } from '$lib/landing/roi/calculator';
 
 	let {
 		currencyCode,

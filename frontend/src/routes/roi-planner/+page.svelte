@@ -11,12 +11,12 @@
 		resolveInitialLandingCurrency,
 		setLandingCurrencyPreference,
 		type LandingCurrencyCode
-	} from '$lib/landing/currencyPreference';
+	} from '$lib/landing/roi/currencyPreference';
 	import {
 		DEFAULT_LANDING_ROI_INPUTS,
 		calculateLandingRoi,
 		normalizeLandingRoiInputs
-	} from '$lib/landing/roiCalculator';
+	} from '$lib/landing/roi/calculator';
 	import { formatCurrency } from '$lib/format';
 	import type { UnitEconomicsSettings } from '../ops/opsTypes';
 
@@ -207,7 +207,10 @@
 						{savingPlannerDefaults ? 'Saving...' : 'Save Planner Defaults'}
 					</button>
 				{:else}
-					<a class="roi-planner-save__link material-button-3d" href={`${base}/auth/login?next=%2Froi-planner`}>
+					<a
+						class="roi-planner-save__link material-button-3d"
+						href={`${base}/auth/login?next=%2Froi-planner`}
+					>
 						Sign in to save plan
 					</a>
 				{/if}

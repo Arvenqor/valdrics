@@ -1,15 +1,9 @@
 export type InventoryResourceType = 'cloud' | 'software' | 'service';
 export type InventoryTypeFilter = 'all' | InventoryResourceType;
 export type InventoryStatusFilter =
-	| 'all'
-	| 'active'
-	| 'pending'
-	| 'error'
-	| 'idle'
-	| 'shadow'
-	| 'expiring';
-export type InventorySourceKind = 'connection' | 'feed' | 'discovered_account';
-export type InventoryCostBasis = 'monthly_cost_usd' | 'reported_cost_usd' | 'not_reported';
+	'all' | 'active' | 'pending' | 'error' | 'idle' | 'shadow' | 'expiring';
+type InventorySourceKind = 'connection' | 'feed' | 'discovered_account';
+type InventoryCostBasis = 'monthly_cost_usd' | 'reported_cost_usd' | 'not_reported';
 
 export interface InventoryResource {
 	id: string;
@@ -30,7 +24,7 @@ export interface InventoryResource {
 	source_label?: string | null;
 }
 
-export interface InventorySummary {
+interface InventorySummary {
 	total: number;
 	cloud: number;
 	software: number;

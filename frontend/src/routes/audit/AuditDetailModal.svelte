@@ -29,7 +29,11 @@
 			>
 				<div class="flex items-center justify-between mb-4">
 					<h3 class="text-lg font-bold">Audit Log Detail</h3>
-					<button type="button" class="btn btn-secondary material-button-3d text-xs px-4 py-2" onclick={closeDetail}>Close</button>
+					<button
+						type="button"
+						class="btn btn-secondary material-button-3d text-xs px-4 py-2"
+						onclick={closeDetail}>Close</button
+					>
 				</div>
 				{#if loadingDetail}
 					<div class="skeleton h-5 w-64 mb-2"></div>
@@ -37,18 +41,27 @@
 					<div class="skeleton h-5 w-full"></div>
 				{:else if selectedDetail}
 					<div class="space-y-4 text-sm text-ink-300">
-						<div><strong>ID:</strong> <span class="font-mono text-xs text-ink-50">{selectedDetail.id}</span></div>
-						<div><strong>Event:</strong> <span class="font-mono text-ink-50">{selectedDetail.event_type}</span></div>
+						<div>
+							<strong>ID:</strong>
+							<span class="font-mono text-xs text-ink-50">{selectedDetail.id}</span>
+						</div>
+						<div>
+							<strong>Event:</strong>
+							<span class="font-mono text-ink-50">{selectedDetail.event_type}</span>
+						</div>
 						<div><strong>Timestamp:</strong> {formatDate(selectedDetail.event_timestamp)}</div>
 						<div><strong>Actor:</strong> {selectedDetail.actor_email || '-'}</div>
 						<div><strong>IP:</strong> {selectedDetail.actor_ip || '-'}</div>
 						<div>
 							<strong>Request:</strong>
-							<span class="font-mono text-ink-100">{selectedDetail.request_method || '-'} {selectedDetail.request_path || '-'}</span>
+							<span class="font-mono text-ink-100"
+								>{selectedDetail.request_method || '-'} {selectedDetail.request_path || '-'}</span
+							>
 						</div>
 						<div>
 							<strong>Resource:</strong>
-							{selectedDetail.resource_type || '-'} <span class="font-mono text-ink-100">{selectedDetail.resource_id || ''}</span>
+							{selectedDetail.resource_type || '-'}
+							<span class="font-mono text-ink-100">{selectedDetail.resource_id || ''}</span>
 						</div>
 						<div>
 							<strong>Status:</strong>
@@ -57,11 +70,15 @@
 							</span>
 						</div>
 						{#if selectedDetail.error_message}
-							<div><strong>Error:</strong> <span class="text-danger-400">{selectedDetail.error_message}</span></div>
+							<div>
+								<strong>Error:</strong>
+								<span class="text-danger-400">{selectedDetail.error_message}</span>
+							</div>
 						{/if}
 						<div>
 							<strong>Details JSON:</strong>
-							<pre class="mt-2 p-3 rounded-lg bg-ink-950/80 border border-ink-700/30 text-xs overflow-auto font-mono text-ink-100">{JSON.stringify(
+							<pre
+								class="mt-2 p-3 rounded-lg bg-ink-950/80 border border-ink-700/30 text-xs overflow-auto font-mono text-ink-100">{JSON.stringify(
 									selectedDetail.details || {},
 									null,
 									2

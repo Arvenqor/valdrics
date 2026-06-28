@@ -151,8 +151,13 @@
 			<!-- Stats Grid -->
 			<div class="grid gap-5 md:grid-cols-3">
 				<div class="material-perspective">
-					<div class="card card-stat cost-stat material-card-3d p-6 stagger-enter" style="animation-delay: 0ms;">
-						<p class="text-sm text-ink-400 mb-1 font-semibold uppercase tracking-wider">Total LLM Cost</p>
+					<div
+						class="card card-stat cost-stat material-card-3d p-6 stagger-enter"
+						style="animation-delay: 0ms;"
+					>
+						<p class="text-sm text-ink-400 mb-1 font-semibold uppercase tracking-wider">
+							Total LLM Cost
+						</p>
 						<p class="text-3xl font-bold" style="color: var(--color-accent-400);">
 							${summary.total_cost.toFixed(4)}
 						</p>
@@ -160,8 +165,13 @@
 				</div>
 
 				<div class="material-perspective">
-					<div class="card card-stat tokens-stat material-card-3d p-6 stagger-enter" style="animation-delay: 50ms;">
-						<p class="text-sm text-ink-400 mb-1 font-semibold uppercase tracking-wider">Total Tokens</p>
+					<div
+						class="card card-stat tokens-stat material-card-3d p-6 stagger-enter"
+						style="animation-delay: 50ms;"
+					>
+						<p class="text-sm text-ink-400 mb-1 font-semibold uppercase tracking-wider">
+							Total Tokens
+						</p>
 						<p class="text-3xl font-bold" style="color: var(--color-success-400);">
 							{summary.total_tokens.toLocaleString()}
 						</p>
@@ -169,8 +179,13 @@
 				</div>
 
 				<div class="material-perspective">
-					<div class="card card-stat calls-stat material-card-3d p-6 stagger-enter" style="animation-delay: 100ms;">
-						<p class="text-sm text-ink-400 mb-1 font-semibold uppercase tracking-wider">API Calls</p>
+					<div
+						class="card card-stat calls-stat material-card-3d p-6 stagger-enter"
+						style="animation-delay: 100ms;"
+					>
+						<p class="text-sm text-ink-400 mb-1 font-semibold uppercase tracking-wider">
+							API Calls
+						</p>
 						<p class="text-3xl font-bold" style="color: var(--color-warning-400);">
 							{usage.length}
 						</p>

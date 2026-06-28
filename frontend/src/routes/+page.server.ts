@@ -1,17 +1,17 @@
 import { assets, base } from '$app/paths';
 import { redirect } from '@sveltejs/kit';
-import { HERO_ROLE_CONTEXT } from '$lib/landing/heroContent.core';
-import { resolvePublicLandingCurrencyFromHeaders } from '$lib/landing/geoCurrency';
-import type { LandingSignalSnapshot } from '$lib/landing/landingSignalSnapshots';
-import { LANDING_SIGNAL_SNAPSHOTS } from '$lib/landing/landingSignalSnapshots';
+import { HERO_ROLE_CONTEXT } from '$lib/landing/content/hero.core';
+import { resolvePublicLandingCurrencyFromHeaders } from '$lib/landing/roi/geo';
+import type { LandingSignalSnapshot } from '$lib/landing/signals/snapshots';
+import { LANDING_SIGNAL_SNAPSHOTS } from '$lib/landing/signals/snapshots';
 import {
 	resolveLandingExperiments,
 	shouldIncludeExperimentQueryParams
-} from '$lib/landing/landingExperiment';
+} from '$lib/landing/telemetry/experiments';
 import {
 	DEFAULT_EXPERIMENT_ASSIGNMENTS,
 	resolveLandingMotionProfile
-} from '$lib/landing/landingHeroConfig';
+} from '$lib/landing/utils/config';
 import type { PageServerLoad } from './$types';
 
 const MOTION_QUERY_KEY = 'motion';

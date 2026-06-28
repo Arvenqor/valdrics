@@ -5,8 +5,8 @@
 		getFocusableElements,
 		lockBodyScroll,
 		resolveNextFocusTarget
-	} from '$lib/landing/publicMenuA11y';
-	import { PUBLIC_MOBILE_LINKS } from '$lib/landing/publicNav';
+	} from '$lib/landing/content/menuA11y';
+	import { PUBLIC_MOBILE_LINKS } from '$lib/landing/content/nav';
 
 	interface Props {
 		publicTheme: PublicTheme;

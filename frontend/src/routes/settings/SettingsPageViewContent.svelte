@@ -69,7 +69,9 @@
 			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.put(edgeApiPath('/settings/profile'), { persona }, { headers });
 			if (!res.ok) {
-				throw new Error(extractApiErrorMessage(await res.json().catch(() => ({})), 'Failed to save persona.'));
+				throw new Error(
+					extractApiErrorMessage(await res.json().catch(() => ({})), 'Failed to save persona.')
+				);
 			}
 			success = `Persona updated: ${persona}.`;
 			setTimeout(() => (success = ''), 3000);
@@ -106,7 +108,12 @@
 			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.put(edgeApiPath('/settings/carbon'), carbonSettings, { headers });
 			if (!res.ok) {
-				throw new Error(extractApiErrorMessage(await res.json().catch(() => ({})), 'Failed to save carbon settings'));
+				throw new Error(
+					extractApiErrorMessage(
+						await res.json().catch(() => ({})),
+						'Failed to save carbon settings'
+					)
+				);
 			}
 			success = 'Carbon settings saved successfully!';
 			setTimeout(() => (success = ''), 3000);
@@ -153,7 +160,9 @@
 			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.put(edgeApiPath('/settings/llm'), llmSettings, { headers });
 			if (!res.ok) {
-				throw new Error(extractApiErrorMessage(await res.json().catch(() => ({})), 'Failed to save LLM settings'));
+				throw new Error(
+					extractApiErrorMessage(await res.json().catch(() => ({})), 'Failed to save LLM settings')
+				);
 			}
 			const updated = await res.json();
 			llmSettings.openai_api_key = '';
@@ -197,7 +206,12 @@
 			const headers = bearerHeaders(data.session?.access_token);
 			const res = await api.put(edgeApiPath('/settings/activeops'), activeOpsSettings, { headers });
 			if (!res.ok) {
-				throw new Error(extractApiErrorMessage(await res.json().catch(() => ({})), 'Failed to save ActiveOps settings'));
+				throw new Error(
+					extractApiErrorMessage(
+						await res.json().catch(() => ({})),
+						'Failed to save ActiveOps settings'
+					)
+				);
 			}
 			success = 'ActiveOps / Auto-Pilot settings saved!';
 			setTimeout(() => (success = ''), 3000);
@@ -215,7 +229,9 @@
 			const headers = bearerHeaders(data.session?.access_token);
 			const res = await getWithTimeout(edgeApiPath('/settings/safety'), headers);
 			if (!res.ok) {
-				throw new Error(extractApiErrorMessage(await res.json().catch(() => ({})), 'Failed to load safety status'));
+				throw new Error(
+					extractApiErrorMessage(await res.json().catch(() => ({})), 'Failed to load safety status')
+				);
 			}
 			safetyStatus = (await res.json()) as SafetyStatus;
 		} catch (e) {

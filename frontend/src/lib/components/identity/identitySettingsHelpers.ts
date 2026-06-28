@@ -2,7 +2,7 @@ export function isGrowthPlus(currentTier: string | null | undefined): boolean {
 	return ['growth', 'pro', 'enterprise'].includes((currentTier ?? '').toLowerCase());
 }
 
-export function apiRootFromPublicApiUrl(publicApiUrl: string): string {
+function apiRootFromPublicApiUrl(publicApiUrl: string): string {
 	const cleaned = publicApiUrl.replace(/\/+$/, '');
 	return cleaned.replace(/\/api\/v1$/, '');
 }

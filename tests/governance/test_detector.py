@@ -164,7 +164,7 @@ async def test_execute_request_success(
     with (
         patch.object(service, "_get_client", side_effect=mock_get_client),
         patch(
-            "app.modules.optimization.domain.remediation.SafetyGuardrailService",
+            "app.modules.optimization.domain.remediation_execute.SafetyGuardrailService",
             new_callable=MagicMock,
         ) as mock_safety_cls,
     ):

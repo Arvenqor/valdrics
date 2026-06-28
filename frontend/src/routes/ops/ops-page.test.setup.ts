@@ -10,7 +10,7 @@ const hoistedMocks = vi.hoisted(() => ({
 export const getMock = hoistedMocks.getMock;
 export const postMock = hoistedMocks.postMock;
 export const putMock = hoistedMocks.putMock;
-export const deleteMock = hoistedMocks.deleteMock;
+const deleteMock = hoistedMocks.deleteMock;
 
 vi.mock('$env/static/public', () => ({
 	PUBLIC_API_URL: 'https://api.test/api/v1'

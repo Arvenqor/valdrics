@@ -5,7 +5,7 @@
 		PUBLIC_FOOTER_CAPTION,
 		PUBLIC_FOOTER_LINK_GROUPS,
 		PUBLIC_FOOTER_SUBTITLE
-	} from '$lib/landing/publicNav';
+	} from '$lib/landing/content/nav';
 
 	interface Props {
 		currentYear: number;

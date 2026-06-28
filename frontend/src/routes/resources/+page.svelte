@@ -4,7 +4,7 @@
 	import PublicMarketingPage from '$lib/components/public/PublicMarketingPage.svelte';
 	import PublicPageMeta from '$lib/components/public/PublicPageMeta.svelte';
 	import type { PublicContentEntry } from '$lib/content/publicContent.types';
-	import { PUBLIC_EXTENDED_CONTACT_CHANNELS } from '$lib/landing/publicNav';
+	import { PUBLIC_EXTENDED_CONTACT_CHANNELS } from '$lib/landing/content/nav';
 	import {
 		buildPublicEnterpriseHref,
 		buildPublicSignupHref,
@@ -80,7 +80,8 @@
 			<a href={startFreeHref} class="btn btn-secondary material-button-3d">Start Free Workspace</a>
 		{:else}
 			<a href={startFreeHref} class="btn btn-primary material-button-3d">Start Free Workspace</a>
-			<a href={enterprisePathHref} class="btn btn-secondary material-button-3d">Enterprise Review</a>
+			<a href={enterprisePathHref} class="btn btn-secondary material-button-3d">Enterprise Review</a
+			>
 		{/if}
 	{/snippet}
 

@@ -8,7 +8,7 @@ const optionalNonEmptyString = z
 	.optional()
 	.or(z.literal('').transform(() => undefined));
 
-export const AppUserSchema = z.object({
+const AppUserSchema = z.object({
 	id: nonEmptyString,
 	email: nonEmptyString.email().or(nonEmptyString),
 	tenantId: optionalNonEmptyString,
@@ -18,12 +18,12 @@ export const AppUserSchema = z.object({
 	platformOperator: z.boolean().default(false)
 });
 
-export const AppSessionSchema = z.object({
+const AppSessionSchema = z.object({
 	accessToken: nonEmptyString,
 	user: AppUserSchema
 });
 
-export type AppUser = z.infer<typeof AppUserSchema>;
+type AppUser = z.infer<typeof AppUserSchema>;
 export type AppSession = z.infer<typeof AppSessionSchema>;
 
 type LooseUser = {

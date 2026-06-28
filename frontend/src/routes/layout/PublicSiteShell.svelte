@@ -6,7 +6,7 @@
 	import { base } from '$app/paths';
 	import CloudLogo from '$lib/components/CloudLogo.svelte';
 	import { createLazyComponent } from '$lib/lazyComponent';
-	import { PUBLIC_PRIMARY_LINKS, PUBLIC_RESOURCES_DROPDOWN_LINKS } from '$lib/landing/publicNav';
+	import { PUBLIC_PRIMARY_LINKS, PUBLIC_RESOURCES_DROPDOWN_LINKS } from '$lib/landing/content/nav';
 	import {
 		persistPublicTheme,
 		resolveInitialPublicTheme,

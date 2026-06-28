@@ -1,6 +1,6 @@
-export type CloudPlusProvider = 'saas' | 'license' | 'platform' | 'hybrid';
+type CloudPlusProvider = 'saas' | 'license' | 'platform' | 'hybrid';
 
-export type CloudPlusAuthMethod = 'manual' | 'api_key' | 'oauth' | 'csv';
+type CloudPlusAuthMethod = 'manual' | 'api_key' | 'oauth' | 'csv';
 
 export interface CloudPlusCreateInput {
 	provider: CloudPlusProvider;
@@ -24,7 +24,7 @@ export interface PreparedCloudPlusCreateRequest {
 	feed: Array<Record<string, unknown>>;
 }
 
-export function parseJsonObject(raw: string, fieldName: string): Record<string, unknown> {
+function parseJsonObject(raw: string, fieldName: string): Record<string, unknown> {
 	if (!raw.trim()) return {};
 	let parsed: unknown;
 	try {
@@ -38,7 +38,7 @@ export function parseJsonObject(raw: string, fieldName: string): Record<string, 
 	return parsed as Record<string, unknown>;
 }
 
-export function parseJsonArray(raw: string, fieldName: string): Array<Record<string, unknown>> {
+function parseJsonArray(raw: string, fieldName: string): Array<Record<string, unknown>> {
 	if (!raw.trim()) return [];
 	let parsed: unknown;
 	try {

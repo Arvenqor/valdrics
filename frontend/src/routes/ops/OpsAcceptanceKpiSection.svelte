@@ -51,7 +51,8 @@
 				<h2 class="text-lg font-semibold text-ink-100">Acceptance KPI Evidence</h2>
 				<p class="text-xs text-ink-400">
 					Production sign-off signals for ingestion reliability, chargeback coverage, and unit
-					economics stability, plus ledger data-quality (normalization + canonical mapping coverage).
+					economics stability, plus ledger data-quality (normalization + canonical mapping
+					coverage).
 				</p>
 			</div>
 			<div class="flex items-center gap-2 flex-wrap">
@@ -99,7 +100,9 @@
 		</div>
 		{#if acceptanceKpis}
 			<div class="flex items-center gap-2">
-				<span class={acceptanceKpis.all_targets_met ? 'badge badge-success' : 'badge badge-warning'}>
+				<span
+					class={acceptanceKpis.all_targets_met ? 'badge badge-success' : 'badge badge-warning'}
+				>
 					{acceptanceKpis.all_targets_met ? 'All Targets Met' : 'Gaps Open'}
 				</span>
 				<span class="text-xs text-ink-500">

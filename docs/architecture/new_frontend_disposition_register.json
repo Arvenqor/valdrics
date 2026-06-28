@@ -256,8 +256,7 @@
         "frontend/src/routes/dashboard/dashboard-page.svelte.test.ts",
         "frontend/src/routes/dashboard/dashboardOverviewModel.test.ts",
         "frontend/src/routes/dashboard.load.test.ts",
-        "frontend/src/routes/dashboard/dashboardHeroCaptureFixture.ts",
-        "frontend/src/routes/__capture/dashboard-hero/+page.svelte"
+        "frontend/src/routes/dashboard/dashboardHeroCaptureFixture.ts"
       ],
       "evidence": [
         "corepack pnpm@10.32.1 --dir frontend check",
@@ -325,8 +324,6 @@
         "frontend/src/routes/inventory/inventory.responsive.css",
         "frontend/src/routes/inventory/inventoryCaptureFixture.ts",
         "frontend/src/routes/inventory/inventory-page.svelte.test.ts",
-        "frontend/src/routes/__capture/inventory/+page.svelte",
-        "frontend/src/routes/__capture/inventory/+page.server.ts",
         "frontend/src/routes/connections/ConnectionsInventoryReconciliation.svelte",
         "frontend/src/routes/connections/ConnectionsPageViewContent.inventory.css",
         "frontend/src/routes/connections/connectionsDataApi.ts",
@@ -361,11 +358,11 @@
       "target_paths": [
         "frontend/src/routes/+page.svelte",
         "frontend/src/routes/+page.server.ts",
-        "frontend/src/lib/landing/LandingHead.svelte",
-        "frontend/src/lib/landing/LandingNav.svelte",
-        "frontend/src/lib/landing/LandingCtaFooter.svelte",
-        "frontend/src/lib/landing/landingContent.ts",
-        "frontend/src/lib/landing/landingPricingContract.test.ts"
+        "frontend/src/lib/landing/components/LandingHead.svelte",
+        "frontend/src/lib/landing/components/LandingNav.svelte",
+        "frontend/src/lib/landing/components/LandingCtaFooter.svelte",
+        "frontend/src/lib/landing/content/page.ts",
+        "frontend/src/lib/landing/contracts/landingPricingContract.test.ts"
       ],
       "evidence": [
         "corepack pnpm@10.32.1 --dir frontend exec vitest run src/lib/landing/landingPricingContract.test.ts src/routes/pricing/pricing-page.svelte.test.ts src/routes/pricing/pricing.load.test.ts --reporter=verbose",
@@ -434,12 +431,10 @@
         "frontend/src/routes/onboarding/OnboardingStepNavigationActions.svelte",
         "frontend/src/routes/onboarding/OnboardingVerifySuccessSection.svelte",
         "frontend/src/routes/onboarding/OnboardingPageViewContent.base.css",
-        "frontend/src/routes/onboarding/OnboardingPageViewContent.discovery.css",
         "frontend/src/routes/onboarding/OnboardingPageViewContent.flow.css",
         "frontend/src/routes/onboarding/OnboardingPageViewContent.provider.css",
-        "frontend/src/routes/onboarding/onboarding-page.svelte.test.ts",
-        "frontend/src/routes/__capture/onboarding/+page.svelte",
-        "frontend/src/routes/__capture/onboarding/+page.server.ts"
+        "frontend/src/routes/onboarding/OnboardingPageViewContent.responsive.css",
+        "frontend/src/routes/onboarding/onboarding-page.svelte.test.ts"
       ],
       "evidence": [
         "corepack pnpm@10.32.1 --dir frontend check",
@@ -458,12 +453,10 @@
         "frontend/src/routes/onboarding/OnboardingPageViewBody.svelte",
         "frontend/src/routes/onboarding/OnboardingStepSelectProviderSection.svelte",
         "frontend/src/routes/onboarding/OnboardingPageViewContent.base.css",
-        "frontend/src/routes/onboarding/OnboardingPageViewContent.discovery.css",
         "frontend/src/routes/onboarding/OnboardingPageViewContent.flow.css",
         "frontend/src/routes/onboarding/OnboardingPageViewContent.provider.css",
-        "frontend/src/routes/onboarding/onboarding-page.svelte.test.ts",
-        "frontend/src/routes/__capture/onboarding/+page.svelte",
-        "frontend/src/routes/__capture/onboarding/+page.server.ts"
+        "frontend/src/routes/onboarding/OnboardingPageViewContent.responsive.css",
+        "frontend/src/routes/onboarding/onboarding-page.svelte.test.ts"
       ],
       "evidence": [
         "corepack pnpm@10.32.1 --dir frontend check",
@@ -479,8 +472,7 @@
       "decision": "Migrated the useful ownership-routing intent into production Identity settings using the real /api/v1/settings/identity SSO, federation, and SCIM group-mapping contract. The handoff standalone /ownership route, direct FASTAPI_URL browser calls, /ownership/resources, /teams, /ownership/stats, /ownership/assign endpoints, synthetic owner tables, and fake resource coverage counters were rejected because production resource-owner assignment needs a dedicated backend contract before it becomes UI.",
       "target_paths": [
         "frontend/src/lib/components/IdentitySettingsCardContent.svelte",
-        "frontend/src/lib/components/identity/IdentityOwnershipRoutingSummary.svelte",
-        "frontend/src/lib/components/IdentitySettingsCard.svelte.test.ts"
+        "frontend/src/lib/components/identity/IdentityOwnershipRoutingSummary.svelte"
       ],
       "evidence": [
         "corepack pnpm@10.32.1 --dir frontend exec vitest run src/lib/components/IdentitySettingsCard.svelte.test.ts",
@@ -540,9 +532,7 @@
         "frontend/src/routes/savings/savings.summary.css",
         "frontend/src/routes/savings/savings.evidence.css",
         "frontend/src/routes/savings/savings.responsive.css",
-        "frontend/src/routes/savings/savings-page.svelte.test.ts",
-        "frontend/src/routes/__capture/savings/+page.svelte",
-        "frontend/src/routes/__capture/savings/+page.server.ts"
+        "frontend/src/routes/savings/savings-page.svelte.test.ts"
       ],
       "evidence": [
         "corepack pnpm@10.32.1 --dir frontend check",

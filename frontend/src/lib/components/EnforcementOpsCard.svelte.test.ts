@@ -188,7 +188,7 @@ describe('EnforcementOpsCard', () => {
 			);
 		});
 
-		await fireEvent.click(screen.getByRole('button', { name: /Reconcile as matched/i }));
+		await fireEvent.click(await screen.findByRole('button', { name: /Reconcile as matched/i }));
 		await waitFor(() => {
 			expect(postMock).toHaveBeenCalledWith(
 				endpoint('/enforcement/reservations/33333333-3333-3333-3333-333333333333/reconcile'),

@@ -91,4 +91,4 @@ export function listPublicSitemapEntries(): Array<{
 	}));
 }
 
-export type { PublicContentEntry, PublicContentEntryInput, PublicContentKind };
+export type { PublicContentEntry, PublicContentKind };

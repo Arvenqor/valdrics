@@ -14,14 +14,9 @@ from app.shared.orchestration.contracts import (
     platform_runtime_profile,
     PlatformRuntimeProfile,
 )
+from app.shared.core.bools import coerce_bool
 
 
-def _is_truthy(value: object) -> bool:
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, str):
-        return value.strip().lower() in {"1", "true", "yes", "on"}
-    return bool(value)
 
 
 def _normalize_environment(value: object) -> str:
@@ -197,7 +192,7 @@ def validate_turnstile_config(
 
 def validate_integration_config(settings_obj: object, *, is_production: bool) -> None:
     """Validate SaaS integration strict mode constraints."""
-    if not _is_truthy(getattr(settings_obj, "SAAS_STRICT_INTEGRATIONS", False)):
+    if not coerce_bool(getattr(settings_obj, "SAAS_STRICT_INTEGRATIONS", False)):
         return
 
     environment = _normalize_environment(getattr(settings_obj, "ENVIRONMENT", ""))
@@ -234,7 +229,7 @@ def validate_integration_config(settings_obj: object, *, is_production: bool) ->
         "GENERIC_CI_WEBHOOK_ENABLED",
     )
     for field_name in feature_toggles:
-        if _is_truthy(getattr(settings_obj, field_name, False)):
+        if coerce_bool(getattr(settings_obj, field_name, False)):
             violations.append(field_name)
 
     if violations:
@@ -401,7 +396,7 @@ def validate_environment_safety(
         )
 
         _validate_break_glass_window(
-            enabled=_is_truthy(
+            enabled=coerce_bool(
                 getattr(settings_obj, "ALLOW_INSECURE_OUTBOUND_TLS", False)
             ),
             reason=getattr(settings_obj, "OUTBOUND_TLS_BREAK_GLASS_REASON", None),

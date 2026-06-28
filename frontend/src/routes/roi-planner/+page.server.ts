@@ -1,6 +1,6 @@
 import { edgeApiPath } from '$lib/edgeProxy';
 import { fetchWithTimeout } from '$lib/fetchWithTimeout';
-import { resolvePublicLandingCurrencyFromHeaders } from '$lib/landing/geoCurrency';
+import { resolvePublicLandingCurrencyFromHeaders } from '$lib/landing/roi/geo';
 import { bearerHeaders } from '$lib/http';
 import type { UnitEconomicsSettings } from '../ops/opsTypes';
 import type { PageServerLoad } from './$types';
@@ -15,7 +15,7 @@ export const load: PageServerLoad = async ({ request, fetch, parent }) => {
 	let savedSettings: UnitEconomicsSettings | null = null;
 	if (session?.access_token) {
 		try {
-			const res = await 			fetchWithTimeout(
+			const res = await fetchWithTimeout(
 				fetch,
 				edgeApiPath('/costs/unit-economics/settings'),
 				{

@@ -1,6 +1,6 @@
 import { edgeApiPath } from '$lib/edgeProxy';
 
-export type CampaignRow = {
+type CampaignRow = {
 	utm_source: string;
 	utm_medium: string;
 	utm_campaign: string;
@@ -18,7 +18,7 @@ export type CampaignRow = {
 	last_seen_at: string | null;
 };
 
-export type WeeklyWindowSummary = {
+type WeeklyWindowSummary = {
 	total_events: number;
 	cta_events: number;
 	signup_intent_events: number;
@@ -33,7 +33,7 @@ export type WeeklyWindowSummary = {
 	connection_to_first_value_rate: number | null;
 };
 
-export type WeeklyWindowDelta = {
+type WeeklyWindowDelta = {
 	total_events: number;
 	signup_intent_events: number;
 	onboarded_tenants: number;

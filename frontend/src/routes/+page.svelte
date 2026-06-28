@@ -2,15 +2,15 @@
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
-	import LandingCtaFooter from '$lib/landing/LandingCtaFooter.svelte';
-	import LandingFaqPricing from '$lib/landing/LandingFaqPricing.svelte';
-	import LandingFeatures from '$lib/landing/LandingFeatures.svelte';
-	import LandingHead from '$lib/landing/LandingHead.svelte';
-	import LandingHero from '$lib/landing/LandingHero.svelte';
-	import LandingHowCounterIntegrations from '$lib/landing/LandingHowCounterIntegrations.svelte';
-	import LandingNav from '$lib/landing/LandingNav.svelte';
-	import LandingProblem from '$lib/landing/LandingProblem.svelte';
-	import LandingProofComparison from '$lib/landing/LandingProofComparison.svelte';
+	import LandingCtaFooter from '$lib/landing/components/LandingCtaFooter.svelte';
+	import LandingFaqPricing from '$lib/landing/components/LandingFaqPricing.svelte';
+	import LandingFeatures from '$lib/landing/components/LandingFeatures.svelte';
+	import LandingHead from '$lib/landing/components/LandingHead.svelte';
+	import LandingHero from '$lib/landing/components/LandingHero.svelte';
+	import LandingHowCounterIntegrations from '$lib/landing/components/LandingHowCounterIntegrations.svelte';
+	import LandingNav from '$lib/landing/components/LandingNav.svelte';
+	import LandingProblem from '$lib/landing/components/LandingProblem.svelte';
+	import LandingProofComparison from '$lib/landing/components/LandingProofComparison.svelte';
 	import LandingRoiSimulator from '$lib/components/landing/LandingRoiSimulator.svelte';
 	import type { PricingPlan } from '$lib/pricing/publicPlans';
 	import { buildPublicAuthHref } from '$lib/public/publicAppOrigin';
@@ -19,7 +19,7 @@
 		resolveInitialLandingCurrency,
 		setLandingCurrencyPreference,
 		type LandingCurrencyCode
-	} from '$lib/landing/currencyPreference';
+	} from '$lib/landing/roi/currencyPreference';
 
 	let scrolled = false;
 	let mobileMenuOpen = false;

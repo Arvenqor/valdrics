@@ -66,7 +66,9 @@
 								<td>
 									<div class="text-sm">{req.resource_type}</div>
 									<div class="text-xs text-ink-500 font-mono">{req.resource_id}</div>
-									<div class="text-xs text-ink-500 capitalize">{req.status.replaceAll('_', ' ')}</div>
+									<div class="text-xs text-ink-500 capitalize">
+										{req.status.replaceAll('_', ' ')}
+									</div>
 									{#if req.escalation_required}
 										<div class="badge badge-warning mt-1 text-xs">
 											Escalated: {req.escalation_reason || 'Owner approval required'}
@@ -121,7 +123,8 @@
 									<div class="text-xs text-ink-500 font-mono">{req.resource_id}</div>
 								</td>
 								<td class="capitalize">{req.action.replaceAll('_', ' ')}</td>
-								<td class="text-xs text-ink-500">{formatDate(req.executed_at || req.created_at)}</td>
+								<td class="text-xs text-ink-500">{formatDate(req.executed_at || req.created_at)}</td
+								>
 								<td class="text-xs font-mono">{req.finding_category || 'unknown'}</td>
 								<td>
 									{#if req.finding_status === 'resolved'}
@@ -209,8 +212,10 @@
 		<div class="flex items-center justify-between mb-4">
 			<h2 class="text-lg font-semibold text-ink-100">RI/SP Strategy Recommendations</h2>
 			<div class="flex gap-2">
-				<button type="button" class="btn btn-secondary text-xs material-button-3d" onclick={onLoadOpsData}
-					>Refresh</button
+				<button
+					type="button"
+					class="btn btn-secondary text-xs material-button-3d"
+					onclick={onLoadOpsData}>Refresh</button
 				>
 				<button
 					type="button"

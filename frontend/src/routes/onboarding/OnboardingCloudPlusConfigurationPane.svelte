@@ -176,6 +176,5 @@
 		rows="10"
 		class="input font-mono text-xs"
 		bind:value={cloudPlusFeedInput}
-		placeholder={cloudPlusSampleFeed || '[]'}
-	></textarea>
+		placeholder={cloudPlusSampleFeed || '[]'}></textarea>
 </div>

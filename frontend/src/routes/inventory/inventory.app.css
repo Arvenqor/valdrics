@@ -1,11 +1,12 @@
 @import 'tailwindcss' source(none);
 @import '../../app.theme.css';
-@import './inventory.layout.css';
-@import './inventory.table.css';
-@import './inventory.responsive.css';
 
 @source not './**/*.test.ts';
 @source not './**/*.spec.ts';
 @source not './**/*.test.js';
 @source not './**/*.spec.js';
 @source '.';
+
+@import './inventory.layout.css';
+@import './inventory.table.css';
+@import './inventory.responsive.css';

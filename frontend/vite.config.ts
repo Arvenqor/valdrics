@@ -40,7 +40,12 @@ const serverProject: TestProjectConfiguration = {
 		name: 'server',
 		environment: 'node',
 		include: ['src/**/*.{test,spec}.{js,ts}'],
-		exclude: ['src/**/*.svelte.{test,spec}.{js,ts}', 'src/**/*.browser.{test,spec}.{js,ts}']
+		exclude: ['src/**/*.svelte.{test,spec}.{js,ts}', 'src/**/*.browser.{test,spec}.{js,ts}'],
+		server: {
+			deps: {
+				inline: ['@sveltejs/kit']
+			}
+		}
 	}
 };
 

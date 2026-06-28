@@ -148,14 +148,12 @@
 				<textarea
 					class="input connections-field connections-field--code"
 					placeholder={`Connector config JSON (ledger_http: {"base_url":"https://ledger.company.com","costs_path":"/api/v1/finops/costs"} | datadog/newrelic: {"unit_prices_usd":{...}} )`}
-					bind:value={platformConnectorConfig}
-				></textarea>
+					bind:value={platformConnectorConfig}></textarea>
 				{#if platformAuthMethod !== 'api_key'}
 					<textarea
 						class="input connections-field connections-field--feed"
 						placeholder="Spend feed JSON array for manual/csv mode"
-						bind:value={platformFeedInput}
-					></textarea>
+						bind:value={platformFeedInput}></textarea>
 				{/if}
 				<button
 					type="button"
@@ -294,14 +292,12 @@
 				<textarea
 					class="input connections-field connections-field--code"
 					placeholder={`Connector config JSON (ledger_http: {"base_url":"https://ledger.company.com"} | cloudkitty: {"auth_url":"...","cloudkitty_base_url":"..."} | vmware: {"base_url":"...","cpu_hour_usd":0.1,"ram_gb_hour_usd":0.01})`}
-					bind:value={hybridConnectorConfig}
-				></textarea>
+					bind:value={hybridConnectorConfig}></textarea>
 				{#if hybridAuthMethod !== 'api_key'}
 					<textarea
 						class="input connections-field connections-field--feed"
 						placeholder="Spend feed JSON array for manual/csv mode"
-						bind:value={hybridFeedInput}
-					></textarea>
+						bind:value={hybridFeedInput}></textarea>
 				{/if}
 				<button
 					type="button"

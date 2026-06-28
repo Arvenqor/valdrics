@@ -6,7 +6,7 @@ import {
 	normalizeCustomerCommentsFeed,
 	type CustomerCommentRecord,
 	type CustomerCommentStage
-} from '$lib/landing/customerCommentsFeed';
+} from '$lib/landing/content/comments';
 
 type CustomerCommentsStoreFile = {
 	version: 1;

@@ -210,7 +210,7 @@ async def test_execute_policy_block_short_circuits_action() -> None:
             new_callable=AsyncMock,
         ),
         patch(
-            "app.modules.optimization.domain.remediation.SafetyGuardrailService"
+            "app.modules.optimization.domain.remediation_execute.SafetyGuardrailService"
         ) as mock_safety,
         patch(
             "app.modules.optimization.domain.remediation.RemediationActionFactory.get_strategy"
@@ -263,7 +263,7 @@ async def test_execute_policy_block_notifies_jira_and_workflow_for_pro_tier() ->
             new_callable=AsyncMock,
         ),
         patch(
-            "app.modules.optimization.domain.remediation.SafetyGuardrailService"
+            "app.modules.optimization.domain.remediation_execute.SafetyGuardrailService"
         ) as mock_safety,
         patch(
             "app.modules.optimization.domain.remediation.get_tenant_tier",
@@ -323,7 +323,7 @@ async def test_execute_policy_warn_still_executes() -> None:
             new_callable=AsyncMock,
         ),
         patch(
-            "app.modules.optimization.domain.remediation.SafetyGuardrailService"
+            "app.modules.optimization.domain.remediation_execute.SafetyGuardrailService"
         ) as mock_safety,
         patch(
             "app.shared.core.notifications.NotificationDispatcher.notify_remediation_completed",
@@ -388,7 +388,7 @@ async def test_execute_policy_escalate_sets_pending_escalation_state() -> None:
             new_callable=AsyncMock,
         ),
         patch(
-            "app.modules.optimization.domain.remediation.SafetyGuardrailService"
+            "app.modules.optimization.domain.remediation_execute.SafetyGuardrailService"
         ) as mock_safety,
         patch(
             "app.modules.optimization.domain.remediation.RemediationActionFactory.get_strategy"
@@ -438,7 +438,7 @@ async def test_execute_policy_escalation_does_not_notify_jira_without_jira_featu
             new_callable=AsyncMock,
         ),
         patch(
-            "app.modules.optimization.domain.remediation.SafetyGuardrailService"
+            "app.modules.optimization.domain.remediation_execute.SafetyGuardrailService"
         ) as mock_safety,
         patch(
             "app.modules.optimization.domain.remediation.get_tenant_tier",
@@ -496,7 +496,7 @@ async def test_execute_policy_escalation_is_pending_even_without_escalation_feat
             new_callable=AsyncMock,
         ),
         patch(
-            "app.modules.optimization.domain.remediation.SafetyGuardrailService"
+            "app.modules.optimization.domain.remediation_execute.SafetyGuardrailService"
         ) as mock_safety,
         patch(
             "app.modules.optimization.domain.remediation.get_tenant_tier",

@@ -4,7 +4,7 @@
  * Manages global UI states like toasts, loading indicators, and rate-limit warnings.
  */
 
-export type ToastType = 'info' | 'success' | 'warning' | 'error' | 'rate-limit';
+type ToastType = 'info' | 'success' | 'warning' | 'error' | 'rate-limit';
 
 export interface Toast {
 	id: string;

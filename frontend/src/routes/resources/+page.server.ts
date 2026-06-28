@@ -2,10 +2,7 @@ import type { PageServerLoad } from './$types';
 import { listPublicContent, mustGetPublicContentEntry } from '$lib/content/publicContent';
 
 export const load: PageServerLoad = () => {
-	const resources = [
-		...listPublicContent('resources'),
-		...listPublicContent('insights')
-	];
+	const resources = [...listPublicContent('resources'), ...listPublicContent('insights')];
 
 	// Helper to safely resolve entries to prevent total page failure if one is missing
 	const getSafeEntries = (ids: string[]) =>
