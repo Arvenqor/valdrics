@@ -111,7 +111,7 @@
 		return `${window.location.origin}${base}${callbackPath}`;
 	}
 
-	function emitAuthEvent(action: string, value?: string): void {
+	function emitAuthEvent(action: string, value: string | undefined = undefined): void {
 		emitLandingTelemetry(action, 'auth', value, {
 			persona: authContext.persona,
 			funnelStage: 'signup_intent',
