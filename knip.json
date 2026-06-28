@@ -1,0 +1,40 @@
+{
+	"$schema": "https://unpkg.com/knip@6.22.0/schema.json",
+	"project": ["frontend/**/*.{ts,js,svelte}"],
+	"ignore": [
+		"frontend/scripts/**",
+		"frontend/e2e/**",
+		"frontend/static/**",
+		"frontend/eslint.config.js",
+		"frontend/server.node.mjs",
+		"frontend/src/lib/index.ts",
+		"frontend/src/lib/stores/stateStore.ts",
+		"frontend/src/lib/components/CarbonImpact.svelte",
+		"frontend/src/lib/components/StatsGrid.svelte",
+		"frontend/src/routes/dashboard/dashboardHeroCaptureFixture.ts",
+		"frontend/src/routes/inventory/inventoryCaptureFixture.ts",
+		"frontend/src/routes/savings/savingsCaptureFixture.ts",
+		"frontend/scripts/capture-dashboard-hero-still.mjs"
+	],
+	"entry": [
+		"frontend/src/**/+page.{ts,js,svelte}",
+		"frontend/src/**/+layout.{ts,js,svelte}",
+		"frontend/src/**/+page.server.{ts,js}",
+		"frontend/src/**/+layout.server.{ts,js}",
+		"frontend/src/**/+server.{ts,js}",
+		"frontend/src/app.ts",
+		"frontend/src/app.html",
+		"frontend/src/service-worker.{ts,js}",
+		"frontend/src/routes/**"
+	],
+	"ignoreDependencies": [
+		"@playwright/test",
+		"axe-playwright",
+		"@vitest/browser-playwright",
+		"vitest-browser-svelte",
+		"wrangler",
+		"globals",
+		"tailwind-variants",
+		"tw-animate-css"
+	]
+}
