@@ -32,6 +32,7 @@ from app.shared.core.auth import CurrentUser
 from app.shared.core.dependencies import requires_feature
 from app.shared.core.pricing import FeatureFlag, PricingTier, normalize_tier
 from app.shared.db.session import get_db
+from app.shared.core.bools import coerce_bool
 from app.modules.reporting.domain.savings_proof import (
     SavingsProofDrilldownResponse,
     SavingsProofResponse,
@@ -73,11 +74,7 @@ def _coerce_query_int(value: Any) -> int:
 
 def _coerce_query_bool(value: Any) -> bool:
     candidate = _query_default(value)
-    if isinstance(candidate, bool):
-        return candidate
-    if isinstance(candidate, str):
-        return candidate.strip().lower() in {"1", "true", "yes", "on"}
-    return bool(candidate)
+    return coerce_bool(candidate)
 
 
 @router.get("/proof", response_model=SavingsProofResponse)

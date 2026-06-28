@@ -17,6 +17,7 @@ import re
 from typing import Any
 
 from app.models.remediation import RemediationAction, RemediationRequest
+from app.shared.core.bools import parse_bool
 
 
 class PolicyDecision(str, Enum):
@@ -244,7 +245,7 @@ class RemediationPolicyEngine:
             return None
 
         is_production_raw = context.get("is_production")
-        is_production = self._coerce_bool(is_production_raw)
+        is_production = parse_bool(is_production_raw)
         if is_production is not None:
             return is_production
 
@@ -269,21 +270,6 @@ class RemediationPolicyEngine:
 
         return raw_context
 
-    def _coerce_bool(self, value: Any) -> bool | None:
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, (int, float)):
-            if value == 1:
-                return True
-            if value == 0:
-                return False
-        if isinstance(value, str):
-            normalized = value.strip().lower()
-            if normalized in {"1", "true", "yes", "y", "on"}:
-                return True
-            if normalized in {"0", "false", "no", "n", "off"}:
-                return False
-        return None
 
     def _is_gpu_sensitive(self, request: RemediationRequest) -> bool:
         action = getattr(request, "action", None)

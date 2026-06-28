@@ -24,6 +24,7 @@ from app.shared.core.remediation_results import (
     normalize_remediation_status,
     parse_remediation_execution_error,
 )
+from app.shared.core.bools import coerce_bool
 
 DEFAULT_REGION_HINT = "global"
 
@@ -38,17 +39,7 @@ def coerce_region_hint(value: Any) -> str:
 def coerce_query_bool(value: Any, *, default: bool = False) -> bool:
     if isinstance(value, Param):
         value = value.default
-    if isinstance(value, bool):
-        return value
-    if value is None:
-        return default
-    if isinstance(value, str):
-        normalized = value.strip().lower()
-        if normalized in {"1", "true", "yes", "on"}:
-            return True
-        if normalized in {"0", "false", "no", "off"}:
-            return False
-    return bool(value)
+    return coerce_bool(value, default=default)
 
 
 def coerce_query_int(

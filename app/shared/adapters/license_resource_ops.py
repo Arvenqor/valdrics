@@ -9,6 +9,7 @@ from app.shared.adapters.license_feed_ops import (
     normalize_text,
 )
 from app.shared.adapters.feed_utils import parse_required_timestamp
+from app.shared.core.bools import parse_bool
 
 _DISCOVERY_RESOURCE_TYPE_ALIASES = {
     "all",
@@ -67,20 +68,6 @@ def _normalize_currency(value: Any) -> str:
     return upper if upper else "USD"
 
 
-def _optional_bool(value: Any) -> bool | None:
-    if value is None:
-        return None
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, (int, float)):
-        return bool(value)
-    if isinstance(value, str):
-        normalized = value.strip().lower()
-        if normalized in {"1", "true", "yes", "on"}:
-            return True
-        if normalized in {"0", "false", "no", "off"}:
-            return False
-    return None
 
 
 def _first_present(row: dict[str, Any], keys: tuple[str, ...]) -> Any:
@@ -140,7 +127,7 @@ def build_discovered_license_resources(
         admin_role = normalize_text(
             row.get("admin_role") or row.get("org_role") or row.get("role")
         )
-        mfa_enabled = _optional_bool(
+        mfa_enabled = parse_bool(
             _first_present(
                 row,
                 (
@@ -197,7 +184,7 @@ def build_discovered_license_resources(
         suspended = bool(item.get("suspended"))
         is_admin = bool(item.get("is_admin"))
         admin_role = normalize_text(item.get("admin_role"))
-        mfa_enabled = _optional_bool(item.get("mfa_enabled"))
+        mfa_enabled = parse_bool(item.get("mfa_enabled"))
         admin_sources = _normalize_admin_sources(item.get("admin_sources"))
 
         results.append(
@@ -293,7 +280,7 @@ def build_license_usage_rows(
                     "user_id": metadata_dict.get("user_id"),
                     "is_admin": bool(metadata_dict.get("is_admin")),
                     "admin_role": metadata_dict.get("admin_role"),
-                    "mfa_enabled": _optional_bool(metadata_dict.get("mfa_enabled")),
+                    "mfa_enabled": parse_bool(metadata_dict.get("mfa_enabled")),
                     "suspended": bool(metadata_dict.get("suspended")),
                 },
             }

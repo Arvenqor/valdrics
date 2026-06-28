@@ -48,7 +48,7 @@ async def test_remediation_kill_switch_triggered():
             new_callable=AsyncMock,
         ),
         patch(
-            "app.modules.optimization.domain.remediation.SafetyGuardrailService"
+            "app.modules.optimization.domain.remediation_execute.SafetyGuardrailService"
         ) as mock_safety,
     ):
         mock_safety.return_value.check_all_guards = AsyncMock(
@@ -100,7 +100,7 @@ async def test_remediation_kill_switch_not_triggered():
             new_callable=AsyncMock,
         ),
         patch(
-            "app.modules.optimization.domain.remediation.SafetyGuardrailService"
+            "app.modules.optimization.domain.remediation_execute.SafetyGuardrailService"
         ) as mock_safety,
         patch(
             "app.modules.optimization.domain.remediation.RemediationActionFactory.get_strategy"

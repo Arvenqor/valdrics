@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.background_job import BackgroundJob
 from app.modules.governance.domain.jobs.errors import PermanentJobError
+from app.shared.core.bools import parse_bool
 
 logger = structlog.get_logger()
 COST_EXPORT_PROVIDER_FILTERS = {
@@ -68,15 +69,10 @@ def normalize_cost_export_provider(value: Any) -> str | None:
 
 def payload_bool(payload: dict[str, Any], key: str, *, default: bool = False) -> bool:
     value = payload.get(key, default)
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, str):
-        normalized = value.strip().lower()
-        if normalized in {"1", "true", "yes", "y", "on"}:
-            return True
-        if normalized in {"0", "false", "no", "n", "off"}:
-            return False
-    raise PermanentJobError(f"{key} must be a boolean")
+    parsed = parse_bool(value)
+    if parsed is None:
+        raise PermanentJobError(f"{key} must be a boolean")
+    return parsed
 
 
 def payload_positive_int(

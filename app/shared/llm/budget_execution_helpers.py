@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from decimal import Decimal, InvalidOperation
 from typing import Any
+from app.shared.core.bools import coerce_bool
 
 
 def coerce_decimal(value: Any) -> Decimal | None:
@@ -19,20 +20,6 @@ def coerce_decimal(value: Any) -> Decimal | None:
             return None
     return None
 
-
-def coerce_bool(value: Any, *, default: bool = False) -> bool:
-    """Normalize mixed scalar/string values into booleans."""
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, (int, float, Decimal)):
-        return bool(value)
-    if isinstance(value, str):
-        normalized = value.strip().lower()
-        if normalized in {"1", "true", "yes", "on"}:
-            return True
-        if normalized in {"0", "false", "no", "off"}:
-            return False
-    return default
 
 
 def coerce_threshold_percent(value: Any) -> Decimal:

@@ -4,7 +4,6 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from app.shared.core.connection_state import (
-    _coerce_bool,
     _coerce_criticality,
     _default_aws_region,
     _extract_profile_value,
@@ -13,6 +12,7 @@ from app.shared.core.connection_state import (
     resolve_connection_profile,
     resolve_connection_region,
 )
+from app.shared.core.bools import parse_bool as _coerce_bool
 
 
 def test_default_aws_region_falls_back_when_setting_empty() -> None:
