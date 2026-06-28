@@ -3,10 +3,7 @@
 	import { bearerHeaders, extractApiErrorMessage } from '$lib/http';
 	import { edgeApiPath } from '$lib/edgeProxy';
 	import { formatValidationIssues } from '$lib/validation/clientZod';
-	import {
-		RotateTokenResponseSchema,
-		ScimTokenTestResponseSchema
-	} from './identitySettingsModel';
+	import { RotateTokenResponseSchema, ScimTokenTestResponseSchema } from './identitySettingsModel';
 	import type { IdentitySettings } from './identitySettingsTypes';
 
 	let {

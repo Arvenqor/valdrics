@@ -25,7 +25,6 @@ function buildInventoryParams(query: InventoryQuery): URLSearchParams {
 	return params;
 }
 
-
 export async function loadInventorySnapshot(
 	accessToken: string | undefined,
 	query: InventoryQuery,

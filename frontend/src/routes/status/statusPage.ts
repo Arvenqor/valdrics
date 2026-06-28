@@ -1,6 +1,6 @@
 export type StatusTone = 'success' | 'warning' | 'danger' | 'neutral';
 
-export type StatusComponent = {
+type StatusComponent = {
 	name: string;
 	statusLabel: string;
 	tone: StatusTone;

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { captureLandingAttribution } from '$lib/landing/landingFunnel';
-import type { StorageLike } from '$lib/landing/landingExperiment';
+import { captureLandingAttribution } from '$lib/landing/telemetry/funnel';
+import type { StorageLike } from '$lib/landing/telemetry/experiments';
 
 import {
 	buildProductFunnelAttributionContext,

@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import Page from './+page.svelte';
-import { incrementLandingCtaValue, incrementLandingWeeklyStage } from '$lib/landing/landingFunnel';
+import {
+	incrementLandingCtaValue,
+	incrementLandingWeeklyStage
+} from '$lib/landing/telemetry/funnel';
 
 vi.mock('$app/environment', () => ({
 	browser: true

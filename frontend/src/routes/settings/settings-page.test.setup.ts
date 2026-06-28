@@ -55,9 +55,9 @@ function cloneResponse(response: Response): Response {
 
 const EDGE_BASE = '/api/edge/api/v1';
 export const endpoint = (path: string): string => `${EDGE_BASE}${path}`;
-export const directApiEndpoint = (path: string): string => `https://api.test/api/v1${path}`;
+const directApiEndpoint = (path: string): string => `https://api.test/api/v1${path}`;
 
-export function baseSettingsData(tier: string = 'enterprise'): PageData {
+function baseSettingsData(tier: string = 'enterprise'): PageData {
 	return {
 		user: { id: 'user-id', tenant_id: 'tenant-id' },
 		session: { access_token: 'token' },

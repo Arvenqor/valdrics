@@ -23,7 +23,7 @@ export type PricingPlan = {
 
 export const PLAN_ORDER = ['free', 'starter', 'growth', 'pro'] as const;
 
-export function isPricingPlan(value: unknown): value is PricingPlan {
+function isPricingPlan(value: unknown): value is PricingPlan {
 	if (typeof value !== 'object' || value === null) return false;
 	const plan = value as Partial<PricingPlan>;
 	return (

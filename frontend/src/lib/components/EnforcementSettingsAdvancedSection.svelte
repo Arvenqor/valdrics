@@ -7,10 +7,7 @@
 		loadEnforcementCredits,
 		saveEnforcementBudget
 	} from './enforcementSettingsApi';
-	import {
-		type EnforcementBudget,
-		type EnforcementCredit
-	} from './enforcementSettingsModel';
+	import { type EnforcementBudget, type EnforcementCredit } from './enforcementSettingsModel';
 	import { formatUsd } from '$lib/format';
 
 	let { accessToken }: { accessToken?: string | null } = $props();

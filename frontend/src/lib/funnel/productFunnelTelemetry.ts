@@ -1,14 +1,11 @@
 import { api } from '$lib/api';
 import { edgeApiPath } from '$lib/edgeProxy';
 import { bearerHeaders } from '$lib/http';
-import { readLandingAttribution, type LandingAttribution } from '$lib/landing/landingFunnel';
-import type { StorageLike } from '$lib/landing/landingExperiment';
+import { readLandingAttribution, type LandingAttribution } from '$lib/landing/telemetry/funnel';
+import type { StorageLike } from '$lib/landing/telemetry/experiments';
 
-export type ProductFunnelStage =
-	| 'connection_verified'
-	| 'pricing_viewed'
-	| 'checkout_started'
-	| 'first_value_activated';
+type ProductFunnelStage =
+	'connection_verified' | 'pricing_viewed' | 'checkout_started' | 'first_value_activated';
 
 export interface ProductFunnelPayload {
 	stage: ProductFunnelStage;
@@ -187,12 +184,12 @@ export async function trackProductFunnelStage(input: ProductFunnelEventInput): P
 	const send =
 		input.send ??
 		((requestUrl, body, options) =>
-		api.post(requestUrl, body, {
-			headers: {
-				...bearerHeaders(input.accessToken),
-				...(options?.headers ?? {})
-			}
-		}));
+			api.post(requestUrl, body, {
+				headers: {
+					...bearerHeaders(input.accessToken),
+					...(options?.headers ?? {})
+				}
+			}));
 
 	const response = await send(edgeApiPath('/usage/funnel'), payload, {
 		headers: bearerHeaders(input.accessToken)

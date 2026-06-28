@@ -58,7 +58,11 @@
 						<h3 class="text-lg font-semibold text-ink-100">Remediation Request Review</h3>
 						<p class="text-xs text-ink-400 mt-1 font-mono">{selectedRequest.id}</p>
 					</div>
-					<button type="button" class="btn btn-secondary text-xs material-button-3d" onclick={onClose}>Close</button>
+					<button
+						type="button"
+						class="btn btn-secondary text-xs material-button-3d"
+						onclick={onClose}>Close</button
+					>
 				</div>
 
 				<div class="space-y-3 text-sm">
@@ -167,7 +171,8 @@
 						disabled={remediationSubmitting ||
 							policyPreviewLoading ||
 							!(
-								selectedRequest.status === 'pending' || selectedRequest.status === 'pending_approval'
+								selectedRequest.status === 'pending' ||
+								selectedRequest.status === 'pending_approval'
 							)}
 					>
 						{remediationSubmitting && actingId === selectedRequest.id ? 'Approving...' : 'Approve'}

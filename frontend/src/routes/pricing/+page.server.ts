@@ -1,6 +1,6 @@
 import { edgeApiPath } from '$lib/edgeProxy';
 import { fetchWithTimeout } from '$lib/fetchWithTimeout';
-import { resolvePublicLandingCurrencyFromHeaders } from '$lib/landing/geoCurrency';
+import { resolvePublicLandingCurrencyFromHeaders } from '$lib/landing/roi/geo';
 import { DEFAULT_PRICING_PLANS, isPricingPlanArray } from './plans';
 import type { PageServerLoad } from './$types';
 

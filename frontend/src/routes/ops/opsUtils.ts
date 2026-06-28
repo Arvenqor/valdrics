@@ -6,7 +6,7 @@ import type {
 	JobSLOMetric,
 	JobSLOResponse
 } from './opsTypes';
-export { formatUsd, formatCompactUsd, formatDate, formatNumber, formatDuration } from '$lib/format';
+export { formatUsd } from '$lib/format';
 
 export function buildIngestionSlaUrl(windowHours: number): string {
 	const params = new URLSearchParams({
@@ -304,7 +304,7 @@ export function downloadTextFile(filename: string, content: string, mime: string
 	URL.revokeObjectURL(url);
 }
 
-export function normalizeCurrencyCode(value: string): string {
+function normalizeCurrencyCode(value: string): string {
 	const normalized = (value || '').trim().toUpperCase();
 	return normalized || 'USD';
 }

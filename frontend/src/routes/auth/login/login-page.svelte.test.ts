@@ -56,7 +56,7 @@ vi.mock('$lib/security/turnstile', () => ({
 	getTurnstileToken: vi.fn().mockResolvedValue(null)
 }));
 
-vi.mock('$lib/landing/landingTelemetry', () => ({
+vi.mock('$lib/landing/telemetry/events', () => ({
 	emitLandingTelemetry: vi.fn()
 }));
 

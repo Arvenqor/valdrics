@@ -84,7 +84,8 @@
 			<a href={startFreeHref} class="btn btn-secondary material-button-3d">Start Free Workspace</a>
 		{:else}
 			<a href={startFreeHref} class="btn btn-primary material-button-3d">Start Free Workspace</a>
-			<a href={enterprisePathHref} class="btn btn-secondary material-button-3d">Enterprise Review</a>
+			<a href={enterprisePathHref} class="btn btn-secondary material-button-3d">Enterprise Review</a
+			>
 			<a href={`${base}/docs/technical-validation`} class="btn btn-secondary material-button-3d">
 				Open Technical Validation
 			</a>
@@ -154,7 +155,9 @@
 								<li>{bullet}</li>
 							{/each}
 						</ul>
-						<a href={`${base}/proof/${entry.slug}`} class="btn btn-secondary material-button-3d">Open proof page</a>
+						<a href={`${base}/proof/${entry.slug}`} class="btn btn-secondary material-button-3d"
+							>Open proof page</a
+						>
 					</article>
 				{/each}
 			</div>
@@ -171,10 +174,15 @@
 					</p>
 				</div>
 				<div class="public-page__actions-row">
-					<a href={enterprisePathHref} class="btn btn-primary material-button-3d">Enterprise Review</a>
+					<a href={enterprisePathHref} class="btn btn-primary material-button-3d"
+						>Enterprise Review</a
+					>
 					<a href={`${base}/docs`} class="btn btn-secondary material-button-3d">Documentation</a>
-					<a href={`${base}/docs/api`} class="btn btn-secondary material-button-3d">API Reference</a>
-					<a href={startFreeHref} class="btn btn-secondary material-button-3d">Start Free Workspace</a>
+					<a href={`${base}/docs/api`} class="btn btn-secondary material-button-3d">API Reference</a
+					>
+					<a href={startFreeHref} class="btn btn-secondary material-button-3d"
+						>Start Free Workspace</a
+					>
 				</div>
 			</div>
 		</section>

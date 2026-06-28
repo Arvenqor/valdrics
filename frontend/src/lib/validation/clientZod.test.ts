@@ -9,9 +9,12 @@ describe('clientZod', () => {
 		} catch (error) {
 			expect(isValidationError(error)).toBe(true);
 			if (!isValidationError(error)) return;
-			expect(error.issues[0].path).toEqual([]);
-			expect(typeof error.issues[0].message).toBe('string');
-			expect(error.issues[0].message.length).toBeGreaterThan(0);
+			const firstIssue = error.issues[0];
+			expect(firstIssue).toBeDefined();
+			if (!firstIssue || typeof firstIssue.message !== 'string') return;
+			expect(firstIssue.path).toEqual([]);
+			expect(typeof firstIssue.message).toBe('string');
+			expect(firstIssue.message.length).toBeGreaterThan(0);
 		}
 	});
 

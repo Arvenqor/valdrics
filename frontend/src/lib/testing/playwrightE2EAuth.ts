@@ -11,7 +11,7 @@ export interface PlaywrightE2EFixture {
 	tier: string;
 }
 
-export interface PlaywrightE2EBrowserSessionUser {
+interface PlaywrightE2EBrowserSessionUser {
 	id: string;
 	aud: string;
 	role: string;

@@ -7,7 +7,7 @@
 		PUBLIC_DEPLOYMENT_RESIDENCY_FACTS,
 		PUBLIC_TEAM_MEMBERS
 	} from '$lib/content/publicCompany';
-	import { PUBLIC_EXTENDED_CONTACT_CHANNELS } from '$lib/landing/publicNav';
+	import { PUBLIC_EXTENDED_CONTACT_CHANNELS } from '$lib/landing/content/nav';
 	import { appendPublicAttribution, buildPublicSignupHref } from '$lib/public/publicBuyingMotion';
 
 	let startFreeHref = $derived(
@@ -172,7 +172,9 @@
 					</h2>
 					<p class="public-page__card-copy">{deploymentFact?.answer}</p>
 					<div class="public-page__actions-row">
-						<a href={enterpriseHref} class="btn btn-secondary material-button-3d">Enterprise Review</a>
+						<a href={enterpriseHref} class="btn btn-secondary material-button-3d"
+							>Enterprise Review</a
+						>
 						<a href={docsHref} class="btn btn-secondary material-button-3d">Open Docs</a>
 					</div>
 				</article>

@@ -13,7 +13,7 @@
 		parsePublicAuthContext,
 		type PublicAuthContext
 	} from '$lib/auth/publicAuthIntent';
-	import { emitLandingTelemetry } from '$lib/landing/landingTelemetry';
+	import { emitLandingTelemetry } from '$lib/landing/telemetry/events';
 	import { broadcastAuthSessionChanged } from '$lib/auth/authSessionSignal';
 	import AuthEvidence from './AuthEvidence.svelte';
 	import './login.css';

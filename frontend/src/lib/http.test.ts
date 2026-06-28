@@ -72,12 +72,7 @@ describe('extractApiErrorMessage', () => {
 	});
 
 	it('prefers detail over message over error', () => {
-		expect(
-			extractApiErrorMessage(
-				{ detail: 'd', message: 'm', error: 'e' },
-				'fallback'
-			)
-		).toBe('d');
+		expect(extractApiErrorMessage({ detail: 'd', message: 'm', error: 'e' }, 'fallback')).toBe('d');
 	});
 
 	it('prefers message over error when detail is missing', () => {
@@ -97,9 +92,9 @@ describe('extractApiErrorMessage', () => {
 	});
 
 	it('skips non-object entries in detail array', () => {
-		expect(
-			extractApiErrorMessage({ detail: ['string', null, { msg: 'ok' }] }, 'fallback')
-		).toBe('ok');
+		expect(extractApiErrorMessage({ detail: ['string', null, { msg: 'ok' }] }, 'fallback')).toBe(
+			'ok'
+		);
 	});
 
 	it('returns fallback for empty detail array', () => {

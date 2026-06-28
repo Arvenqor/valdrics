@@ -8,11 +8,10 @@ import {
 
 export const BASE_URL = process.env.FRONTEND_URL || 'http://localhost:4173';
 export const BACKEND_URL = process.env.PLAYWRIGHT_BACKEND_URL || 'http://127.0.0.1:8000';
-export const E2E_AUTH_HEADER_NAME = 'x-valdrics-e2e-auth';
-export const E2E_AUTH_HEADER_VALUE = process.env.E2E_AUTH_SECRET || 'playwright';
-export const E2E_JWT_SECRET =
-	process.env.SUPABASE_JWT_SECRET || 'test-jwt-secret-at-least-32-bytes-long';
-export const E2E_JWT_ISSUER = process.env.SUPABASE_JWT_ISSUER || 'supabase';
+const E2E_AUTH_HEADER_NAME = 'x-valdrics-e2e-auth';
+const E2E_AUTH_HEADER_VALUE = process.env.E2E_AUTH_SECRET || 'playwright';
+const E2E_JWT_SECRET = process.env.SUPABASE_JWT_SECRET || 'test-jwt-secret-at-least-32-bytes-long';
+const E2E_JWT_ISSUER = process.env.SUPABASE_JWT_ISSUER || 'supabase';
 export const E2E_FIXTURE = resolvePlaywrightE2EFixture();
 const E2E_BROWSER_SESSION_LIFETIME_SECONDS = 12 * 60 * 60;
 const PLAYWRIGHT_SUPABASE_STORAGE_KEY = String(

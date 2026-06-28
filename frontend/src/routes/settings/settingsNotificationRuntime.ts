@@ -27,7 +27,6 @@ async function getWithTimeout(url: string, headers?: Record<string, string>) {
 	});
 }
 
-
 export async function loadNotificationSettings(
 	accessToken: string | undefined,
 	current: NotificationSettingsState

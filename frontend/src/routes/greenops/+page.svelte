@@ -199,7 +199,9 @@
 			<div class="flex flex-col items-center justify-center py-28 space-y-4">
 				<div class="relative w-12 h-12">
 					<div class="absolute inset-0 rounded-full border-2 border-accent-500/10"></div>
-					<div class="absolute inset-0 rounded-full border-t-2 border-emerald-400 animate-spin"></div>
+					<div
+						class="absolute inset-0 rounded-full border-t-2 border-emerald-400 animate-spin"
+					></div>
 				</div>
 				<p class="text-ink-400 text-sm font-medium animate-pulse">Hydrating telemetry data...</p>
 			</div>
@@ -225,4 +227,3 @@
 		{/if}
 	</AuthGate>
 </div>
-

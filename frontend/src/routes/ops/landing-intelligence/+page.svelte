@@ -14,7 +14,7 @@
 		type LandingFunnelSummary,
 		type LandingWeeklyFunnelSummary,
 		type LandingWeeklyTrendCheck
-	} from '$lib/landing/landingFunnel';
+	} from '$lib/landing/telemetry/funnel';
 	import {
 		buildLandingCampaignApiPath,
 		extractLandingCampaignApiError,
@@ -106,7 +106,7 @@
 				fetch,
 				buildLandingCampaignApiPath(windowDays),
 				{
-			headers: bearerHeaders(accessToken)
+					headers: bearerHeaders(accessToken)
 				},
 				LANDING_CAMPAIGN_REQUEST_TIMEOUT_MS
 			);

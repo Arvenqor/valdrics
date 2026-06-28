@@ -298,10 +298,7 @@ test.describe('Public marketing smoke (desktop)', () => {
 		await expect(page.getByRole('heading', { level: 1, name: /api reference/i })).toBeVisible();
 
 		await goToLanding(page);
-		await page
-			.locator('.footer')
-			.getByRole('link', { name: /sla/i })
-			.click();
+		await page.locator('.footer').getByRole('link', { name: /sla/i }).click();
 		await expect(page).toHaveURL(/\/status(\?.*)?$/);
 		await expect(page.getByRole('heading', { level: 1, name: /system status/i })).toBeVisible();
 
@@ -378,11 +375,19 @@ test.describe('Public marketing smoke (desktop)', () => {
 		await expect(page).toHaveURL(/\/talk-to-sales(\?.*)?$/);
 
 		await goToLanding(page);
-		await page.locator('#pricing').getByRole('link', { name: /start free workspace/i }).first().click();
+		await page
+			.locator('#pricing')
+			.getByRole('link', { name: /start free workspace/i })
+			.first()
+			.click();
 		await expect(page).toHaveURL(/\/auth\/login\?.*plan=free/);
 
 		await goToLanding(page);
-		await page.locator('#pricing').getByRole('link', { name: /start growth workspace/i }).first().click();
+		await page
+			.locator('#pricing')
+			.getByRole('link', { name: /start growth workspace/i })
+			.first()
+			.click();
 		await expect(page).toHaveURL(/\/auth\/login\?.*plan=growth/);
 
 		await security.assertClean();
@@ -400,7 +405,9 @@ test.describe('Public marketing smoke (desktop)', () => {
 		// Verify 308 redirects from legacy insights/proof to resources
 		await gotoPublic(page, `${BASE_URL}/insights/from-alert-to-approved-action`);
 		await expect(page).toHaveURL(/\/resources\/from-alert-to-approved-action$/);
-		await expect(page.getByRole('heading', { level: 1, name: /from alert to approved action/i })).toBeVisible();
+		await expect(
+			page.getByRole('heading', { level: 1, name: /from alert to approved action/i })
+		).toBeVisible();
 
 		await gotoPublic(page, `${BASE_URL}/proof/safe-access-model`);
 		await expect(page).toHaveURL(/\/resources\/safe-access-model$/);
@@ -408,7 +415,9 @@ test.describe('Public marketing smoke (desktop)', () => {
 
 		await gotoPublic(page, `${BASE_URL}/proof/deployment-and-data-residency`);
 		await expect(page).toHaveURL(/\/resources\/deployment-and-data-residency$/);
-		await expect(page.getByRole('heading', { level: 1, name: /deployment and data residency review/i })).toBeVisible();
+		await expect(
+			page.getByRole('heading', { level: 1, name: /deployment and data residency review/i })
+		).toBeVisible();
 
 		await gotoPublic(page, `${BASE_URL}/enterprise`);
 		await page

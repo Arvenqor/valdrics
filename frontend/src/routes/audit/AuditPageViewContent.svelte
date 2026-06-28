@@ -135,8 +135,9 @@
 				<div class="card material-card-3d p-6 mb-6">
 					<div class="flex flex-wrap gap-4 items-end">
 						<div class="flex flex-col gap-1">
-							<label class="text-xs text-ink-400 font-bold uppercase tracking-wider" for="event-type"
-								>Event Type</label
+							<label
+								class="text-xs text-ink-400 font-bold uppercase tracking-wider"
+								for="event-type">Event Type</label
 							>
 							<select id="event-type" bind:value={selectedEventType} class="select-input mt-1">
 								<option value="">All events</option>
@@ -146,7 +147,8 @@
 							</select>
 						</div>
 						<div class="flex flex-col gap-1">
-							<label class="text-xs text-ink-400 font-bold uppercase tracking-wider" for="limit">Page Size</label
+							<label class="text-xs text-ink-400 font-bold uppercase tracking-wider" for="limit"
+								>Page Size</label
 							>
 							<select id="limit" bind:value={limit} class="select-input mt-1">
 								<option value={20}>20</option>
@@ -155,13 +157,21 @@
 							</select>
 						</div>
 						<div class="flex flex-wrap gap-2">
-							<button type="button" class="btn btn-secondary material-button-3d text-xs px-4 py-2" onclick={applyFilters}
-								>Apply</button
+							<button
+								type="button"
+								class="btn btn-secondary material-button-3d text-xs px-4 py-2"
+								onclick={applyFilters}>Apply</button
 							>
-							<button type="button" class="btn btn-secondary material-button-3d text-xs px-4 py-2" onclick={previousPage}
-								>Prev</button
+							<button
+								type="button"
+								class="btn btn-secondary material-button-3d text-xs px-4 py-2"
+								onclick={previousPage}>Prev</button
 							>
-							<button type="button" class="btn btn-secondary material-button-3d text-xs px-4 py-2" onclick={nextPage}>Next</button>
+							<button
+								type="button"
+								class="btn btn-secondary material-button-3d text-xs px-4 py-2"
+								onclick={nextPage}>Next</button
+							>
 							<button
 								type="button"
 								class="btn btn-primary material-button-3d text-xs px-4 py-2"
@@ -192,18 +202,32 @@
 					</p>
 					<div class="flex flex-wrap gap-4 items-end">
 						<div class="flex flex-col gap-1">
-							<label class="text-xs text-ink-400 font-bold uppercase tracking-wider" for="focus-start"
-								>Start</label
+							<label
+								class="text-xs text-ink-400 font-bold uppercase tracking-wider"
+								for="focus-start">Start</label
 							>
-							<input id="focus-start" type="date" class="select-input mt-1" bind:value={focusStartDate} />
+							<input
+								id="focus-start"
+								type="date"
+								class="select-input mt-1"
+								bind:value={focusStartDate}
+							/>
 						</div>
 						<div class="flex flex-col gap-1">
-							<label class="text-xs text-ink-400 font-bold uppercase tracking-wider" for="focus-end">End</label>
-							<input id="focus-end" type="date" class="select-input mt-1" bind:value={focusEndDate} />
+							<label class="text-xs text-ink-400 font-bold uppercase tracking-wider" for="focus-end"
+								>End</label
+							>
+							<input
+								id="focus-end"
+								type="date"
+								class="select-input mt-1"
+								bind:value={focusEndDate}
+							/>
 						</div>
 						<div class="flex flex-col gap-1">
-							<label class="text-xs text-ink-400 font-bold uppercase tracking-wider" for="focus-provider"
-								>Provider</label
+							<label
+								class="text-xs text-ink-400 font-bold uppercase tracking-wider"
+								for="focus-provider">Provider</label
 							>
 							<select id="focus-provider" bind:value={focusProvider} class="select-input mt-1">
 								{#each FOCUS_EXPORT_PROVIDER_OPTIONS as option (option.value)}

@@ -14,7 +14,9 @@
 
 <div class="bento-grid">
 	<!-- Total Carbon Footprint Card -->
-	<div class="material-card-3d col-span-2 relative overflow-hidden group p-6 flex flex-col justify-between h-full glow-cyan">
+	<div
+		class="material-card-3d col-span-2 relative overflow-hidden group p-6 flex flex-col justify-between h-full glow-cyan"
+	>
 		<div
 			class="absolute -top-10 -right-10 p-4 opacity-5 text-9xl leading-none select-none pointer-events-none transition-transform duration-500 group-hover:scale-110"
 		>
@@ -40,7 +42,9 @@
 						</span>
 					{/if}
 				</div>
-				<p class="text-ink-400 text-sm mt-3 leading-relaxed">Combined Scope 2 (Operational) & Scope 3 (Embodied) emissions.</p>
+				<p class="text-ink-400 text-sm mt-3 leading-relaxed">
+					Combined Scope 2 (Operational) & Scope 3 (Embodied) emissions.
+				</p>
 			</div>
 
 			{#if carbonData}
@@ -54,7 +58,9 @@
 									: 0}%
 							</span>
 						</div>
-						<div class="h-2 w-full bg-ink-950 rounded-full overflow-hidden border border-ink-800/80">
+						<div
+							class="h-2 w-full bg-ink-950 rounded-full overflow-hidden border border-ink-800/80"
+						>
 							<div
 								class="h-full bg-gradient-to-r from-cyan-600 to-cyan-400 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.4)] transition-all duration-500"
 								style="width: {carbonData.total_co2_kg > 0
@@ -62,7 +68,9 @@
 									: 0}%"
 							></div>
 						</div>
-						<div class="text-white text-xs font-semibold mt-1.5">{formatCO2(carbonData.scope2_co2_kg)}</div>
+						<div class="text-white text-xs font-semibold mt-1.5">
+							{formatCO2(carbonData.scope2_co2_kg)}
+						</div>
 					</div>
 					<div class="bg-ink-950/40 border border-ink-800/40 rounded-xl p-3">
 						<div class="flex justify-between text-xs mb-1.5">
@@ -73,7 +81,9 @@
 									: 0}%
 							</span>
 						</div>
-						<div class="h-2 w-full bg-ink-950 rounded-full overflow-hidden border border-ink-800/80">
+						<div
+							class="h-2 w-full bg-ink-950 rounded-full overflow-hidden border border-ink-800/80"
+						>
 							<div
 								class="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all duration-500"
 								style="width: {carbonData.total_co2_kg > 0
@@ -81,7 +91,9 @@
 									: 0}%"
 							></div>
 						</div>
-						<div class="text-white text-xs font-semibold mt-1.5">{formatCO2(carbonData.scope3_co2_kg)}</div>
+						<div class="text-white text-xs font-semibold mt-1.5">
+							{formatCO2(carbonData.scope3_co2_kg)}
+						</div>
 					</div>
 				</div>
 			{/if}
@@ -89,9 +101,15 @@
 	</div>
 
 	<!-- Efficiency Score Card -->
-	<div class="material-card-3d p-6 text-center flex flex-col items-center justify-center relative overflow-hidden group">
-		<div class="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-		<div class="text-3xl p-3 bg-cyan-950/30 border border-cyan-800/20 rounded-2xl mb-3 text-cyan-400 shadow-[0_0_15px_rgba(34,211,239,0.1)]">
+	<div
+		class="material-card-3d p-6 text-center flex flex-col items-center justify-center relative overflow-hidden group"
+	>
+		<div
+			class="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+		></div>
+		<div
+			class="text-3xl p-3 bg-cyan-950/30 border border-cyan-800/20 rounded-2xl mb-3 text-cyan-400 shadow-[0_0_15px_rgba(34,211,239,0.1)]"
+		>
 			<BarChart2 class="w-6 h-6" />
 		</div>
 		<h3 class="text-ink-400 text-xs font-semibold uppercase tracking-wider">Efficiency Score</h3>
@@ -102,9 +120,15 @@
 	</div>
 
 	<!-- Est. Energy Card -->
-	<div class="material-card-3d p-6 text-center flex flex-col items-center justify-center relative overflow-hidden group">
-		<div class="absolute inset-0 bg-gradient-to-b from-emerald-500/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-		<div class="text-3xl p-3 bg-emerald-950/30 border border-emerald-800/20 rounded-2xl mb-3 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+	<div
+		class="material-card-3d p-6 text-center flex flex-col items-center justify-center relative overflow-hidden group"
+	>
+		<div
+			class="absolute inset-0 bg-gradient-to-b from-emerald-500/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+		></div>
+		<div
+			class="text-3xl p-3 bg-emerald-950/30 border border-emerald-800/20 rounded-2xl mb-3 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]"
+		>
 			<Zap class="w-6 h-6" />
 		</div>
 		<h3 class="text-ink-400 text-xs font-semibold uppercase tracking-wider">Est. Energy</h3>
@@ -123,7 +147,8 @@
 				</h3>
 				{#if budgetData}
 					<span
-						class="px-2.5 py-1 text-xs font-bold rounded-full border transition-colors duration-300 {budgetData.alert_status === 'ok'
+						class="px-2.5 py-1 text-xs font-bold rounded-full border transition-colors duration-300 {budgetData.alert_status ===
+						'ok'
 							? 'bg-emerald-950/40 text-emerald-400 border-emerald-500/30'
 							: budgetData.alert_status === 'warning'
 								? 'bg-yellow-950/40 text-yellow-400 border-yellow-500/30'
@@ -144,7 +169,9 @@
 						<span>{formatCO2(budgetData.current_usage_kg)} used</span>
 						<span>Limit: {formatCO2(budgetData.budget_kg)}</span>
 					</div>
-					<div class="w-full bg-ink-950 rounded-full h-3 border border-ink-800 overflow-hidden shadow-inner">
+					<div
+						class="w-full bg-ink-950 rounded-full h-3 border border-ink-800 overflow-hidden shadow-inner"
+					>
 						<div
 							class="h-full rounded-full transition-all duration-1000 ease-out relative"
 							class:bg-gradient-to-r={true}
@@ -160,7 +187,9 @@
 						</div>
 					</div>
 					<div class="flex justify-end mt-1.5">
-						<span class="text-xs font-semibold text-ink-400">{budgetData.usage_percent}% consumed</span>
+						<span class="text-xs font-semibold text-ink-400"
+							>{budgetData.usage_percent}% consumed</span
+						>
 					</div>
 				</div>
 			{:else}
@@ -176,7 +205,8 @@
 				<Cpu class="w-5 h-5 text-accent-400" />
 				Graviton Candidates
 				{#if gravitonData && gravitonData.candidates?.length}
-					<span class="bg-accent-500/20 text-accent-300 text-xs px-2.5 py-0.5 rounded-full border border-accent-500/30 font-bold"
+					<span
+						class="bg-accent-500/20 text-accent-300 text-xs px-2.5 py-0.5 rounded-full border border-accent-500/30 font-bold"
 						>{gravitonData.candidates.length}</span
 					>
 				{/if}
@@ -190,15 +220,22 @@
 						class="bg-ink-950/40 border border-ink-800/50 rounded-xl p-3.5 hover:border-accent-500/40 hover:bg-ink-900/40 transition-all duration-200 hover:-translate-y-0.5"
 					>
 						<div class="flex justify-between items-start mb-1.5">
-							<span class="font-mono text-sm text-white font-semibold">{candidate.instance_id}</span>
-							<span class="text-emerald-400 text-xs font-extrabold bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-500/20"
+							<span class="font-mono text-sm text-white font-semibold">{candidate.instance_id}</span
+							>
+							<span
+								class="text-emerald-400 text-xs font-extrabold bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-500/20"
 								>-{candidate.energy_savings_percent}% CO₂</span
 							>
 						</div>
 						<div class="flex items-center gap-2.5 text-xs font-semibold text-ink-400">
-							<span class="font-mono bg-ink-950 px-1.5 py-0.5 rounded border border-ink-800/40">{candidate.current_type}</span>
+							<span class="font-mono bg-ink-950 px-1.5 py-0.5 rounded border border-ink-800/40"
+								>{candidate.current_type}</span
+							>
 							<span class="text-accent-500 font-bold">→</span>
-							<span class="font-mono bg-accent-950/40 text-accent-300 px-1.5 py-0.5 rounded border border-accent-500/20">{candidate.recommended_type}</span>
+							<span
+								class="font-mono bg-accent-950/40 text-accent-300 px-1.5 py-0.5 rounded border border-accent-500/20"
+								>{candidate.recommended_type}</span
+							>
 						</div>
 					</div>
 				{/each}
@@ -226,28 +263,36 @@
 
 		{#if carbonData?.equivalencies}
 			<div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-				<div class="text-center p-3.5 bg-ink-950/50 rounded-xl border border-ink-800/60 hover:border-accent-500/30 hover:bg-ink-900/50 transition-all duration-200 hover:-translate-y-0.5">
+				<div
+					class="text-center p-3.5 bg-ink-950/50 rounded-xl border border-ink-800/60 hover:border-accent-500/30 hover:bg-ink-900/50 transition-all duration-200 hover:-translate-y-0.5"
+				>
 					<div class="text-3xl mb-1.5 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]">🚗</div>
 					<div class="text-base font-extrabold text-white">
 						{carbonData.equivalencies.miles_driven.toLocaleString()}
 					</div>
 					<div class="text-xs text-ink-400 font-medium mt-0.5">miles driven</div>
 				</div>
-				<div class="text-center p-3.5 bg-ink-950/50 rounded-xl border border-ink-800/60 hover:border-accent-500/30 hover:bg-ink-900/50 transition-all duration-200 hover:-translate-y-0.5">
+				<div
+					class="text-center p-3.5 bg-ink-950/50 rounded-xl border border-ink-800/60 hover:border-accent-500/30 hover:bg-ink-900/50 transition-all duration-200 hover:-translate-y-0.5"
+				>
 					<div class="text-3xl mb-1.5 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]">🌳</div>
 					<div class="text-base font-extrabold text-white">
 						{carbonData.equivalencies.trees_needed_for_year}
 					</div>
 					<div class="text-xs text-ink-400 font-medium mt-0.5">trees / year</div>
 				</div>
-				<div class="text-center p-3.5 bg-ink-950/50 rounded-xl border border-ink-800/60 hover:border-accent-500/30 hover:bg-ink-900/50 transition-all duration-200 hover:-translate-y-0.5">
+				<div
+					class="text-center p-3.5 bg-ink-950/50 rounded-xl border border-ink-800/60 hover:border-accent-500/30 hover:bg-ink-900/50 transition-all duration-200 hover:-translate-y-0.5"
+				>
 					<div class="text-3xl mb-1.5 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]">📱</div>
 					<div class="text-base font-extrabold text-white">
 						{carbonData.equivalencies.smartphone_charges.toLocaleString()}
 					</div>
 					<div class="text-xs text-ink-400 font-medium mt-0.5">phone charges</div>
 				</div>
-				<div class="text-center p-3.5 bg-ink-950/50 rounded-xl border border-ink-800/60 hover:border-accent-500/30 hover:bg-ink-900/50 transition-all duration-200 hover:-translate-y-0.5">
+				<div
+					class="text-center p-3.5 bg-ink-950/50 rounded-xl border border-ink-800/60 hover:border-accent-500/30 hover:bg-ink-900/50 transition-all duration-200 hover:-translate-y-0.5"
+				>
 					<div class="text-3xl mb-1.5 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]">🏠</div>
 					<div class="text-base font-extrabold text-white">
 						{carbonData.equivalencies.percent_of_home_month}%

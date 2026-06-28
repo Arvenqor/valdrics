@@ -8,8 +8,8 @@
 @source '.';
 
 /* Sleek form elements */
-.select-input, 
-input[type="date"] {
+.select-input,
+input[type='date'] {
 	border: 1px solid rgba(128, 154, 176, 0.18) !important;
 	border-radius: 0.75rem !important;
 	background: rgba(10, 13, 20, 0.6) !important;
@@ -20,23 +20,26 @@ input[type="date"] {
 	outline: none !important;
 	backdrop-filter: blur(8px) !important;
 	-webkit-backdrop-filter: blur(8px) !important;
-	transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease !important;
+	transition:
+		border-color 0.25s ease,
+		background 0.25s ease,
+		box-shadow 0.25s ease !important;
 }
 
-.select-input:hover, 
-input[type="date"]:hover {
+.select-input:hover,
+input[type='date']:hover {
 	border-color: rgba(34, 211, 239, 0.35) !important;
 	background: rgba(10, 13, 20, 0.8) !important;
 }
 
-.select-input:focus, 
-input[type="date"]:focus {
+.select-input:focus,
+input[type='date']:focus {
 	border-color: rgba(34, 211, 239, 0.6) !important;
 	box-shadow: 0 0 12px rgba(34, 211, 239, 0.2) !important;
 }
 
 /* Checkbox alignment & accent styling */
-input[type="checkbox"].accent-accent-500 {
+input[type='checkbox'].accent-accent-500 {
 	width: 1rem;
 	height: 1rem;
 	accent-color: var(--color-accent-500) !important;

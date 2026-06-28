@@ -7,10 +7,7 @@
 	import { formatValidationIssues } from '$lib/validation/clientZod';
 	import { isGrowthPlus } from './identitySettingsHelpers';
 	import { bearerHeaders, extractApiErrorMessage } from '$lib/http';
-	import {
-		IDENTITY_REQUEST_TIMEOUT_MS,
-		IdentityDiagnosticsSchema
-	} from './identitySettingsModel';
+	import { IDENTITY_REQUEST_TIMEOUT_MS, IdentityDiagnosticsSchema } from './identitySettingsModel';
 	import type { IdentityDiagnostics } from './identitySettingsTypes';
 
 	let {

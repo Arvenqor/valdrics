@@ -138,7 +138,7 @@
 					billing_cycle: billingCycle
 				},
 				{
-				headers: bearerHeaders(session.access_token)
+					headers: bearerHeaders(session.access_token)
 				}
 			);
 
@@ -193,7 +193,11 @@
 	{#if error}
 		<div class="billing-alert billing-alert--error" role="alert">
 			<p>{error}</p>
-			<button type="button" class="btn btn-secondary material-button-3d" onclick={() => (error = '')}>Dismiss</button>
+			<button
+				type="button"
+				class="btn btn-secondary material-button-3d"
+				onclick={() => (error = '')}>Dismiss</button
+			>
 		</div>
 	{/if}
 
@@ -226,8 +230,8 @@
 					<li>The free tier is permanent for one live workflow; it is not a time-limited trial.</li>
 					<li>BYOK does not add a separate platform surcharge in the current lineup.</li>
 					<li>
-						Enterprise packaging, procurement, SCIM, and private deployment stay on the sales-assisted
-						path.
+						Enterprise packaging, procurement, SCIM, and private deployment stay on the
+						sales-assisted path.
 					</li>
 				</ul>
 			</article>
@@ -406,10 +410,13 @@
 						<li>Commercial alignment for large or complex operating environments</li>
 					</ul>
 					<div class="billing-enterprise-card__actions">
-						<a href={`${base}/talk-to-sales?intent=billing_enterprise`} class="btn btn-primary material-button-3d"
-							>Talk to Sales</a
+						<a
+							href={`${base}/talk-to-sales?intent=billing_enterprise`}
+							class="btn btn-primary material-button-3d">Talk to Sales</a
 						>
-						<a href={`${base}/enterprise`} class="btn btn-secondary material-button-3d">View enterprise overview</a>
+						<a href={`${base}/enterprise`} class="btn btn-secondary material-button-3d"
+							>View enterprise overview</a
+						>
 					</div>
 				</article>
 			</div>

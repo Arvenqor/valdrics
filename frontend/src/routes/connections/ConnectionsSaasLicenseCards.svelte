@@ -135,13 +135,11 @@
 				<textarea
 					class="input connections-field connections-field--code"
 					placeholder="Connector config JSON (example: include instance_url for Salesforce)"
-					bind:value={saasConnectorConfig}
-				></textarea>
+					bind:value={saasConnectorConfig}></textarea>
 				<textarea
 					class="input connections-field connections-field--feed"
 					placeholder="Spend feed JSON array for manual/csv mode"
-					bind:value={saasFeedInput}
-				></textarea>
+					bind:value={saasFeedInput}></textarea>
 				<button
 					type="button"
 					class="btn btn-secondary connections-submit"
@@ -271,13 +269,11 @@
 				<textarea
 					class="input connections-field connections-field--code"
 					placeholder="Connector config JSON (example: default_seat_price_usd and sku_prices)"
-					bind:value={licenseConnectorConfig}
-				></textarea>
+					bind:value={licenseConnectorConfig}></textarea>
 				<textarea
 					class="input connections-field connections-field--feed"
 					placeholder="License feed JSON array for manual/csv mode"
-					bind:value={licenseFeedInput}
-				></textarea>
+					bind:value={licenseFeedInput}></textarea>
 				<button
 					type="button"
 					class="btn btn-secondary connections-submit"

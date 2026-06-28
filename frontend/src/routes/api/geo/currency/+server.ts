@@ -1,8 +1,5 @@
 import { json } from '@sveltejs/kit';
-import {
-	resolveCountryCodeFromHeaders,
-	resolveGeoCurrencyFromHeaders
-} from '$lib/landing/geoCurrency';
+import { resolveCountryCodeFromHeaders, resolveGeoCurrencyFromHeaders } from '$lib/landing/roi/geo';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ request }) => {

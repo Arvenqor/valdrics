@@ -1,4 +1,4 @@
-export const ZOMBIE_COLLECTION_KEYS = [
+const ZOMBIE_COLLECTION_KEYS = [
 	'unattached_volumes',
 	'old_snapshots',
 	'unused_elastic_ips',

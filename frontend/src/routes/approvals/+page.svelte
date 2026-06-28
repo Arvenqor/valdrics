@@ -87,7 +87,10 @@
 			const response = await api.post(
 				edgeApiPath(`/enforcement/approvals/${approval.approval_id}/${decision}`),
 				{ notes: `frontend_${decision}` },
-				{ headers: bearerHeaders(data.session?.access_token), timeoutMs: APPROVALS_REQUEST_TIMEOUT_MS }
+				{
+					headers: bearerHeaders(data.session?.access_token),
+					timeoutMs: APPROVALS_REQUEST_TIMEOUT_MS
+				}
 			);
 			if (!response.ok) {
 				const payload = await response.json().catch(() => ({}));

@@ -1,31 +1,26 @@
 export type PublicContentKind = 'docs' | 'resources' | 'insights' | 'proof';
 
-export type PublicContentAudience =
-	| 'engineering'
-	| 'finance'
-	| 'platform'
-	| 'security'
-	| 'procurement'
-	| 'executive';
+type PublicContentAudience =
+	'engineering' | 'finance' | 'platform' | 'security' | 'procurement' | 'executive';
 
-export type PublicContentStage = 'learn' | 'evaluate' | 'validate';
+type PublicContentStage = 'learn' | 'evaluate' | 'validate';
 
-export interface PublicContentLink {
+interface PublicContentLink {
 	label: string;
 	href: string;
 }
 
-export interface PublicContentSectionInput {
+interface PublicContentSectionInput {
 	title: string;
 	body: string[];
 	bullets?: string[];
 }
 
-export interface PublicContentSection extends Omit<PublicContentSectionInput, 'bullets'> {
+interface PublicContentSection extends Omit<PublicContentSectionInput, 'bullets'> {
 	bullets: string[];
 }
 
-export interface PublicContentRelatedEntry {
+interface PublicContentRelatedEntry {
 	kind: PublicContentKind;
 	slug: string;
 }

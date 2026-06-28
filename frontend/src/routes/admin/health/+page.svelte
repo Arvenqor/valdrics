@@ -49,7 +49,7 @@
 				fetch,
 				edgeApiPath('/admin/health-dashboard'),
 				{
-				headers: bearerHeaders(accessToken)
+					headers: bearerHeaders(accessToken)
 				},
 				ADMIN_HEALTH_TIMEOUT_MS
 			);
@@ -80,7 +80,10 @@
 				fairUse = null;
 				fairUseError = '';
 				forbidden = false;
-				error = extractApiErrorMessage(payload, `Failed to load health metrics (HTTP ${res.status}).`);
+				error = extractApiErrorMessage(
+					payload,
+					`Failed to load health metrics (HTTP ${res.status}).`
+				);
 				return;
 			}
 
@@ -103,8 +106,10 @@
 				if (!fairUseRes.ok) {
 					const payload = await fairUseRes.json().catch(() => ({}));
 					fairUse = null;
-					fairUseError =
-						extractApiErrorMessage(payload, `Fair-use runtime status unavailable (HTTP ${fairUseRes.status}).`);
+					fairUseError = extractApiErrorMessage(
+						payload,
+						`Fair-use runtime status unavailable (HTTP ${fairUseRes.status}).`
+					);
 					return;
 				}
 
@@ -161,8 +166,8 @@
 			<div class="card border-warning-500/50 bg-warning-500/10 material-card-3d">
 				<h2 class="text-lg font-semibold mb-2">Platform Operator Access Required</h2>
 				<p class="text-ink-300 text-sm">
-					This dashboard is restricted to platform-scoped internal operators. Workspace admins do not
-					have access to platform-global health telemetry.
+					This dashboard is restricted to platform-scoped internal operators. Workspace admins do
+					not have access to platform-global health telemetry.
 				</p>
 			</div>
 		</div>

@@ -120,22 +120,31 @@
 		<section class="space-y-3 rounded-3xl border border-white/10 bg-white/5 p-6 material-card-3d">
 			<h2 class="text-xl font-semibold">10. Enterprise Privacy Review</h2>
 			<p class="text-sm text-ink-300">
-				Public privacy materials are meant to answer the first diligence questions without inventing a
-				universal deployment or processor answer. DPA requests, sub-processor review, and
+				Public privacy materials are meant to answer the first diligence questions without inventing
+				a universal deployment or processor answer. DPA requests, sub-processor review, and
 				residency-specific questions move into enterprise and legal review when a buyer needs scoped
 				answers.
 			</p>
 			<ul class="list-disc pl-5 text-sm text-ink-300 space-y-2">
 				<li>DPA and privacy review requests route through privacy and legal contacts.</li>
-				<li>Residency-specific and deployment-specific questions route through enterprise review.</li>
+				<li>
+					Residency-specific and deployment-specific questions route through enterprise review.
+				</li>
 				<li>Security disclosure and incident coordination stay on the security contact path.</li>
 			</ul>
 			<div class="flex flex-wrap gap-3 pt-2">
-				<a class="btn btn-secondary material-button-3d" href={`${base}/proof/deployment-and-data-residency`}>
+				<a
+					class="btn btn-secondary material-button-3d"
+					href={`${base}/proof/deployment-and-data-residency`}
+				>
 					Deployment and Residency Proof
 				</a>
-				<a class="btn btn-secondary material-button-3d" href={`${base}/enterprise`}> Enterprise Review </a>
-				<a class="btn btn-secondary material-button-3d" href={`${base}/talk-to-sales`}> Talk to Sales </a>
+				<a class="btn btn-secondary material-button-3d" href={`${base}/enterprise`}>
+					Enterprise Review
+				</a>
+				<a class="btn btn-secondary material-button-3d" href={`${base}/talk-to-sales`}>
+					Talk to Sales
+				</a>
 			</div>
 		</section>
 	</div>

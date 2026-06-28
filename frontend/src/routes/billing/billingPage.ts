@@ -57,7 +57,7 @@ export function isBillingUsagePayload(value: unknown): value is BillingUsage {
 	);
 }
 
-export function getPlanRank(planId: string): number {
+function getPlanRank(planId: string): number {
 	return PLAN_RANK.get(String(planId).trim().toLowerCase()) ?? -1;
 }
 

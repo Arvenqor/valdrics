@@ -137,8 +137,12 @@
 	heroVariant="narrow"
 >
 	{#snippet heroActions()}
-		<a href={enterpriseIntakeHref} class="btn btn-primary material-button-3d">Request Enterprise Briefing</a>
-		<a href={enterpriseStartFreeHref} class="btn btn-secondary material-button-3d">Start Free Workspace</a>
+		<a href={enterpriseIntakeHref} class="btn btn-primary material-button-3d"
+			>Request Enterprise Briefing</a
+		>
+		<a href={enterpriseStartFreeHref} class="btn btn-secondary material-button-3d"
+			>Start Free Workspace</a
+		>
 		<a href={enterprisePricingHref} class="btn btn-secondary material-button-3d">View Pricing</a>
 	{/snippet}
 

@@ -208,7 +208,11 @@
 							<input class="input text-xs" placeholder="Optional" bind:value={invoiceForm.notes} />
 						</label>
 						<div class="md:col-span-6 flex flex-wrap items-center gap-2">
-							<button class="btn btn-secondary text-xs material-button-3d" type="submit" disabled={savingInvoice}>
+							<button
+								class="btn btn-secondary text-xs material-button-3d"
+								type="submit"
+								disabled={savingInvoice}
+							>
 								{savingInvoice
 									? 'Saving...'
 									: closePackage.invoice_reconciliation.invoice

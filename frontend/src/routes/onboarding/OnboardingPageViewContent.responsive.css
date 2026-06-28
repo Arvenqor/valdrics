@@ -1,0 +1,53 @@
+@media (max-width: 768px) {
+	.onboarding-container {
+		padding: 0.75rem;
+	}
+
+	.onboarding-hero {
+		grid-template-columns: 1fr;
+	}
+
+	.onboarding-steps {
+		grid-template-columns: 1fr 1fr;
+	}
+
+	.onboarding-step {
+		justify-content: flex-start;
+		border-radius: var(--radius-md);
+	}
+
+	.discovery-stage-a,
+	.discovery-stage-b {
+		grid-template-columns: 1fr;
+	}
+
+	.discovery-actions {
+		min-width: 0;
+		width: 100%;
+		align-items: stretch;
+	}
+
+	.candidate-row {
+		flex-direction: column;
+	}
+
+	.candidate-actions {
+		justify-content: flex-start;
+	}
+}
+
+@media (max-width: 640px) {
+	.onboarding-actions {
+		flex-direction: column;
+	}
+
+	.onboarding-actions__back {
+		width: 100%;
+	}
+}
+
+@media (max-width: 520px) {
+	.onboarding-steps {
+		grid-template-columns: 1fr;
+	}
+}

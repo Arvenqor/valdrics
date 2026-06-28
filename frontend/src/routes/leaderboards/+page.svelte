@@ -79,7 +79,7 @@
 				fetch,
 				edgeApiPath(`/leaderboards?period=${currentPeriod}`),
 				{
-			headers: bearerHeaders(accessToken)
+					headers: bearerHeaders(accessToken)
 				},
 				LEADERBOARD_TIMEOUT_MS
 			);

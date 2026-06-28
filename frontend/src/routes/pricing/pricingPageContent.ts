@@ -14,7 +14,7 @@ export const PRICING_HERO_META = [
 	}
 ] as const;
 
-export const PRICING_BUYING_NOTES = [
+const PRICING_BUYING_NOTES = [
 	'Prices shown in USD.',
 	'The permanent free tier does not require a checkout session.'
 ] as const;

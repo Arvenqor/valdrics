@@ -3,10 +3,7 @@
 	import { AlertTriangle, BadgeDollarSign, Clock, ShieldCheck } from '@lucide/svelte';
 	import { createLazyComponent } from '$lib/lazyComponent';
 	import { getUpgradePrompt } from '$lib/pricing/upgradePrompt';
-	import {
-		buildEnforcementPolicyRails,
-		type EnforcementPolicy
-	} from './enforcementSettingsModel';
+	import { buildEnforcementPolicyRails, type EnforcementPolicy } from './enforcementSettingsModel';
 	import { formatTtl, formatUsd } from '$lib/format';
 	import './EnforcementSettingsCardView.css';
 

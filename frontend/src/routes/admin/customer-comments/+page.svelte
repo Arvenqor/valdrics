@@ -135,8 +135,7 @@
 								maxlength="360"
 								bind:value={quote}
 								placeholder="Example: The control loop removed late-cycle spend surprises."
-								required
-							></textarea>
+								required></textarea>
 						</div>
 						<div class="space-y-2">
 							<label for="comment-attribution" class="text-sm font-medium text-ink-300"
@@ -235,13 +234,17 @@
 		border: 1px solid rgba(255, 255, 255, 0.08) !important;
 		backdrop-filter: blur(8px);
 		box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
-		transition: border-color 0.2s, box-shadow 0.2s;
+		transition:
+			border-color 0.2s,
+			box-shadow 0.2s;
 	}
 	textarea:focus,
 	input:focus,
 	select:focus {
 		border-color: rgba(6, 182, 212, 0.5) !important;
-		box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2), inset 0 1px 2px rgba(0, 0, 0, 0.2);
+		box-shadow:
+			0 0 0 2px rgba(6, 182, 212, 0.2),
+			inset 0 1px 2px rgba(0, 0, 0, 0.2);
 		outline: none;
 	}
 </style>

@@ -42,7 +42,7 @@ export const PUBLIC_DEPLOYMENT_RESIDENCY_FACTS: readonly DeploymentResidencyFact
 	}
 ]);
 
-export const PUBLIC_REVIEW_CHANNELS = Object.freeze([
+const PUBLIC_REVIEW_CHANNELS = Object.freeze([
 	{
 		label: 'Proof Pack',
 		href: '/proof',

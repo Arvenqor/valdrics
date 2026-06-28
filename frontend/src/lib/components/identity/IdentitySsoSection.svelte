@@ -26,8 +26,7 @@
 		id="allowed_email_domains"
 		rows="2"
 		bind:value={domainsText}
-		placeholder="example.com, subsidiary.example"
-	></textarea>
+		placeholder="example.com, subsidiary.example"></textarea>
 	<p class="text-xs text-ink-500 mt-1">
 		Comma, whitespace, or newline separated. Include your current admin domain to avoid lockout.
 	</p>

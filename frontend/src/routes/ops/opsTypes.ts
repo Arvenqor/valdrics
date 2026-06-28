@@ -92,7 +92,7 @@ export type StrategyRecommendation = {
 	status: string;
 };
 
-export type UnitEconomicsMetric = {
+type UnitEconomicsMetric = {
 	metric_key: string;
 	label: string;
 	denominator: number;
@@ -215,7 +215,7 @@ export type IntegrationAcceptanceCaptureResponse = {
 	}>;
 };
 
-export type IntegrationAcceptanceRunChannel = {
+type IntegrationAcceptanceRunChannel = {
 	channel: string;
 	success: boolean;
 	statusCode: number | null;

@@ -139,7 +139,7 @@
 
 	function getAbsoluteAppPath(path: string): string {
 		const baseStr = String(base);
-		const cleanBase = (baseStr === '.' || baseStr === './' || baseStr === '/') ? '' : baseStr;
+		const cleanBase = baseStr === '.' || baseStr === './' || baseStr === '/' ? '' : baseStr;
 		const normalizedPath = path.startsWith('/') ? path : `/${path}`;
 		return `${cleanBase}${normalizedPath}`;
 	}
@@ -151,7 +151,9 @@
 	function resolvePublicTone(pathname: string, routeId: string | null): PublicTone {
 		if (routeId === '/') return 'landing';
 		const target = getAbsoluteAppPath('/');
-		return pathname === target || pathname === target + '/' || pathname + '/' === target ? 'landing' : 'default';
+		return pathname === target || pathname === target + '/' || pathname + '/' === target
+			? 'landing'
+			: 'default';
 	}
 
 	let publicTone = $derived(resolvePublicTone($page.url.pathname, $page.route?.id ?? null));

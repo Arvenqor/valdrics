@@ -7,22 +7,22 @@ import type {
 	ProviderSpendBreakdown
 } from '$lib/components/dashboard/overviewTypes';
 
-export type CostSummary = {
+type CostSummary = {
 	total_cost?: unknown;
 	total_cost_usd?: unknown;
 };
 
-export type CarbonSummary = {
+type CarbonSummary = {
 	total_co2_kg?: unknown;
 	total_carbon_kgco2e?: unknown;
 };
 
-export type LeadershipTopService = {
+type LeadershipTopService = {
 	service?: unknown;
 	cost_usd?: unknown;
 };
 
-export type LeadershipKpis = {
+type LeadershipKpis = {
 	total_cost_usd?: unknown;
 	cost_by_provider?: Record<string, unknown> | null;
 	top_services?: LeadershipTopService[] | null;
@@ -40,20 +40,20 @@ export type LeadershipKpis = {
 	notes?: unknown;
 };
 
-export type CostDailyPoint = {
+type CostDailyPoint = {
 	date?: unknown;
 	provider?: unknown;
 	cost_usd?: unknown;
 	carbon_kgco2e?: unknown;
 };
 
-export type CostDailySeries = {
+type CostDailySeries = {
 	total_cost_usd?: unknown;
 	total_carbon_kgco2e?: unknown;
 	points?: CostDailyPoint[] | null;
 };
 
-export type ApprovalQueueItem = {
+type ApprovalQueueItem = {
 	approval_id?: unknown;
 	action?: unknown;
 	environment?: unknown;

@@ -28,7 +28,7 @@ export const APPROVAL_FILTERS: ApprovalFilter[] = [
 	{ id: 'policy', label: 'Policy signals' }
 ];
 
-export function toNumber(value: unknown): number {
+function toNumber(value: unknown): number {
 	const number = Number(value ?? 0);
 	return Number.isFinite(number) ? number : 0;
 }
@@ -37,11 +37,11 @@ export function hasCostImpact(approval: ApprovalQueueItem): boolean {
 	return toNumber(approval.estimated_monthly_delta_usd) !== 0;
 }
 
-export function hasRoutingRule(approval: ApprovalQueueItem): boolean {
+function hasRoutingRule(approval: ApprovalQueueItem): boolean {
 	return Boolean(approval.routing_rule_id);
 }
 
-export function hasPolicySignals(approval: ApprovalQueueItem): boolean {
+function hasPolicySignals(approval: ApprovalQueueItem): boolean {
 	return approval.reason_codes.length > 0;
 }
 

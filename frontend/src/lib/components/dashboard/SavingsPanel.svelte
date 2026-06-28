@@ -173,7 +173,7 @@
 	}
 
 	.money-grid div {
-		dispize: var(--text-xs);
+		font-size: var(--text-xs);
 	}
 
 	.money-grid strong,

@@ -1,13 +1,10 @@
 import { api } from '$lib/api';
 import { edgeApiPath } from '$lib/edgeProxy';
 import { bearerHeaders, extractApiErrorMessage } from '$lib/http';
-import {
-	buildCloudPlusCreatePayload,
-	prepareCloudPlusCreateRequest
-} from './connectionsCloudPlus';
+import { buildCloudPlusCreatePayload, prepareCloudPlusCreateRequest } from './connectionsCloudPlus';
 
 export type CloudPlusProvider = 'saas' | 'license' | 'platform' | 'hybrid';
-export type CloudPlusAuthMethod = 'manual' | 'api_key' | 'oauth' | 'csv';
+type CloudPlusAuthMethod = 'manual' | 'api_key' | 'oauth' | 'csv';
 type CloudPlusPlatformAuthMethod = 'manual' | 'api_key' | 'csv';
 
 export type ConnectionsCloudPlusFormsState = {
@@ -207,5 +204,7 @@ export async function verifyCloudPlusConnectionRequest(args: {
 			extractApiErrorMessage(body, `Failed to verify ${provider.toUpperCase()} connection.`)
 		);
 	}
-	return { message: extractApiErrorMessage(body, `${provider.toUpperCase()} connection verified.`) };
+	return {
+		message: extractApiErrorMessage(body, `${provider.toUpperCase()} connection verified.`)
+	};
 }

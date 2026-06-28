@@ -70,15 +70,21 @@
 				<h1 class="public-page__title public-page__title--article">{entry.title}</h1>
 				<p class="public-page__subtitle public-page__subtitle--article">{entry.summary}</p>
 				<div class="public-page__actions">
-					<a href={resolveHref(entry.primaryCta.href, 'primary')} class="btn btn-primary material-button-3d"
-						>{entry.primaryCta.label}</a
+					<a
+						href={resolveHref(entry.primaryCta.href, 'primary')}
+						class="btn btn-primary material-button-3d">{entry.primaryCta.label}</a
 					>
 					{#if entry.secondaryCta}
-						<a href={resolveHref(entry.secondaryCta.href, 'secondary')} class="btn btn-secondary material-button-3d">
+						<a
+							href={resolveHref(entry.secondaryCta.href, 'secondary')}
+							class="btn btn-secondary material-button-3d"
+						>
 							{entry.secondaryCta.label}
 						</a>
 					{/if}
-					<a href={resolveHref(hubHref, 'hub')} class="btn btn-secondary material-button-3d">{hubLabel}</a>
+					<a href={resolveHref(hubHref, 'hub')} class="btn btn-secondary material-button-3d"
+						>{hubLabel}</a
+					>
 				</div>
 				<div class="public-article-page__glance">
 					<article>
@@ -107,7 +113,10 @@
 				{#if entry.downloads.length > 0}
 					<div class="public-page__actions-row">
 						{#each entry.downloads as download (download.href)}
-							<a href={resolveHref(download.href, 'download')} class="btn btn-secondary material-button-3d">
+							<a
+								href={resolveHref(download.href, 'download')}
+								class="btn btn-secondary material-button-3d"
+							>
 								{download.label}
 							</a>
 						{/each}

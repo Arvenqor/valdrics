@@ -3,7 +3,7 @@ export type UnitEconomicsMetricView = {
 	is_anomalous: boolean;
 };
 
-export function toIsoDate(value: Date): string {
+function toIsoDate(value: Date): string {
 	return value.toISOString().slice(0, 10);
 }
 

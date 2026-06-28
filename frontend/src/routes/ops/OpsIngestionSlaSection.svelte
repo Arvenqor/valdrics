@@ -38,7 +38,11 @@
 			<div class="flex items-end gap-2">
 				<label class="text-xs text-ink-400">
 					<span class="block mb-1">Window</span>
-					<select class="input text-xs" bind:value={ingestionSlaWindowHours} aria-label="SLA Window">
+					<select
+						class="input text-xs"
+						bind:value={ingestionSlaWindowHours}
+						aria-label="SLA Window"
+					>
 						<option value={24}>Last 24h</option>
 						<option value={72}>Last 72h</option>
 						<option value={168}>Last 7d</option>
